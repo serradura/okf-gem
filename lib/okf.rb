@@ -27,4 +27,12 @@ module OKF
   end
 
   require "okf/version"
+
+  # ── kernel: cross-cutting primitives ──
+  require "okf/path"
+
+  # ── Markdown: parse structure out of a markdown document (§4/§5/§8) ──
+  require "okf/markdown/frontmatter"
+  require "okf/markdown/links"
+  require "okf/markdown/citations"
 end
