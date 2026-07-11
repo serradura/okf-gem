@@ -1,4 +1,9 @@
-# okf-gem
+<p align="center">
+<h1 align="center">
+  <img src=".github/logo.svg" alt="" width="128"><br/>
+  <i>okf-gem</i>
+</h1>
+</p>
 
 > A rough project, cut and polished into a jewel. And like any jewel, what it is
 > worth comes down to what it does with knowledge: reading it, validating it,
@@ -6,8 +11,8 @@
 
 **okf-gem** reads, validates, lints, and serves **Open Knowledge Format (OKF)**
 v0.1 bundles. OKF is portable knowledge: a directory of Markdown files with YAML
-frontmatter that both humans and agents read. Each file is a *concept*; a
-directory of them is a *bundle*. Over such a bundle the gem gives you five
+frontmatter that both humans and agents read. Each file is a _concept_; a
+directory of them is a _bundle_. Over such a bundle the gem gives you five
 things: a library API, a conformance validator, a curation linter, an
 interactive graph server, and a companion agent skill. All but the library API
 are reachable through one `okf` command-line tool.
@@ -51,8 +56,9 @@ okf --version
 Exit codes: `0` success, `1` non-conformant bundle (or a `lint --fail-on`
 threshold crossed), `2` usage error.
 
-Section numbers like §5, §8, and §9 refer to the OKF v0.1 spec, bundled with the
-skill at [`lib/okf/skill/reference/SPEC.md`](lib/okf/skill/reference/SPEC.md).
+> [!NOTE]
+> Section numbers like §5, §8, and §9 refer to the OKF v0.1 spec, bundled with
+> the skill at [`lib/okf/skill/reference/SPEC.md`](lib/okf/skill/reference/SPEC.md).
 
 ```bash
 $ okf validate docs
@@ -66,8 +72,18 @@ $ okf server docs
 serving 37 concepts at http://127.0.0.1:8808 (Ctrl-C to stop)
 ```
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/server-dark.png">
+  <img src=".github/server-dark.png" alt="The okf graph server: a force-directed knowledge graph with a concept selected, its neighbors highlighted, and the inspector panel showing the concept's type, tags, cross-links, and rendered Markdown body.">
+</picture>
+
+_The graph server on this repo's own [`.okf`](.okf) bundle, with the
+`capabilities/graph-server` concept selected._
+
 `graph` and `server` are best-effort (§9): a file with invalid frontmatter is
 skipped (and noted on stderr), not fatal, so one bad file never breaks the rest.
+Before serving a bundle you did not author, read the
+[server trust boundary](#server-trust-boundary).
 
 `lint` reports curation quality (reachability, backlog, completeness, freshness,
 provenance, and hygiene) separately from `validate`. It is advisory: it exits
@@ -93,7 +109,7 @@ OKF lint — docs
 `loose` lists the files that float in the graph: concepts with no cross-links
 in or out (graph degree 0), grouped by folder. It is a curation lens over
 `lint`'s `unlinked` check, distinct from `orphan`. An `index.md` listing makes a
-file *reachable* (not an orphan) but is not a graph edge, so a listed file
+file _reachable_ (not an orphan) but is not a graph edge, so a listed file
 can still be loose. A loose file may be fine: a terminal leaf like a backlog
 item is loose by design. `loose` surfaces the set for you to judge and
 always exits `0`.
@@ -200,9 +216,9 @@ bundle that fails §9.
 
 ### Curation model (`lint`)
 
-`validate` asks *"is this §9-conformant?"* and is forbidden by §9 to reject for
+`validate` asks _"is this §9-conformant?"_ and is forbidden by §9 to reject for
 broken links or missing optional fields. `lint` asks the complementary question,
-*"is this well-curated, navigable, trustworthy?"*, over exactly those tolerated
+_"is this well-curated, navigable, trustworthy?"_, over exactly those tolerated
 things. The two stay separate: `lint` has its own `OKF::Bundle::Linter` and
 report, never emits conformance errors, and is advisory unless you pass
 `--fail-on warn`.
@@ -214,16 +230,18 @@ islands, unlinked), **backlog** (demand-ranked missing concepts, broken index en
 spec §8), and **hygiene** (duplicate titles, unused/undefined reference links,
 self-links). Select with `--only`/`--except`; `--json` emits the full report as JSON.
 
-Two loop concerns from the format's own guidance, *contradictions* and *semantic*
+Two loop concerns from the format's own guidance, _contradictions_ and _semantic_
 staleness, need to understand meaning and are not computed here; `lint --json`
 is the structured input an agent consumes to reason about those.
 
 ## Server trust boundary
 
-The served page loads Cytoscape and marked from a CDN and renders each concept's
-Markdown body **without sanitization**, so only serve bundles you trust. Inlined
-graph data still cannot break out of its `<script>` (`<` is escaped), but the
-fetched Markdown is rendered unsanitized.
+> [!WARNING]
+> The served page loads its JavaScript (Cytoscape, marked, mermaid, and layout
+> plugins) from a CDN and renders each concept's Markdown body **without
+> sanitization**, so only serve bundles you trust. Inlined graph data still
+> cannot break out of its `<script>` (`<` is escaped), but the fetched Markdown
+> is rendered unsanitized.
 
 ## Development
 
