@@ -1,21 +1,22 @@
 # okf-gem
 
-> A rough project, cut and polished into a jewel — and like any jewel, its value
-> is measured by what it does with knowledge: reading it, validating it,
+> A rough project, cut and polished into a jewel. And like any jewel, what it is
+> worth comes down to what it does with knowledge: reading it, validating it,
 > curating it, and putting it on display.
 
 **okf-gem** reads, validates, lints, and serves **Open Knowledge Format (OKF)**
 v0.1 bundles. OKF is portable knowledge: a directory of Markdown files with YAML
-frontmatter that both humans and agents read. Over such a bundle this gem gives
-you five things — a **library API**, a **conformance validator**, a **curation
-linter**, an **interactive graph server**, and the **companion agent skill**
-that drives all of it — behind one `okf` command-line tool.
+frontmatter that both humans and agents read. Each file is a *concept*; a
+directory of them is a *bundle*. Over such a bundle the gem gives you five
+things: a library API, a conformance validator, a curation linter, an
+interactive graph server, and a companion agent skill. All but the library API
+are reachable through one `okf` command-line tool.
 
 It is deliberately light so it runs on the Ruby your OS already ships:
 
-- works on **every Ruby since 2.4** — the same floor as [rack](https://github.com/rack/rack),
+- works on every Ruby since 2.4, the same floor as [rack](https://github.com/rack/rack),
   its core dependency;
-- only **two runtime dependencies**: `rack` (the server is a mountable Rack app)
+- only two runtime dependencies: `rack` (the server is a mountable Rack app)
   and `webrick` (unbundled from Ruby in 3.0);
 - no ActiveSupport, no build step, no JavaScript toolchain.
 
@@ -27,7 +28,7 @@ gem install okf
 bundle add okf
 ```
 
-From a checkout — builds the gem and installs it into your Ruby environment,
+From a checkout, this builds the gem and installs it into your Ruby environment,
 putting the `okf` command on your `PATH`:
 
 ```bash
@@ -50,11 +51,15 @@ okf --version
 Exit codes: `0` success, `1` non-conformant bundle (or a `lint --fail-on`
 threshold crossed), `2` usage error.
 
+Section numbers like §5, §8, and §9 refer to the OKF v0.1 spec, bundled with the
+skill at [`lib/okf/skill/reference/SPEC.md`](lib/okf/skill/reference/SPEC.md).
+
 ```bash
 $ okf validate docs
 OKF v0.1 conformance — docs
-  concepts: 37   index.md: 9   log.md: 1
+  concepts: 37   index.md: 10   log.md: 1
   ! warn  features/link-suggestions.md: cross-link target not found: `/graph-view.md` (tolerated under §5.3)
+  …
   ✓ conformant (33 warning(s))
 
 $ okf server docs
@@ -64,8 +69,8 @@ serving 37 concepts at http://127.0.0.1:8808 (Ctrl-C to stop)
 `graph` and `server` are best-effort (§9): a file with invalid frontmatter is
 skipped (and noted on stderr), not fatal, so one bad file never breaks the rest.
 
-`lint` reports curation quality — reachability, backlog, completeness, freshness,
-provenance, and hygiene — separately from `validate`. It is **advisory**: it exits
+`lint` reports curation quality (reachability, backlog, completeness, freshness,
+provenance, and hygiene) separately from `validate`. It is advisory: it exits
 `0` even with findings unless you opt into gating with `--fail-on warn`.
 
 ```bash
@@ -85,45 +90,47 @@ OKF lint — docs
   ⚠ 3 warn, 31 info
 ```
 
-`loose` lists the files that float in the graph — concepts with **no cross-links
-in or out** (graph degree 0) — grouped by folder. It is a curation lens over
-`lint`'s `unlinked` check, distinct from `orphan`: an `index.md` listing makes a
-file *reachable* (not an orphan) but is **not a graph edge**, so a listed file
-can still be loose. A loose file may be fine — a terminal leaf like a backlog
-item is loose by design — so `loose` surfaces the set for you to judge, and
+`loose` lists the files that float in the graph: concepts with no cross-links
+in or out (graph degree 0), grouped by folder. It is a curation lens over
+`lint`'s `unlinked` check, distinct from `orphan`. An `index.md` listing makes a
+file *reachable* (not an orphan) but is not a graph edge, so a listed file
+can still be loose. A loose file may be fine: a terminal leaf like a backlog
+item is loose by design. `loose` surfaces the set for you to judge and
 always exits `0`.
 
 ## Agent skill
 
-The gem carries the companion **OKF agent skill** — a `SKILL.md` plus reference
+The gem carries the companion OKF agent skill: a `SKILL.md` plus reference
 and template files that teach a coding agent to author, maintain, and consume OKF
 bundles and to drive the commands above. Because the skill ships inside the gem,
 installing the gem already puts the skill on your machine, and the skill's
 CLI reference can never drift from the executable it was released with.
 
-Point it at wherever your agent looks for skills — the tree lands in its own
-`okf/` folder there, so a shared skills directory never gets the files loose:
+Point it at your agent's config directory (or its skills directory) and the tree
+settles in its own `skills/okf/` folder, so a shared skills directory never gets
+the files loose:
 
 ```bash
-okf skill .claude/skills     # Claude Code      -> .claude/skills/okf
-okf skill .agents/skills     # agent-agnostic   -> .agents/skills/okf
+okf skill .claude     # Claude Code      -> .claude/skills/okf
+okf skill .agents     # agent-agnostic   -> .agents/skills/okf
 ```
 
-The destination is required (no default). It resolves to `<dest>/okf` unless
-`<dest>` is already named `okf` (then it is used as-is) or you pass `--here` to
-install straight into `<dest>`. The resolved directory must be empty unless you
-pass `--force`, so a customized skill is never clobbered.
+The destination is required (no default). The skill lands in `<dest>/skills/okf`,
+unless `<dest>` already ends in `skills` (→ `<dest>/okf`) or `okf` (used as-is).
+Pass `--here` to paste the tree straight into `<dest>`, wherever it is. The
+resolved directory must be empty unless you pass `--force`, so a customized skill
+is never clobbered.
 
 ## Library
 
-The gem is two layers: **pure in-memory data** (`OKF::Concept`, `OKF::Bundle`)
-you build, interrogate, and analyze with no disk involved, and **on-disk
-handles** (`OKF::Concept::File`, `OKF::Bundle::Folder`) that add
-load/save/reload/delete — an "ActiveRecord for the filesystem".
+The gem is two layers: pure in-memory data (`OKF::Concept`, `OKF::Bundle`)
+you build, interrogate, and analyze with no disk involved, and on-disk
+handles (`OKF::Concept::File`, `OKF::Bundle::Folder`) that add
+load/save/reload/delete, an "ActiveRecord for the filesystem".
 
 ### Pure, in-memory (no disk)
 
-Build knowledge straight from data — no markdown round-trip — and run every
+Build knowledge straight from data, with no markdown round-trip, and run every
 feature against it. This is the surface an embedding app (e.g. a Rails store)
 uses to reuse the gem over knowledge it already holds as records:
 
@@ -176,40 +183,39 @@ The lower-level pieces are usable on their own too: `OKF::Bundle::Validator.call
 
 ### Conformance model
 
-`validate` implements the spec's §9 conformance definition exactly — three hard
-conditions, all errors:
+`validate` implements the spec's [§9 conformance definition](lib/okf/skill/reference/SPEC.md#9-conformance)
+exactly. There are three hard conditions, all errors:
 
 - **§9.1** every non-reserved file has a parseable YAML frontmatter block;
 - **§9.2** every such block has a non-empty `type`;
-- **§9.3** every `index.md`/`log.md` present follows §6/§7 — a nested `index.md`
+- **§9.3** every `index.md`/`log.md` present follows §6/§7: a nested `index.md`
   has no frontmatter, a root `index.md` carries only `okf_version`, and `log.md`
   date headings are ISO `YYYY-MM-DD`.
 
-Everything the spec marks as soft guidance is a **warning** and never makes a
+Everything the spec marks as soft guidance is a warning and never makes a
 bundle non-conformant: missing recommended fields, non-list tags, an unparseable
-timestamp, and **broken cross-links (§5.3)**, which consumers MUST tolerate.
+timestamp, and broken cross-links (§5.3), which consumers MUST tolerate.
 `OKF::Bundle::Folder#save` validates before publishing, so it never writes a
 bundle that fails §9.
 
 ### Curation model (`lint`)
 
-`validate` asks *"is this §9-conformant?"* — and is forbidden by §9 to reject for
+`validate` asks *"is this §9-conformant?"* and is forbidden by §9 to reject for
 broken links or missing optional fields. `lint` asks the complementary question,
 *"is this well-curated, navigable, trustworthy?"*, over exactly those tolerated
 things. The two stay separate: `lint` has its own `OKF::Bundle::Linter` and
 report, never emits conformance errors, and is advisory unless you pass
 `--fail-on warn`.
 
-Checks span six categories — **reachability** (orphans, not-in-index, disconnected
-islands), **backlog** (demand-ranked missing concepts, broken index entries),
+Checks span six categories: **reachability** (orphans, not-in-index, disconnected
+islands, unlinked), **backlog** (demand-ranked missing concepts, broken index entries),
 **completeness** (stubs, missing title/description/timestamp), **freshness**
 (`--stale-after`), **provenance** (uncited external claims, broken citations,
 spec §8), and **hygiene** (duplicate titles, unused/undefined reference links,
-self-links). Select with `--only`/`--except`; `--json` emits the full report as a
-machine substrate.
+self-links). Select with `--only`/`--except`; `--json` emits the full report as JSON.
 
-Two loop concerns from the format's own guidance — *contradictions* and *semantic*
-staleness — need to understand meaning and are **not** computed here; `lint --json`
+Two loop concerns from the format's own guidance, *contradictions* and *semantic*
+staleness, need to understand meaning and are not computed here; `lint --json`
 is the structured input an agent consumes to reason about those.
 
 ## Server trust boundary
@@ -245,6 +251,8 @@ the [code of conduct](CODE_OF_CONDUCT.md).
 ## License
 
 The gem is available as open source under the terms of the
-[MIT License](https://opensource.org/licenses/MIT). The Open Knowledge Format
-specification bundled with the skill is authored by Google Cloud Platform and
-redistributed under Apache 2.0 (see `NOTICE`).
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) (see
+`LICENSE.txt`). The Open Knowledge Format specification bundled with the skill
+is authored by Google Cloud Platform and included under its own Apache-2.0
+license, Copyright (c) Google LLC. See `NOTICE` and
+`lib/okf/skill/reference/APACHE-2.0.txt`.
