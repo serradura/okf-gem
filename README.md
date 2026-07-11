@@ -43,7 +43,7 @@ okf loose     <dir> [--json]                            # list files with no gra
 okf server    <dir> [-p PORT] [--bind ADDR] [...]       # serve the interactive graph over HTTP
 okf graph     <dir> [--json] [--minimal] [--no-body]    # print the knowledge graph
 okf catalog | files | tags | stats  <dir> [--json]      # the browser views, on the CLI
-okf skill     <dest> [--force]                          # install the companion agent skill
+okf skill     <dest> [--here] [--force]                 # install the companion agent skill
 okf --version
 ```
 
@@ -101,15 +101,18 @@ bundles and to drive the commands above. Because the skill ships inside the gem,
 installing the gem already puts the skill on your machine, and the skill's
 CLI reference can never drift from the executable it was released with.
 
-Drop it into your project wherever your agent looks for skills:
+Point it at wherever your agent looks for skills — the tree lands in its own
+`okf/` folder there, so a shared skills directory never gets the files loose:
 
 ```bash
-okf skill .claude/skills/okf     # Claude Code
-okf skill .agents/skills/okf     # agent-agnostic layout
+okf skill .claude/skills     # Claude Code      -> .claude/skills/okf
+okf skill .agents/skills     # agent-agnostic   -> .agents/skills/okf
 ```
 
-The destination is required (no default) and must be empty unless you pass
-`--force`, so a customized skill is never clobbered.
+The destination is required (no default). It resolves to `<dest>/okf` unless
+`<dest>` is already named `okf` (then it is used as-is) or you pass `--here` to
+install straight into `<dest>`. The resolved directory must be empty unless you
+pass `--force`, so a customized skill is never clobbered.
 
 ## Library
 

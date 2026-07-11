@@ -18,13 +18,18 @@ the mechanics.
 # `okf skill <dest>` installs it
 
 `OKF::Skill.install` copies the skill into a destination you name — Claude Code's
-`.claude/skills/okf`, an agent-agnostic `.agents/skills/okf`, wherever your agent
-looks. The rules are deliberate:
+`.claude/skills`, an agent-agnostic `.agents/skills`, wherever your agent looks.
+The rules are deliberate:
 
 - the **destination is required** — no magic default — so a user always decides
   where the skill lands;
-- the destination must be **empty unless `--force`**, so a customized skill is
-  never clobbered.
+- it **nests under an `okf/` subfolder** by default (`.claude/skills` →
+  `.claude/skills/okf`), because an agent discovers a skill as
+  `<skills-dir>/<name>/SKILL.md` — so pointing at a shared skills directory drops
+  the skill in its own folder, not loose among the others. A `<dest>` already
+  named `okf` is used as-is (idempotent); `--here` installs straight into it;
+- the resolved directory must be **empty unless `--force`**, so a customized
+  skill is never clobbered.
 
 # One canonical copy, versioned with the gem
 

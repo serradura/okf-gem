@@ -263,13 +263,16 @@ module OKF
     end
 
     # Install this gem's companion agent skill into a destination directory. The
-    # destination is required (no magic default) and must be given explicitly so a
-    # user always decides where their agent picks the skill up (e.g.
-    # .claude/skills/okf for Claude Code, .agents/skills/okf for agent-agnostic).
+    # destination is required (no magic default) so the user always decides where
+    # their agent picks the skill up. By default it is nested under an okf/
+    # subfolder — point at a skills dir (.claude/skills, .agents/skills) and the
+    # skill lands in its own folder, never loose among the others — so the resolved
+    # path is echoed back. --here installs straight into <dest-dir> instead.
     def skill(argv)
-      options = { force: false }
+      options = { force: false, nest: true }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf skill <dest-dir> [--force]"
+        o.banner = "Usage: okf skill <dest-dir> [--here] [--force]"
+        o.on("--here", "install straight into <dest-dir> (no okf/ subfolder)") { options[:nest] = false }
         o.on("--force", "overwrite a non-empty destination") { options[:force] = true }
       end
       parser.parse!(argv)
@@ -279,10 +282,11 @@ module OKF
         return 2
       end
 
-      files = OKF::Skill.install(dest, force: options[:force])
-      @out.puts "installed the okf skill (#{files.size} files) -> #{dest}"
+      skill = OKF::Skill.new(dest, force: options[:force], nest: options[:nest])
+      files = skill.install
+      @out.puts "installed the okf skill (#{files.size} files) -> #{skill.dest}"
       files.each { |f| @out.puts "  #{f}" }
-      @out.puts "your agent picks it up from #{dest} (needs the `okf` CLI, which you already have)."
+      @out.puts "your agent picks it up from #{skill.dest} (needs the `okf` CLI, which you already have)."
       0
     rescue OptionParser::ParseError => e
       @err.puts e.message
@@ -554,7 +558,7 @@ module OKF
       io.puts <<~USAGE
         okf <command> [options]
 
-          skill     <dest> [--force]                        install the companion agent skill
+          skill     <dest> [--here] [--force]               install the companion agent skill
           server    <dir> [-p PORT] [--bind ADDR] [...]     serve an interactive HTML graph
 
           lint      <dir> [--json] [--fail-on warn] [...]   report curation-quality issues

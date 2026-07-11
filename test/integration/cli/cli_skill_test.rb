@@ -22,6 +22,35 @@ class CLISkillTest < CLIIntegrationCase
     end
   end
 
+  test "nests the skill under okf/ when pointed at a skills dir" do
+    dest = File.join(@out_dir, "skills")
+    result = okf("skill", dest)
+
+    installed = File.join(dest, "okf")
+    assert_equal 0, result.status
+    assert File.file?(File.join(installed, "SKILL.md")), "expected the skill under skills/okf"
+    assert_match(/-> #{Regexp.escape(installed)}\b/, result.out)
+    refute File.file?(File.join(dest, "SKILL.md")), "must not splatter files loose in the skills dir"
+  end
+
+  test "a destination already named okf is used as-is (no okf/okf)" do
+    dest = File.join(@out_dir, "skills", "okf")
+    result = okf("skill", dest)
+
+    assert_equal 0, result.status
+    assert File.file?(File.join(dest, "SKILL.md"))
+    refute File.directory?(File.join(dest, "okf")), "must not double-nest okf/okf"
+  end
+
+  test "--here installs straight into the destination without nesting" do
+    dest = File.join(@out_dir, "skills")
+    result = okf("skill", dest, "--here")
+
+    assert_equal 0, result.status
+    assert File.file?(File.join(dest, "SKILL.md")), "expected files straight in the given dir"
+    refute File.directory?(File.join(dest, "okf")), "--here must not nest an okf/ folder"
+  end
+
   test "a missing destination is a usage error (exit 2)" do
     result = okf("skill")
 

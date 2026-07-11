@@ -16,14 +16,25 @@ module OKF
     # The canonical skill tree, bundled in the sibling skill/ directory.
     ASSETS = File.expand_path("skill", __dir__)
 
-    def self.install(dest, force: false)
-      new(dest, force: force).install
+    # The skill's own directory name. An agent discovers a skill as
+    # <skills-dir>/<name>/SKILL.md, so by default (nest: true) the tree is
+    # installed under a <dest>/okf subdirectory: pointing `okf skill` at a shared
+    # skills directory drops the skill in its own folder instead of splattering its
+    # files loose among the others. A <dest> already named "okf" is taken as-is
+    # (idempotent), and nest: false installs straight into <dest>.
+    NAME = "okf"
+
+    def self.install(dest, force: false, nest: true)
+      new(dest, force: force, nest: nest).install
     end
 
     attr_reader :dest
 
-    def initialize(dest, force: false)
-      @dest = File.expand_path(dest.to_s)
+    def initialize(dest, force: false, nest: true)
+      target = dest.to_s
+      target = File.join(target, NAME) if nest && File.basename(target) != NAME
+      @dest = target
+      @path = File.expand_path(target)
       @force = force
     end
 
@@ -31,15 +42,15 @@ module OKF
     # a non-empty directory unless forced, so an existing (possibly customized)
     # skill is never silently clobbered. Returns the relative paths written.
     def install
-      if File.exist?(@dest) && !File.directory?(@dest)
+      if File.exist?(@path) && !File.directory?(@path)
         raise Error, "destination #{@dest} exists and is not a directory"
       end
-      if File.directory?(@dest) && !Dir.empty?(@dest) && !@force
+      if File.directory?(@path) && !Dir.empty?(@path) && !@force
         raise Error, "destination #{@dest} is not empty (pass --force to overwrite)"
       end
 
-      FileUtils.mkdir_p(@dest)
-      FileUtils.cp_r(File.join(ASSETS, "."), @dest)
+      FileUtils.mkdir_p(@path)
+      FileUtils.cp_r(File.join(ASSETS, "."), @path)
       files
     end
 
