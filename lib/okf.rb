@@ -44,4 +44,10 @@ module OKF
   require "okf/bundle/validator/result"
   require "okf/bundle/linter"
   require "okf/bundle/linter/report"
+
+  # ── shell: everything that touches the outside world ──
+  require "okf/concept/file"
+  require "okf/bundle/reader"
+  require "okf/bundle/writer"
+  require "okf/bundle/folder"
 end
