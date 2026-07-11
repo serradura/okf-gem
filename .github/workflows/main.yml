@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Ruby ${{ matrix.ruby }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # The full support range: 2.4 is the floor (rack's own), newest is the
+        # current stable. Rubies that predate ubuntu-latest's toolchain run on
+        # the older image ruby/setup-ruby still builds them for.
+        include:
+          - { ruby: "2.4", os: ubuntu-22.04 }
+          - { ruby: "2.5", os: ubuntu-22.04 }
+          - { ruby: "2.6", os: ubuntu-22.04 }
+          - { ruby: "2.7", os: ubuntu-latest }
+          - { ruby: "3.0", os: ubuntu-latest }
+          - { ruby: "3.1", os: ubuntu-latest }
+          - { ruby: "3.2", os: ubuntu-latest }
+          - { ruby: "3.3", os: ubuntu-latest }
+          - { ruby: "3.4", os: ubuntu-latest }
+          - { ruby: "4.0", os: ubuntu-latest }
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run the default task
+        run: bundle exec rake
