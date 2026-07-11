@@ -22,7 +22,18 @@ class CLISkillTest < CLIIntegrationCase
     end
   end
 
-  test "nests the skill under okf/ when pointed at a skills dir" do
+  test "inserts skills/okf when pointed at a project dir" do
+    dest = File.join(@out_dir, "dot-claude")
+    result = okf("skill", dest)
+
+    installed = File.join(dest, "skills", "okf")
+    assert_equal 0, result.status
+    assert File.file?(File.join(installed, "SKILL.md")), "expected the skill under <dest>/skills/okf"
+    assert_match(/-> #{Regexp.escape(installed)}\b/, result.out)
+    refute File.file?(File.join(dest, "SKILL.md")), "must not paste files loose in the given dir"
+  end
+
+  test "adds only okf/ when pointed at a skills dir" do
     dest = File.join(@out_dir, "skills")
     result = okf("skill", dest)
 
@@ -30,7 +41,8 @@ class CLISkillTest < CLIIntegrationCase
     assert_equal 0, result.status
     assert File.file?(File.join(installed, "SKILL.md")), "expected the skill under skills/okf"
     assert_match(/-> #{Regexp.escape(installed)}\b/, result.out)
-    refute File.file?(File.join(dest, "SKILL.md")), "must not splatter files loose in the skills dir"
+    refute File.file?(File.join(dest, "SKILL.md")), "must not double up skills/skills"
+    refute File.directory?(File.join(dest, "skills")), "must not double up skills/skills"
   end
 
   test "a destination already named okf is used as-is (no okf/okf)" do

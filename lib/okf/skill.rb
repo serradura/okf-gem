@@ -16,13 +16,19 @@ module OKF
     # The canonical skill tree, bundled in the sibling skill/ directory.
     ASSETS = File.expand_path("skill", __dir__)
 
-    # The skill's own directory name. An agent discovers a skill as
-    # <skills-dir>/<name>/SKILL.md, so by default (nest: true) the tree is
-    # installed under a <dest>/okf subdirectory: pointing `okf skill` at a shared
-    # skills directory drops the skill in its own folder instead of splattering its
-    # files loose among the others. A <dest> already named "okf" is taken as-is
-    # (idempotent), and nest: false installs straight into <dest>.
+    # An agent discovers a skill as <skills-dir>/<name>/SKILL.md, so by default
+    # (nest: true) the tree lands in a skills/okf/ folder under the destination:
+    #
+    #   okf skill .claude         -> .claude/skills/okf   (adds skills/ then okf/)
+    #   okf skill .agents/skills  -> .agents/skills/okf   (already a skills dir)
+    #   okf skill .../skills/okf  -> .../skills/okf        (already the skill dir)
+    #
+    # Point it at a project or skills directory and the skill settles in its own
+    # folder instead of splattering its files loose among the others. Pass
+    # nest: false (`--here`) to install straight into the destination, wherever it
+    # is.
     NAME = "okf"
+    SKILLS_DIR = "skills"
 
     def self.install(dest, force: false, nest: true)
       new(dest, force: force, nest: nest).install
@@ -31,10 +37,8 @@ module OKF
     attr_reader :dest
 
     def initialize(dest, force: false, nest: true)
-      target = dest.to_s
-      target = File.join(target, NAME) if nest && File.basename(target) != NAME
-      @dest = target
-      @path = File.expand_path(target)
+      @dest = nest ? resolve(dest.to_s) : dest.to_s
+      @path = File.expand_path(@dest)
       @force = force
     end
 
@@ -60,6 +64,19 @@ module OKF
          .select { |path| File.file?(path) }
          .map { |path| path[(ASSETS.length + 1)..-1] }
          .sort
+    end
+
+    private
+
+    # Resolve the destination to a skills/okf leaf, so the skill always sits in its
+    # own folder under whatever the user pointed at. A destination already named
+    # okf is the skill dir itself (idempotent); one named skills only needs okf/.
+    def resolve(dest)
+      case File.basename(dest)
+      when NAME then dest
+      when SKILLS_DIR then File.join(dest, NAME)
+      else File.join(dest, SKILLS_DIR, NAME)
+      end
     end
   end
 end

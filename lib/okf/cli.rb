@@ -264,15 +264,15 @@ module OKF
 
     # Install this gem's companion agent skill into a destination directory. The
     # destination is required (no magic default) so the user always decides where
-    # their agent picks the skill up. By default it is nested under an okf/
-    # subfolder — point at a skills dir (.claude/skills, .agents/skills) and the
-    # skill lands in its own folder, never loose among the others — so the resolved
-    # path is echoed back. --here installs straight into <dest-dir> instead.
+    # their agent picks the skill up. By default the skill lands in a skills/okf/
+    # folder under it — point at a project or skills dir (.claude, .agents/skills)
+    # and it settles in its own folder, never loose among the others — so the
+    # resolved path is echoed back. --here installs straight into <dest-dir>.
     def skill(argv)
       options = { force: false, nest: true }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf skill <dest-dir> [--here] [--force]"
-        o.on("--here", "install straight into <dest-dir> (no okf/ subfolder)") { options[:nest] = false }
+        o.on("--here", "install straight into <dest-dir>, wherever it is (no skills/okf nesting)") { options[:nest] = false }
         o.on("--force", "overwrite a non-empty destination") { options[:force] = true }
       end
       parser.parse!(argv)
