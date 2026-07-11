@@ -16,7 +16,7 @@ class CLIMiscTest < CLIIntegrationCase
 
     assert_equal 0, result.status
     assert_match(/okf <command> \[options\]/, result.out)
-    %w[skill server validate lint loose catalog files tags stats graph].each do |command|
+    %w[skill server validate lint loose catalog files tags types stats graph].each do |command|
       assert_match(/^\s+#{command}\s+\S.*/, result.out, "help should list the `#{command}` command")
     end
   end

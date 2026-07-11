@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+- `okf types`: the type index as a CLI view — every type with its concepts,
+  ordered by count, `--json` for the machine shape (parity with the server's
+  `/types` endpoint).
+- The CLI list views narrow with the same filters the browser offers:
+  `--type` / `--area` / `--tag` on `catalog` and `files`, `--type` / `--area` on
+  `tags`, `--area` / `--tag` on `types`. Case-insensitive; a filter that matches
+  nothing is an empty view, not an error.
+- Concepts at the bundle root now report area `(root)` (previously their own id),
+  so `stats --json` `by_area` and the catalog grouping match the server UI;
+  `--area root` selects them.
+- Server UI: the Tags view gains type/area filters, the Files view a tag
+  combobox, the Catalog filters grow Areas and Tags groups, and both the graph
+  and catalog filter panels get a find box that narrows the filter chips
+  themselves (searching reaches all tags, not just the top 40).
+
 ## [0.1.0] - 2026-07-11
 
 Initial release.

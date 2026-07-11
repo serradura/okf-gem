@@ -1,7 +1,7 @@
 # OKF tool verbs — the `okf` CLI
 
-`validate`, `lint`, `loose`, `catalog`, `files`, `tags`, `stats`, `server`, and `graph`
-are **not** eyeball passes and are not
+`validate`, `lint`, `loose`, `catalog`, `files`, `tags`, `types`, `stats`, `server`,
+and `graph` are **not** eyeball passes and are not
 reimplemented in this skill. They run the deterministic `okf` executable shipped by
 the companion gem — the single source of truth for OKF mechanics. Your job is to
 invoke it correctly and interpret the result, not to reason out conformance by hand.
@@ -21,9 +21,10 @@ command -v okf >/dev/null || echo "okf CLI not found — install it: 'gem instal
 okf validate  <dir> [--json]
 okf lint      <dir> [--json] [--fail-on warn] [--only a,b] [--except a,b] [--min-body N] [--stale-after DUR]
 okf loose     <dir> [--json]
-okf catalog   <dir> [--json]
-okf files     <dir> [--json]
-okf tags      <dir> [--json]
+okf catalog   <dir> [--json] [--type T] [--area A] [--tag T]
+okf files     <dir> [--json] [--type T] [--area A] [--tag T]
+okf tags      <dir> [--json] [--type T] [--area A]
+okf types     <dir> [--json] [--area A] [--tag T]
 okf stats     <dir> [--json]
 okf server    <dir> [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url]
 okf graph     <dir> [--json] [--minimal] [--no-body]
@@ -98,9 +99,9 @@ have no cross-links, so it floats in the graph while `lint` reports it as reacha
 defect — a terminal leaf (a backlog item, a spec reference) can be loose by design;
 `loose` surfaces the set so you can judge intent (see `maintain` in authoring.md).
 
-## catalog / files / tags / stats — the server views, as text
+## catalog / files / tags / types / stats — the server views, as text
 
-The browser server (below) has Catalog, Files, Tags and Stats panels; these four
+The browser server (below) has Catalog, Files, Tags and Stats panels; these
 verbs reproduce them on the CLI so an agent can read a bundle without a browser.
 All are advisory reads (exit 0) sharing one data source (per-concept metadata plus
 in/out link degree). Add `--json` to any for a machine substrate.
@@ -115,9 +116,21 @@ in/out link degree). Add `--json` to any for a machine substrate.
 - **`tags`** — every tag with the concepts that carry it, ordered by count
   descending. The "what themes dominate" view. JSON: `{ bundle, count, tags: [{ tag,
   count, concepts: [id, …] }] }`.
+- **`types`** — every type with the concepts that carry it, ordered by count
+  descending. The "what kinds of knowledge" view. JSON: `{ bundle, count, types:
+  [{ type, count, concepts: [id, …] }] }`.
 - **`stats`** — bundle rollups: concept / area / type / cross-link / distinct-tag
   totals plus per-type and per-area breakdowns. The "shape at a glance" view. JSON:
   `{ bundle, concepts, areas, concept_types, cross_links, distinct_tags, by_type, by_area }`.
+
+The four list views narrow with the same filters the browser panels offer —
+`--type TYPE`, `--area AREA`, `--tag TAG`; each takes the ones orthogonal to
+itself (`tags` can't filter by tag). Matching is case-insensitive and exact; a
+concept at the bundle root lives in the `(root)` area, which `--area` also accepts
+as plain `root` (no shell quoting). A filter that matches nothing is an empty view,
+not an error: `okf tags <dir> --area billing --json` answers "which tags does the
+billing area use?", `okf catalog <dir> --tag auth` answers "what carries the auth
+tag?".
 
 Reach for `stats` first to size a bundle, `catalog`/`files` to enumerate it, `tags`
 to find thematic clusters — all without standing up the server.
@@ -131,8 +144,8 @@ fetches each concept's markdown body **live from disk** as you click it, so the
 initial load stays small and edits show without a restart. Concepts render as nodes
 coloured by `type` and sized by degree, links as edges, with a detail panel
 (rendered markdown, "Links to" / "Linked from" backlinks), layout switching,
-per-type filter, and search. It is a Rack app, so the same server can be mounted in
-a host app (e.g. Rails).
+type/area/tag filters on every view, and search. It is a Rack app, so the same
+server can be mounted in a host app (e.g. Rails).
 
 **Trust boundary:** the page loads Cytoscape and marked from a CDN and
 renders each concept's markdown body **without sanitization**, so only serve

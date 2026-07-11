@@ -176,6 +176,87 @@ class OKF::CLITest < OKF::TestCase
     assert_equal 2, top["count"]
   end
 
+  test "types lists types by count and --json emits the index" do
+    build_sample
+
+    assert_equal 0, invoke("types", @tmpdir)
+    assert_match(%r{Types — .*\(2 distinct\)}, @out.string)
+    assert_match(/Feature\s+2\s+Alpha, Beta/, @out.string)
+
+    @out = StringIO.new
+    assert_equal 0, invoke("types", @tmpdir, "--json")
+    top = JSON.parse(@out.string)["types"].first
+    assert_equal "Feature", top["type"]
+    assert_equal 2, top["count"]
+  end
+
+  test "types narrows by --tag" do
+    build_sample
+
+    assert_equal 0, invoke("types", @tmpdir, "--tag", "okf", "--json")
+    data = JSON.parse(@out.string)
+    assert_equal %w[Feature Mission], data["types"].map { |row| row["type"] }
+    assert_equal [ "features/a" ], data["types"].first["concepts"]
+  end
+
+  test "tags narrows by --type and --area, dropping emptied tags" do
+    build_sample
+
+    assert_equal 0, invoke("tags", @tmpdir, "--type", "feature")
+    assert_match(/\(2 distinct\)/, @out.string)
+    refute_match(/^\s+m\s/, @out.string)
+
+    @out = StringIO.new
+    assert_equal 0, invoke("tags", @tmpdir, "--area", "product", "--json")
+    data = JSON.parse(@out.string)
+    assert_equal %w[m okf], data["tags"].map { |row| row["tag"] }.sort
+    assert_equal [ "product/mission" ], data["tags"].first["concepts"]
+  end
+
+  test "catalog narrows by --type/--tag and reports the narrowed count" do
+    build_sample
+
+    assert_equal 0, invoke("catalog", @tmpdir, "--type", "feature", "--tag", "okf")
+    assert_match(/\(1 of 3 concepts\)/, @out.string)
+    assert_match(/Alpha/, @out.string)
+    refute_match(/Mission|Beta/, @out.string)
+
+    @out = StringIO.new
+    assert_equal 0, invoke("catalog", @tmpdir, "--area", "product", "--json")
+    data = JSON.parse(@out.string)
+    assert_equal 1, data["count"]
+    assert_equal "product/mission", data["concepts"].first["id"]
+  end
+
+  test "files narrows by --tag" do
+    build_sample
+
+    assert_equal 0, invoke("files", @tmpdir, "--tag", "x")
+    assert_match(/\(2 of 3 files\)/, @out.string)
+    refute_match(/mission\.md/, @out.string)
+  end
+
+  test "a filter matching nothing yields an empty view, not an error" do
+    build_sample
+
+    assert_equal 0, invoke("tags", @tmpdir, "--type", "nope")
+    assert_match(/\(0 distinct\)/, @out.string)
+  end
+
+  test "a concept at the bundle root lives in the (root) area" do
+    write("loose-note.md", concept("Root note"))
+    write("features/a.md", concept("Alpha"))
+
+    assert_equal 0, invoke("stats", @tmpdir, "--json")
+    assert_equal({ "features" => 1, "(root)" => 1 }, JSON.parse(@out.string)["by_area"])
+
+    @out = StringIO.new
+    assert_equal 0, invoke("catalog", @tmpdir, "--area", "root")
+    assert_match(/\(1 of 2 concepts\)/, @out.string)
+    assert_match(/\(root\) \(1\)/, @out.string)
+    assert_match(/Root note/, @out.string)
+  end
+
   test "stats reports rollups and --json emits by_type / by_area" do
     build_sample
 

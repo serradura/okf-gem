@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module OKF
-  # Command-line front end: `okf graph|validate|lint|loose|catalog|files|tags|stats|server <dir>`.
+  # Command-line front end: `okf graph|validate|lint|loose|catalog|files|tags|types|stats|server <dir>`.
   # This is the
   # only layer that parses argv, prints, writes files, and decides exit codes — the
   # lib classes below it just return data. Streams are injectable for testing.
@@ -47,6 +47,7 @@ module OKF
       when "catalog" then catalog(argv)
       when "files" then files(argv)
       when "tags" then tags(argv)
+      when "types" then types(argv)
       when "stats" then stats(argv)
       when "server" then server(argv)
       when "skill" then skill(argv)
@@ -180,53 +181,81 @@ module OKF
     # The Catalog / Files / Tags / Stats views the server renders in the browser,
     # reproduced on the CLI so an agent can read the same knowledge without one.
     # Each prints a scannable human view by default and machine JSON with --json;
-    # all are advisory reads (exit 0). They share OKF::Bundle#catalog for their data.
+    # all are advisory reads (exit 0). They share OKF::Bundle#catalog for their data,
+    # and (with `types`) narrow through the same --type/--area/--tag filters the
+    # server UI offers, so browser and CLI can answer the same questions.
 
     def catalog(argv)
       options = { json: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf catalog <bundle-dir> [--json]"
+        o.banner = "Usage: okf catalog <bundle-dir> [--type T] [--area A] [--tag T] [--json]"
         o.on("--json", "emit the catalog as JSON") { options[:json] = true }
+        filter_flags(o, options, :type, :area, :tag)
       end
       dir = positional_dir(parser, argv) or return 2
 
       folder = OKF::Bundle::Folder.load(dir)
       report_skipped(folder)
       entries = folder.catalog
-      options[:json] ? print_catalog_json(dir, entries) : print_catalog(dir, entries)
+      selected = filter_entries(entries, options)
+      options[:json] ? print_catalog_json(dir, selected) : print_catalog(dir, selected, entries.size)
       0
     end
 
     def files(argv)
       options = { json: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf files <bundle-dir> [--json]"
+        o.banner = "Usage: okf files <bundle-dir> [--type T] [--area A] [--tag T] [--json]"
         o.on("--json", "emit the file tree as JSON") { options[:json] = true }
+        filter_flags(o, options, :type, :area, :tag)
       end
       dir = positional_dir(parser, argv) or return 2
 
       folder = OKF::Bundle::Folder.load(dir)
       report_skipped(folder)
       entries = folder.catalog
-      options[:json] ? print_files_json(dir, entries) : print_files(dir, entries)
+      selected = filter_entries(entries, options)
+      options[:json] ? print_files_json(dir, selected) : print_files(dir, selected, entries.size)
       0
     end
 
     def tags(argv)
       options = { json: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf tags <bundle-dir> [--json]"
+        o.banner = "Usage: okf tags <bundle-dir> [--type T] [--area A] [--json]"
         o.on("--json", "emit the tag index as JSON") { options[:json] = true }
+        filter_flags(o, options, :type, :area)
       end
       dir = positional_dir(parser, argv) or return 2
 
+      print_inverted_index(dir, "Tags", :tag, "tags", options)
+    end
+
+    def types(argv)
+      options = { json: false }
+      parser = OptionParser.new do |o|
+        o.banner = "Usage: okf types <bundle-dir> [--area A] [--tag T] [--json]"
+        o.on("--json", "emit the type index as JSON") { options[:json] = true }
+        filter_flags(o, options, :area, :tag)
+      end
+      dir = positional_dir(parser, argv) or return 2
+
+      print_inverted_index(dir, "Types", :type, "types", options)
+    end
+
+    # The shared back half of `tags` and `types`: load, narrow, print.
+    def print_inverted_index(dir, label, key, plural, options)
       folder = OKF::Bundle::Folder.load(dir)
       report_skipped(folder)
       graph = folder.graph(minimal: true)
-      titles = graph.nodes.map { |node| [ node[:id], node[:title] ] }.to_h
-      rows = graph.tag_index.map { |tag, ids| { tag: tag, count: ids.length, concepts: ids } }
-                            .sort_by { |row| [ -row[:count], row[:tag] ] }
-      options[:json] ? print_tags_json(dir, rows) : print_tags(dir, rows, titles)
+      index = key == :tag ? graph.tag_index : graph.type_index
+      rows = index_rows(index, key, folder, options)
+      if options[:json]
+        print_index_json(dir, plural, key, rows)
+      else
+        titles = graph.nodes.map { |node| [ node[:id], node[:title] ] }.to_h
+        print_index(dir, label, key, rows, titles)
+      end
       0
     end
 
@@ -260,6 +289,53 @@ module OKF
         by_type: by_type,
         by_area: by_area
       }
+    end
+
+    # ── the read views' shared --type/--area/--tag narrowing ──
+    # Each view takes the filters orthogonal to it (tags can't filter by tag).
+    # Matching is case-insensitive and exact; a concept at the bundle root lives in
+    # the "(root)" area, which --area also accepts as plain `root` (no shell quoting).
+
+    def filter_flags(parser, options, *keys)
+      parser.on("--type TYPE", "only concepts of this type") { |v| options[:type] = v } if keys.include?(:type)
+      parser.on("--area AREA", "only concepts in this top-level area") { |v| options[:area] = v } if keys.include?(:area)
+      parser.on("--tag TAG", "only concepts carrying this tag") { |v| options[:tag] = v } if keys.include?(:tag)
+    end
+
+    def filter_entries(entries, options)
+      entries.select do |entry|
+        (options[:type].nil? || fold(entry[:type]) == fold(options[:type])) &&
+          (options[:area].nil? || fold(entry[:area]) == fold_area(options[:area])) &&
+          (options[:tag].nil? || entry[:tags].any? { |tag| fold(tag) == fold(options[:tag]) })
+      end
+    end
+
+    def fold(value)
+      value.to_s.downcase
+    end
+
+    def fold_area(value)
+      folded = fold(value)
+      folded == "root" ? "(root)" : folded
+    end
+
+    # Turn an inverted index ({ value => [id, …] }) into display rows ordered by
+    # count, narrowed to the concepts the active filters select; rows the narrowing
+    # empties drop. With no filters the index passes through whole.
+    def index_rows(index, key, folder, options)
+      keep = filter_ids(folder, options)
+      index.each_with_object([]) do |(value, ids), rows|
+        ids = ids.select { |id| keep.include?(id) } unless keep.nil?
+        rows << { key => value, count: ids.length, concepts: ids } unless ids.empty?
+      end.sort_by { |row| [ -row[:count], row[key] ] }
+    end
+
+    # The ids the filters select, resolved through the catalog metadata — or nil
+    # when no filter is active, meaning keep everything.
+    def filter_ids(folder, options)
+      return nil if options[:type].nil? && options[:area].nil? && options[:tag].nil?
+
+      filter_entries(folder.catalog, options).map { |entry| entry[:id] }
     end
 
     # Install this gem's companion agent skill into a destination directory. The
@@ -434,11 +510,11 @@ module OKF
       )
     end
 
-    def print_catalog(dir, entries)
-      @out.puts "Catalog — #{dir} (#{entries.size} concepts)"
+    def print_catalog(dir, entries, total)
+      @out.puts "Catalog — #{dir} (#{counted(entries.size, total, "concepts")})"
       entries.group_by { |entry| entry[:area] }.sort_by(&:first).each do |area, group|
         @out.puts
-        @out.puts "  #{area}/ (#{group.size})"
+        @out.puts "  #{area == "(root)" ? "(root)" : "#{area}/"} (#{group.size})"
         group.each do |entry|
           links = entry[:links_out] + entry[:links_in]
           meta = [ entry[:type], (links.positive? ? "↳#{links}" : nil), entry[:status] ].compact.join("  ·  ")
@@ -452,8 +528,8 @@ module OKF
       @out.puts JSON.pretty_generate("bundle" => dir, "count" => entries.size, "concepts" => entries.map { |entry| stringify(entry) })
     end
 
-    def print_files(dir, entries)
-      @out.puts "Files — #{dir} (#{entries.size} files)"
+    def print_files(dir, entries, total)
+      @out.puts "Files — #{dir} (#{counted(entries.size, total, "files")})"
       entries.group_by { |entry| entry[:dir] }.sort_by(&:first).each do |folder, group|
         width = group.map { |entry| File.basename("#{entry[:id]}.md").length }.max
         @out.puts
@@ -472,21 +548,25 @@ module OKF
       @out.puts JSON.pretty_generate("bundle" => dir, "count" => files.size, "files" => files)
     end
 
-    def print_tags(dir, rows, titles)
-      @out.puts "Tags — #{dir} (#{rows.size} distinct)"
+    def print_index(dir, label, key, rows, titles)
+      @out.puts "#{label} — #{dir} (#{rows.size} distinct)"
       @out.puts
-      width = rows.map { |row| row[:tag].length }.max || 0
+      width = rows.map { |row| row[key].length }.max || 0
       rows.each do |row|
         names = row[:concepts].map { |id| titles[id] || id }.join(", ")
-        @out.puts "  #{row[:tag].ljust(width)}  #{row[:count].to_s.rjust(3)}   #{truncate(names, 78)}"
+        @out.puts "  #{row[key].ljust(width)}  #{row[:count].to_s.rjust(3)}   #{truncate(names, 78)}"
       end
     end
 
-    def print_tags_json(dir, rows)
+    def print_index_json(dir, plural, key, rows)
       @out.puts JSON.pretty_generate(
         "bundle" => dir, "count" => rows.size,
-        "tags" => rows.map { |row| { "tag" => row[:tag], "count" => row[:count], "concepts" => row[:concepts] } }
+        plural => rows.map { |row| { key.to_s => row[key], "count" => row[:count], "concepts" => row[:concepts] } }
       )
+    end
+
+    def counted(size, total, noun)
+      size == total ? "#{size} #{noun}" : "#{size} of #{total} #{noun}"
     end
 
     def print_stats(dir, stats)
@@ -566,11 +646,15 @@ module OKF
           validate  <dir> [--json]                          check OKF v0.1 conformance
 
           stats     <dir> [--json]                          bundle rollups (concepts, types, areas, links, tags)
-          tags      <dir> [--json]                          list tags with their concepts, by count
-          files     <dir> [--json]                          list files with titles, by folder
-          catalog   <dir> [--json]                          list concepts with metadata, by area
+          types     <dir> [--json] [filters]                list types with their concepts, by count
+          tags      <dir> [--json] [filters]                list tags with their concepts, by count
+          files     <dir> [--json] [filters]                list files with titles, by folder
+          catalog   <dir> [--json] [filters]                list concepts with metadata, by area
 
           graph     <dir> [--json] [--minimal] [--no-body]  print the knowledge graph
+
+        [filters] narrow a view to matching concepts: --type TYPE, --area AREA, --tag TAG
+        (each view takes the ones orthogonal to it; matching is case-insensitive).
 
         okf --version
       USAGE

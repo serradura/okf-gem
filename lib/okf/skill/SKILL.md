@@ -6,8 +6,8 @@ description: >-
   skill carries the judgment for modelling, curating, and reasoning about OKF
   bundles, and routes mechanical work to the installed `okf` CLI. One entry point,
   subcommand-driven like the CLI: authoring verbs (produce, maintain, consume) are
-  agent-driven craft; tool verbs (validate, lint, loose, catalog, files, tags, stats,
-  server, graph) delegate to
+  agent-driven craft; tool verbs (validate, lint, loose, catalog, files, tags, types,
+  stats, server, graph) delegate to
   the executable. Use whenever capturing project knowledge (services, APIs, schemas,
   metrics, runbooks, decisions) into a bundle, updating one after code or docs
   change, checking a bundle's conformance or curation quality, rendering it as a
@@ -17,7 +17,7 @@ description: >-
   serve the bundle", or a task needing knowledge from an OKF bundle already in
   the repo.
 user-invocable: true
-argument-hint: "[produce|maintain|consume|validate|lint|loose|catalog|files|tags|stats|server|graph] [dir] [--flags]"
+argument-hint: "[produce|maintain|consume|validate|lint|loose|catalog|files|tags|types|stats|server|graph] [dir] [--flags]"
 allowed-tools: Read Write Edit Grep Glob Bash
 ---
 
@@ -88,16 +88,20 @@ okf validate  <dir> [--json]                     # §9 conformance   (exit 1 = n
 okf graph     <dir> [--json]                     # nodes + edges
 okf lint      <dir> [--json] [--stale-after 90d] # curation quality; advisory (exit 0)
 okf loose     <dir> [--json]                     # files with no graph links, by folder
-okf catalog   <dir> [--json]                     # concepts + metadata (type, tags, links), by area
-okf files     <dir> [--json]                     # files + titles, by folder
-okf tags      <dir> [--json]                     # tags + their concepts, by count
+okf catalog   <dir> [--json] [filters]           # concepts + metadata (type, tags, links), by area
+okf files     <dir> [--json] [filters]           # files + titles, by folder
+okf tags      <dir> [--json] [filters]           # tags + their concepts, by count
+okf types     <dir> [--json] [filters]           # types + their concepts, by count
 okf stats     <dir> [--json]                     # bundle rollups (concepts, types, areas, links, tags)
 okf server    <dir> [-p PORT]                    # serve the interactive graph over HTTP
 ```
 
-`catalog`/`files`/`tags`/`stats` are the server's browser views as text — reach for
-them (with `--json` for a machine substrate) to read a bundle at a glance without a
-browser: what concepts exist, how they're foldered, which tags dominate, the shape.
+`catalog`/`files`/`tags`/`types`/`stats` are the server's browser views as text —
+reach for them (with `--json` for a machine substrate) to read a bundle at a glance
+without a browser: what concepts exist, how they're foldered, which tags dominate,
+the shape. The four list views narrow with the same `[filters]` the browser offers —
+`--type TYPE`, `--area AREA`, `--tag TAG` (each takes the ones orthogonal to it;
+case-insensitive; the bundle root is area `root`).
 
 The one that bites: **freshness is off by default — a plain `okf lint` never
 reports stale concepts. Pass `--stale-after <90d|12w|ISO-date>`** when the bundle
@@ -116,6 +120,7 @@ nuance: lint's six categories vs its 16 filterable check-ids, `--fail-on` gating
 | `catalog`   | tool      | List concepts with metadata (type, tags, links), grouped by area. |
 | `files`     | tool      | List files with titles, grouped by folder.                     |
 | `tags`      | tool      | List tags with their concepts, ordered by count.               |
+| `types`     | tool      | List types with their concepts, ordered by count.              |
 | `stats`     | tool      | Bundle rollups: concepts, types, areas, cross-links, tags.     |
 | `server`    | tool      | Serve an interactive graph over HTTP (Cytoscape + marked).     |
 | `graph`     | tool      | Print the knowledge graph (JSON with `--json`).                |

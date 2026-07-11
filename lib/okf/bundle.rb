@@ -119,7 +119,7 @@ module OKF
           status: concept.frontmatter["status"]&.to_s,
           backlog_ref: concept.frontmatter["backlog_ref"]&.to_s,
           dir: File.dirname("#{id}.md"),
-          area: id.split("/").first,
+          area: id.include?("/") ? id.split("/").first : "(root)",
           links_out: out_degree[id],
           links_in: in_degree[id]
         }

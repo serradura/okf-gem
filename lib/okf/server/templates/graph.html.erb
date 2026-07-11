@@ -146,7 +146,7 @@
  .slideover .fgroup h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin:0 0 9px}
  .slideover .fchips{display:flex;flex-wrap:wrap;gap:6px}
  .cat-types{align-items:center;gap:10px} .cat-types #cat-types{display:flex;flex-wrap:wrap;gap:7px}
- #file-type-combo{width:100%}
+ .ftree-head .combo{width:100%} .ftree-head .combo+.combo{margin-top:8px}
  .link{background:none;border:0;color:var(--accent-ink);font:inherit;font-size:12.5px;cursor:pointer;padding:0;font-weight:500}
  .link:hover{text-decoration:underline}
 
@@ -314,6 +314,8 @@
        <div class="fhead"><h3>Filters</h3><button class="link" id="filters-reset" type="button">Reset</button>
         <button class="btn" id="filters-close" type="button" aria-label="Close filters" style="width:28px;height:28px"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
        <div class="fbody">
+        <label class="search" style="max-width:none;margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+         <input id="filter-search" class="field" placeholder="find a type, area, tag…" autocomplete="off" aria-label="Find a filter"></label>
         <div class="fgroup"><h4>Types</h4><div class="fchips" id="ftypes"></div></div>
         <div class="fgroup"><h4>Areas</h4><div class="fchips" id="fareas"></div></div>
         <div class="fgroup"><h4>Tags</h4><div class="fchips" id="ftags"></div></div>
@@ -337,17 +339,19 @@
      <div class="shead"><h2>Catalog</h2><span class="cnt" id="cat-cnt"></span></div>
      <div class="cat-types">
       <div id="cat-types"></div>
-      <button class="btn text" id="cat-filters-btn" type="button" aria-label="Filter by type"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4-2v-4Z"/></svg>Filters<span class="fbadge">0</span></button>
+      <button class="btn text" id="cat-filters-btn" type="button" aria-label="Filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4-2v-4Z"/></svg>Filters<span class="fbadge">0</span></button>
      </div>
      <div class="grid" id="cat-grid"><div class="none">Loading concepts…</div></div>
     </div>
     <aside id="cat-filters" class="slideover" aria-label="Catalog filters">
-     <div class="fhead"><h3>Filter by type</h3><button class="link" id="cat-filters-reset" type="button">Reset</button>
+     <div class="fhead"><h3>Filters</h3><button class="link" id="cat-filters-reset" type="button">Reset</button>
       <button class="btn" id="cat-filters-close" type="button" aria-label="Close filters" style="width:28px;height:28px"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
      <div class="fbody">
       <label class="search" style="max-width:none;margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-       <input id="cat-type-search" class="field" placeholder="filter types…" autocomplete="off"></label>
-      <div class="fchips" id="cat-ftypes"></div>
+       <input id="cat-filter-search" class="field" placeholder="find a type, area, tag…" autocomplete="off"></label>
+      <div class="fgroup"><h4>Types</h4><div class="fchips" id="cat-ftypes"></div></div>
+      <div class="fgroup"><h4>Areas</h4><div class="fchips" id="cat-fareas"></div></div>
+      <div class="fgroup"><h4>Tags</h4><div class="fchips" id="cat-ftags"></div></div>
      </div>
     </aside>
    </section>
@@ -358,7 +362,8 @@
      <div class="ftree">
       <div class="ftree-head"><label class="search" style="max-width:none;margin-bottom:8px"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
        <input id="file-filter" class="field" placeholder="filter files…" autocomplete="off"></label>
-       <div class="combo" id="file-type-combo"><input id="file-type-input" class="field" placeholder="all types" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-type-list" aria-autocomplete="list" aria-label="Filter files by type"><button class="clear" id="file-type-clear" type="button" aria-label="Clear type filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-type-list" role="listbox" hidden></ul></div></div>
+       <div class="combo" id="file-type-combo"><input id="file-type-input" class="field" placeholder="all types" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-type-list" aria-autocomplete="list" aria-label="Filter files by type"><button class="clear" id="file-type-clear" type="button" aria-label="Clear type filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-type-list" role="listbox" hidden></ul></div>
+       <div class="combo" id="file-tag-combo"><input id="file-tag-input" class="field" placeholder="all tags" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-tag-list" aria-autocomplete="list" aria-label="Filter files by tag"><button class="clear" id="file-tag-clear" type="button" aria-label="Clear tag filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-tag-list" role="listbox" hidden></ul></div></div>
       <div class="ftree-list" id="ftree-list"><p class="empty" style="padding:14px">Loading files…</p></div>
      </div>
      <div class="fpreview">
@@ -372,10 +377,19 @@
    <!-- TAGS -->
    <section class="view" id="view-tags">
     <div class="pad">
-     <div class="shead"><h2>Tags</h2><span class="cnt" id="tag-cnt"></span></div>
+     <div class="shead" style="align-items:center"><h2>Tags</h2><span class="cnt" id="tag-cnt"></span>
+      <button class="btn text" id="tag-filters-btn" type="button" aria-label="Filters" style="margin-left:auto"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4-2v-4Z"/></svg>Filters<span class="fbadge">0</span></button></div>
      <div class="cloud" id="tag-cloud"></div>
      <div id="tag-detail"><p class="empty">Select a tag to see the concepts that carry it.</p></div>
     </div>
+    <aside id="tag-filters" class="slideover" aria-label="Tag filters">
+     <div class="fhead"><h3>Filters</h3><button class="link" id="tag-filters-reset" type="button">Reset</button>
+      <button class="btn" id="tag-filters-close" type="button" aria-label="Close filters" style="width:28px;height:28px"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+     <div class="fbody">
+      <div class="fgroup"><h4>Types</h4><div class="fchips" id="tag-ftypes"></div></div>
+      <div class="fgroup"><h4>Areas</h4><div class="fchips" id="tag-fareas"></div></div>
+     </div>
+    </aside>
    </section>
 
    <!-- STATS -->
@@ -495,24 +509,30 @@ function applyGraphFilter(){const s=q.graph.toLowerCase();
   n.style('display',m?'element':'none');});}
 function fbadge(){const c=hiddenTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;}
-const ftypes=document.getElementById('ftypes'), ftags=document.getElementById('ftags');
-ftypes.innerHTML=types.map(t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} <span class="c">${(TYPES[t]||[]).length}</span></span>`).join('');
-ftypes.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{const t=ch.getAttribute('data-t');
- if(hiddenTypes.has(t)){hiddenTypes.delete(t);ch.classList.remove('off');}else{hiddenTypes.add(t);ch.classList.add('off');}applyGraphFilter();fbadge();});
-const topTags=Object.entries(TAGS).sort((a,b)=>b[1].length-a[1].length).slice(0,40).map(e=>e[0]);
-ftags.innerHTML=topTags.map(t=>`<span class="chip" data-tag="${esc(t)}">${esc(t)} <span class="c">${(TAGS[t]||[]).length}</span></span>`).join('');
-ftags.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{const t=ch.getAttribute('data-tag');
- if(activeTags.has(t)){activeTags.delete(t);ch.classList.remove('on');}else{activeTags.add(t);ch.classList.add('on');}applyGraphFilter();fbadge();});
-const fareas=document.getElementById('fareas');
+const ftypes=document.getElementById('ftypes'), ftags=document.getElementById('ftags'), fareas=document.getElementById('fareas');
 const graphAreas=[...new Set(NODES.map(n=>areaOf(n.id)))].sort();
 const areaCount={};NODES.forEach(n=>{const a=areaOf(n.id);areaCount[a]=(areaCount[a]||0)+1;});
-fareas.innerHTML=graphAreas.map(a=>`<span class="chip" data-area="${esc(a)}">${esc(a)} <span class="c">${areaCount[a]}</span></span>`).join('');
-fareas.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{const a=ch.getAttribute('data-area');
- if(activeAreas.has(a)){activeAreas.delete(a);ch.classList.remove('on');}else{activeAreas.add(a);ch.classList.add('on');}applyGraphFilter();fbadge();});
-function syncFilterChips(){
- ftypes.querySelectorAll('.chip').forEach(c=>c.classList.toggle('off',hiddenTypes.has(c.getAttribute('data-t'))));
- ftags.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',activeTags.has(c.getAttribute('data-tag'))));
- fareas.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',activeAreas.has(c.getAttribute('data-area'))));}
+const tagsByCount=Object.entries(TAGS).sort((a,b)=>b[1].length-a[1].length).map(e=>e[0]);
+const dotFor=t=>`<span class="dot" style="background:${color[t]}"></span>`;
+const toggleSet=(s,v)=>{s.has(v)?s.delete(v):s.add(v);};
+/* One renderer for every filter chip group (graph, catalog and tags views):
+   paints the items with their current state class and wires the toggle. */
+function chipRow(el,items,attr,stateCls,isOn,onToggle){
+ el.innerHTML=items.map(o=>`<span class="chip${isOn(o.v)?' '+stateCls:''}" ${attr}="${esc(o.v)}">${o.dot||''}${esc(o.v)} <span class="c">${o.n}</span></span>`).join('');
+ el.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>onToggle(ch.getAttribute(attr)));}
+const typeItems=list=>list.map(t=>({v:t,n:(TYPES[t]||[]).length,dot:dotFor(t)}));
+const areaItems=list=>list.map(a=>({v:a,n:areaCount[a]}));
+const tagItems=list=>list.map(t=>({v:t,n:(TAGS[t]||[]).length}));
+/* The find box narrows the chips themselves; while it is empty, tags cap at the
+   top 40 so a busy bundle doesn't flood the panel — searching reaches ALL tags. */
+const fsearch=document.getElementById('filter-search');
+function syncFilterChips(){const qq=fsearch.value.trim().toLowerCase();const match=v=>!qq||v.toLowerCase().includes(qq);
+ const after=()=>{syncFilterChips();applyGraphFilter();fbadge();};
+ chipRow(ftypes,typeItems(types.filter(match)),'data-t','off',t=>hiddenTypes.has(t),t=>{toggleSet(hiddenTypes,t);after();});
+ chipRow(fareas,areaItems(graphAreas.filter(match)),'data-area','on',a=>activeAreas.has(a),a=>{toggleSet(activeAreas,a);after();});
+ chipRow(ftags,tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag','on',t=>activeTags.has(t),t=>{toggleSet(activeTags,t);after();});}
+fsearch.oninput=syncFilterChips;
+syncFilterChips();
 // Fit the graph to the currently-visible nodes after a view swap settles (two rAFs
 // so the container has resized), reusing the working fitGraph implementation.
 function fitVisible(){requestAnimationFrame(()=>requestAnimationFrame(fitGraph));}
@@ -588,29 +608,39 @@ searchInput.oninput=()=>{q[view]=searchInput.value;
 /* ── catalog ── */
 let CATALOG=null;
 function getCatalog(){return CATALOG||(CATALOG=fetch(CATALOG_ENDPOINT).then(r=>r.json()).then(d=>d.concepts));}
-const catActiveTypes=new Set();
+const catActiveTypes=new Set(), catActiveAreas=new Set(), catActiveTags=new Set();
 const catByCount=types.slice().sort((a,b)=>(TYPES[b]||[]).length-(TYPES[a]||[]).length);
 const catChip=t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} <span class="c">${(TYPES[t]||[]).length}</span></span>`;
-function syncCatChips(){document.querySelectorAll('#cat-types .chip, #cat-ftypes .chip').forEach(c=>c.classList.toggle('on',catActiveTypes.has(c.getAttribute('data-t'))));
- const b=document.getElementById('cat-filters-btn');b.classList.toggle('on-filter',catActiveTypes.size>0);b.querySelector('.fbadge').textContent=catActiveTypes.size;}
-function catToggle(t){catActiveTypes.has(t)?catActiveTypes.delete(t):catActiveTypes.add(t);syncCatChips();renderCatalog();}
+function syncCatChips(){document.querySelectorAll('#cat-types .chip').forEach(c=>c.classList.toggle('on',catActiveTypes.has(c.getAttribute('data-t'))));
+ const n=catActiveTypes.size+catActiveAreas.size+catActiveTags.size;
+ const b=document.getElementById('cat-filters-btn');b.classList.toggle('on-filter',n>0);b.querySelector('.fbadge').textContent=n;}
+function catToggle(t){toggleSet(catActiveTypes,t);renderCatFilters();renderCatalog();}
 function wireCatChips(el){el.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>catToggle(ch.getAttribute('data-t')));}
-function renderCatFtypes(qq){const el=document.getElementById('cat-ftypes');
- el.innerHTML=catByCount.filter(t=>!qq||t.toLowerCase().includes(qq)).map(catChip).join('');wireCatChips(el);syncCatChips();}
+/* The slide-over mirrors the graph filters — Types, Areas, Tags — with one find
+   box narrowing the chips of all three groups (tags cap at 40 until searched). */
+function renderCatFilters(){const qq=(document.getElementById('cat-filter-search').value||'').trim().toLowerCase();
+ const match=v=>!qq||v.toLowerCase().includes(qq);
+ const after=()=>{renderCatFilters();renderCatalog();};
+ chipRow(document.getElementById('cat-ftypes'),typeItems(catByCount.filter(match)),'data-t','on',t=>catActiveTypes.has(t),t=>{toggleSet(catActiveTypes,t);after();});
+ chipRow(document.getElementById('cat-fareas'),areaItems(graphAreas.filter(match)),'data-area','on',a=>catActiveAreas.has(a),a=>{toggleSet(catActiveAreas,a);after();});
+ chipRow(document.getElementById('cat-ftags'),tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag','on',t=>catActiveTags.has(t),t=>{toggleSet(catActiveTags,t);after();});
+ syncCatChips();}
 function initCatalog(){inited.catalog=true;
- // Only the five most common types get inline chips; the rest live in a searchable
- // slide-over, so a bundle with many types doesn't flood the header.
+ // Only the five most common types get inline chips; everything else — types,
+ // areas, tags — lives in the searchable slide-over, so a bundle with many
+ // values doesn't flood the header.
  const quick=document.getElementById('cat-types');quick.innerHTML=catByCount.slice(0,5).map(catChip).join('');wireCatChips(quick);
- renderCatFtypes('');
+ renderCatFilters();
  const cf=document.getElementById('cat-filters');
  document.getElementById('cat-filters-btn').onclick=()=>cf.classList.toggle('open');
  document.getElementById('cat-filters-close').onclick=()=>cf.classList.remove('open');
- document.getElementById('cat-filters-reset').onclick=()=>{catActiveTypes.clear();syncCatChips();renderCatalog();};
- document.getElementById('cat-type-search').oninput=e=>renderCatFtypes(e.target.value.trim().toLowerCase());
- syncCatChips();
+ document.getElementById('cat-filters-reset').onclick=()=>{catActiveTypes.clear();catActiveAreas.clear();catActiveTags.clear();renderCatFilters();renderCatalog();};
+ document.getElementById('cat-filter-search').oninput=renderCatFilters;
  getCatalog().then(renderCatalog);}
 function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.catalog||'').toLowerCase();
  const rows=list.filter(c=>{if(catActiveTypes.size&&!catActiveTypes.has(c.type))return false;
+  if(catActiveAreas.size&&!catActiveAreas.has(areaOf(c.id)))return false;
+  if(catActiveTags.size&&!c.tags.some(t=>catActiveTags.has(t)))return false;
   if(s){const hay=(c.title+' '+c.description+' '+c.type+' '+c.tags.join(' ')+' '+c.id).toLowerCase();if(!hay.includes(s))return false;}return true;});
  document.getElementById('cat-cnt').textContent=rows.length+' of '+list.length+' concepts';
  const g=document.getElementById('cat-grid');
@@ -628,10 +658,11 @@ function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.
   el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();goToGraph(id);}};});});}
 
 /* ── files ── */
-let fileSel=null, fileType=null;
+let fileSel=null;
 function initFiles(){inited.files=true;getCatalog().then(renderTree);}
 function renderTree(list){const s=(document.getElementById('file-filter').value||'').toLowerCase();
- const rows=list.filter(c=>(!fileType||c.type===fileType)&&(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s)));
+ const ft=fileTypeCombo.get(), fg=fileTagCombo.get();
+ const rows=list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s)));
  const groups={};rows.forEach(c=>{(groups[c.dir]=groups[c.dir]||[]).push(c);});
  const el=document.getElementById('ftree-list');
  if(!rows.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}
@@ -640,29 +671,35 @@ function renderTree(list){const s=(document.getElementById('file-filter').value|
    return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(name)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('')).join('');
  el.querySelectorAll('.file').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));}
 document.getElementById('file-filter').oninput=()=>getCatalog().then(renderTree);
-// File type filter — a searchable single-select combobox (keyboard-navigable).
-const ftCombo=document.getElementById('file-type-combo'), ftInput=document.getElementById('file-type-input'), ftList=document.getElementById('file-type-list');
-let ftActive=-1;
-function ftOptions(qq){qq=(qq||'').trim().toLowerCase();
- return [{all:true,label:'All types',n:NODES.length}].concat(catByCount.filter(t=>!qq||t.toLowerCase().includes(qq)).map(t=>({t,label:t,n:(TYPES[t]||[]).length,c:color[t]})));}
-function ftRender(qq){ftList.innerHTML=ftOptions(qq).map(o=>{const sel=(o.all&&fileType===null)||(o.t&&o.t===fileType);
-  const sw=o.all?'':`<span class="sw" style="background:${o.c}"></span>`;const attr=o.all?'data-all="1"':`data-t="${esc(o.t)}"`;
-  return `<li role="option" ${attr} class="opt${sel?' sel':''}">${sw}<span>${esc(o.label)}</span><span class="c">${o.n}</span></li>`;}).join('');ftActive=-1;}
-function ftOpen(){ftRender(ftInput.value===(fileType||'')?'':ftInput.value);ftList.hidden=false;ftInput.setAttribute('aria-expanded','true');}
-function ftClose(){ftList.hidden=true;ftInput.setAttribute('aria-expanded','false');ftActive=-1;}
-function ftPick(li){if(!li)return;fileType=li.dataset.all?null:li.dataset.t;ftInput.value=fileType||'';ftCombo.classList.toggle('has',!!fileType);ftClose();getCatalog().then(renderTree);}
-ftInput.addEventListener('focus',ftOpen);
-ftInput.addEventListener('input',()=>{ftRender(ftInput.value.trim().toLowerCase());ftList.hidden=false;ftInput.setAttribute('aria-expanded','true');});
-ftInput.addEventListener('blur',()=>setTimeout(()=>{ftClose();ftInput.value=fileType||'';},130));
-ftInput.addEventListener('keydown',e=>{const lis=[...ftList.querySelectorAll('li')];
- if(e.key==='ArrowDown'){e.preventDefault();if(ftList.hidden)ftOpen();ftActive=Math.min(lis.length-1,ftActive+1);}
- else if(e.key==='ArrowUp'){e.preventDefault();ftActive=Math.max(0,ftActive-1);}
- else if(e.key==='Enter'){e.preventDefault();ftPick(lis[ftActive]||lis[0]);ftInput.blur();return;}
- else if(e.key==='Escape'){ftClose();ftInput.value=fileType||'';ftInput.blur();return;}
- else return;
- lis.forEach((l,i)=>l.classList.toggle('active',i===ftActive));if(lis[ftActive])lis[ftActive].scrollIntoView({block:'nearest'});});
-ftList.addEventListener('mousedown',e=>{const li=e.target.closest('li');if(!li)return;e.preventDefault();ftPick(li);});
-document.getElementById('file-type-clear').addEventListener('click',()=>{fileType=null;ftInput.value='';ftCombo.classList.remove('has');getCatalog().then(renderTree);ftInput.focus();});
+/* Searchable single-select combobox (keyboard-navigable) — one per files filter:
+   type and tag. `items` is lazy so counts always reflect the current indexes. */
+function makeCombo(name,allLabel,items,onChange){
+ const combo=document.getElementById(name+'-combo'), input=document.getElementById(name+'-input'), list=document.getElementById(name+'-list');
+ let value=null, active=-1;
+ function options(qq){qq=(qq||'').trim().toLowerCase();
+  return [{all:true,label:allLabel,n:NODES.length}].concat(items().filter(o=>!qq||o.v.toLowerCase().includes(qq)));}
+ function render(qq){list.innerHTML=options(qq).map(o=>{const sel=(o.all&&value===null)||(!o.all&&o.v===value);
+   const sw=o.c?`<span class="sw" style="background:${o.c}"></span>`:'';const attr=o.all?'data-all="1"':`data-v="${esc(o.v)}"`;
+   return `<li role="option" ${attr} class="opt${sel?' sel':''}">${sw}<span>${esc(o.all?o.label:o.v)}</span><span class="c">${o.n}</span></li>`;}).join('');active=-1;}
+ function open(){render(input.value===(value||'')?'':input.value);list.hidden=false;input.setAttribute('aria-expanded','true');}
+ function close(){list.hidden=true;input.setAttribute('aria-expanded','false');active=-1;}
+ function pick(li){if(!li)return;value=li.dataset.all?null:li.dataset.v;input.value=value||'';combo.classList.toggle('has',!!value);close();onChange();}
+ input.addEventListener('focus',open);
+ input.addEventListener('input',()=>{render(input.value.trim().toLowerCase());list.hidden=false;input.setAttribute('aria-expanded','true');});
+ input.addEventListener('blur',()=>setTimeout(()=>{close();input.value=value||'';},130));
+ input.addEventListener('keydown',e=>{const lis=[...list.querySelectorAll('li')];
+  if(e.key==='ArrowDown'){e.preventDefault();if(list.hidden)open();active=Math.min(lis.length-1,active+1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(0,active-1);}
+  else if(e.key==='Enter'){e.preventDefault();pick(lis[active]||lis[0]);input.blur();return;}
+  else if(e.key==='Escape'){close();input.value=value||'';input.blur();return;}
+  else return;
+  lis.forEach((l,i)=>l.classList.toggle('active',i===active));if(lis[active])lis[active].scrollIntoView({block:'nearest'});});
+ list.addEventListener('mousedown',e=>{const li=e.target.closest('li');if(!li)return;e.preventDefault();pick(li);});
+ document.getElementById(name+'-clear').addEventListener('click',()=>{value=null;input.value='';combo.classList.remove('has');onChange();input.focus();});
+ return {get:()=>value};}
+const refreshTree=()=>getCatalog().then(renderTree);
+const fileTypeCombo=makeCombo('file-type','All types',()=>catByCount.map(t=>({v:t,n:(TYPES[t]||[]).length,c:color[t]})),refreshTree);
+const fileTagCombo=makeCombo('file-tag','All tags',()=>tagsByCount.map(t=>({v:t,n:(TAGS[t]||[]).length})),refreshTree);
 function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
  const ty=c.type||typeOf[id]||'Untyped';const cc=color[ty]||'#64748b';
@@ -675,15 +712,31 @@ function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byI
   const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);}).catch(()=>{body.innerHTML='<p class="empty">could not load this file</p>';});}
 
 /* ── tags ── */
-const tagSel=new Set();
-function initTags(){inited.tags=true;renderCloud();}
+const tagSel=new Set(), tagTypes=new Set(), tagAreas=new Set();
+/* Does this concept survive the tags view's type/area filters? Tags are counted
+   and listed over the surviving concepts only; a tag left with none disappears. */
+function tagMatch(id){return (tagTypes.size===0||tagTypes.has(typeOf[id]||'Untyped'))&&(tagAreas.size===0||tagAreas.has(areaOf(id)));}
+function renderTagChips(){
+ const after=()=>{renderTagChips();renderCloud();};
+ chipRow(document.getElementById('tag-ftypes'),typeItems(types),'data-t','on',t=>tagTypes.has(t),t=>{toggleSet(tagTypes,t);after();});
+ chipRow(document.getElementById('tag-fareas'),areaItems(graphAreas),'data-area','on',a=>tagAreas.has(a),a=>{toggleSet(tagAreas,a);after();});
+ const n=tagTypes.size+tagAreas.size;const b=document.getElementById('tag-filters-btn');
+ b.classList.toggle('on-filter',n>0);b.querySelector('.fbadge').textContent=n;}
+function initTags(){inited.tags=true;
+ const tf=document.getElementById('tag-filters');
+ document.getElementById('tag-filters-btn').onclick=()=>tf.classList.toggle('open');
+ document.getElementById('tag-filters-close').onclick=()=>tf.classList.remove('open');
+ document.getElementById('tag-filters-reset').onclick=()=>{tagTypes.clear();tagAreas.clear();renderTagChips();renderCloud();};
+ renderTagChips();renderCloud();}
 function renderCloud(){const s=(q.tags||'').toLowerCase();
  // Uniform chip size, ordered by frequency (descending); the background tint scales
- // with occurrence count (a heatmap), ties keep insertion order. Max is over all tags
- // so the scale stays stable while searching.
- const entries=Object.entries(TAGS).filter(([t])=>!s||t.toLowerCase().includes(s)).sort((a,b)=>b[1].length-a[1].length);
- const max=Math.max(1,...Object.values(TAGS).map(ids=>ids.length));
- document.getElementById('tag-cnt').textContent=Object.keys(TAGS).length+' distinct tags';
+ // with occurrence count (a heatmap), ties keep insertion order. Max is over every
+ // surviving tag so the scale stays stable while searching.
+ const counted=Object.entries(TAGS).map(([t,ids])=>[t,ids.filter(tagMatch)]).filter(([,ids])=>ids.length>0);
+ const entries=counted.filter(([t])=>!s||t.toLowerCase().includes(s)).sort((a,b)=>b[1].length-a[1].length);
+ const max=Math.max(1,...counted.map(([,ids])=>ids.length));
+ const total=Object.keys(TAGS).length;
+ document.getElementById('tag-cnt').textContent=(counted.length===total?total:counted.length+' of '+total)+' distinct tags';
  const el=document.getElementById('tag-cloud');
  el.innerHTML=entries.map(([t,ids])=>
   `<button class="tcloud${tagSel.has(t)?' on':''}" data-tag="${esc(t)}" style="--heat:${(6+ids.length/max*36).toFixed(0)}%">${esc(t)}<b>${ids.length}</b></button>`).join('');
@@ -692,7 +745,7 @@ function renderCloud(){const s=(q.tags||'').toLowerCase();
  renderTagDetail();}
 function renderTagDetail(){const el=document.getElementById('tag-detail');
  if(!tagSel.size){el.innerHTML='<p class="empty">Select a tag to see the concepts that carry it.</p>';return;}
- const ids=[...new Set([...tagSel].flatMap(t=>TAGS[t]||[]))].sort();
+ const ids=[...new Set([...tagSel].flatMap(t=>(TAGS[t]||[]).filter(tagMatch)))].sort();
  el.innerHTML=`<div class="shead" style="margin-top:6px"><h2>${[...tagSel].map(esc).join(' · ')}</h2><span class="cnt">${ids.length} concepts</span></div>
   <div class="tlist">${ids.map(id=>{const ty=typeOf[id]||'Untyped';const cc=color[ty]||'#64748b';
    return `<button class="titem" data-id="${esc(id)}"><span class="dot" style="background:${cc}"></span><span class="tt">${esc((byId[id]||{}).title||id)}</span><span class="ty">${esc(ty)}</span></button>`;}).join('')}</div>`;
