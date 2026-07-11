@@ -51,4 +51,5 @@ module OKF
   require "okf/bundle/writer"
   require "okf/bundle/folder"
   require "okf/skill"
+  require "okf/cli"
 end
