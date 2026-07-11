@@ -1,0 +1,19 @@
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+*.gem
+
+# The gem is tested against many Rubies; each resolves its own dependency set.
+Gemfile.lock
+
+# Local skill installs (okf skill <dest>) stay out of the repo; the canonical
+# skill lives in lib/okf/skill/.
+/.agents/
+
+/.claude/*
+!/.claude/CLAUDE.md

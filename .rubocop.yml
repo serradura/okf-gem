@@ -1,0 +1,58 @@
+AllCops:
+  # The gem runs on every Ruby back to 2.4 (rack's own floor) — RuboCop parses
+  # with that version and flags newer-only syntax. CI's oldest job is the real
+  # arbiter; this is the fast local check.
+  TargetRubyVersion: 2.4
+  NewCops: enable
+  SuggestExtensions: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+# House style: literal arrays read with breathing room — [ 1, 2 ].
+Layout/SpaceInsideArrayLiteralBrackets:
+  EnforcedStyle: space
+
+Layout/LineLength:
+  Max: 160
+
+# The codebase prefers explicit code over these opinions: prose-length methods
+# in the CLI/linter, `+` concatenation, compact test-class names, and modifier
+# ifs written out when the guard matters.
+Metrics/AbcSize:
+  Enabled: false
+Metrics/ClassLength:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Metrics/MethodLength:
+  Enabled: false
+Metrics/ParameterLists:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+Style/Documentation:
+  Enabled: false
+Style/IfUnlessModifier:
+  Enabled: false
+Style/MultilineBlockChain:
+  Enabled: false
+Style/RegexpLiteral:
+  Enabled: false
+Style/Semicolon:
+  Enabled: false
+Style/StringConcatenation:
+  Enabled: false
+
+Lint/AmbiguousBlockAssociation:
+  Exclude:
+    - "test/**/*"
