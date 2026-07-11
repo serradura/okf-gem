@@ -35,4 +35,13 @@ module OKF
   require "okf/markdown/frontmatter"
   require "okf/markdown/links"
   require "okf/markdown/citations"
+
+  # ── domain: pure representations + analyzers (no disk, no CLI) ──
+  require "okf/concept"
+  require "okf/bundle"
+  require "okf/bundle/graph"
+  require "okf/bundle/validator"
+  require "okf/bundle/validator/result"
+  require "okf/bundle/linter"
+  require "okf/bundle/linter/report"
 end
