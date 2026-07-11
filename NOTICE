@@ -1,5 +1,10 @@
 OKF gem
 Copyright (c) 2026 Rodrigo Serradura
 
-The Open Knowledge Format specification is authored by Google Cloud Platform
-(https://github.com/GoogleCloudPlatform/knowledge-catalog).
+Licensed under the Apache License, Version 2.0 (see LICENSE.txt).
+
+This product bundles the Open Knowledge Format (OKF) v0.1 specification
+(lib/okf/skill/reference/SPEC.md), authored by Google Cloud Platform and
+licensed under the Apache License, Version 2.0, Copyright (c) Google LLC.
+Source: https://github.com/GoogleCloudPlatform/knowledge-catalog
+Full license text: lib/okf/skill/reference/APACHE-2.0.txt

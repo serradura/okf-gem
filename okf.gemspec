@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
     tool (validate / lint / loose / server / graph / skill).
   DESC
   spec.homepage = "https://github.com/serradura/okf-gem"
-  spec.license = "MIT"
+  spec.license = "Apache-2.0"
 
   # The same floor as rack, the gem's core dependency: the server mode should run
   # on whatever Ruby the OS already ships.
