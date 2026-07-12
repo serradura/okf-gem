@@ -12,7 +12,7 @@ by the [CLI](../cli.md).
 # Serve & read
 
 * [Interactive graph server](graph-server.md) - a self-contained HTML graph over HTTP, mountable as a Rack app.
-* [Read views](read-views.md) - `catalog`, `files`, `tags`, `stats`, `loose`, `graph` — the browser views as text.
+* [Read views](read-views.md) - `catalog`, `files`, `types`, `tags`, `stats`, `loose`, `graph` — the browser views as text.
 
 # Use & author
 

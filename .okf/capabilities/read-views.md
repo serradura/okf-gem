@@ -1,9 +1,9 @@
 ---
 type: Capability
-title: Read views (catalog, files, tags, stats, loose, graph)
+title: Read views (catalog, files, types, tags, stats, loose, graph)
 description: The server's browser panels reproduced on the CLI so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-11T21:40:00Z
 ---
 
 # Overview
@@ -21,10 +21,28 @@ all are advisory reads that exit `0`. They share
 |------|-------|------------|
 | `catalog` | concepts with type, tags, link counts, status | area |
 | `files` | files with titles | folder |
+| `types` | [types](../format/frontmatter.md) with their concepts | count |
 | `tags` | [tags](../format/frontmatter.md) with their concepts | count |
 | `stats` | rollups: concepts, areas, types, cross-links, tags | — |
 | `loose` | degree-0 concepts (no [links](../format/cross-links.md) in or out) | folder |
 | `graph` | the raw nodes and edges | — (`--minimal` / `--no-body`) |
+
+# Narrowing and regrouping
+
+The four list views — `catalog`, `files`, `types`, `tags` — accept the filters
+*orthogonal* to how they group, so you ask a narrow question instead of paging
+the whole bundle (matching is case-insensitive):
+
+| View | Filters it accepts |
+|------|--------------------|
+| `catalog`, `files` | `--type`, `--area`, `--tag` |
+| `types` | `--area`, `--tag` (it already groups by type) |
+| `tags` | `--type`, `--area` (it already groups by tag) |
+
+`tags --by type|area` regroups the tag index under each concept dimension with
+within-group counts — the view for curating a
+[tag](../format/frontmatter.md) vocabulary: which tags cluster in which area,
+which type leans on which tags.
 
 # `loose` is a curation lens, not an error
 

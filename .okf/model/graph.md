@@ -4,7 +4,7 @@ title: OKF::Bundle::Graph
 description: The in-memory knowledge graph — concepts as nodes, cross-links as directed edges, with type and tag indexes.
 resource: lib/okf/bundle/graph.rb
 tags: [model, graph, pure]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-11T21:40:00Z
 ---
 
 # Overview
@@ -36,8 +36,8 @@ every concept:
 - `tag_index` — `{ tag => [id, …] }`, so it can filter by tag.
 
 Those indexes, plus `unlinked_ids` (degree-0 nodes), are what the
-[read views](../capabilities/read-views.md) — `tags`, `stats`, `loose` — are
-built from.
+[read views](../capabilities/read-views.md) — `types`, `tags`, `stats`, `loose`
+— are built from, and what their `--type`/`--area`/`--tag` filters match against.
 
 # Citations
 
