@@ -25,18 +25,15 @@
 > **Quick start.** One skill, one command, a curation hook, and a CLI that
 > validates, lints, indexes, and serves your Markdown as a graph. In Claude Code,
 > add the plugin and let it set everything up: `/plugin marketplace add
-> serradura/okf-gem`, then `/plugin install okf@okfgem`, then `/okf:gem`. On the
+serradura/okf-gem`, then `/plugin install okf@okfgem`, then `/okf:gem`. On the
 > command line: `gem install okf`, then `okf validate <dir>`.
 
 Here is what it is able to do:
 
-<!-- Diagram source: .github/overview.mmd. Regenerate both variants with mermaid-cli:
-     mmdc -i .github/overview.mmd -o .github/overview-light.png -t default -b transparent -s 3
-     mmdc -i .github/overview.mmd -o .github/overview-dark.png  -t dark    -b transparent -s 3 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/overview-dark.png">
-    <img src=".github/overview-light.png" width="100%" alt="The companion agent skill authors and curates an OKF v0.1 bundle (Markdown + YAML). A pure model (Concept, Bundle, Graph) reads that bundle and feeds both the okf CLI (validate — legal per §9; lint — well-curated; server — explore) and a library API you embed in Ruby.">
+    <img src=".github/overview.png" width="100%" alt="The companion agent skill authors and curates an OKF v0.1 bundle (Markdown + YAML). A pure model (Concept, Bundle, Graph) reads that bundle and feeds both the okf CLI (validate — legal per §9; lint — well-curated; server — explore) and a library API you embed in Ruby.">
   </picture>
 </p>
 
@@ -73,10 +70,6 @@ It is deliberately light so it runs on the Ruby your OS already ships:
 
 That range is not aspirational: CI runs the full test suite and RuboCop on every
 one of these on each push.
-
-| Ruby             | 2.4 | 2.5 | 2.6 | 2.7 | 3.0 | 3.1 | 3.2 | 3.3 | 3.4 | 4.0 |
-| ---------------- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Tested/Supported | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  |
 
 ## Why OKF
 
@@ -145,9 +138,13 @@ That bundle is this gem's own documentation. Clone the repo and run
 
 ## Installation
 
-**In Claude Code**, the plugin is the fastest path: two commands install the whole
-toolchain (skill, `/okf:gem`, and the curation hook). See
-[Claude Code plugin](#claude-code-plugin). Everywhere else, install the gem:
+> **In Claude Code**, the plugin is the fastest path: two commands install the whole
+> toolchain (skill, `/okf:gem`, and the curation hook). See
+> [Claude Code plugin](#claude-code-plugin). Everywhere else, install the gem:
+
+| Ruby version     | 2.4 | 2.5 | 2.6 | 2.7 | 3.0 | 3.1 | 3.2 | 3.3 | 3.4 | 4.0 |
+| ---------------- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Tested/Supported | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  |
 
 ```bash
 gem install okf
@@ -249,14 +246,14 @@ skill plus a post-edit curation hook.
 The skill routes a small set of verbs. In Claude Code they run as `/okf:gem
 <verb>`; used standalone, the skill infers the verb from your request.
 
-| Verb             | What it does                                                              |
-| ---------------- | ------------------------------------------------------------------------ |
-| _(none)_         | Orient on the bundle and recommend the highest-value next move            |
-| `produce`        | Create or extend a bundle from code, docs, or knowledge in people's heads |
-| `maintain`       | Sync the bundle's content with reality after the code or docs change      |
-| `consume`        | Use the bundle as context for a task, writing back what you learn         |
-| `curate`         | Structural upkeep as it stands: `validate` + `lint` + `loose`             |
-| `doctor`         | Install and verify the CLI, then doctor the bundle                        |
+| Verb             | What it does                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| _(none)_         | Orient on the bundle and recommend the highest-value next move                                    |
+| `produce`        | Create or extend a bundle from code, docs, or knowledge in people's heads                         |
+| `maintain`       | Sync the bundle's content with reality after the code or docs change                              |
+| `consume`        | Use the bundle as context for a task, writing back what you learn                                 |
+| `curate`         | Structural upkeep as it stands: `validate` + `lint` + `loose`                                     |
+| `doctor`         | Install and verify the CLI, then doctor the bundle                                                |
 | `<okf-cli-verb>` | Run any CLI verb (`validate`, `lint`, `index`, `server`, the read views) and interpret its output |
 
 Point it at your agent's config directory (or its skills directory) and the tree
