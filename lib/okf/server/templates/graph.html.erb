@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
  :root{
   --bg:#ffffff; --panel:#ffffff; --panel-2:#f6f7f8; --canvas:#f4f5f7; --ink:#1f2328; --ink-soft:#333333;
@@ -466,7 +467,7 @@ function rethemeMermaid(){if(!window.mermaid)return;const nodes=[...document.que
  window.mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:isDark()?'dark':'default'});
  nodes.forEach(d=>{if(d.dataset.src){d.removeAttribute('data-processed');d.innerHTML='';d.textContent=d.dataset.src;}});
  window.mermaid.run({nodes}).catch(()=>{});}
-function renderMarkdown(el,text){el.innerHTML=text?marked.parse(text):'<span class="empty">empty body</span>';processMermaid(el);}
+function renderMarkdown(el,text){el.innerHTML=text?DOMPurify.sanitize(marked.parse(text)):'<span class="empty">empty body</span>';processMermaid(el);}
 
 /* ── inspector ── */
 const gbody=document.querySelector('.graph-body'), sideBody=document.getElementById('side-body');
