@@ -46,6 +46,10 @@ module OKF
         @bundle.catalog
       end
 
+      def directory_index
+        @bundle.directory_index
+      end
+
       # Human-readable "parent/dir" name — the default HTML title.
       def name
         pathname = Pathname.new(@root)

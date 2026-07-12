@@ -303,6 +303,74 @@ class OKF::CLITest < OKF::TestCase
     assert_equal 2, data["by_area"]["features"]
   end
 
+  test "index maps directories with their authored index body and rollups" do
+    write("index.md", "---\nokf_version: \"0.1\"\n---\n\n# Root\n")
+    write("product/index.md", "# Product\n\n* [Mission](mission.md)\n")
+    write("product/mission.md", concept("Mission"))
+
+    assert_equal 0, invoke("index", @tmpdir)
+    assert_match(/Index map/, @out.string)
+    assert_match(%r{product/  ·  1 concept}, @out.string)
+    assert_match(/# Product/, @out.string)
+  end
+
+  test "index --json emits per-directory entries with listing and rollups" do
+    write("product/index.md", "# Product\n")
+    write("product/mission.md", concept("Mission"))
+    write("product/vision.md", "---\ntype: Note\ntitle: Vision\ndescription: d\n---\n\nhi\n")
+
+    assert_equal 0, invoke("index", @tmpdir, "--json")
+    data = JSON.parse(@out.string)
+    prod = data["directories"].find { |entry| entry["dir"] == "product" }
+    assert_equal 2, prod["count"]
+    assert_equal true, prod["present"]
+    assert_equal({ "Note" => 2 }, prod["types"])
+    assert_equal %w[product/mission product/vision], prod["listing"].map { |item| item["id"] }
+  end
+
+  test "index --area narrows to the named directories; repeatable and root-aware" do
+    write("index.md", "---\nokf_version: \"0.1\"\n---\n\n# Root\n")
+    write("a/x.md", concept("X"))
+    write("b/y.md", concept("Y"))
+
+    assert_equal 0, invoke("index", @tmpdir, "--area", "a")
+    assert_match(/\(1 directory\)/, @out.string)
+    assert_match(%r{\n  a/}, @out.string)
+    refute_match(%r{\n  b/}, @out.string)
+
+    @out = StringIO.new
+    assert_equal 0, invoke("index", @tmpdir, "--area", "root", "--area", "b")
+    assert_match(/\(2 directories\)/, @out.string)
+    assert_match(/\n  \(root\)/, @out.string)
+    assert_match(%r{\n  b/}, @out.string)
+  end
+
+  test "index --no-body omits an authored body but keeps a synthesized listing" do
+    write("index.md", "---\nokf_version: \"0.1\"\n---\n\n# UNIQUEBODYMARKER\n")
+    write("a/x.md", concept("Xtitle")) # no index.md in a/ -> synthesized
+
+    assert_equal 0, invoke("index", @tmpdir)
+    assert_match(/UNIQUEBODYMARKER/, @out.string)
+
+    @out = StringIO.new
+    assert_equal 0, invoke("index", @tmpdir, "--no-body")
+    refute_match(/UNIQUEBODYMARKER/, @out.string)
+    assert_match(/no index\.md/, @out.string)
+    assert_match(/• Xtitle/, @out.string)
+  end
+
+  test "index notes skipped unparseable files on stderr and still exits 0" do
+    write("good.md", concept)
+    write("bad.md", "no frontmatter here\n")
+
+    assert_equal 0, invoke("index", @tmpdir)
+    assert_match(/skipped 1 file/, @err.string)
+  end
+
+  test "index rejects a missing directory (exit 2)" do
+    assert_equal 2, invoke("index", File.join(@tmpdir, "nope"))
+  end
+
   private
 
   def invoke(*argv)

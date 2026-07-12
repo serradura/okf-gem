@@ -126,7 +126,84 @@ module OKF
       end.sort_by { |entry| entry[:id] }
     end
 
+    # The progressive-disclosure map (spec §6): one entry per directory that holds
+    # concepts or carries an index.md, sorted with the root (".") first. Each entry
+    # gives the authored index body (frontmatter stripped) when an index.md is
+    # present, a type/tag rollup over the concepts that live *directly* in the
+    # directory, its immediate child directories, and the concept listing an
+    # index.md there would enumerate. A directory with concepts but no index.md has
+    # `present: false` and still carries the listing, so a consumer can synthesize
+    # the map on the fly (§6 permits exactly that). Grouped by the concept's file
+    # path — index files are physical directory listings, so a custom frontmatter
+    # `id` must not move a concept out of the directory it lives in. Pure: derived
+    # from the concepts and the reserved index text, no disk. Shared by the `okf
+    # index` view and the server's /index endpoint.
+    def directory_index
+      by_dir = concepts.group_by { |concept| File.dirname(concept.path) }
+      dirs = directory_set(by_dir.keys)
+
+      dirs.map do |dir|
+        here = (by_dir[dir] || []).sort_by(&:id)
+        index_path = dir == "." ? "index.md" : "#{dir}/index.md"
+        present = index_files.include?(index_path)
+        {
+          dir: dir,
+          index_path: index_path,
+          present: present,
+          synthesized: !present,
+          body: present ? strip_frontmatter(reserved_content(index_path)) : nil,
+          count: here.size,
+          types: tally(here.map { |concept| concept.type.to_s }),
+          tags: tally(here.flat_map { |concept| Array(concept.tags).map(&:to_s) }),
+          subdirs: dirs.select { |other| other != dir && File.dirname(other) == dir },
+          listing: here.map do |concept|
+            {
+              id: concept.id,
+              title: (concept.title || concept.id).to_s,
+              description: concept.description.to_s,
+              type: concept.type.to_s,
+              tags: Array(concept.tags).map(&:to_s)
+            }
+          end
+        }
+      end
+    end
+
     private
+
+    # Every directory to show: those holding concepts or an index.md, plus each of
+    # their ancestors up to the root, so the subdir tree stays connected even when
+    # an intermediate directory holds nothing directly. Sorted with "." first.
+    def directory_set(concept_dirs)
+      seed = concept_dirs + index_files.map { |path| File.dirname(path) }
+      dirs = {}
+      seed.each do |dir|
+        current = dir
+        loop do
+          dirs[current] = true
+          break if current == "."
+
+          current = File.dirname(current)
+        end
+      end
+      dirs.keys.sort_by { |dir| dir == "." ? "" : dir }
+    end
+
+    # { value => count }, ordered by count descending then value.
+    def tally(values)
+      counts = values.each_with_object(Hash.new(0)) { |value, acc| acc[value] += 1 }
+      counts.sort_by { |value, count| [ -count, value ] }.to_h
+    end
+
+    # The index body with a leading frontmatter block removed (the bundle-root
+    # index carries okf_version; nested indexes carry none). Returns the content
+    # unchanged when it has no parseable frontmatter — the common case for a nested
+    # index — rather than raising.
+    def strip_frontmatter(content)
+      Markdown::Frontmatter.parse(content).last
+    rescue Markdown::Frontmatter::ParseError
+      content
+    end
 
     def concepts_by_id
       @concepts_by_id ||= @concepts.map { |concept| [ concept.id, concept ] }.to_h

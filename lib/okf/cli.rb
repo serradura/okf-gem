@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module OKF
-  # Command-line front end: `okf graph|validate|lint|loose|catalog|files|tags|types|stats|server <dir>`.
+  # Command-line front end: `okf graph|validate|lint|loose|index|catalog|files|tags|types|stats|server <dir>`.
   # This is the
   # only layer that parses argv, prints, writes files, and decides exit codes — the
   # lib classes below it just return data. Streams are injectable for testing.
@@ -44,6 +44,7 @@ module OKF
       when "validate" then validate(argv)
       when "lint" then lint(argv)
       when "loose" then loose(argv)
+      when "index" then index(argv)
       when "catalog" then catalog(argv)
       when "files" then files(argv)
       when "tags" then tags(argv)
@@ -176,6 +177,99 @@ module OKF
         @out.puts "#{graph.nodes.size} concepts, #{graph.edges.size} links"
       end
       0
+    end
+
+    # The progressive-disclosure map (spec §6): every directory that holds concepts
+    # or carries an index.md, with its authored index body, a type/tag rollup, its
+    # child directories, and — for a directory with no index.md — the listing
+    # synthesized from the concepts there. The "orient before you read" view. `--area`
+    # is repeatable (one or many directories; `root` is the bundle root); `--no-body`
+    # drops the prose to a skeleton; advisory, exit 0.
+    def index(argv)
+      options = { json: false, body: true, areas: nil }
+      parser = OptionParser.new do |o|
+        o.banner = "Usage: okf index <bundle-dir> [--area AREA] [--no-body] [--json]"
+        o.on("--json", "emit the index map as JSON") { options[:json] = true }
+        o.on("--area AREA", "only this directory/area (repeatable; `root` for the bundle root)") { |v| (options[:areas] ||= []) << v }
+        o.on("--[no-]body", "include each index's prose body (default: yes)") { |v| options[:body] = v }
+      end
+      dir = positional_dir(parser, argv) or return 2
+
+      folder = OKF::Bundle::Folder.load(dir)
+      report_skipped(folder)
+      entries = folder.directory_index
+      selected = select_directories(entries, options[:areas])
+      options[:json] ? print_index_map_json(dir, selected) : print_index_map(dir, selected, options[:body])
+      0
+    end
+
+    # Narrow the map to the named directories/areas — case-insensitive, `root`
+    # matching the bundle root (".") so no shell quoting is needed. No --area passed
+    # keeps the whole map.
+    def select_directories(entries, areas)
+      return entries if areas.nil? || areas.empty?
+
+      wanted = areas.map { |area| area.downcase == "root" ? "." : area.downcase }
+      entries.select { |entry| wanted.include?(entry[:dir].downcase) }
+    end
+
+    def print_index_map(dir, entries, body)
+      noun = entries.size == 1 ? "directory" : "directories"
+      @out.puts "Index map — #{dir} (#{entries.size} #{noun})"
+      entries.each do |entry|
+        @out.puts
+        @out.puts "  #{index_dir_label(entry)}#{index_dir_meta(entry)}"
+        subdirs = entry[:subdirs]
+        @out.puts "    → #{subdirs.map { |sub| "#{File.basename(sub)}/" }.join("  ")}" unless subdirs.empty?
+        if entry[:present]
+          print_index_body(entry[:body]) if body
+        else
+          print_synthesized_listing(entry[:listing])
+        end
+      end
+    end
+
+    def index_dir_label(entry)
+      base = entry[:dir] == "." ? "(root)" : "#{entry[:dir]}/"
+      entry[:present] ? base : "#{base}  (no index.md)"
+    end
+
+    def index_dir_meta(entry)
+      count = "#{entry[:count]} #{entry[:count] == 1 ? "concept" : "concepts"}"
+      types = entry[:types].map { |type, n| "#{type.empty? ? "Untyped" : type} #{n}" }.join(", ")
+      types.empty? ? "  ·  #{count}" : "  ·  #{count} · #{types}"
+    end
+
+    def print_index_body(body)
+      text = body.to_s.strip
+      return if text.empty?
+
+      text.each_line { |line| @out.puts "    #{line.chomp}" }
+    end
+
+    def print_synthesized_listing(listing)
+      listing.each do |item|
+        suffix = item[:description].empty? ? "" : " — #{truncate(item[:description], 72)}"
+        @out.puts "    • #{item[:title]}#{suffix}"
+      end
+    end
+
+    def print_index_map_json(dir, entries)
+      @out.puts JSON.pretty_generate(
+        "bundle" => dir,
+        "count" => entries.size,
+        "directories" => entries.map { |entry| index_map_entry_json(entry) }
+      )
+    end
+
+    def index_map_entry_json(entry)
+      {
+        "dir" => entry[:dir], "index_path" => entry[:index_path],
+        "present" => entry[:present], "synthesized" => entry[:synthesized],
+        "count" => entry[:count], "types" => entry[:types], "tags" => entry[:tags],
+        "subdirs" => entry[:subdirs], "body" => entry[:body],
+        "listing" => entry[:listing].map { |item| stringify(item) }
+      }
     end
 
     # The Catalog / Files / Tags / Stats views the server renders in the browser,
@@ -716,6 +810,7 @@ module OKF
           loose     <dir> [--json]                          list files with no graph links, by folder
           validate  <dir> [--json]                          check OKF v0.1 conformance
 
+          index     <dir> [--json] [--area A] [--no-body]   the index map: dirs, their listings and rollups
           stats     <dir> [--json]                          bundle rollups (concepts, types, areas, links, tags)
           types     <dir> [--json] [filters]                list types with their concepts, by count
           tags      <dir> [--json] [--by DIM] [filters]     list tags with their concepts, by count

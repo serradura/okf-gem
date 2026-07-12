@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- `okf index`: a read view over the progressive-disclosure layer (spec §6) — one
+  entry per directory that holds concepts or carries an `index.md`, root first,
+  with its authored index body (frontmatter stripped), a type/tag rollup over the
+  concepts that live there, its child directories, and the concept listing. A
+  directory with concepts but no `index.md` has its listing synthesized (§6 permits
+  it) and is flagged. `--area` (repeatable), `--no-body`, and `--json`; advisory,
+  always exit 0. Backed by the new pure `OKF::Bundle#directory_index`.
 - `okf types`: the type index as a CLI view — every type with its concepts,
   ordered by count, `--json` for the machine shape (parity with the server's
   `/types` endpoint).

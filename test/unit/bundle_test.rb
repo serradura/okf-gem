@@ -71,4 +71,75 @@ class OKF::BundleTest < OKF::TestCase
     assert_empty bundle.concepts
     assert_empty bundle.paths
   end
+
+  test "directory_index groups concepts by file-path directory, root first, with type/tag rollups" do
+    bundle = OKF::Bundle.new(
+      concepts: [
+        OKF::Concept.new(path: "overview.md", frontmatter: { "type" => "Overview", "title" => "Ov", "tags" => [ "x" ] }, body: ""),
+        OKF::Concept.new(path: "svc/a.md", frontmatter: { "type" => "Service", "title" => "A", "tags" => %w[x y] }, body: ""),
+        OKF::Concept.new(path: "svc/b.md", frontmatter: { "type" => "Service", "title" => "B", "tags" => [ "y" ] }, body: "")
+      ],
+      reserved: [ OKF::Bundle::Entry.new(path: "index.md", content: %(---\nokf_version: "0.1"\n---\n\n# Root listing\n)) ]
+    )
+
+    map = bundle.directory_index
+    assert_equal [ ".", "svc" ], map.map { |entry| entry[:dir] }, "root sorts first"
+    root, svc = map
+
+    assert_equal 1, root[:count]
+    assert_equal [ "svc" ], root[:subdirs]
+    assert_equal true, root[:present]
+    assert_equal "# Root listing\n", root[:body], "root index frontmatter is stripped"
+
+    assert_equal 2, svc[:count]
+    assert_equal false, svc[:present]
+    assert_equal true, svc[:synthesized]
+    assert_equal({ "Service" => 2 }, svc[:types])
+    assert_equal({ "y" => 2, "x" => 1 }, svc[:tags], "tags order by count desc then name")
+    assert_equal [ "svc/a", "svc/b" ], svc[:listing].map { |item| item[:id] }, "listing present even without an index.md"
+    assert_nil svc[:body]
+  end
+
+  test "directory_index groups by file path, not by a custom frontmatter id" do
+    concept = OKF::Concept.new(path: "tables/orders.md", frontmatter: { "id" => "orders", "type" => "Table" }, body: "")
+    bundle = OKF::Bundle.new(concepts: [ concept ])
+
+    tables = bundle.directory_index.find { |entry| entry[:dir] == "tables" }
+    assert tables, "a custom id must not collapse the concept into the root"
+    assert_equal [ "orders" ], tables[:listing].map { |item| item[:id] }
+  end
+
+  test "directory_index keeps a nested index (no frontmatter) verbatim and never raises on it" do
+    bundle = OKF::Bundle.new(
+      concepts: [ OKF::Concept.new(path: "svc/a.md", frontmatter: { "type" => "Service" }, body: "") ],
+      reserved: [ OKF::Bundle::Entry.new(path: "svc/index.md", content: "# Services\n\n* [A](a.md)\n") ]
+    )
+
+    svc = bundle.directory_index.find { |entry| entry[:dir] == "svc" }
+    assert_equal true, svc[:present]
+    assert_equal "# Services\n\n* [A](a.md)\n", svc[:body]
+  end
+
+  test "directory_index connects nested directories through empty intermediates" do
+    bundle = OKF::Bundle.new(concepts: [ OKF::Concept.new(path: "a/b/c.md", frontmatter: { "type" => "Note" }, body: "") ])
+
+    map = bundle.directory_index
+    assert_equal [ ".", "a", "a/b" ], map.map { |entry| entry[:dir] }
+    assert_equal [ "a" ], map[0][:subdirs]
+    assert_equal [ "a/b" ], map[1][:subdirs]
+    assert_equal 1, map[2][:count]
+  end
+
+  test "directory_index shows a directory that carries only an index.md" do
+    bundle = OKF::Bundle.new(reserved: [ OKF::Bundle::Entry.new(path: "index.md", content: "# Just a map\n") ])
+
+    map = bundle.directory_index
+    assert_equal [ "." ], map.map { |entry| entry[:dir] }
+    assert_equal true, map.first[:present]
+    assert_equal 0, map.first[:count]
+  end
+
+  test "directory_index is empty for a bundle with no concepts or index files" do
+    assert_empty OKF::Bundle.new.directory_index
+  end
 end

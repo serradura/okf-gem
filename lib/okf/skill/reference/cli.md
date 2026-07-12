@@ -1,7 +1,7 @@
 # OKF tool verbs — the `okf` CLI
 
-`validate`, `lint`, `loose`, `catalog`, `files`, `tags`, `types`, `stats`, `server`,
-and `graph` are **not** eyeball passes and are not
+`validate`, `lint`, `loose`, `index`, `catalog`, `files`, `tags`, `types`, `stats`,
+`server`, and `graph` are **not** eyeball passes and are not
 reimplemented in this skill. They run the deterministic `okf` executable shipped by
 the companion gem — the single source of truth for OKF mechanics. Your job is to
 invoke it correctly and interpret the result, not to reason out conformance by hand.
@@ -89,6 +89,29 @@ have no cross-links, so it floats in the graph while `lint` reports it as reacha
 `loose`/`unlinked` catch exactly that gap. A loose file is not automatically a
 defect — a terminal leaf (a backlog item, a spec reference) can be loose by design;
 `loose` surfaces the set so you can judge intent (see `maintain` in authoring.md).
+
+## index — the progressive-disclosure map (§6)
+
+The "orient before you read" view, and the one read verb that sees the layer the
+others can't: `index.md` files are reserved/structural, so `catalog`/`files`/… (all
+concept views) never show them. `okf index <dir>` prints one entry per directory
+that holds concepts or carries an `index.md`, root first — the authored index body
+(frontmatter stripped), a `type`/`tag` rollup over the concepts that live directly
+there, its child directories, and the concept listing. Run it first when picking up
+an existing bundle: it is the cheapest high-signal orientation, and it surfaces
+enumeration drift a grep can't (you can't grep for a listing entry that is *missing*).
+
+`--area A` narrows to a directory and is **repeatable** — `--area model --area
+format` shows both; `root` names the bundle root. `--no-body` drops the prose to a
+skeleton (headers, rollups, child pointers). For a directory that has concepts but
+**no `index.md`**, the listing is **synthesized** from the concepts' descriptions
+and tagged `(no index.md)` — §6 explicitly permits synthesizing a map on the fly.
+
+It is a **read view**: advisory, always exit 0. A synthesized directory is a
+*signal* (a map worth writing), never a defect — `index` emits no lint findings and
+never fails a bundle. JSON: `{ bundle, count, directories: [{ dir, index_path,
+present, synthesized, count, types, tags, subdirs, body, listing: [{ id, title,
+description, type, tags }] }] }`.
 
 ## catalog / files / tags / types / stats — the server views, as text
 
