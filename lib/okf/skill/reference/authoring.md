@@ -31,6 +31,17 @@ types across files is what makes the graph legible; inventing a new type per fil
 makes `type` meaningless. Before adding a new type, check what the bundle already
 uses.
 
+### Tags are the connective axis — curate them like a vocabulary
+`type` says what a concept *is*; the directory says where it *lives*; `tags` are
+the only axis that cuts across both. A tag earns its place one of two ways: by
+**connecting** concepts that type and area don't already group (a `billing` tag
+spanning a service, a dataset, and a decision), or by **marking** something worth
+flagging even on one concept (`security`, `deprecated`). A tag that merely
+restates the concept's own type, area, or title adds no edge — it is noise wearing
+a tag's clothes. Reuse before minting: run `okf tags <dir>` and pick from the
+existing vocabulary first; 2–4 tags per concept is plenty. Scattered singletons
+are how a vocabulary rots into one label per file.
+
 ### Topology: organize by domain, not by type
 Lay out directories by what the knowledge is *about* (`services/`, `datasets/`,
 `decisions/`), not by concept type. The directory tree is itself knowledge — it
@@ -132,6 +143,25 @@ bundle-root [root-index](../templates/root-index.md), [log](../templates/log.md)
      by design only through its index — leave it. **Terminal-by-design is not a
      defect.** Loose ≠ orphan: an index listing makes a file *reachable* (not an
      orphan) but is not a graph edge, so an indexed file can still float here.
+6. **Curate the tag vocabulary** when the pass touched tags, or when `okf tags
+   <dir>` shows a long tail of singletons. Run `okf tags <dir> --by area` and
+   `--by type` — the grouped view is the analysis; read each group top-down:
+   - **twins** — two tags riding the exact same concepts (equal counts sort them
+     adjacent). Merge into one unless each genuinely names a different theme.
+   - **group-name echoes** — a tag matching its own group's name (a `format` tag
+     inside `format/`, an `overview` tag on an Overview). It restates an axis the
+     concept already carries; drop it from those concepts.
+   - **singletons** — for each, ask: would an existing tag serve? is it an
+     anticipated cluster that concepts landing soon will join? is it a deliberate
+     marker (`security`, `deprecated`)? Merge, keep, or drop accordingly — a
+     count of 1 is a question, never a verdict.
+   - **connective tags** — recurring across groups: these are the vocabulary's
+     spine. Protect them; prefer merging others *into* them over renaming them,
+     because consumers learn these keys and stability is part of their value.
+   The trap in this pass is optimizing the numbers instead of the vocabulary:
+   you can reach zero singletons by deleting every tag, and perfect cohesion by
+   tagging everything alike. The goal is a small set of tags where each one
+   either connects or marks — judged, not counted.
 
 ### consume — use a bundle as context
 1. Read the bundle-root `index.md` first for progressive disclosure, then follow

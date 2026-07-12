@@ -2,22 +2,19 @@
 name: okf
 description: >-
   Be the expert on Open Knowledge Format (OKF) — portable knowledge as a directory
-  of markdown files with YAML frontmatter that both humans and agents read. This
-  skill carries the judgment for modelling, curating, and reasoning about OKF
-  bundles, and routes mechanical work to the installed `okf` CLI. One entry point,
-  subcommand-driven like the CLI: authoring verbs (produce, maintain, consume) are
-  agent-driven craft; tool verbs (validate, lint, loose, catalog, files, tags, types,
-  stats, server, graph) delegate to
-  the executable. Use whenever capturing project knowledge (services, APIs, schemas,
-  metrics, runbooks, decisions) into a bundle, updating one after code or docs
-  change, checking a bundle's conformance or curation quality, rendering it as a
-  graph, or working in a repo that contains an OKF bundle — a `.okf/` directory or
-  a root `index.md` carrying `okf_version`. Triggers on: "document this in OKF",
-  "update the knowledge bundle", "capture this as a concept", "validate/lint/
-  serve the bundle", or a task needing knowledge from an OKF bundle already in
-  the repo.
+  of markdown files with YAML frontmatter that both humans and agents read. The
+  skill carries the judgment — modelling concepts, curating bundles, interpreting
+  what the tools report — and routes every mechanical question (validation,
+  linting, views, the graph server) to the installed `okf` CLI. Use whenever
+  capturing project knowledge (services, APIs, schemas, metrics, runbooks,
+  decisions) into a bundle, updating one after code or docs change, checking a
+  bundle's conformance or curation quality, rendering it as a graph, or working in
+  a repo that contains an OKF bundle — a `.okf/` directory or a root `index.md`
+  carrying `okf_version`. Triggers on: "document this in OKF", "update the
+  knowledge bundle", "capture this as a concept", "validate/lint/serve the
+  bundle", or a task needing knowledge from an OKF bundle already in the repo.
 user-invocable: true
-argument-hint: "[produce|maintain|consume|validate|lint|loose|catalog|files|tags|types|stats|server|graph] [dir] [--flags]"
+argument-hint: "[produce|maintain|consume|<okf-cli-verb>] [dir] [--flags]"
 allowed-tools: Read Write Edit Grep Glob Bash
 ---
 
@@ -69,68 +66,46 @@ or *semantic* staleness (a concept that parses fine but no longer matches
 reality); only an agent reasoning over meaning can. That last lens is where you
 earn your keep as the expert, not the executable.
 
-## Dispatch — `/okf <subcommand> [dir] [flags]`
+## The CLI is your eyes — you are the judgment
 
-Pick behaviour by the first argument, mirroring the CLI. The two kinds want
-different things from you.
-
-**Authoring verbs are the craft.** `produce`, `maintain`, `consume` carry the
-judgment the executable can't — this is where the skill earns its keep. Read
-[authoring.md](reference/authoring.md) before doing them, and the verbatim spec
-[SPEC.md](reference/SPEC.md) when you need chapter and verse.
-
-**Tool verbs just drive the executable — guard once, then run.** You don't need to
-open a reference for the common case:
+Mechanical questions — is it conformant, what exists, what links where, what
+drifted — are never eyeball passes. The `okf` executable answers them
+deterministically, and its read views exist precisely so you can see everything
+the browser UI shows without a browser. Guard once, then trust it:
 
 ```bash
 command -v okf >/dev/null || echo "okf CLI missing — install: gem install okf (or from a checkout: cd gem && bundle exec rake install)"
-okf validate  <dir> [--json]                     # §9 conformance   (exit 1 = non-conformant)
-okf graph     <dir> [--json]                     # nodes + edges
-okf lint      <dir> [--json] [--stale-after 90d] # curation quality; advisory (exit 0)
-okf loose     <dir> [--json]                     # files with no graph links, by folder
-okf catalog   <dir> [--json] [filters]           # concepts + metadata (type, tags, links), by area
-okf files     <dir> [--json] [filters]           # files + titles, by folder
-okf tags      <dir> [--json] [--by type|area] [filters]  # tags + their concepts, by count
-okf types     <dir> [--json] [filters]           # types + their concepts, by count
-okf stats     <dir> [--json]                     # bundle rollups (concepts, types, areas, links, tags)
-okf server    <dir> [-p PORT]                    # serve the interactive graph over HTTP
 ```
 
-`catalog`/`files`/`tags`/`types`/`stats` are the server's browser views as text —
-reach for them (with `--json` for a machine substrate) to read a bundle at a glance
-without a browser: what concepts exist, how they're foldered, which tags dominate,
-the shape. The four list views narrow with the same `[filters]` the browser offers —
-`--type TYPE`, `--area AREA`, `--tag TAG` (each takes the ones orthogonal to it;
-case-insensitive; the bundle root is area `root`). `tags --by type|area` regroups
-the tags per concept dimension with within-group counts — the view for curating a
-tag vocabulary (scattered singletons vs connective tags).
+Don't memorize the surface — the tool describes itself. `okf --help` maps every
+verb; `okf <verb> --help` its flags. Every read verb takes `--json` for a machine
+substrate, and the list views filter and regroup by type, area, and tag, so ask
+the narrow question instead of paging through the whole bundle.
 
-The one that bites: **freshness is off by default — a plain `okf lint` never
-reports stale concepts. Pass `--stale-after <90d|12w|ISO-date>`** when the bundle
-carries timestamps. Open [cli.md](reference/cli.md) only for the rest of the
-nuance: lint's six categories vs its 16 filterable check-ids, `--fail-on` gating,
-`--min-body`, and the server's trust boundary.
+Your half is interpretation. Tool output is evidence, not verdicts: a lint
+finding is a question to judge, never a defect to mechanically zero out — a
+loose file can be terminal by design, a single-use tag can be a deliberate
+marker. The one trap worth carrying in your head: **freshness is off by
+default** — a plain `okf lint` never reports stale concepts; pass
+`--stale-after <90d|12w|ISO-date>` when the bundle carries timestamps.
 
-| Subcommand  | Kind      | Do this                                                          |
-|-------------|-----------|-----------------------------------------------------------------|
-| `produce`   | authoring | Create or extend a bundle from code, docs, or manual knowledge. |
-| `maintain`  | authoring | Sync a bundle with reality after a change.                      |
-| `consume`   | authoring | Use a bundle as context for the task at hand.                   |
-| `validate`  | tool      | Check §9 conformance.                                           |
-| `lint`      | tool      | Report curation-quality findings (advisory).                   |
-| `loose`     | tool      | List files with no graph links (degree 0), grouped by folder.  |
-| `catalog`   | tool      | List concepts with metadata (type, tags, links), grouped by area. |
-| `files`     | tool      | List files with titles, grouped by folder.                     |
-| `tags`      | tool      | List tags with their concepts, ordered by count.               |
-| `types`     | tool      | List types with their concepts, ordered by count.              |
-| `stats`     | tool      | Bundle rollups: concepts, types, areas, cross-links, tags.     |
-| `server`    | tool      | Serve an interactive graph over HTTP (Cytoscape + marked).     |
-| `graph`     | tool      | Print the knowledge graph (JSON with `--json`).                |
+Read [cli.md](reference/cli.md) before *interpreting* a verb's output in any
+depth: what `validate` may and may not reject, lint's categories and check ids,
+the JSON shapes, the tag-curation views, the server's trust boundary.
 
-**No subcommand?** Infer intent: "document this / capture X" → `produce`; "the code
-changed, update the docs" → `maintain`; a repo already carrying a bundle plus a
-task needing its knowledge → `consume`; "check / graph / preview it" → the matching
-tool verb. When genuinely ambiguous, ask.
+## The authoring verbs — the craft
+
+`produce` (create or extend a bundle), `maintain` (sync it with reality),
+`consume` (use it as context) carry the judgment the executable can't — this is
+where the skill earns its keep. Read [authoring.md](reference/authoring.md)
+before doing them, and the verbatim spec [SPEC.md](reference/SPEC.md) when you
+need chapter and verse.
+
+**No subcommand?** Infer intent: "document this / capture X" → `produce`; "the
+code changed, update the docs" → `maintain`; a repo already carrying a bundle
+plus a task needing its knowledge → `consume`; "check / graph / preview it" →
+run the matching CLI verb and interpret the result. When genuinely ambiguous,
+ask.
 
 **Which directory?** Use the path given. Otherwise default to `.okf/` at the repo
 root, but first detect whether the project already keeps its bundle elsewhere
@@ -142,5 +117,5 @@ produce seeds a bundle; consume reads it; **maintain** runs whenever reality dri
 *or* whenever consuming teaches you something durable — that write-back reflex is
 what keeps a bundle alive instead of rotting into folklore. When you learn
 something while consuming, switch to maintain and record it. Full playbooks and the
-modelling craft (granularity, choosing `type`, topology, `resource`, links,
-citations) are in [reference/authoring.md](reference/authoring.md).
+modelling craft (granularity, choosing `type`, tag vocabulary, topology,
+`resource`, links, citations) are in [reference/authoring.md](reference/authoring.md).

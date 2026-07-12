@@ -17,18 +17,9 @@ command -v okf >/dev/null || echo "okf CLI not found — install it: 'gem instal
 
 ## Invocation
 
-```bash
-okf validate  <dir> [--json]
-okf lint      <dir> [--json] [--fail-on warn] [--only a,b] [--except a,b] [--min-body N] [--stale-after DUR]
-okf loose     <dir> [--json]
-okf catalog   <dir> [--json] [--type T] [--area A] [--tag T]
-okf files     <dir> [--json] [--type T] [--area A] [--tag T]
-okf tags      <dir> [--json] [--by type|area] [--type T] [--area A]
-okf types     <dir> [--json] [--area A] [--tag T]
-okf stats     <dir> [--json]
-okf server    <dir> [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url]
-okf graph     <dir> [--json] [--minimal] [--no-body]
-```
+The surface is self-describing — `okf --help` maps every verb, `okf <verb> --help`
+its flags. Ask the tool for what exists; this file carries only what `--help`
+cannot: each verb's semantics, its traps, and its JSON shape.
 
 **Exit codes:** `0` success · `1` non-conformant bundle (or a `lint --fail-on`
 threshold crossed) · `2` usage error. `graph` and `server` are best-effort
@@ -116,9 +107,10 @@ in/out link degree). Add `--json` to any for a machine substrate.
 - **`tags`** — every tag with the concepts that carry it, ordered by count
   descending. The "what themes dominate" view. JSON: `{ bundle, count, tags: [{ tag,
   count, concepts: [id, …] }] }`. `--by type|area` regroups the list per concept
-  dimension with within-group counts — **the tag-curation view**: a tag confined to
-  one group at count 1 is scattered (merge or drop it); one recurring across groups
-  is connective. JSON: `{ bundle, count, by, groups: [{ <dim>, count, tags: […] }] }`.
+  dimension with **within-group** counts (a tag spanning groups appears in each) —
+  the substrate for tag curation; the judgment recipe lives in
+  [authoring.md](authoring.md)'s maintain playbook. JSON: `{ bundle, count, by,
+  groups: [{ <dim>, count, tags: […] }] }`.
 - **`types`** — every type with the concepts that carry it, ordered by count
   descending. The "what kinds of knowledge" view. JSON: `{ bundle, count, types:
   [{ type, count, concepts: [id, …] }] }`.

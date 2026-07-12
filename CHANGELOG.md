@@ -19,6 +19,11 @@
   combobox, the Catalog filters grow Areas and Tags groups, and both the graph
   and catalog filter panels get a find box that narrows the filter chips
   themselves (searching reaches all tags, not just the top 40).
+- Skill: SKILL.md no longer transcribes the CLI surface (the tool is
+  self-describing via `okf --help` / `okf <verb> --help`) and instead teaches
+  the stance — the CLI is the agent's eyes, the skill is the judgment; new tag
+  vocabulary guidance in authoring.md (modelling principle + a curation step in
+  the maintain playbook built on `tags --by`).
 
 ## [0.1.0] - 2026-07-11
 
