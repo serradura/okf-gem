@@ -5,6 +5,19 @@
 </h1>
 </p>
 
+<p align="center">
+  <i>A lightweight Ruby gem for Open Knowledge Format: validate, lint, and serve bundles as an interactive graph.<br/> CLI, embeddable library, and a companion agent skill</i>
+</p>
+
+<p align="center">
+  <a href="https://rubygems.org/gems/okf"><img src="https://img.shields.io/gem/v/okf" alt="Gem version"></a>
+  <a href="https://rubygems.org/gems/okf"><img src="https://img.shields.io/gem/dt/okf" alt="Downloads"></a>
+  <a href="https://github.com/serradura/okf-gem/actions/workflows/main.yml"><img src="https://github.com/serradura/okf-gem/actions/workflows/main.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/serradura/okf-gem"><img src="https://img.shields.io/badge/ruby-%3E%3D%202.4-black" alt="Ruby >= 2.4"></a>
+  <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
+  <a href="lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.1-6E56CF" alt="OKF v0.1"></a>
+</p>
+
 > A rough project, cut and polished into a jewel. And like any jewel, what it is
 > worth comes down to what it does with knowledge: reading it, validating it,
 > curating it, and putting it on display.
@@ -24,6 +37,55 @@ It is deliberately light so it runs on the Ruby your OS already ships:
 - only two runtime dependencies: `rack` (the server is a mountable Rack app)
   and `webrick` (unbundled from Ruby in 3.0);
 - no ActiveSupport, no build step, no JavaScript toolchain.
+
+## Why OKF
+
+Project knowledge (why a service exists, what a metric really measures, the
+reasoning a schema encodes) lives scattered across wikis, code comments, and
+whoever happened to be in the room, and an agent re-derives it every session. OKF
+gives it one durable, diffable home, versioned next to the code it describes and
+read from the same file by people and agents alike. [OKF][okf] is an open,
+vendor-neutral format (Google Cloud, 2026); this gem is the Ruby-native way to
+work with it.
+
+[okf]: https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing
+
+## What a bundle looks like
+
+A bundle is just a directory; each concept is one Markdown file whose path is its
+id. This repo documents _itself_ in OKF, so the tree below is real:
+
+```
+.okf/
+├── index.md                       # progressive-disclosure map (root carries okf_version)
+├── log.md                         # ISO-dated change history, newest first
+├── overview.md
+├── format/frontmatter.md
+├── model/graph.md
+└── capabilities/graph-server.md   # one concept = one file
+```
+
+The only hard requirement is YAML frontmatter with a non-empty `type`; everything
+else is optional and tolerated when missing. A concept (here the real
+`capabilities/graph-server.md`, body trimmed) reads:
+
+```markdown
+---
+type: Capability
+title: Interactive graph server (server)
+description: A self-contained HTML knowledge graph served over HTTP, and a mountable Rack app.
+resource: lib/okf/server/app.rb
+tags: [server, graph, rack, diagram]
+timestamp: 2026-07-11T12:00:00Z
+---
+
+# Overview
+
+`okf server` boots an interactive view of the [graph](../model/graph.md) …
+```
+
+Clone this repo and run `okf server .okf` to explore that bundle as an
+interactive graph: the gem, documented in its own format.
 
 ## Installation
 
