@@ -29,6 +29,13 @@ The core/shell split is *enforced*: `test/unit/boundary_test.rb` fails if a pure
 file names a shell class or touches `File`/`Dir`/`FileUtils`/stdio. Put new I/O
 in the shell; put new logic in the core, pure.
 
+Outside `lib/`, `plugin/` and `.claude-plugin/` are the Claude Code plugin and
+its marketplace manifest (the repo doubles as the marketplace): one thin command
+that routes to the skill's playbooks (`lib/okf/skill/playbooks/`) or to the
+skill itself, a PostToolUse curation hook (`plugin/hooks/scripts/curate.rb`,
+plain Ruby on the stdlib, same 2.4 floor), and a generated copy of the skill.
+Neither ships in the gem (gemspec reject).
+
 `require "okf"` loads the library only — the model, the analyzers, and the
 on-disk handles. The two argv-facing shells, `cli.rb` (and its `optparse`) and
 `skill.rb`, load on demand: `exe/okf` requires them, and so must any test that
@@ -70,6 +77,16 @@ you touch what `require "okf"` pulls in.
 6. **The skill ships only from `lib/okf/skill/**`** — that tree is the single
    canonical copy (`okf skill <dest>` installs from it), so edit it there and
    nowhere else. Local installs (e.g. `.agents/`, `.claude/`) are gitignored.
+   `plugin/skills/okf` is a *generated* copy for the Claude Code plugin, so
+   never edit it there: run `bundle exec rake plugin:sync` after touching the
+   skill or bumping the version (the task also stamps
+   `plugin/.claude-plugin/plugin.json`), and `test/plugin/sync_test.rb`
+   fails on any drift (file lists and SHA-256 checksums). Signature guidance
+   lines carry stable markers — `<!-- check:<lint-check-id> -->` when a
+   deterministic check enforces the point, `<!-- rule:okf-<slug> -->` for
+   pure-judgment craft — as anchors for eval pinning and citation. They render
+   invisibly and sync verbatim into the plugin copy, so keep them on the line
+   they annotate when you edit it.
 7. **Tests use `OKF::TestCase`** (`test/test_helper.rb`): plain Minitest plus
    `test "..."` / block `setup`/`teardown` sugar. The tests run on 2.4 too, so
    the API constraints above apply to `test/` as well.
@@ -82,6 +99,7 @@ bundle exec rake                   # test + rubocop — the default task, what C
 bundle exec rake test              # just the suite (SimpleCov report in coverage/)
 ruby -Ilib exe/okf <cmd> <dir>     # the CLI from the checkout, no install
 ruby -Ilib exe/okf server <dir>    # boot the graph server locally
+bundle exec rake plugin:sync       # regenerate the plugin's skill copy + version stamp
 ```
 
 CI (`.github/workflows/main.yml`) runs the default task on every supported Ruby,
@@ -89,10 +107,14 @@ CI (`.github/workflows/main.yml`) runs the default task on every supported Ruby,
 
 ## Releasing
 
-1. Bump `lib/okf/version.rb`; move the `Unreleased` notes in `CHANGELOG.md`
-   under the new version.
+1. Bump `lib/okf/version.rb`, then `bundle exec rake plugin:sync` — the plugin
+   versions with the gem, so `plugin/.claude-plugin/plugin.json` must follow
+   every bump. Move the `Unreleased` notes in `CHANGELOG.md` under the new
+   version.
 2. `bundle exec rake release` — tags `vX.Y.Z`, pushes commits + tag, pushes the
-   gem to RubyGems (MFA required).
+   gem to RubyGems (MFA required). `release` runs `build`, and `build` aborts
+   if the plugin manifest lags the gem version (`rake plugin:verify`), so a
+   forgotten sync stops the release instead of shipping.
 
 Gem packaging detail: `spec.files` comes from `git ls-files` minus
 `test/`, `bin/`, `.github/`, etc. — a new top-level file ships in the gem unless

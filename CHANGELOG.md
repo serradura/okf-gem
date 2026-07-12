@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.2.0] - 2026-07-12
+
+- Claude Code plugin. The repository now doubles as a plugin marketplace:
+  `/plugin marketplace add serradura/okf-gem`, then `/plugin install okf@okfgem`.
+  The plugin carries the canonical skill (a generated copy; `rake plugin:sync`
+  keeps it in lockstep with `lib/okf/skill`, and a test fails on drift), one
+  front-door command (`/okf:gem`: no arguments orients on the CLI, the bundle,
+  and what `validate`/`lint` report and recommends the highest-value next move
+  without running one, `doctor` installs the gem and doctors the repo's bundle,
+  `curate` runs the full validate + lint + loose cycle, anything else hands the
+  task to the skill), and a PostToolUse hook that runs `okf validate` +
+  `okf lint` after every edit inside a bundle and hands the relevant findings
+  back as context: every conformance error, plus the warnings and lint findings
+  that concern the edited file. The checks are the CLI's own, so the feedback is
+  deterministic. The hook stays silent outside bundles, and when the CLI is
+  missing it suggests `/okf:gem` once per session instead of erroring on each
+  edit. It is config-free to silence: `OKF_CURATE_DISABLED=1` turns it off,
+  `OKF_CURATE_QUIET=1` keeps the findings but drops that suggestion, and an
+  `<!-- okf-disable -->` comment in a file skips curation for that one. The skill
+  routes through per-verb playbooks (`playbooks/`), and its signature guidance
+  lines carry stable `<!-- check:… -->` / `<!-- rule:okf-… -->` markers.
+  Nothing under `plugin/` ships in the gem.
+
 ## [1.1.0] - 2026-07-12
 
 - The graph server now sanitizes every concept body before rendering it. The

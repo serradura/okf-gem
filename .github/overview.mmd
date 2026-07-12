@@ -1,0 +1,11 @@
+flowchart LR
+  skill["companion<br/>agent skill"] -. authors/curate .-> bundle[("OKF v0.1 bundle<br/>Markdown + YAML")]
+  bundle --> model["pure model<br/>Concept · Bundle · Graph"]
+  skill -. execute .-> cli
+  subgraph cli ["okf CLI"]
+    validate["validate — legal? §9"]
+    lint["lint — well-curated?"]
+    server["server — explore"]
+  end
+  model --> cli
+  model --> library["library API<br/>embed in Ruby"]

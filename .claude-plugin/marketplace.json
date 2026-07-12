@@ -1,0 +1,17 @@
+{
+  "name": "okfgem",
+  "owner": {
+    "name": "Rodrigo Serradura",
+    "email": "rodrigo.serradura@gmail.com"
+  },
+  "metadata": {
+    "description": "The okf gem's Claude Code plugin (okfgem.com): the OKF skill, a setup command, and deterministic bundle curation through the okf CLI."
+  },
+  "plugins": [
+    {
+      "name": "okf",
+      "source": "./plugin",
+      "description": "Open Knowledge Format: the OKF skill, /okf:gem setup and doctor, and a post-edit curation hook that runs the okf CLI's checks."
+    }
+  ]
+}

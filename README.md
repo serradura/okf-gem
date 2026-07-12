@@ -16,26 +16,26 @@
   <a href="https://github.com/serradura/okf-gem"><img src="https://img.shields.io/badge/ruby-%3E%3D%202.4-black" alt="Ruby >= 2.4"></a>
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
   <a href="lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.1-6E56CF" alt="OKF v0.1"></a>
+  <a href="#claude-code-plugin"><img src="https://img.shields.io/badge/Claude%20Code-plugin-D97757" alt="Claude Code plugin"></a>
 </p>
 
 **okf-gem** — `okf` on RubyGems — reads, validates, lints, and serves
 **Open Knowledge Format (OKF)** v0.1 bundles: directories of Markdown files with YAML frontmatter that humans and agents read from one source. It does not define a new place to keep knowledge; it gives you leverage over knowledge that already lives as Markdown. Each file is a _concept_; a directory of them is a _bundle_.
 
+> **Quick start.** One skill, one command, a curation hook, and a CLI that
+> validates, lints, indexes, and serves your Markdown as a graph. In Claude Code,
+> add the plugin and let it set everything up: `/plugin marketplace add
+serradura/okf-gem`, then `/plugin install okf@okfgem`, then `/okf:gem`. On the
+> command line: `gem install okf`, then `okf validate <dir>`.
+
 Here is what it is able to do:
 
-```mermaid
-flowchart LR
-  skill["companion<br/>agent skill"] -. authors/curate .-> bundle[("OKF v0.1 bundle<br/>Markdown + YAML")]
-  bundle --> model["pure model<br/>Concept · Bundle · Graph"]
-  skill -. execute .-> cli
-  subgraph cli ["okf CLI"]
-    validate["validate — legal? §9"]
-    lint["lint — well-curated?"]
-    server["server — explore"]
-  end
-  model --> cli
-  model --> library["library API<br/>embed in Ruby"]
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/overview-dark.png">
+    <img src=".github/overview.png" width="100%" alt="The companion agent skill authors and curates an OKF v0.1 bundle (Markdown + YAML). A pure model (Concept, Bundle, Graph) reads that bundle and feeds both the okf CLI (validate — legal per §9; lint — well-curated; server — explore) and a library API you embed in Ruby.">
+  </picture>
+</p>
 
 Over a bundle the gem gives you the `okf`
 command-line tool (the library API is also usable in-process). Each capability
@@ -68,6 +68,9 @@ It is deliberately light so it runs on the Ruby your OS already ships:
 - no ActiveSupport, no build step, no JavaScript toolchain — the
   [design constraints](.okf/design/) that hold this line are enforced by tests.
 
+That range is not aspirational: CI runs the full test suite and RuboCop on every
+one of these on each push.
+
 ## Why OKF
 
 Project knowledge (why a service exists, what a metric really measures, the
@@ -79,6 +82,22 @@ vendor-neutral format (Google Cloud, 2026); this gem is the Ruby-native way to
 work with it.
 
 [okf]: https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing
+
+Knowledge already has several homes near an agent, and each holds a different
+thing. None of the others is built for curated, durable team knowledge:
+
+|                                | OKF bundle (this)                               | `CLAUDE.md` / `AGENTS.md`  | Agent auto-memory        | Wiki / Notion    |
+| ------------------------------ | ----------------------------------------------- | -------------------------- | ------------------------ | ---------------- |
+| Holds                          | curated team knowledge                          | standing instructions      | what one agent picked up | human docs       |
+| Versioned with the code        | ✅                                              | ✅                         | ❌                       | ❌               |
+| Portable across agents         | ✅ plain Markdown + YAML                        | ⚠️ per-harness conventions | ❌ per-agent store       | ⚠️ export needed |
+| Typed and queryable            | ✅ frontmatter + graph                          | ❌ prose                   | ❌                       | ⚠️ partially     |
+| Reviewed in PRs                | ✅                                              | ✅                         | ❌ implicit              | ⚠️ rarely        |
+| Scales past one context window | ✅ progressive disclosure (`okf index`)         | ❌ loaded whole            | ⚠️ partially             | n/a              |
+| Checked by tooling             | ✅ (`okf validate` + `lint`), exit codes for CI | ❌                         | ❌                       | ❌               |
+
+The last row is this gem's job. The other homes have no detector, so their
+drift stays invisible; a bundle's drift shows up as findings you can gate on.
 
 ## What a bundle looks like
 
@@ -119,6 +138,14 @@ That bundle is this gem's own documentation. Clone the repo and run
 
 ## Installation
 
+> **In Claude Code**, the plugin is the fastest path: two commands install the whole
+> toolchain (skill, `/okf:gem`, and the curation hook). See
+> [Claude Code plugin](#claude-code-plugin). Everywhere else, install the gem:
+
+| Ruby version     | 2.4 | 2.5 | 2.6 | 2.7 | 3.0 | 3.1 | 3.2 | 3.3 | 3.4 | 4.0 |
+| ---------------- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Tested/Supported | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  |
+
 ```bash
 gem install okf
 # or, in a project
@@ -138,9 +165,10 @@ bundle exec rake install
 okf validate  <dir> [--json]                            # check OKF v0.1 conformance (§9)
 okf lint      <dir> [--json] [--fail-on warn] [...]     # report curation-quality issues
 okf loose     <dir> [--json]                            # list files with no graph links, by folder
+okf index     <dir> [--json] [--area A] [--no-body]     # progressive-disclosure map (§6): bodies, rollups, listings
 okf server    <dir> [-p PORT] [--bind ADDR] [...]       # serve the interactive graph over HTTP
 okf graph     <dir> [--json] [--minimal] [--no-body]    # print the knowledge graph
-okf catalog | files | tags | stats  <dir> [--json]      # the browser views, on the CLI
+okf catalog | files | tags | types | stats  <dir> [--json]   # the browser views, on the CLI
 okf skill     <dest> [--here] [--force]                 # install the companion agent skill
 okf --version
 ```
@@ -212,6 +240,21 @@ and template files that teach a coding agent to author, maintain, and consume OK
 bundles and to drive the commands above. Because the skill ships inside the gem,
 installing the gem already puts the skill on your machine, and the skill's
 CLI reference can never drift from the executable it was released with.
+Using Claude Code? The [plugin](#claude-code-plugin) below installs this same
+skill plus a post-edit curation hook.
+
+The skill routes a small set of verbs. In Claude Code they run as `/okf:gem
+<verb>`; used standalone, the skill infers the verb from your request.
+
+| Verb             | What it does                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| _(none)_         | Orient on the bundle and recommend the highest-value next move                                    |
+| `produce`        | Create or extend a bundle from code, docs, or knowledge in people's heads                         |
+| `maintain`       | Sync the bundle's content with reality after the code or docs change                              |
+| `consume`        | Use the bundle as context for a task, writing back what you learn                                 |
+| `curate`         | Structural upkeep as it stands: `validate` + `lint` + `loose`                                     |
+| `doctor`         | Install and verify the CLI, then doctor the bundle                                                |
+| `<okf-cli-verb>` | Run any CLI verb (`validate`, `lint`, `index`, `server`, the read views) and interpret its output |
 
 Point it at your agent's config directory (or its skills directory) and the tree
 settles in its own `skills/okf/` folder, so a shared skills directory never gets
@@ -347,6 +390,34 @@ The [server trust boundary](.okf/design/server-trust-boundary.md) concept has th
 full write-up: the two data paths, what sanitizing does, and what it leaves to
 your judgment.
 
+## Claude Code plugin
+
+This repository doubles as a Claude Code plugin marketplace, so the whole
+toolchain installs with two commands inside Claude Code:
+
+```
+/plugin marketplace add serradura/okf-gem
+/plugin install okf@okfgem
+```
+
+The plugin carries three pieces:
+
+| Piece         | What it does                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `okf` skill   | The [companion skill](#agent-skill) above, bundled with the plugin (a generated copy that `rake plugin:sync` keeps identical to `lib/okf/skill`).                                                                                                                                                                                                                                                                        |
+| `/okf:gem`    | The front door, routed by argument. No arguments: orients on the CLI, the bundle, and what `validate`/`lint` report, then recommends the highest-value next move (never auto-runs). `doctor`: installs and verifies the `okf` CLI, then doctors the repo's bundle. `curate`: the full curation cycle (`validate` + `lint` + `loose`). Anything else (`produce`, `maintain`, `consume`, a CLI verb): handed to the skill. |
+| Curation hook | After every Write or Edit inside a bundle, runs `okf validate` + `okf lint` and returns the findings as context. The checks are the CLI's own, so the feedback is deterministic.                                                                                                                                                                                                                                         |
+
+The hook stays silent outside bundles, and when the CLI is missing it suggests
+`/okf:gem` once per session instead of failing on each edit. It is config-free to
+switch off: set `OKF_CURATE_DISABLED=1` to turn it off, `OKF_CURATE_QUIET=1` to
+keep the findings but drop that suggestion, or drop an `<!-- okf-disable -->`
+comment into a file to skip curation for that one.
+
+Prefer no plugin? `gem install okf && okf skill .claude` installs the skill
+alone, and the skill itself instructs the agent to run the same checks after
+editing a bundle.
+
 ## Development
 
 ```bash
@@ -378,3 +449,9 @@ The gem is available as open source under the terms of the
 is authored by Google Cloud Platform and included under its own Apache-2.0
 license, Copyright (c) Google LLC. See `NOTICE` and
 `lib/okf/skill/reference/APACHE-2.0.txt`.
+
+[okf-skills](https://github.com/scaccogatto/okf-skills) by Marco Boffo, a Python
+OKF toolkit for Claude Code with a feature-rich interactive graph view, was an
+early inspiration for this gem's Claude Code plugin and for the knowledge-as-code
+comparison in [Why OKF](#why-okf). okf-gem takes a different shape: a Ruby-native
+gem built around the `okf` CLI and an embeddable library.
