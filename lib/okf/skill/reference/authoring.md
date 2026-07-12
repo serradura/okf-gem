@@ -7,6 +7,21 @@ conformance rules in mind (parseable frontmatter, a non-empty `type`, and
 well-formed reserved files — the hard rules in [SKILL.md](../SKILL.md)); everything
 else is guidance a consumer must tolerate.
 
+## What each SPEC section governs
+
+Consult the right section on demand instead of re-reading all of [SPEC.md](SPEC.md):
+
+| § | Governs | Reach for it when |
+|---|---------|-------------------|
+| §3 | bundle structure, reserved filenames | laying out directories |
+| §4 | concept documents & frontmatter | writing or validating a concept |
+| §5 / §5.3 | cross-links; **broken links are tolerated** | linking; judging a "broken" link |
+| §6 | index files & progressive disclosure | orienting; writing or synthesizing an index |
+| §7 | log files | recording history |
+| §8 | citations & provenance | any external or empirical claim |
+| §9 | conformance — the hard gate | what `validate` may and may not reject |
+| §11 | versioning (`okf_version`) | the root index's one allowed field |
+
 ## Modelling principles
 
 These are the decisions that make or break a bundle. None are enforced by the
@@ -113,24 +128,34 @@ bundle-root [root-index](../templates/root-index.md), [log](../templates/log.md)
    [templates/index.md](../templates/index.md); for the bundle root use
    [templates/root-index.md](../templates/root-index.md) so it carries
    `okf_version: "0.1"`. Append a dated entry to `log.md`.
-6. Run `validate` and fix every error before finishing; run `lint` and clear the
-   cheap findings (see [cli.md](cli.md)).
+6. **Close out** — walk the Closeout gate below (`validate` + `lint` are part of it,
+   see [cli.md](cli.md)) before finishing.
 
 ### maintain — keep a bundle in sync with reality
-1. Find *every* affected concept — the failure mode is fixing only the obvious one.
-   Don't rely on reading the whole bundle; that only scales on tiny ones. Grep the
-   changed asset's `resource` URI across the bundle, grep its path/name, and use
+1. **Orient before hunting.** Run `okf index <dir>` (the §6 map — every directory's
+   index body, rollups, and listings), read `log.md` (the §7 baseline: what changed
+   last), and `okf stats <dir>` (size and shape) *before* you grep. It is the
+   cheapest context and it primes the hunt — and it is the only reliable way to
+   catch enumeration drift, because **grep cannot find an index entry that is
+   missing.** (This is the always-on reflex in [SKILL.md](../SKILL.md).)
+2. **Find *every* affected concept** — the failure mode is fixing only the obvious
+   one. Don't rely on reading the whole bundle; that only scales on tiny ones. Grep
+   the changed asset's `resource` URI across the bundle, grep its path/name, and use
    `okf graph --json` to pull the concepts that link *to* the ones you're touching.
    Let grep and the graph find them so nothing drifts silently.
-2. Update bodies and `timestamp`; fix or add cross-links; create new concepts for
+3. Update bodies and `timestamp`; fix or add cross-links; create new concepts for
    new assets; mark retired assets with a `**Deprecation**` note rather than
    silently deleting the context that explains them.
-3. Update the relevant `index.md` files and append a dated `log.md` entry.
-4. Run `validate`, then `lint` to catch the curation drift the change introduced —
+4. **Update every enumeration that names what you changed — including `index.md`
+   bodies**, not just the concept files: a new, renamed, or removed concept changes
+   its directory's index listing too. Append a dated `log.md` entry. Step 1's map
+   is how you verify this — re-run `okf index` and confirm each listing matches
+   reality.
+5. Run `validate`, then `lint` to catch the curation drift the change introduced —
    new orphans, broken citations, dangling index entries. Add `--stale-after`
    (e.g. `90d`) if concepts carry timestamps: freshness is off by default, so a
    plain `lint` will not tell you what the change left stale.
-5. **Review loose files** — run `okf loose <dir>` (the folder-grouped view of
+6. **Review loose files** — run `okf loose <dir>` (the folder-grouped view of
    `lint`'s `unlinked` check): the concepts with **no cross-links in or out**, which
    float in the graph. This is a semantic pass the tool cannot do for you — for each
    floater, judge intent:
@@ -143,7 +168,7 @@ bundle-root [root-index](../templates/root-index.md), [log](../templates/log.md)
      by design only through its index — leave it. **Terminal-by-design is not a
      defect.** Loose ≠ orphan: an index listing makes a file *reachable* (not an
      orphan) but is not a graph edge, so an indexed file can still float here.
-6. **Curate the tag vocabulary** when the pass touched tags, or when `okf tags
+7. **Curate the tag vocabulary** when the pass touched tags, or when `okf tags
    <dir>` shows a long tail of singletons. Run `okf tags <dir> --by area` and
    `--by type` — the grouped view is the analysis; read each group top-down:
    - **twins** — two tags riding the exact same concepts (equal counts sort them
@@ -164,10 +189,30 @@ bundle-root [root-index](../templates/root-index.md), [log](../templates/log.md)
    either connects or marks — judged, not counted.
 
 ### consume — use a bundle as context
-1. Read the bundle-root `index.md` first for progressive disclosure, then follow
-   links only into the concepts the task needs. For a large bundle, `okf graph
-   --json` gives you the whole link structure at once so you can plan a traversal.
+1. **Orient first** (the [SKILL.md](../SKILL.md) reflex): `okf index <dir>` maps the
+   whole bundle in one pass — every directory's index body, rollups, and listings —
+   and `log.md` gives recent history. Then follow links only into the concepts the
+   task needs. For a large bundle, `okf graph --json` gives the whole link structure
+   at once so you can plan a traversal without opening every file.
 2. Treat broken links as not-yet-written knowledge, not errors.
 3. **Write-back reflex:** if you learn something durable while working — a fact the
    bundle lacks, a link it is missing, a concept that no longer matches reality —
    switch to `maintain` and record it. That reflex is what keeps the bundle alive.
+
+## Closeout — the finishing gate
+
+`produce` step 6 and `maintain` steps 4–7 both land here: before calling an
+authoring task done, walk this once. It is the repo's "turn every task into a check
+that can fail" discipline, and followed literally it catches the enumeration drift
+grep can't:
+
+- **Index enumerations** — every `index.md` that lists what you added, renamed, or
+  removed is updated; re-run `okf index` and eyeball each listing against reality.
+  Easy to skip, expensive to miss — this is the check that was missing.
+- **`log.md`** — a dated entry, newest first.
+- **Timestamps** bumped on the concepts you touched.
+- **`validate`** — zero §9 errors.
+- **`lint`** — cheap findings cleared; pass `--stale-after` when concepts carry
+  timestamps (freshness is off by default).
+- **`loose` review + tag curation** — the two semantic passes (maintain steps 6–7);
+  worth a pass in `produce` too on a non-trivial bundle.

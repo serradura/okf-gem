@@ -68,30 +68,42 @@ earn your keep as the expert, not the executable.
 
 ## The CLI is your eyes — you are the judgment
 
-Mechanical questions — is it conformant, what exists, what links where, what
-drifted — are never eyeball passes. The `okf` executable answers them
-deterministically, and its read views exist precisely so you can see everything
-the browser UI shows without a browser. Guard once, then trust it:
+Guard once, then trust it — the `okf` executable answers every mechanical question
+deterministically, and its read views show everything the browser UI does:
 
 ```bash
 command -v okf >/dev/null || echo "okf CLI missing — install: gem install okf (or from a checkout: cd gem && bundle exec rake install)"
 ```
 
-Don't memorize the surface — the tool describes itself. `okf --help` maps every
-verb; `okf <verb> --help` its flags. Every read verb takes `--json` for a machine
-substrate, and the list views filter and regroup by type, area, and tag, so ask
-the narrow question instead of paging through the whole bundle.
+Don't memorize the surface — `okf --help` maps every verb, `okf <verb> --help` its
+flags. The division of labour is the whole game:
 
-Your half is interpretation. Tool output is evidence, not verdicts: a lint
-finding is a question to judge, never a defect to mechanically zero out — a
-loose file can be terminal by design, a single-use tag can be a deliberate
-marker. The one trap worth carrying in your head: **freshness is off by
-default** — a plain `okf lint` never reports stale concepts; pass
-`--stale-after <90d|12w|ISO-date>` when the bundle carries timestamps.
+- **Shell out — never eyeball —** anything a verb computes: conformance (§9), what
+  exists, what links where, what's stale, the map. Every read verb takes `--json`
+  and the list views filter by type/area/tag, so ask the narrow question instead of
+  paging the bundle.
+- **You judge — the CLI can't —** meaning: contradictions, semantic staleness
+  (parses fine, no longer true), whether a loose file is terminal-by-design, whether
+  a singleton tag is a deliberate marker. Tool output is evidence, never a verdict.
 
-Read [cli.md](reference/cli.md) before *interpreting* a verb's output in any
-depth: what `validate` may and may not reject, lint's categories and check ids,
-the JSON shapes, the tag-curation views, the server's trust boundary.
+The one trap worth carrying in your head: **freshness is off by default** — a plain
+`okf lint` never reports stale concepts; pass `--stale-after <90d|12w|ISO-date>`
+when the bundle carries timestamps.
+
+Read [cli.md](reference/cli.md) before *interpreting* a verb's output in depth:
+what `validate` may and may not reject, lint's categories and check ids, the JSON
+shapes, the tag-curation views, the server's trust boundary.
+
+## Orient before you touch anything
+
+Picking up a bundle you don't already know — to consume or maintain — run `okf
+index <dir>` (the §6 map: every directory's index body, rollups, and listings) and
+read `log.md` (the §7 baseline of what changed last) **before** greping or opening
+leaves. It is the cheapest high-signal context, and the only reliable way to catch
+enumeration drift: **grep cannot find an index entry that is missing** — you can't
+search for the word that should be there but isn't. Per-verb steps are in
+[authoring.md](reference/authoring.md) (no `okf` installed? read the root
+`index.md` plus each area's `index.md`).
 
 ## The authoring verbs — the craft
 
