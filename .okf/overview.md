@@ -3,7 +3,7 @@ type: Overview
 title: okf-gem at a glance
 description: A light Ruby gem that reads, validates, lints, and serves Open Knowledge Format v0.1 bundles.
 tags: [okf, gem, overview, diagram]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-12T12:00:00Z
 ---
 
 # Overview
@@ -38,8 +38,8 @@ Over such a bundle the gem gives you five capabilities behind one
 | [Companion agent skill](capabilities/agent-skill.md) | Can an agent author it? | `skill` |
 
 Alongside those, a family of [read views](capabilities/read-views.md) —
-`catalog`, `files`, `tags`, `stats`, `graph` — print the bundle at a glance so an
-agent reads it without a browser.
+`index`, `catalog`, `files`, `tags`, `stats`, `graph` — print the bundle at a
+glance so an agent reads it without a browser.
 
 # The two ideas it inherits from the format
 

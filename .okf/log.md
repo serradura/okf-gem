@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-07-12
+* **Sync**: caught the bundle up with the CLI at 1.0.0 — documented the new `index` command (the §6 progressive-disclosure map, the read view that sees the reserved `index.md` layer), compact-by-default JSON with `--pretty`, and `--fields`/`--except` projection on the list views, in [read views](capabilities/read-views.md) plus the `index`-verb enumerations in the [CLI](cli.md), the [overview](overview.md), and the [capabilities](capabilities/) index listing.
+
 ## 2026-07-11
 * **Creation**: seeded the bundle documenting okf-gem's capabilities at version 0.1.0 — the [overview](overview.md), the [CLI](cli.md), and the [format](format/), [model](model/), [capabilities](capabilities/), and [design](design/) areas.
 * **Update**: added Mermaid diagrams (tagged `diagram`) to five concepts — [overview](overview.md), the [core/shell split](design/core-shell-split.md), the [graph server](capabilities/graph-server.md), the [library API](capabilities/library-api.md), and [cross-links](format/cross-links.md).

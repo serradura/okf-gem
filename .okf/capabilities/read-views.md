@@ -1,9 +1,9 @@
 ---
 type: Capability
-title: Read views (catalog, files, types, tags, stats, loose, graph)
-description: The server's browser panels reproduced on the CLI so an agent reads a bundle at a glance without a browser.
+title: Read views (index, catalog, files, types, tags, stats, loose, graph)
+description: The server's browser panels reproduced on the CLI, plus the index map, so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-11T21:40:00Z
+timestamp: 2026-07-12T12:00:00Z
 ---
 
 # Overview
@@ -19,6 +19,7 @@ all are advisory reads that exit `0`. They share
 
 | Verb | Shows | Grouped by |
 |------|-------|------------|
+| `index` | each directory's index body, type/tag rollup, child dirs, and concept listing | directory (root first) |
 | `catalog` | concepts with type, tags, link counts, status | area |
 | `files` | files with titles | folder |
 | `types` | [types](../format/frontmatter.md) with their concepts | count |
@@ -26,6 +27,31 @@ all are advisory reads that exit `0`. They share
 | `stats` | rollups: concepts, areas, types, cross-links, tags | — |
 | `loose` | degree-0 concepts (no [links](../format/cross-links.md) in or out) | folder |
 | `graph` | the raw nodes and edges | — (`--minimal` / `--no-body`) |
+
+# `index` is the orient-first map (§6)
+
+Alone among the read views, `index` shows the reserved `index.md` layer: the
+concept views skip those structural files, so only `index` renders the
+[progressive-disclosure map](../format/okf-format.md) — one entry per directory
+(root first) with its authored index body, a type/tag rollup over the concepts
+living directly there, its child directories, and the concept listing. `--area`
+narrows to one directory and repeats (`root` names the bundle root); `--no-body`
+drops the prose to a skeleton. It is the cheapest orientation when picking up a
+bundle, and the only view that exposes *enumeration drift* — a listing entry that
+should exist but is missing, which no grep can find. A directory that holds
+concepts but no `index.md` gets its listing synthesized and tagged `(no index.md)`,
+a prompt to write a real map rather than a defect.
+
+# JSON output — compact, and projectable
+
+`--json` is **compact by default** — single-line, the token-efficient substrate an
+agent consumes; `--pretty` (which implies `--json`) indents the same JSON for a
+human. On the per-item list views — `index`, `catalog`, `files` — `--fields a,b`
+keeps only those properties and `--except a,b` drops them (mutually exclusive; an
+unknown name is a usage error that lists the valid ones). Projection runs before
+emission, so an agent never pays tokens for a field it dropped: `okf index <dir>
+--except body,listing` is the lean directory skeleton, the difference between a few
+hundred bytes and hundreds of KB on a large bundle.
 
 # Narrowing and regrouping
 
