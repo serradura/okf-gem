@@ -8,13 +8,15 @@ Gem::Specification.new do |spec|
   spec.authors = [ "Rodrigo Serradura" ]
   spec.email = [ "rodrigo.serradura@gmail.com" ]
 
-  spec.summary = "Read, validate, and serve Open Knowledge Format (OKF) v0.1 bundles."
+  spec.summary = "A lightweight Ruby gem for OKF: author, curate, and serve bundles as an interactive graph."
   spec.description = <<~DESC
-    OKF is portable knowledge — Markdown files with YAML frontmatter that both
-    humans and agents read. This gem reads OKF bundles, checks them for v0.1 (§9)
-    conformance, and serves them as an interactive graph (a mountable Rack app).
-    It ships a library API (OKF::Bundle and friends) plus an `okf` command-line
-    tool (validate / lint / loose / server / graph / skill).
+    OKF (Open Knowledge Format) is portable knowledge: Markdown files with YAML
+    frontmatter that both humans and agents read from one source. This gem is the
+    Ruby-native way to work with it. Its companion agent skill authors and curates
+    a bundle; the `okf` command-line tool validates the result for v0.1 (§9)
+    conformance, lints its curation quality, and serves it as an interactive graph
+    (a mountable Rack app). The same validate, lint, and graph run in-process
+    through a library API (OKF::Bundle and friends).
   DESC
   spec.homepage = "https://github.com/serradura/okf-gem"
   spec.license = "Apache-2.0"
