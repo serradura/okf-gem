@@ -191,6 +191,7 @@ module OKF
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf index <bundle-dir> [--area AREA] [--no-body] [--json]"
         json_flags(o, options, "emit the index map as JSON")
+        projection_flags(o, options)
         o.on("--area AREA", "only this directory/area (repeatable; `root` for the bundle root)") { |v| (options[:areas] ||= []) << v }
         o.on("--[no-]body", "include each index's prose body (default: yes)") { |v| options[:body] = v }
       end
@@ -200,7 +201,11 @@ module OKF
       report_skipped(folder)
       entries = folder.directory_index
       selected = select_directories(entries, options[:areas])
-      options[:json] ? print_index_map_json(dir, selected) : print_index_map(dir, selected, options[:body])
+      if options[:json]
+        options[:except] = Array(options[:except]) + [ "body" ] unless options[:body] || options[:fields]
+        return print_index_map_json(dir, selected, options)
+      end
+      print_index_map(dir, selected, options[:body])
       0
     end
 
@@ -255,12 +260,8 @@ module OKF
       end
     end
 
-    def print_index_map_json(dir, entries)
-      emit_json(
-        "bundle" => dir,
-        "count" => entries.size,
-        "directories" => entries.map { |entry| index_map_entry_json(entry) }
-      )
+    def print_index_map_json(dir, entries, options)
+      emit_list_json(dir, "directories", entries.map { |entry| index_map_entry_json(entry) }, options)
     end
 
     def index_map_entry_json(entry)
@@ -285,6 +286,7 @@ module OKF
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf catalog <bundle-dir> [--type T] [--area A] [--tag T] [--json]"
         json_flags(o, options, "emit the catalog as JSON")
+        projection_flags(o, options)
         filter_flags(o, options, :type, :area, :tag)
       end
       dir = positional_dir(parser, argv) or return 2
@@ -293,7 +295,9 @@ module OKF
       report_skipped(folder)
       entries = folder.catalog
       selected = filter_entries(entries, options)
-      options[:json] ? print_catalog_json(dir, selected) : print_catalog(dir, selected, entries.size)
+      return print_catalog_json(dir, selected, options) if options[:json]
+
+      print_catalog(dir, selected, entries.size)
       0
     end
 
@@ -302,6 +306,7 @@ module OKF
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf files <bundle-dir> [--type T] [--area A] [--tag T] [--json]"
         json_flags(o, options, "emit the file tree as JSON")
+        projection_flags(o, options)
         filter_flags(o, options, :type, :area, :tag)
       end
       dir = positional_dir(parser, argv) or return 2
@@ -310,7 +315,9 @@ module OKF
       report_skipped(folder)
       entries = folder.catalog
       selected = filter_entries(entries, options)
-      options[:json] ? print_files_json(dir, selected) : print_files(dir, selected, entries.size)
+      return print_files_json(dir, selected, options) if options[:json]
+
+      print_files(dir, selected, entries.size)
       0
     end
 
@@ -467,6 +474,16 @@ module OKF
     def json_flags(parser, options, desc)
       parser.on("--json", desc) { options[:json] = true }
       parser.on("--pretty", "indent the JSON for reading (implies --json)") { options[:json] = true; @pretty = true }
+    end
+
+    # --fields/--except project the JSON down to the properties an agent wants, so it
+    # never pays tokens for fields it will not read. --fields is an allowlist,
+    # --except a denylist (mutually exclusive); both imply --json and apply per item
+    # in a list view (catalog, files, index). Names are the JSON keys, matched
+    # case-insensitively.
+    def projection_flags(parser, options)
+      parser.on("--fields LIST", Array, "emit only these JSON properties (comma-separated)") { |v| options[:json] = true; options[:fields] = v }
+      parser.on("--except LIST", Array, "emit every JSON property but these") { |v| options[:json] = true; options[:except] = v }
     end
 
     def filter_flags(parser, options, *keys)
@@ -697,8 +714,8 @@ module OKF
       end
     end
 
-    def print_catalog_json(dir, entries)
-      emit_json("bundle" => dir, "count" => entries.size, "concepts" => entries.map { |entry| stringify(entry) })
+    def print_catalog_json(dir, entries, options)
+      emit_list_json(dir, "concepts", entries.map { |entry| stringify(entry) }, options)
     end
 
     def print_files(dir, entries, total)
@@ -713,12 +730,12 @@ module OKF
       end
     end
 
-    def print_files_json(dir, entries)
+    def print_files_json(dir, entries, options)
       files = entries.map do |entry|
         { "path" => "#{entry[:id]}.md", "id" => entry[:id], "dir" => entry[:dir], "type" => entry[:type], "title" => entry[:title],
           "description" => entry[:description] }
       end
-      emit_json("bundle" => dir, "count" => files.size, "files" => files)
+      emit_list_json(dir, "files", files, options)
     end
 
     def print_index(dir, label, key, rows, titles)
@@ -777,6 +794,50 @@ module OKF
     # either way, so a parser never cares which was emitted.
     def emit_json(payload)
       @out.puts(@pretty ? JSON.pretty_generate(payload) : JSON.generate(payload))
+    end
+
+    # Emit a list view's JSON envelope with --fields/--except projection applied to
+    # each item. Returns the verb's exit code (0, or 2 on a bad projection request —
+    # both flags at once, or a field name no item carries).
+    def emit_list_json(dir, key, items, options)
+      return usage_error("--fields and --except are mutually exclusive") if options[:fields] && options[:except]
+
+      unknown = unknown_fields(items, options)
+      return usage_error("unknown field(s): #{unknown.join(", ")} (available: #{available_fields(items).join(", ")})") unless unknown.empty?
+
+      emit_json("bundle" => dir, "count" => items.size, key => project(items, options))
+      0
+    end
+
+    # Keep only --fields (allowlist) or drop --except (denylist) from each item's
+    # top-level properties; unset flags pass the items through whole.
+    def project(items, options)
+      return items if options[:fields].nil? && options[:except].nil?
+
+      fields = options[:fields]&.map(&:downcase)
+      except = options[:except]&.map(&:downcase)
+      items.map do |item|
+        fields ? item.select { |k, _| fields.include?(k.to_s.downcase) } : item.reject { |k, _| except.include?(k.to_s.downcase) }
+      end
+    end
+
+    def available_fields(items)
+      items.first ? items.first.keys.map(&:to_s) : []
+    end
+
+    # Requested field names that no item actually carries — a typo guard (exit 2),
+    # matching how lint rejects unknown check names.
+    def unknown_fields(items, options)
+      requested = (Array(options[:fields]) + Array(options[:except])).map(&:downcase)
+      return [] if requested.empty? || items.empty?
+
+      known = available_fields(items).map(&:downcase)
+      requested.reject { |field| known.include?(field) }.uniq
+    end
+
+    def usage_error(message)
+      @err.puts "error: #{message}"
+      2
     end
 
     def stringify(hash)
@@ -840,6 +901,7 @@ module OKF
         tags --by DIM regroups the tags per concept dimension — type or area — with
         within-group counts, the view for curating a tag vocabulary.
         --json emits compact JSON (the machine substrate); add --pretty to indent it.
+        --fields / --except project the JSON to the properties you want (index/catalog/files).
 
         okf --version
       USAGE

@@ -28,6 +28,16 @@ When you only need to *scan* a bundle, the plain text views are lighter still th
 JSON (they print each key once, not per row) — reach for `--json` when you need to
 extract structure, not merely read it.
 
+**Project the JSON to what you'll read.** On `index`, `catalog`, and `files`,
+`--fields a,b` keeps only those properties and `--except a,b` drops them
+(mutually exclusive; both imply `--json`; an unknown name is a usage error that
+lists the valid ones). Projection happens before emission, so you pay no tokens
+for a field you dropped — e.g. `okf index <dir> --except body,listing` is the lean
+directory *skeleton* (structure + rollups), and on a large bundle that is the
+difference between a few hundred bytes and hundreds of KB, since the per-item rows
+(`listing`) dominate at scale. `okf index --no-body` is shorthand for dropping just
+`body`.
+
 **Exit codes:** `0` success · `1` non-conformant bundle (or a `lint --fail-on`
 threshold crossed) · `2` usage error. `graph` and `server` are best-effort
 (§9): a file with invalid frontmatter is skipped and noted on stderr, never fatal.

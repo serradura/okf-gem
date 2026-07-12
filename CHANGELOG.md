@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- JSON property projection on the list views: `index`, `catalog`, and `files`
+  take `--fields a,b` (emit only these properties) or `--except a,b` (emit all but
+  these), so an agent never pays tokens for fields it will not read. The flags are
+  mutually exclusive, imply `--json`, match property names case-insensitively, and
+  reject an unknown name (exit 2) listing the valid ones. `okf index --no-body` now
+  also drops the `body` field from JSON (previously it only affected the text view).
 - JSON output is now **compact by default** across every emitting verb (the
   token-efficient machine substrate, matching the server); the new `--pretty` flag
   indents it for reading and implies `--json`. JSON semantics are unchanged, so any

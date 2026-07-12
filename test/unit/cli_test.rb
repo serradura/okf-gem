@@ -396,6 +396,56 @@ class OKF::CLITest < OKF::TestCase
     refute_match(/\n/, @out.string.strip)
   end
 
+  test "--fields keeps only the named properties and implies --json" do
+    write("product/index.md", "# P\n")
+    write("product/mission.md", concept("Mission"))
+
+    assert_equal 0, invoke("index", @tmpdir, "--fields", "dir,count") # no --json
+    entry = JSON.parse(@out.string)["directories"].find { |e| e["dir"] == "product" }
+    assert_equal %w[count dir], entry.keys.sort
+    refute entry.key?("body"), "dropped properties are absent"
+  end
+
+  test "--except drops the named properties" do
+    write("product/mission.md", concept("Mission"))
+
+    assert_equal 0, invoke("index", @tmpdir, "--except", "body,listing", "--json")
+    entry = JSON.parse(@out.string)["directories"].first
+    refute entry.key?("body")
+    refute entry.key?("listing")
+    assert entry.key?("count"), "unnamed properties are kept"
+  end
+
+  test "projection generalizes to catalog" do
+    build_sample
+
+    assert_equal 0, invoke("catalog", @tmpdir, "--fields", "id,type")
+    assert_equal %w[id type], JSON.parse(@out.string)["concepts"].first.keys.sort
+  end
+
+  test "index --no-body drops the body property from JSON too" do
+    write("index.md", "---\nokf_version: \"0.1\"\n---\n\n# Root\n")
+    write("a.md", concept)
+
+    assert_equal 0, invoke("index", @tmpdir, "--json", "--no-body")
+    assert JSON.parse(@out.string)["directories"].none? { |e| e.key?("body") }, "no directory keeps body"
+  end
+
+  test "an unknown projection field is a usage error listing the valid ones" do
+    write("a.md", concept)
+
+    assert_equal 2, invoke("catalog", @tmpdir, "--fields", "bogus")
+    assert_match(/unknown field/, @err.string)
+    assert_match(/available:.*\bid\b/, @err.string)
+  end
+
+  test "--fields and --except together is a usage error" do
+    write("a.md", concept)
+
+    assert_equal 2, invoke("catalog", @tmpdir, "--fields", "id", "--except", "type")
+    assert_match(/mutually exclusive/, @err.string)
+  end
+
   private
 
   def invoke(*argv)
