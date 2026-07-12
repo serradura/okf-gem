@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <i>A lightweight Ruby gem for Open Knowledge Format: validate, lint, and serve bundles as an interactive graph.<br/> CLI, embeddable library, and a companion agent skill</i>
+  <i>A lightweight Ruby gem for OKF: validate, lint, and serve bundles as an interactive graph.</i>
 </p>
 
 <p align="center">
@@ -22,13 +22,52 @@
 > worth comes down to what it does with knowledge: reading it, validating it,
 > curating it, and putting it on display.
 
-**okf-gem** reads, validates, lints, and serves **Open Knowledge Format (OKF)**
-v0.1 bundles. OKF is portable knowledge: a directory of Markdown files with YAML
-frontmatter that both humans and agents read. Each file is a _concept_; a
-directory of them is a _bundle_. Over such a bundle the gem gives you five
-things: a library API, a conformance validator, a curation linter, an
-interactive graph server, and a companion agent skill. All but the library API
-are reachable through one `okf` command-line tool.
+**okf-gem** — `okf` on RubyGems — reads, validates, lints, and serves
+**Open Knowledge Format (OKF)** v0.1 bundles: directories of Markdown files with
+YAML frontmatter that humans and agents read from one source. It does not define
+a new place to keep knowledge; it gives you leverage over knowledge that already
+lives as Markdown. Each file is a _concept_; a directory of them is a _bundle_.
+
+```mermaid
+flowchart LR
+  skill["companion<br/>agent skill"] -. authors .-> bundle[("OKF v0.1 bundle<br/>Markdown + YAML")]
+  bundle --> model["pure model<br/>Concept · Bundle · Graph"]
+  subgraph cli ["okf CLI"]
+    validate["validate — legal? §9"]
+    lint["lint — well-curated?"]
+    server["server — explore"]
+  end
+  model --> cli
+  model --> library["library API<br/>embed in Ruby"]
+```
+
+Over a bundle the gem gives you five capabilities plus
+[read views](.okf/capabilities/read-views.md) (`index`, `catalog`, `files`,
+`tags`, `stats`, `graph` — the browser panels as text), all behind one `okf`
+command-line tool (the library API is also usable in-process). Each capability
+below links to the concept that documents it: this gem's own knowledge is an OKF
+bundle, so you can read its design in the format it defends.
+
+| Capability | What it answers | Verb |
+|------------|-----------------|------|
+| [Conformance validator](.okf/capabilities/validator.md) | Is this a legal OKF bundle? (§9) | `validate` |
+| [Curation linter](.okf/capabilities/linter.md) | Is it navigable, complete, fresh? | `lint` / `loose` |
+| [Interactive graph server](.okf/capabilities/graph-server.md) | Can I explore it visually? | `server` |
+| [Library API](.okf/capabilities/library-api.md) | Can my Ruby program use it? | in-process |
+| [Companion agent skill](.okf/capabilities/agent-skill.md) | Can an agent author it? | `skill` |
+
+Throughout, `§` points at a section of the
+[OKF v0.1 spec](lib/okf/skill/reference/SPEC.md) (bundled with the skill); `§9`
+is its conformance chapter, the one `validate` enforces.
+
+> [!TIP]
+> **Browse the gem as knowledge, not just docs.** This README is the front door;
+> the depth lives in the [`.okf/`](.okf) bundle this repo ships. Start at the
+> [overview](.okf/overview.md), then follow the graph into the
+> [capabilities](.okf/capabilities/) (what it does), the
+> [design constraints](.okf/design/) (why it stays this light), and the
+> [format itself](.okf/format/) (what it operates on). Run `okf server .okf` to
+> walk the same bundle as an interactive graph.
 
 It is deliberately light so it runs on the Ruby your OS already ships:
 
@@ -36,7 +75,8 @@ It is deliberately light so it runs on the Ruby your OS already ships:
   its core dependency;
 - only two runtime dependencies: `rack` (the server is a mountable Rack app)
   and `webrick` (unbundled from Ruby in 3.0);
-- no ActiveSupport, no build step, no JavaScript toolchain.
+- no ActiveSupport, no build step, no JavaScript toolchain — the
+  [design constraints](.okf/design/) that hold this line are enforced by tests.
 
 ## Why OKF
 
@@ -84,8 +124,8 @@ timestamp: 2026-07-11T12:00:00Z
 `okf server` boots an interactive view of the [graph](../model/graph.md) …
 ```
 
-Clone this repo and run `okf server .okf` to explore that bundle as an
-interactive graph: the gem, documented in its own format.
+That bundle is this gem's own documentation. Clone the repo and run
+`okf server .okf` to browse it as the graph diagrammed at the top of this file.
 
 ## Installation
 
@@ -118,10 +158,6 @@ okf --version
 Exit codes: `0` success, `1` non-conformant bundle (or a `lint --fail-on`
 threshold crossed), `2` usage error.
 
-> [!NOTE]
-> Section numbers like §5, §8, and §9 refer to the OKF v0.1 spec, bundled with
-> the skill at [`lib/okf/skill/reference/SPEC.md`](lib/okf/skill/reference/SPEC.md).
-
 ```bash
 $ okf validate docs
 OKF v0.1 conformance — docs
@@ -144,11 +180,13 @@ _The graph server on this repo's own [`.okf`](.okf) bundle, with the
 
 `graph` and `server` are best-effort (§9): a file with invalid frontmatter is
 skipped (and noted on stderr), not fatal, so one bad file never breaks the rest.
-Before serving a bundle you did not author, read the
-[server trust boundary](#server-trust-boundary).
+The [graph server](.okf/capabilities/graph-server.md) concept walks the request
+flow and endpoints; the [server trust boundary](#server-trust-boundary) below
+explains how the page handles a bundle you did not author.
 
-`lint` reports curation quality (reachability, backlog, completeness, freshness,
-provenance, and hygiene) separately from `validate`. It is advisory: it exits
+`lint` (the [curation linter](.okf/capabilities/linter.md)) reports curation
+quality (reachability, backlog, completeness, freshness, provenance, and hygiene)
+separately from `validate`. It is advisory: it exits
 `0` even with findings unless you opt into gating with `--fail-on warn`.
 
 ```bash
@@ -178,7 +216,8 @@ always exits `0`.
 
 ## Agent skill
 
-The gem carries the companion OKF agent skill: a `SKILL.md` plus reference
+The gem carries the [companion OKF agent skill](.okf/capabilities/agent-skill.md):
+a `SKILL.md` plus reference
 and template files that teach a coding agent to author, maintain, and consume OKF
 bundles and to drive the commands above. Because the skill ships inside the gem,
 installing the gem already puts the skill on your machine, and the skill's
@@ -201,7 +240,8 @@ is never clobbered.
 
 ## Library
 
-The gem is two layers: pure in-memory data (`OKF::Concept`, `OKF::Bundle`)
+The gem (the [library API](.okf/capabilities/library-api.md)) is two layers: pure
+in-memory data (`OKF::Concept`, `OKF::Bundle`)
 you build, interrogate, and analyze with no disk involved, and on-disk
 handles (`OKF::Concept::File`, `OKF::Bundle::Folder`) that add
 load/save/reload/delete, an "ActiveRecord for the filesystem".
@@ -261,7 +301,8 @@ The lower-level pieces are usable on their own too: `OKF::Bundle::Validator.call
 
 ### Conformance model
 
-`validate` implements the spec's [§9 conformance definition](lib/okf/skill/reference/SPEC.md#9-conformance)
+`validate` (the [conformance validator](.okf/capabilities/validator.md)) implements
+the spec's [§9 conformance definition](lib/okf/skill/reference/SPEC.md#9-conformance)
 exactly. There are three hard conditions, all errors:
 
 - **§9.1** every non-reserved file has a parseable YAML frontmatter block;
@@ -298,12 +339,23 @@ is the structured input an agent consumes to reason about those.
 
 ## Server trust boundary
 
-> [!WARNING]
-> The served page loads its JavaScript (Cytoscape, marked, mermaid, and layout
-> plugins) from a CDN and renders each concept's Markdown body **without
-> sanitization**, so only serve bundles you trust. Inlined graph data still
-> cannot break out of its `<script>` (`<` is escaped), but the fetched Markdown
-> is rendered unsanitized.
+> [!NOTE]
+> The graph page defends against a bundle that carries active content in two
+> places. It escapes any graph data inlined into the page (`<` becomes `&lt;`),
+> which keeps that data from breaking out of its `<script>`. And it fetches each
+> concept body on demand, then runs marked's HTML output through
+> [DOMPurify](https://github.com/cure53/DOMPurify) before it reaches the DOM, so
+> a script or event handler hidden in a Markdown body is stripped rather than
+> executed. Descriptions are escaped on the server.
+>
+> That covers the paths that could run code. The page still loads Cytoscape,
+> marked, and DOMPurify from a CDN and renders whatever links and diagrams a body
+> contains, so treat an unfamiliar bundle the way you would treat any document
+> from a source you do not know.
+
+The [server trust boundary](.okf/design/server-trust-boundary.md) concept has the
+full write-up: the two data paths, what sanitizing does, and what it leaves to
+your judgment.
 
 ## Development
 
