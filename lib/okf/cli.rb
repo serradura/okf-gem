@@ -35,6 +35,7 @@ module OKF
       @out = out
       @err = err
       @runner = runner
+      @pretty = false
     end
 
     def run(argv)
@@ -68,7 +69,7 @@ module OKF
       options = { json: false }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf validate <bundle-dir> [--json]"
-        o.on("--json", "emit a JSON report") { options[:json] = true }
+        json_flags(o, options, "emit a JSON report")
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -81,7 +82,7 @@ module OKF
       options = { json: false, min_body: OKF::Bundle::Linter::DEFAULT_MIN_BODY, stale_after: nil, only: nil, except: nil, fail_on: :never }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf lint <bundle-dir> [--json] [--min-body N] [--stale-after DUR] [--only a,b] [--except a,b] [--fail-on warn]"
-        o.on("--json", "emit a JSON report") { options[:json] = true }
+        json_flags(o, options, "emit a JSON report")
         o.on("--min-body N", Integer, "stub threshold in body characters (default #{OKF::Bundle::Linter::DEFAULT_MIN_BODY})") { |v| options[:min_body] = v }
         o.on("--stale-after DUR", "flag concepts older than DUR (e.g. 90d, 12w, 2026-01-01)") { |v| options[:stale_after] = v }
         o.on("--only LIST", Array, "run only these checks (comma-separated)") { |v| options[:only] = v.map(&:to_sym) }
@@ -117,7 +118,7 @@ module OKF
       options = { json: false }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf loose <bundle-dir> [--json]"
-        o.on("--json", "emit the loose files as JSON") { options[:json] = true }
+        json_flags(o, options, "emit the loose files as JSON")
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -160,7 +161,7 @@ module OKF
       options = { json: false, minimal: false, body: true }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf graph <bundle-dir> [--json] [--minimal] [--no-body]"
-        o.on("--json", "emit nodes and edges as JSON") { options[:json] = true }
+        json_flags(o, options, "emit nodes and edges as JSON")
         o.on("--minimal", "leanest nodes (id + title); adds type/tag indexes") { options[:minimal] = true }
         o.on("--[no-]body", "include each concept's body (default: yes)") { |v| options[:body] = v }
       end
@@ -172,7 +173,7 @@ module OKF
       if options[:json]
         payload = graph.to_h
         payload = payload.merge(types: graph.type_index, tags: graph.tag_index) if options[:minimal]
-        @out.puts JSON.pretty_generate(payload)
+        emit_json(payload)
       else
         @out.puts "#{graph.nodes.size} concepts, #{graph.edges.size} links"
       end
@@ -189,7 +190,7 @@ module OKF
       options = { json: false, body: true, areas: nil }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf index <bundle-dir> [--area AREA] [--no-body] [--json]"
-        o.on("--json", "emit the index map as JSON") { options[:json] = true }
+        json_flags(o, options, "emit the index map as JSON")
         o.on("--area AREA", "only this directory/area (repeatable; `root` for the bundle root)") { |v| (options[:areas] ||= []) << v }
         o.on("--[no-]body", "include each index's prose body (default: yes)") { |v| options[:body] = v }
       end
@@ -255,7 +256,7 @@ module OKF
     end
 
     def print_index_map_json(dir, entries)
-      @out.puts JSON.pretty_generate(
+      emit_json(
         "bundle" => dir,
         "count" => entries.size,
         "directories" => entries.map { |entry| index_map_entry_json(entry) }
@@ -283,7 +284,7 @@ module OKF
       options = { json: false }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf catalog <bundle-dir> [--type T] [--area A] [--tag T] [--json]"
-        o.on("--json", "emit the catalog as JSON") { options[:json] = true }
+        json_flags(o, options, "emit the catalog as JSON")
         filter_flags(o, options, :type, :area, :tag)
       end
       dir = positional_dir(parser, argv) or return 2
@@ -300,7 +301,7 @@ module OKF
       options = { json: false }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf files <bundle-dir> [--type T] [--area A] [--tag T] [--json]"
-        o.on("--json", "emit the file tree as JSON") { options[:json] = true }
+        json_flags(o, options, "emit the file tree as JSON")
         filter_flags(o, options, :type, :area, :tag)
       end
       dir = positional_dir(parser, argv) or return 2
@@ -317,7 +318,7 @@ module OKF
       options = { json: false, by: nil }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf tags <bundle-dir> [--by type|area] [--type T] [--area A] [--json]"
-        o.on("--json", "emit the tag index as JSON") { options[:json] = true }
+        json_flags(o, options, "emit the tag index as JSON")
         o.on("--by DIM", %w[type area], "group the tags by a concept dimension (type | area)") { |v| options[:by] = v.to_sym }
         filter_flags(o, options, :type, :area)
       end
@@ -332,7 +333,7 @@ module OKF
       options = { json: false }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf types <bundle-dir> [--area A] [--tag T] [--json]"
-        o.on("--json", "emit the type index as JSON") { options[:json] = true }
+        json_flags(o, options, "emit the type index as JSON")
         filter_flags(o, options, :area, :tag)
       end
       dir = positional_dir(parser, argv) or return 2
@@ -411,7 +412,7 @@ module OKF
     end
 
     def print_grouped_tags_json(dir, dim, groups)
-      @out.puts JSON.pretty_generate(
+      emit_json(
         "bundle" => dir, "count" => distinct_tags(groups), "by" => dim.to_s,
         "groups" => groups.map do |key, rows|
           { dim.to_s => key, "count" => rows.size, "tags" => index_rows_json(:tag, rows) }
@@ -427,7 +428,7 @@ module OKF
       options = { json: false }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf stats <bundle-dir> [--json]"
-        o.on("--json", "emit the stats as JSON") { options[:json] = true }
+        json_flags(o, options, "emit the stats as JSON")
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -459,6 +460,14 @@ module OKF
     # Each view takes the filters orthogonal to it (tags can't filter by tag).
     # Matching is case-insensitive and exact; a concept at the bundle root lives in
     # the "(root)" area, which --area also accepts as plain `root` (no shell quoting).
+
+    # The --json / --pretty pair every emitting verb shares. --json is the compact
+    # machine substrate (the default JSON form, aligned with the server); --pretty
+    # indents it for a human and implies --json. Both route through emit_json.
+    def json_flags(parser, options, desc)
+      parser.on("--json", desc) { options[:json] = true }
+      parser.on("--pretty", "indent the JSON for reading (implies --json)") { options[:json] = true; @pretty = true }
+    end
 
     def filter_flags(parser, options, *keys)
       parser.on("--type TYPE", "only concepts of this type") { |v| options[:type] = v } if keys.include?(:type)
@@ -600,7 +609,7 @@ module OKF
     end
 
     def print_validation_json(dir, result)
-      @out.puts JSON.pretty_generate(
+      emit_json(
         "bundle" => dir,
         "conformant" => result.valid?,
         "counts" => result.counts,
@@ -632,7 +641,7 @@ module OKF
     end
 
     def print_lint_json(dir, report)
-      @out.puts JSON.pretty_generate(
+      emit_json(
         "bundle" => dir,
         "healthy" => report.healthy?,
         "stats" => report.stats,
@@ -667,7 +676,7 @@ module OKF
     end
 
     def print_loose_json(dir, files)
-      @out.puts JSON.pretty_generate(
+      emit_json(
         "bundle" => dir,
         "count" => files.size,
         "loose" => files.map { |file| stringify(file) }
@@ -689,7 +698,7 @@ module OKF
     end
 
     def print_catalog_json(dir, entries)
-      @out.puts JSON.pretty_generate("bundle" => dir, "count" => entries.size, "concepts" => entries.map { |entry| stringify(entry) })
+      emit_json("bundle" => dir, "count" => entries.size, "concepts" => entries.map { |entry| stringify(entry) })
     end
 
     def print_files(dir, entries, total)
@@ -709,7 +718,7 @@ module OKF
         { "path" => "#{entry[:id]}.md", "id" => entry[:id], "dir" => entry[:dir], "type" => entry[:type], "title" => entry[:title],
           "description" => entry[:description] }
       end
-      @out.puts JSON.pretty_generate("bundle" => dir, "count" => files.size, "files" => files)
+      emit_json("bundle" => dir, "count" => files.size, "files" => files)
     end
 
     def print_index(dir, label, key, rows, titles)
@@ -723,7 +732,7 @@ module OKF
     end
 
     def print_index_json(dir, plural, key, rows)
-      @out.puts JSON.pretty_generate("bundle" => dir, "count" => rows.size, plural => index_rows_json(key, rows))
+      emit_json("bundle" => dir, "count" => rows.size, plural => index_rows_json(key, rows))
     end
 
     def index_rows_json(key, rows)
@@ -756,11 +765,18 @@ module OKF
     end
 
     def print_stats_json(dir, stats)
-      @out.puts JSON.pretty_generate(
+      emit_json(
         "bundle" => dir, "concepts" => stats[:concepts], "areas" => stats[:areas],
         "concept_types" => stats[:types], "cross_links" => stats[:cross_links], "distinct_tags" => stats[:tags],
         "by_type" => stats[:by_type], "by_area" => stats[:by_area]
       )
+    end
+
+    # The single JSON writer. Compact by default — the token-efficient substrate an
+    # agent consumes; --pretty indents it for a human. JSON semantics are identical
+    # either way, so a parser never cares which was emitted.
+    def emit_json(payload)
+      @out.puts(@pretty ? JSON.pretty_generate(payload) : JSON.generate(payload))
     end
 
     def stringify(hash)
@@ -823,6 +839,7 @@ module OKF
         (each view takes the ones orthogonal to it; matching is case-insensitive).
         tags --by DIM regroups the tags per concept dimension — type or area — with
         within-group counts, the view for curating a tag vocabulary.
+        --json emits compact JSON (the machine substrate); add --pretty to indent it.
 
         okf --version
       USAGE

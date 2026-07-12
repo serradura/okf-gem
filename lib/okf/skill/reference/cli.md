@@ -21,6 +21,13 @@ The surface is self-describing — `okf --help` maps every verb, `okf <verb> --h
 its flags. Ask the tool for what exists; this file carries only what `--help`
 cannot: each verb's semantics, its traps, and its JSON shape.
 
+**`--json` is compact by design.** Every emitting verb prints single-line JSON —
+the token-efficient substrate you consume; `--pretty` (which implies `--json`)
+indents it for a human. The bytes differ, the JSON is identical, so parse either.
+When you only need to *scan* a bundle, the plain text views are lighter still than
+JSON (they print each key once, not per row) — reach for `--json` when you need to
+extract structure, not merely read it.
+
 **Exit codes:** `0` success · `1` non-conformant bundle (or a `lint --fail-on`
 threshold crossed) · `2` usage error. `graph` and `server` are best-effort
 (§9): a file with invalid frontmatter is skipped and noted on stderr, never fatal.

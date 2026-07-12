@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- JSON output is now **compact by default** across every emitting verb (the
+  token-efficient machine substrate, matching the server); the new `--pretty` flag
+  indents it for reading and implies `--json`. JSON semantics are unchanged, so any
+  parser is unaffected — only whitespace differs.
 - `okf index`: a read view over the progressive-disclosure layer (spec §6) — one
   entry per directory that holds concepts or carries an `index.md`, root first,
   with its authored index body (frontmatter stripped), a type/tag rollup over the

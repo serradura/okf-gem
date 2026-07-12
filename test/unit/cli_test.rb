@@ -371,6 +371,31 @@ class OKF::CLITest < OKF::TestCase
     assert_equal 2, invoke("index", File.join(@tmpdir, "nope"))
   end
 
+  test "--json emits compact single-line JSON by default" do
+    build_sample
+
+    assert_equal 0, invoke("catalog", @tmpdir, "--json")
+    out = @out.string
+    assert JSON.parse(out), "compact output is valid JSON"
+    refute_match(/\n/, out.strip, "compact JSON is a single line")
+  end
+
+  test "--pretty indents the JSON and implies --json" do
+    build_sample
+
+    assert_equal 0, invoke("catalog", @tmpdir, "--pretty") # no --json
+    out = @out.string
+    assert JSON.parse(out), "pretty output is still valid JSON"
+    assert_match(/\n {2}/, out, "pretty JSON is indented")
+  end
+
+  test "compact JSON is the shared default across emitting verbs (validate too)" do
+    write("a.md", concept)
+
+    assert_equal 0, invoke("validate", @tmpdir, "--json")
+    refute_match(/\n/, @out.string.strip)
+  end
+
   private
 
   def invoke(*argv)
