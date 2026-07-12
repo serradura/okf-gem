@@ -15,8 +15,9 @@ gives you leverage over knowledge that already lives as Markdown.
 
 ```mermaid
 flowchart LR
-  skill["companion<br/>agent skill"] -. authors .-> bundle[("OKF v0.1 bundle<br/>Markdown + YAML")]
+  skill["companion<br/>agent skill"] -. authors/curate .-> bundle[("OKF v0.1 bundle<br/>Markdown + YAML")]
   bundle --> model["pure model<br/>Concept · Bundle · Graph"]
+  skill -. execute .-> cli
   subgraph cli ["okf CLI"]
     validate["validate — legal? §9"]
     lint["lint — well-curated?"]
@@ -29,13 +30,13 @@ flowchart LR
 Over such a bundle the gem gives you five capabilities behind one
 [command-line tool](cli.md):
 
-| Capability | What it answers | Verb |
-|------------|-----------------|------|
-| [Conformance validator](capabilities/validator.md) | Is this a legal OKF bundle? (§9) | `validate` |
-| [Curation linter](capabilities/linter.md) | Is it navigable, complete, fresh? | `lint` / `loose` |
-| [Interactive graph server](capabilities/graph-server.md) | Can I explore it visually? | `server` |
-| [Library API](capabilities/library-api.md) | Can my Ruby program use it? | (in-process) |
-| [Companion agent skill](capabilities/agent-skill.md) | Can an agent author it? | `skill` |
+| Capability                                               | What it answers                   | Verb             |
+| -------------------------------------------------------- | --------------------------------- | ---------------- |
+| [Companion agent skill](capabilities/agent-skill.md)     | Can an agent author it?           | `skill`          |
+| [Conformance validator](capabilities/validator.md)       | Is this a legal OKF bundle? (§9)  | `validate`       |
+| [Curation linter](capabilities/linter.md)                | Is it navigable, complete, fresh? | `lint` / `loose` |
+| [Interactive graph server](capabilities/graph-server.md) | Can I explore it visually?        | `server`         |
+| [Library API](capabilities/library-api.md)               | Can my Ruby program use it?       | (in-process)     |
 
 Alongside those, a family of [read views](capabilities/read-views.md) —
 `index`, `catalog`, `files`, `tags`, `stats`, `graph` — print the bundle at a
@@ -43,7 +44,7 @@ glance so an agent reads it without a browser.
 
 # The two ideas it inherits from the format
 
-- **Dual audience.** Every file serves a human skimming it *and* an agent
+- **Dual audience.** Every file serves a human skimming it _and_ an agent
   extracting from it, so bodies are structural Markdown and
   [links](format/cross-links.md) are plain Markdown links — both readers already
   understand them.

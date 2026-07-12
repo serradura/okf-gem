@@ -2,5 +2,7 @@
 # frozen_string_literal: true
 
 require "okf"
+require "okf/skill"
+require "okf/cli"
 
 exit OKF::CLI.start(ARGV)

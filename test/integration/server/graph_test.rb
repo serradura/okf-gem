@@ -31,13 +31,15 @@ class OKF::Server::GraphTest < OKF::TestCase
     refute_includes html, "x" * 5000, "a concept body is never embedded"
   end
 
-  test "loads cytoscape and marked and wires the on-demand endpoints" do
+  test "loads cytoscape, marked and DOMPurify and wires the on-demand endpoints" do
     write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 
     html = render
 
     assert_includes html, "cytoscape"
     assert_includes html, "marked"
+    assert_includes html, "dompurify", "DOMPurify sanitizes each fetched body before render"
+    assert_includes html, "DOMPurify.sanitize(marked.parse(text))", "the body render passes through the sanitizer"
     refute_includes html, "htmx", "htmx was dropped — the page fetches bodies with fetch()"
     assert_includes html, %(NODE_ENDPOINT="node")
     assert_includes html, %(META_ENDPOINT="node/meta")

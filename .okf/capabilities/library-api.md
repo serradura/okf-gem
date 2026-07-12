@@ -4,7 +4,7 @@ title: Library API
 description: The Ruby surface — a pure in-memory model plus on-disk handles, an "ActiveRecord for the filesystem".
 resource: lib/okf.rb
 tags: [library, api, ruby, diagram]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-12T12:00:00Z
 ---
 
 # Overview
@@ -17,6 +17,11 @@ gives you two layers, split cleanly by the [core/shell rule](../design/core-shel
   lint, and graph with **no disk involved**;
 - **on-disk handles** — `OKF::Concept::File` and `OKF::Bundle::Folder`, which add
   `load` / `save` / `reload` / `delete` on top of the pure model.
+
+`require "okf"` stops at those two layers: the [CLI](../cli.md) and the skill
+installer load only when asked for (from `exe/okf`, or an explicit
+`require "okf/cli"` / `require "okf/skill"`), so an app embedding the library
+never drags in the command-line machinery.
 
 ```mermaid
 classDiagram

@@ -4,14 +4,15 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph served over HTTP, and a mountable Rack app.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-12T12:00:00Z
 ---
 
 # Overview
 
 `okf server` boots an interactive view of the [graph](../model/graph.md):
 `OKF::Server::App` is a Rack app that serves one self-contained HTML page which
-draws the bundle with Cytoscape and renders concept bodies with marked. Because
+draws the bundle with Cytoscape and renders concept bodies with marked, sanitized
+by DOMPurify. Because
 it is a plain Rack app, it also mounts inside a host application (e.g. a Rails
 route) — the built-in WEBrick runner is just the default, injected so tests drive
 it without opening a socket.
@@ -19,8 +20,9 @@ it without opening a socket.
 # The page stays self-contained
 
 One ERB template, inline CSS and JS, no build step and no bundler. The only
-external assets are Cytoscape and marked from a CDN — plus Mermaid, lazy-loaded
-only when a concept body actually contains a diagram; everything else is inlined.
+external assets are Cytoscape, marked, and DOMPurify from a CDN — plus Mermaid,
+lazy-loaded only when a concept body actually contains a diagram; everything else
+is inlined.
 The graph draws from a **minimal** node payload and pulls each concept's body
 **on demand** via `fetch()`, which is why even a large bundle loads fast.
 
@@ -35,7 +37,7 @@ sequenceDiagram
   Note over A,B: angle brackets escaped (json_for_script) — safe
   B->>A: GET /node?id=… (on demand)
   A-->>B: concept Markdown body
-  Note over A,B: marked renders it UNSANITIZED — trust boundary
+  Note over A,B: marked renders it, DOMPurify sanitizes it — safe
 ```
 
 # Endpoints
@@ -49,11 +51,12 @@ sequenceDiagram
 
 # Trust boundary
 
-Fetched Markdown bodies are rendered **without sanitization**, so only serve
-bundles you trust. Data inlined into the page is safe — it goes through
-`json_for_script`, which escapes `<` so it cannot break out of its `<script>` —
-but the on-demand body is not. See the
-[server trust boundary](../design/server-trust-boundary.md) for the full picture.
+Both paths into the page are guarded. Inlined data goes through `json_for_script`,
+which escapes `<` so it cannot break out of its `<script>`; each fetched body is
+run through `DOMPurify.sanitize(marked.parse(...))`, which strips any script or
+handler before it reaches the DOM. See the
+[server trust boundary](../design/server-trust-boundary.md) for what that does and
+does not cover.
 
 # Citations
 

@@ -2,6 +2,7 @@
 
 require "test_helper"
 require "okf"
+require "okf/cli"
 require "stringio"
 
 class OKF::CLITest < OKF::TestCase
