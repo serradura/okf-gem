@@ -1,48 +1,6 @@
 # Changelog
 
-## [Unreleased]
-
-- JSON property projection on the list views: `index`, `catalog`, and `files`
-  take `--fields a,b` (emit only these properties) or `--except a,b` (emit all but
-  these), so an agent never pays tokens for fields it will not read. The flags are
-  mutually exclusive, imply `--json`, match property names case-insensitively, and
-  reject an unknown name (exit 2) listing the valid ones. `okf index --no-body` now
-  also drops the `body` field from JSON (previously it only affected the text view).
-- JSON output is now **compact by default** across every emitting verb (the
-  token-efficient machine substrate, matching the server); the new `--pretty` flag
-  indents it for reading and implies `--json`. JSON semantics are unchanged, so any
-  parser is unaffected — only whitespace differs.
-- `okf index`: a read view over the progressive-disclosure layer (spec §6) — one
-  entry per directory that holds concepts or carries an `index.md`, root first,
-  with its authored index body (frontmatter stripped), a type/tag rollup over the
-  concepts that live there, its child directories, and the concept listing. A
-  directory with concepts but no `index.md` has its listing synthesized (§6 permits
-  it) and is flagged. `--area` (repeatable), `--no-body`, and `--json`; advisory,
-  always exit 0. Backed by the new pure `OKF::Bundle#directory_index`.
-- `okf types`: the type index as a CLI view — every type with its concepts,
-  ordered by count, `--json` for the machine shape (parity with the server's
-  `/types` endpoint).
-- The CLI list views narrow with the same filters the browser offers:
-  `--type` / `--area` / `--tag` on `catalog` and `files`, `--type` / `--area` on
-  `tags`, `--area` / `--tag` on `types`. Case-insensitive; a filter that matches
-  nothing is an empty view, not an error.
-- `okf tags --by type|area`: the tag index regrouped per concept dimension with
-  within-group counts — the tag-curation view (scattered singletons vs
-  connective tags), composing with the filters.
-- Concepts at the bundle root now report area `(root)` (previously their own id),
-  so `stats --json` `by_area` and the catalog grouping match the server UI;
-  `--area root` selects them.
-- Server UI: the Tags view gains type/area filters, the Files view a tag
-  combobox, the Catalog filters grow Areas and Tags groups, and both the graph
-  and catalog filter panels get a find box that narrows the filter chips
-  themselves (searching reaches all tags, not just the top 40).
-- Skill: SKILL.md no longer transcribes the CLI surface (the tool is
-  self-describing via `okf --help` / `okf <verb> --help`) and instead teaches
-  the stance — the CLI is the agent's eyes, the skill is the judgment; new tag
-  vocabulary guidance in authoring.md (modelling principle + a curation step in
-  the maintain playbook built on `tags --by`).
-
-## [0.1.0] - 2026-07-11
+## [1.0.0] - 2026-07-12
 
 Initial release.
 
@@ -61,10 +19,36 @@ Initial release.
   `OKF::Bundle::Writer` (atomic, validate-before-publish), and
   `OKF::Concept::File`.
 - `OKF::Server::App`: the interactive graph as a mountable Rack app — five views
-  (graph, catalog, files, tags, stats), bodies fetched live from disk — served
-  by a built-in WEBrick runner (`okf server`).
-- `okf` CLI: `validate`, `lint`, `loose`, `graph`, `catalog`, `files`, `tags`,
-  `stats`, `server`, and `skill`.
-- Bundled companion agent skill (`okf skill <dest>`): SKILL.md, the OKF v0.1
-  spec, authoring and CLI references, and concept/index/log templates.
+  (graph, catalog, files, tags, stats) with type/area/tag filtering throughout,
+  bodies fetched live from disk — served by a built-in WEBrick runner
+  (`okf server`).
+- `okf` CLI: `validate`, `lint`, `loose`, and `graph`, plus the read views as
+  text — `index`, `catalog`, `files`, `tags`, `types`, `stats` — at full parity
+  with the browser: every list view narrows with `--type`/`--area`/`--tag`
+  (case-insensitive; the bundle root is area `(root)`, accepted as `root`), and
+  `tags --by type|area` regroups the tag index per concept dimension with
+  within-group counts — the tag-curation view. `server` boots the graph page;
+  `skill` installs the companion skill.
+- `okf index`: a read view over the progressive-disclosure layer (spec §6) — one
+  entry per directory that holds concepts or carries an `index.md`, root first,
+  with its authored index body (frontmatter stripped), a type/tag rollup over the
+  concepts that live there, its child directories, and the concept listing. A
+  directory with concepts but no `index.md` has its listing synthesized (§6 permits
+  it) and is flagged. `--area` (repeatable), `--no-body`, and `--json`; advisory,
+  always exit 0. Backed by the pure `OKF::Bundle#directory_index`.
+- JSON output is **compact by default** across every emitting verb (the
+  token-efficient machine substrate, matching the server); `--pretty` indents it
+  for reading and implies `--json`. JSON semantics are identical either way — only
+  whitespace differs — so any parser is unaffected.
+- JSON property projection on the list views: `index`, `catalog`, and `files`
+  take `--fields a,b` (emit only these properties) or `--except a,b` (emit all but
+  these), so an agent never pays tokens for fields it will not read. The flags are
+  mutually exclusive, imply `--json`, match property names case-insensitively, and
+  reject an unknown name (exit 2) listing the valid ones; `okf index --no-body` is
+  shorthand for dropping the `body` field.
+- Bundled companion agent skill (`okf skill <dest>`): SKILL.md carrying the
+  judgment (the CLI surface stays self-describing via `--help`) — including the
+  orient-before-you-read protocol and the CLI/judgment boundary — the OKF v0.1
+  spec, authoring and CLI references (tag-vocabulary curation, the SPEC-section
+  map, the closeout gate), and concept/index/log templates.
 - Runs on Ruby >= 2.4 with two runtime dependencies: rack and webrick.
