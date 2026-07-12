@@ -71,6 +71,13 @@ It is deliberately light so it runs on the Ruby your OS already ships:
 - no ActiveSupport, no build step, no JavaScript toolchain — the
   [design constraints](.okf/design/) that hold this line are enforced by tests.
 
+That range is not aspirational: CI runs the full test suite and RuboCop on every
+one of these on each push.
+
+| Ruby             | 2.4 | 2.5 | 2.6 | 2.7 | 3.0 | 3.1 | 3.2 | 3.3 | 3.4 | 4.0 |
+| ---------------- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Tested/Supported | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  | ✅  |
+
 ## Why OKF
 
 Project knowledge (why a service exists, what a metric really measures, the
