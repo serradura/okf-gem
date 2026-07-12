@@ -117,7 +117,47 @@ class OKF::PluginCurateTest < OKF::TestCase
     assert_equal "", out
   end
 
+  test "OKF_CURATE_DISABLED silences the hook before it reaches the CLI" do
+    with_env("OKF_CURATE_DISABLED" => "1") do
+      assert_equal "", run_hook(edit_event, runner: never_called)
+    end
+  end
+
+  test "an off spelling of OKF_CURATE_DISABLED leaves the hook on" do
+    validation = { "errors" => [ { "path" => "concepts/foo.md", "message" => "boom" } ] }
+    with_env("OKF_CURATE_DISABLED" => "false") do
+      context = context_of(run_hook(edit_event, runner: canned(validation: validation, lint: {})))
+      assert_includes context, "✗ error concepts/foo.md: boom"
+    end
+  end
+
+  test "an okf-disable marker in the edited file silences curation for it" do
+    File.write(File.join(@root, "concepts", "foo.md"),
+      "---\ntype: Concept\n---\n\n<!-- okf-disable -->\n\n# Foo\n")
+    assert_equal "", run_hook(edit_event, runner: never_called)
+  end
+
+  test "OKF_CURATE_QUIET drops the missing-CLI nudge" do
+    missing = ->(_verb, _root) { raise Errno::ENOENT, "okf" }
+    with_env("OKF_CURATE_QUIET" => "1") do
+      out = run_hook(edit_event("session_id" => "quiet-#{Process.pid}"), runner: missing)
+      assert_equal "", out
+    end
+  end
+
   private
+
+  # Set env vars for the block and restore them after. A method-level begin/ensure
+  # so it is safe on the 2.4 floor (ensure directly in a do…end block is 2.6+).
+  def with_env(vars)
+    saved = vars.keys.each_with_object({}) { |key, memo| memo[key] = ENV.fetch(key, nil) }
+    vars.each { |key, value| ENV[key] = value }
+    begin
+      yield
+    ensure
+      saved.each { |key, value| ENV[key] = value }
+    end
+  end
 
   def edit_event(extra = {})
     { "tool_input" => { "file_path" => File.join(@root, "concepts", "foo.md") } }.merge(extra)

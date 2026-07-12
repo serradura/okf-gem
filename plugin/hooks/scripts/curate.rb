@@ -12,6 +12,13 @@
 #
 # Plain Ruby, stdlib only, same 2.4 floor as the gem: the hook runs on whatever
 # Ruby the machine already has, before the gem is even installed.
+#
+# Off switches, all config-free (OKF keeps no config file):
+#   OKF_CURATE_DISABLED   truthy → the hook does nothing, on any edit;
+#   OKF_CURATE_QUIET      truthy → drop the advisory "install the CLI" nudge,
+#                         but still surface real findings;
+#   <!-- okf-disable -->  in the edited file → silence curation for that file.
+# An env var overrides everything; the file marker is the per-file escape hatch.
 
 require "json"
 require "open3"
@@ -22,6 +29,11 @@ module OKF
     class Curate
       # Keep the feedback scannable; `/okf:gem curate` exists for the full report.
       MAX_LINES = 12
+
+      # A file opts out with an `<!-- okf-disable -->` comment anywhere in it.
+      # Only whole-file: lint findings are per-concept, not line-anchored, so a
+      # line-level marker would have no line to point at.
+      DISABLE_MARKER = /<!--[^>]*\bokf-disable\b[^>]*-->/.freeze
 
       def self.run(stdin: $stdin, stdout: $stdout)
         new.run(stdin, stdout)
@@ -34,8 +46,12 @@ module OKF
       end
 
       def run(stdin, stdout)
+        return 0 if disabled?
+
         event = parse(stdin) or return 0
         file = edited_markdown(event) or return 0
+        return 0 if suppressed?(file)
+
         root = bundle_root(file) or return 0
 
         reports = fetch_reports(root)
@@ -48,6 +64,32 @@ module OKF
           })
         end
         0
+      end
+
+      # ── the off switches ─────────────────────────────────────────────────────
+
+      def disabled?
+        env_flag?("OKF_CURATE_DISABLED")
+      end
+
+      def quiet?
+        env_flag?("OKF_CURATE_QUIET")
+      end
+
+      # Set-and-truthy: any value other than the usual "off" spellings turns it on.
+      def env_flag?(name)
+        value = ENV[name].to_s.strip.downcase
+        !value.empty? && !%w[0 false no off].include?(value)
+      end
+
+      # True when the edited file carries the opt-out marker. A read failure is
+      # treated as "no marker" — the off switch must never become an error.
+      def suppressed?(file)
+        return false unless File.file?(file)
+
+        DISABLE_MARKER.match?(File.read(file))
+      rescue StandardError
+        false
       end
 
       # ── the gate: cheap enough to run on every edit ──────────────────────────
@@ -153,8 +195,12 @@ module OKF
       end
 
       # `okf` not installed: say so once per session (a marker file keyed by the
-      # session id), then stay silent — never an error per edit.
+      # session id), then stay silent — never an error per edit. Quiet mode drops
+      # the nudge entirely; the CLI is still absent, there is just nothing to fix
+      # per edit.
       def missing_cli(event, stdout)
+        return 0 if quiet?
+
         session = event["session_id"].to_s.gsub(/[^\w-]/, "_")
         marker = File.join(Dir.tmpdir, "okf-plugin-#{session.empty? ? "nosession" : session}.notified")
         return 0 if File.exist?(marker)
