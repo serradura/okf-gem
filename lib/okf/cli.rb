@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "optparse"
+
 module OKF
   # Command-line front end: `okf graph|validate|lint|loose|index|catalog|files|tags|types|stats|server <dir>`.
   # This is the

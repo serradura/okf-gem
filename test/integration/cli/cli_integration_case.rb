@@ -2,6 +2,8 @@
 
 require "test_helper"
 require "okf"
+require "okf/cli"
+require "okf/skill"
 require "json"
 require "tmpdir"
 
