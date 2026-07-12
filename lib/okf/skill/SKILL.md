@@ -101,17 +101,18 @@ index <dir>` (the §6 map: every directory's index body, rollups, and listings) 
 read `log.md` (the §7 baseline of what changed last) **before** greping or opening
 leaves. It is the cheapest high-signal context, and the only reliable way to catch
 enumeration drift: **grep cannot find an index entry that is missing** — you can't
-search for the word that should be there but isn't. Per-verb steps are in
-[authoring.md](reference/authoring.md) (no `okf` installed? read the root
+search for the word that should be there but isn't. Per-verb steps are in the
+playbooks (the Commands table below; no `okf` installed? read the root
 `index.md` plus each area's `index.md`).
 
 ## The authoring verbs — the craft
 
 `produce` (create or extend a bundle), `maintain` (sync it with reality),
 `consume` (use it as context) carry the judgment the executable can't — this is
-where the skill earns its keep. Read [authoring.md](reference/authoring.md)
-before doing them, and the verbatim spec [SPEC.md](reference/SPEC.md) when you
-need chapter and verse.
+where the skill earns its keep. Each has a playbook (the Commands table below);
+read the modelling craft in [authoring.md](reference/authoring.md) before
+producing or maintaining, and the verbatim spec [SPEC.md](reference/SPEC.md)
+when you need chapter and verse.
 
 **No subcommand?** Infer intent: "document this / capture X" → `produce`; "the
 code changed, update the docs" → `maintain`; a repo already carrying a bundle
@@ -123,11 +124,32 @@ ask.
 root, but first detect whether the project already keeps its bundle elsewhere
 (e.g. `docs/`) and prefer that. Commit the bundle alongside the code it describes.
 
+## Commands
+
+The first word of the arguments picks a row; with no match, infer intent as in
+"No subcommand?" above. Read the referenced playbook before executing — it *is*
+the procedure.
+
+| Verb | Category | What it does | Reference |
+|------|----------|--------------|-----------|
+| `produce`  | Author | create or extend a bundle | [playbooks/produce.md](playbooks/produce.md) |
+| `maintain` | Author | sync the bundle's content with reality after a change | [playbooks/maintain.md](playbooks/maintain.md) |
+| `consume`  | Use    | use the bundle as context for a task | [playbooks/consume.md](playbooks/consume.md) |
+| `curate`   | Curate | structural upkeep as it stands: validate + lint + loose | [playbooks/curate.md](playbooks/curate.md) |
+| `doctor`   | Setup  | install and verify the CLI, then doctor the bundle | [playbooks/doctor.md](playbooks/doctor.md) |
+| `<okf-cli-verb>` | Read | validate, lint, loose, index, catalog, files, tags, types, stats, graph, server, skill | `okf <verb> --help` + [reference/cli.md](reference/cli.md) |
+
+Two boundaries worth keeping sharp: `curate` is structural upkeep only — when
+the *content* no longer matches reality, that is `maintain` — and `doctor` is
+the one playbook that does not assume the CLI is installed. In Claude Code with
+the okf plugin, `/okf:gem` routes these same verbs.
+
 ## The lifecycle is a flywheel, not phases
 
 produce seeds a bundle; consume reads it; **maintain** runs whenever reality drifts
 *or* whenever consuming teaches you something durable — that write-back reflex is
 what keeps a bundle alive instead of rotting into folklore. When you learn
-something while consuming, switch to maintain and record it. Full playbooks and the
-modelling craft (granularity, choosing `type`, tag vocabulary, topology,
-`resource`, links, citations) are in [reference/authoring.md](reference/authoring.md).
+something while consuming, switch to maintain and record it. The playbooks live
+one per verb in `playbooks/` (the Commands table above); the modelling craft
+(granularity, choosing `type`, tag vocabulary, topology, `resource`, links,
+citations) is in [reference/authoring.md](reference/authoring.md).

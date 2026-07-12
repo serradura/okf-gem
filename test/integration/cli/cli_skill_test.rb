@@ -12,10 +12,11 @@ class CLISkillTest < CLIIntegrationCase
     dest = File.join(@out_dir, "okf")
     result = okf("skill", dest)
 
+    files = Dir.glob(File.join(ASSETS, "**", "*")).select { |path| File.file?(path) }.map { |path| path[(ASSETS.length + 1)..-1] }
     assert_equal 0, result.status
-    assert_match(/installed the okf skill \(9 files\)/, result.out)
+    assert_match(/installed the okf skill \(#{files.size} files\)/, result.out)
     # Every asset file lands at the destination, byte-for-byte.
-    Dir.glob(File.join(ASSETS, "**", "*")).select { |path| File.file?(path) }.map { |path| path[(ASSETS.length + 1)..-1] }.each do |rel|
+    files.each do |rel|
       copied = File.join(dest, rel)
       assert File.file?(copied), "expected #{rel} to be installed"
       assert_equal File.read(File.join(ASSETS, rel)), File.read(copied), "#{rel} content differs"

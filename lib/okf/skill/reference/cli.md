@@ -105,7 +105,8 @@ But an index listing is **not a graph edge**: a file can be listed in an index y
 have no cross-links, so it floats in the graph while `lint` reports it as reachable.
 `loose`/`unlinked` catch exactly that gap. A loose file is not automatically a
 defect — a terminal leaf (a backlog item, a spec reference) can be loose by design;
-`loose` surfaces the set so you can judge intent (see `maintain` in authoring.md).
+`loose` surfaces the set so you can judge intent (see the
+[maintain playbook](../playbooks/maintain.md)).
 
 ## index — the progressive-disclosure map (§6)
 
@@ -148,8 +149,8 @@ in/out link degree). Add `--json` to any for a machine substrate.
   descending. The "what themes dominate" view. JSON: `{ bundle, count, tags: [{ tag,
   count, concepts: [id, …] }] }`. `--by type|area` regroups the list per concept
   dimension with **within-group** counts (a tag spanning groups appears in each) —
-  the substrate for tag curation; the judgment recipe lives in
-  [authoring.md](authoring.md)'s maintain playbook. JSON: `{ bundle, count, by,
+  the substrate for tag curation; the judgment recipe lives in the
+  [maintain playbook](../playbooks/maintain.md). JSON: `{ bundle, count, by,
   groups: [{ <dim>, count, tags: […] }] }`.
 - **`types`** — every type with the concepts that carry it, ordered by count
   descending. The "what kinds of knowledge" view. JSON: `{ bundle, count, types:
