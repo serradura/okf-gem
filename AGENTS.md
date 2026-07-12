@@ -29,6 +29,13 @@ The core/shell split is *enforced*: `test/unit/boundary_test.rb` fails if a pure
 file names a shell class or touches `File`/`Dir`/`FileUtils`/stdio. Put new I/O
 in the shell; put new logic in the core, pure.
 
+`require "okf"` loads the library only — the model, the analyzers, and the
+on-disk handles. The two argv-facing shells, `cli.rb` (and its `optparse`) and
+`skill.rb`, load on demand: `exe/okf` requires them, and so must any test that
+drives them. An embedding app never pays for the command-line machinery.
+`test/unit/loading_test.rb` guards this in a clean subprocess; keep it green when
+you touch what `require "okf"` pulls in.
+
 ## Hard constraints
 
 1. **Ruby >= 2.4** (rack's own floor — the point is running on the Ruby an OS
@@ -54,9 +61,12 @@ in the shell; put new logic in the core, pure.
    to the right side, and exit codes keep the contract: 0 ok, 1 failing bundle,
    2 usage error.
 5. **The server page stays self-contained**: one ERB template, inline CSS/JS,
-   only Cytoscape + marked from a CDN, bodies pulled on demand with `fetch()`.
-   No htmx, no bundler, no build step. Data inlined into the page goes through
-   `json_for_script` (escapes `<`) — that is the XSS boundary.
+   only Cytoscape, marked, and DOMPurify from a CDN, bodies pulled on demand
+   with `fetch()`. No htmx, no bundler, no build step. Two XSS defenses hold the
+   line: inlined data goes through `json_for_script` (escapes `<` so it cannot
+   break out of its `<script>`), and every fetched body is run through
+   `DOMPurify.sanitize(marked.parse(...))` before it reaches `innerHTML`. Keep
+   both — a new render path that skips the sanitizer reopens the hole.
 6. **The skill ships only from `lib/okf/skill/**`** — that tree is the single
    canonical copy (`okf skill <dest>` installs from it), so edit it there and
    nowhere else. Local installs (e.g. `.agents/`, `.claude/`) are gitignored.

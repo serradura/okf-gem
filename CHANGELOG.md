@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.0] - 2026-07-12
+
+- The graph server now sanitizes every concept body before rendering it. The
+  page runs marked's HTML output through [DOMPurify](https://github.com/cure53/DOMPurify)
+  (loaded from the same CDN as Cytoscape and marked) on the way to the DOM, so a
+  bundle carrying active content in a Markdown body can no longer script the
+  viewer. Inlined graph data was already escaped through `json_for_script`; this
+  closes the other path.
+- `require "okf"` now loads the pure library only. The two argv-facing shells —
+  `OKF::CLI` and the `OKF::Skill` installer — load on demand, from `exe/okf` or
+  an explicit `require "okf/cli"` / `require "okf/skill"`. `optparse` moves with
+  the CLI, so an embedding app (e.g. a Rails store) that only reaches for the
+  in-memory model and on-disk handles no longer pulls in the command-line
+  machinery. The CLI itself is unchanged.
+
 ## [1.0.0] - 2026-07-12
 
 Initial release.
