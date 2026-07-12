@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <i>A lightweight Ruby gem for OKF: validate, lint, and serve bundles as an interactive graph.</i>
+  <i>A lightweight Ruby gem for OKF: author, curate, and serve bundles as an interactive graph.</i>
 </p>
 
 <p align="center">
@@ -18,20 +18,16 @@
   <a href="lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.1-6E56CF" alt="OKF v0.1"></a>
 </p>
 
-> A rough project, cut and polished into a jewel. And like any jewel, what it is
-> worth comes down to what it does with knowledge: reading it, validating it,
-> curating it, and putting it on display.
-
 **okf-gem** — `okf` on RubyGems — reads, validates, lints, and serves
-**Open Knowledge Format (OKF)** v0.1 bundles: directories of Markdown files with
-YAML frontmatter that humans and agents read from one source. It does not define
-a new place to keep knowledge; it gives you leverage over knowledge that already
-lives as Markdown. Each file is a _concept_; a directory of them is a _bundle_.
+**Open Knowledge Format (OKF)** v0.1 bundles: directories of Markdown files with YAML frontmatter that humans and agents read from one source. It does not define a new place to keep knowledge; it gives you leverage over knowledge that already lives as Markdown. Each file is a _concept_; a directory of them is a _bundle_.
+
+Here is what it is able to do:
 
 ```mermaid
 flowchart LR
-  skill["companion<br/>agent skill"] -. authors .-> bundle[("OKF v0.1 bundle<br/>Markdown + YAML")]
+  skill["companion<br/>agent skill"] -. authors/curate .-> bundle[("OKF v0.1 bundle<br/>Markdown + YAML")]
   bundle --> model["pure model<br/>Concept · Bundle · Graph"]
+  skill -. execute .-> cli
   subgraph cli ["okf CLI"]
     validate["validate — legal? §9"]
     lint["lint — well-curated?"]
@@ -41,24 +37,18 @@ flowchart LR
   model --> library["library API<br/>embed in Ruby"]
 ```
 
-Over a bundle the gem gives you five capabilities plus
-[read views](.okf/capabilities/read-views.md) (`index`, `catalog`, `files`,
-`tags`, `stats`, `graph` — the browser panels as text), all behind one `okf`
+Over a bundle the gem gives you the `okf`
 command-line tool (the library API is also usable in-process). Each capability
 below links to the concept that documents it: this gem's own knowledge is an OKF
 bundle, so you can read its design in the format it defends.
 
-| Capability | What it answers | Verb |
-|------------|-----------------|------|
-| [Conformance validator](.okf/capabilities/validator.md) | Is this a legal OKF bundle? (§9) | `validate` |
-| [Curation linter](.okf/capabilities/linter.md) | Is it navigable, complete, fresh? | `lint` / `loose` |
-| [Interactive graph server](.okf/capabilities/graph-server.md) | Can I explore it visually? | `server` |
-| [Library API](.okf/capabilities/library-api.md) | Can my Ruby program use it? | in-process |
-| [Companion agent skill](.okf/capabilities/agent-skill.md) | Can an agent author it? | `skill` |
-
-Throughout, `§` points at a section of the
-[OKF v0.1 spec](lib/okf/skill/reference/SPEC.md) (bundled with the skill); `§9`
-is its conformance chapter, the one `validate` enforces.
+| Capability                                                    | What it answers                   | Verb             |
+| ------------------------------------------------------------- | --------------------------------- | ---------------- |
+| [Companion agent skill](.okf/capabilities/agent-skill.md)     | Can an agent author it?           | `skill`          |
+| [Conformance validator](.okf/capabilities/validator.md)       | Is this a legal OKF bundle? (§9)  | `validate`       |
+| [Curation linter](.okf/capabilities/linter.md)                | Is it navigable, complete, fresh? | `lint` / `loose` |
+| [Interactive graph server](.okf/capabilities/graph-server.md) | Can I explore it visually?        | `server`         |
+| [Library API](.okf/capabilities/library-api.md)               | Can my Ruby program use it?       | in-process       |
 
 > [!TIP]
 > **Browse the gem as knowledge, not just docs.** This README is the front door;
