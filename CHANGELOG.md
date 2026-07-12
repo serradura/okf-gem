@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.0] - 2026-07-12
 
 - Claude Code plugin. The repository now doubles as a plugin marketplace:
   `/plugin marketplace add serradura/okf-gem`, then `/plugin install okf@okfgem`.
