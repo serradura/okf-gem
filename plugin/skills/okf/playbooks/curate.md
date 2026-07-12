@@ -2,7 +2,7 @@
 
 Run the complete curation cycle over the whole bundle and act on the findings
 with the okf skill's judgment. If the `okf` CLI is missing, stop and follow
-[doctor.md](doctor.md) first (in Claude Code: `/okf:gem` with no arguments).
+[doctor.md](doctor.md) first (in Claude Code: `/okf:gem doctor`).
 
 Curation is structural upkeep of the bundle *as it stands*: conformance,
 reachability, backlog, completeness, hygiene. It is not `maintain`, the

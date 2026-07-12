@@ -7,8 +7,12 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 Route on the arguments ("$ARGUMENTS"), then use the okf skill that ships with
 this plugin:
 
-- Empty, or `doctor [dir]`: read the skill's `playbooks/doctor.md` and follow
-  it exactly as written (install and verify the CLI, then doctor the bundle).
+- Empty: read the skill's `playbooks/menu.md` and follow it exactly as written.
+  Orient on the CLI, the bundle, and what `validate`/`lint` report, then
+  recommend the two or three highest-value moves and let the user pick. Never
+  auto-run a workflow. (No CLI yet? `menu.md` sends you to `doctor.md` to set up.)
+- `doctor [dir]`: read the skill's `playbooks/doctor.md` and follow it exactly
+  as written (install and verify the CLI, then doctor the bundle).
 - `curate [dir]`: read the skill's `playbooks/curate.md` and follow it exactly
   as written. Curation is structural upkeep of the bundle as it stands
   (validate + lint + loose); nothing in the project needs to have changed.

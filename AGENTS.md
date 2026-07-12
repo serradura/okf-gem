@@ -81,7 +81,12 @@ you touch what `require "okf"` pulls in.
    never edit it there: run `bundle exec rake plugin:sync` after touching the
    skill or bumping the version (the task also stamps
    `plugin/.claude-plugin/plugin.json`), and `test/plugin/sync_test.rb`
-   fails on any drift (file lists and SHA-256 checksums).
+   fails on any drift (file lists and SHA-256 checksums). Signature guidance
+   lines carry stable markers — `<!-- check:<lint-check-id> -->` when a
+   deterministic check enforces the point, `<!-- rule:okf-<slug> -->` for
+   pure-judgment craft — as anchors for eval pinning and citation. They render
+   invisibly and sync verbatim into the plugin copy, so keep them on the line
+   they annotate when you edit it.
 7. **Tests use `OKF::TestCase`** (`test/test_helper.rb`): plain Minitest plus
    `test "..."` / block `setup`/`teardown` sugar. The tests run on 2.4 too, so
    the API constraints above apply to `test/` as well.

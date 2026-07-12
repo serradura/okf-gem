@@ -88,7 +88,7 @@ flags. The division of labour is the whole game:
 
 The one trap worth carrying in your head: **freshness is off by default** — a plain
 `okf lint` never reports stale concepts; pass `--stale-after <90d|12w|ISO-date>`
-when the bundle carries timestamps.
+when the bundle carries timestamps. <!-- check:stale -->
 
 Read [cli.md](reference/cli.md) before *interpreting* a verb's output in depth:
 what `validate` may and may not reject, lint's categories and check ids, the JSON
@@ -101,7 +101,8 @@ index <dir>` (the §6 map: every directory's index body, rollups, and listings) 
 read `log.md` (the §7 baseline of what changed last) **before** greping or opening
 leaves. It is the cheapest high-signal context, and the only reliable way to catch
 enumeration drift: **grep cannot find an index entry that is missing** — you can't
-search for the word that should be there but isn't. Per-verb steps are in the
+search for the word that should be there but isn't. <!-- rule:okf-orient-index -->
+Per-verb steps are in the
 playbooks (the Commands table below; no `okf` installed? read the root
 `index.md` plus each area's `index.md`).
 
@@ -126,12 +127,15 @@ root, but first detect whether the project already keeps its bundle elsewhere
 
 ## Commands
 
-The first word of the arguments picks a row; with no match, infer intent as in
-"No subcommand?" above. Read the referenced playbook before executing — it *is*
-the procedure.
+The first word of the arguments picks a row. **No arguments at all** — someone
+asking "what should I do?" — is its own row: read `playbooks/menu.md`, orient on
+the signals, and recommend the highest-value move without running one. When there
+is wording but no matching first word, infer intent as in "No subcommand?" above.
+Read the referenced playbook before executing — it *is* the procedure.
 
 | Verb | Category | What it does | Reference |
 |------|----------|--------------|-----------|
+| *(none)*   | Orient | recommend the highest-value next move; never auto-run | [playbooks/menu.md](playbooks/menu.md) |
 | `produce`  | Author | create or extend a bundle | [playbooks/produce.md](playbooks/produce.md) |
 | `maintain` | Author | sync the bundle's content with reality after a change | [playbooks/maintain.md](playbooks/maintain.md) |
 | `consume`  | Use    | use the bundle as context for a task | [playbooks/consume.md](playbooks/consume.md) |
