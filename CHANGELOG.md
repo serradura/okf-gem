@@ -9,6 +9,9 @@
   `--type` / `--area` / `--tag` on `catalog` and `files`, `--type` / `--area` on
   `tags`, `--area` / `--tag` on `types`. Case-insensitive; a filter that matches
   nothing is an empty view, not an error.
+- `okf tags --by type|area`: the tag index regrouped per concept dimension with
+  within-group counts — the tag-curation view (scattered singletons vs
+  connective tags), composing with the filters.
 - Concepts at the bundle root now report area `(root)` (previously their own id),
   so `stats --json` `by_area` and the catalog grouping match the server UI;
   `--area root` selects them.

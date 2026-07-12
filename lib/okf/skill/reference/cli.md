@@ -23,7 +23,7 @@ okf lint      <dir> [--json] [--fail-on warn] [--only a,b] [--except a,b] [--min
 okf loose     <dir> [--json]
 okf catalog   <dir> [--json] [--type T] [--area A] [--tag T]
 okf files     <dir> [--json] [--type T] [--area A] [--tag T]
-okf tags      <dir> [--json] [--type T] [--area A]
+okf tags      <dir> [--json] [--by type|area] [--type T] [--area A]
 okf types     <dir> [--json] [--area A] [--tag T]
 okf stats     <dir> [--json]
 okf server    <dir> [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url]
@@ -115,7 +115,10 @@ in/out link degree). Add `--json` to any for a machine substrate.
   id, dir, type, title, description }] }`.
 - **`tags`** — every tag with the concepts that carry it, ordered by count
   descending. The "what themes dominate" view. JSON: `{ bundle, count, tags: [{ tag,
-  count, concepts: [id, …] }] }`.
+  count, concepts: [id, …] }] }`. `--by type|area` regroups the list per concept
+  dimension with within-group counts — **the tag-curation view**: a tag confined to
+  one group at count 1 is scattered (merge or drop it); one recurring across groups
+  is connective. JSON: `{ bundle, count, by, groups: [{ <dim>, count, tags: […] }] }`.
 - **`types`** — every type with the concepts that carry it, ordered by count
   descending. The "what kinds of knowledge" view. JSON: `{ bundle, count, types:
   [{ type, count, concepts: [id, …] }] }`.

@@ -90,7 +90,7 @@ okf lint      <dir> [--json] [--stale-after 90d] # curation quality; advisory (e
 okf loose     <dir> [--json]                     # files with no graph links, by folder
 okf catalog   <dir> [--json] [filters]           # concepts + metadata (type, tags, links), by area
 okf files     <dir> [--json] [filters]           # files + titles, by folder
-okf tags      <dir> [--json] [filters]           # tags + their concepts, by count
+okf tags      <dir> [--json] [--by type|area] [filters]  # tags + their concepts, by count
 okf types     <dir> [--json] [filters]           # types + their concepts, by count
 okf stats     <dir> [--json]                     # bundle rollups (concepts, types, areas, links, tags)
 okf server    <dir> [-p PORT]                    # serve the interactive graph over HTTP
@@ -101,7 +101,9 @@ reach for them (with `--json` for a machine substrate) to read a bundle at a gla
 without a browser: what concepts exist, how they're foldered, which tags dominate,
 the shape. The four list views narrow with the same `[filters]` the browser offers —
 `--type TYPE`, `--area AREA`, `--tag TAG` (each takes the ones orthogonal to it;
-case-insensitive; the bundle root is area `root`).
+case-insensitive; the bundle root is area `root`). `tags --by type|area` regroups
+the tags per concept dimension with within-group counts — the view for curating a
+tag vocabulary (scattered singletons vs connective tags).
 
 The one that bites: **freshness is off by default — a plain `okf lint` never
 reports stale concepts. Pass `--stale-after <90d|12w|ISO-date>`** when the bundle

@@ -236,6 +236,36 @@ class OKF::CLITest < OKF::TestCase
     refute_match(/mission\.md/, @out.string)
   end
 
+  test "tags --by area groups tags with within-group counts" do
+    build_sample
+
+    assert_equal 0, invoke("tags", @tmpdir, "--by", "area")
+    assert_match(/3 distinct, by area/, @out.string)
+    assert_match(%r{features/ \(2 tags\)}, @out.string)
+    assert_match(/x\s+2\s+Alpha, Beta/, @out.string)
+
+    @out = StringIO.new
+    assert_equal 0, invoke("tags", @tmpdir, "--by", "area", "--json")
+    data = JSON.parse(@out.string)
+    assert_equal "area", data["by"]
+    features = data["groups"].find { |group| group["area"] == "features" }
+    assert_equal 2, features["count"]
+    top = features["tags"].first
+    assert_equal [ "x", 2 ], [ top["tag"], top["count"] ]
+    assert_equal %w[features/a features/b], top["concepts"].sort
+  end
+
+  test "tags --by type composes with filters and rejects a bad dimension" do
+    build_sample
+
+    assert_equal 0, invoke("tags", @tmpdir, "--by", "type", "--area", "features", "--json")
+    data = JSON.parse(@out.string)
+    assert_equal [ "Feature" ], data["groups"].map { |group| group["type"] }
+
+    assert_equal 2, invoke("tags", @tmpdir, "--by", "folder")
+    assert_match(/invalid argument: --by folder/, @err.string)
+  end
+
   test "a filter matching nothing yields an empty view, not an error" do
     build_sample
 
