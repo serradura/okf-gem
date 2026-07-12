@@ -30,19 +30,15 @@
 
 Here is what it is able to do:
 
-```mermaid
-flowchart LR
-  skill["companion<br/>agent skill"] -. authors/curate .-> bundle[("OKF v0.1 bundle<br/>Markdown + YAML")]
-  bundle --> model["pure model<br/>Concept · Bundle · Graph"]
-  skill -. execute .-> cli
-  subgraph cli ["okf CLI"]
-    validate["validate — legal? §9"]
-    lint["lint — well-curated?"]
-    server["server — explore"]
-  end
-  model --> cli
-  model --> library["library API<br/>embed in Ruby"]
-```
+<!-- Diagram source: .github/overview.mmd. Regenerate both variants with mermaid-cli:
+     mmdc -i .github/overview.mmd -o .github/overview-light.png -t default -b transparent -s 3
+     mmdc -i .github/overview.mmd -o .github/overview-dark.png  -t dark    -b transparent -s 3 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/overview-dark.png">
+    <img src=".github/overview-light.png" width="100%" alt="The companion agent skill authors and curates an OKF v0.1 bundle (Markdown + YAML). A pure model (Concept, Bundle, Graph) reads that bundle and feeds both the okf CLI (validate — legal per §9; lint — well-curated; server — explore) and a library API you embed in Ruby.">
+  </picture>
+</p>
 
 Over a bundle the gem gives you the `okf`
 command-line tool (the library API is also usable in-process). Each capability
