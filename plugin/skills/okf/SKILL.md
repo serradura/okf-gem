@@ -81,9 +81,12 @@ Don't memorize the surface — `okf --help` maps every verb, `okf <verb> --help`
 flags. The division of labour is the whole game:
 
 - **Shell out — never eyeball —** anything a verb computes: conformance (§9), what
-  exists, what links where, what's stale, the map. Every read verb takes `--json`
-  and the list views filter by type/area/tag, so ask the narrow question instead of
-  paging the bundle.
+  exists, what links where, where a term lives, what's stale, the map. Every read
+  verb takes `--json` and the list views filter by type/area/tag, so ask the narrow
+  question instead of paging the bundle.
+- **Skeleton first, bodies last.** `index --no-body`, `search`, `graph --minimal`,
+  and `--fields` projections each answer for a fraction of a dump's bytes; full
+  bodies are the final step of a retrieval, never the first. <!-- rule:okf-skeleton-first -->
 - **You judge — the CLI can't —** meaning: contradictions, semantic staleness
   (parses fine, no longer true), whether a loose file is terminal-by-design, whether
   a singleton tag is a deliberate marker. Tool output is evidence, never a verdict.

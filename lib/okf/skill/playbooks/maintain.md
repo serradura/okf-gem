@@ -11,10 +11,12 @@ up. The modelling craft behind steps 3 and 7 lives in
    catch enumeration drift, because **grep cannot find an index entry that is
    missing.** (This is the always-on reflex in [SKILL.md](../SKILL.md).)
 2. **Find *every* affected concept** — the failure mode is fixing only the obvious
-   one. Don't rely on reading the whole bundle; that only scales on tiny ones. Grep
-   the changed asset's `resource` URI across the bundle, grep its path/name, and use
-   `okf graph --json` to pull the concepts that link *to* the ones you're touching.
-   Let grep and the graph find them so nothing drifts silently.
+   one. Don't rely on reading the whole bundle; that only scales on tiny ones. Run
+   `okf search <dir> <resource-URI-or-name>` — it hits frontmatter *and* bodies and
+   returns ranked concept ids, not line noise; grep is the backstop for what search
+   cannot express — and `okf graph <dir> --json --minimal` to pull the edges (the
+   concepts that link *to* the ones you're touching) without paying for every body.
+   Let search and the graph find them so nothing drifts silently.
 3. Update bodies and `timestamp`; fix or add cross-links; create new concepts for
    new assets; mark retired assets with a `**Deprecation**` note rather than
    silently deleting the context that explains them.

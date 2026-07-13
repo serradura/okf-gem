@@ -4,7 +4,7 @@ title: The core/shell split
 description: A pure functional core that never touches disk or stdio, and a thin shell that owns all I/O — enforced by a test.
 resource: test/unit/boundary_test.rb
 tags: [architecture, purity, testing, diagram]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-13T12:00:00Z
 ---
 
 # Overview
@@ -12,6 +12,7 @@ timestamp: 2026-07-11T12:00:00Z
 The gem is two halves. The **core** is pure — [`Concept`](../model/concept.md),
 [`Bundle`](../model/bundle.md), [`Graph`](../model/graph.md), the
 [validator](../capabilities/validator.md), the [linter](../capabilities/linter.md),
+the [search](../capabilities/search.md),
 the [format layer](../format/) — logic that returns data and does no I/O. The
 **shell** owns everything that touches the world: the on-disk handles
 (`Concept::File`, `Bundle::{Reader,Writer,Folder}`), the
@@ -29,7 +30,7 @@ flowchart TB
     Concept["Concept"]
     Bundle["Bundle"]
     Graph["Graph"]
-    VL["Validator · Linter"]
+    VL["Validator · Linter · Search"]
     MD["Markdown layer"]
   end
   shell ==>|depends on| core

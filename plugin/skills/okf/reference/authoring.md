@@ -67,8 +67,8 @@ the domain.
 ### `resource` is the bridge to reality <!-- rule:okf-resource-bridge -->
 Set `resource` (a canonical URI) **only** when a concept *is* a real, addressable
 asset — a table (`bigquery://…`), a service repo, a dashboard, an endpoint. Its
-presence is what lets `maintain` find every concept affected by a changed asset by
-grepping for that URI. Abstract concepts — a decision, a principle, a metric
+presence is what lets `maintain` find every concept affected by a changed asset in
+one `okf search <dir> <uri>` call. Abstract concepts — a decision, a principle, a metric
 definition — have no resource, and **omitting it is meaningful**, not laziness. Do
 not invent placeholder URIs.
 

@@ -214,7 +214,10 @@ links the bundle carries — so only serve bundles you trust.
 ## graph — the raw structure
 
 Prints the node/edge graph. `--json` emits a machine-readable dump (`nodes` with
-`id`/`type`/`title`/`description`/`tags`, and `edges`) you can pipe into other
-analysis or use to plan a traversal before consuming a large bundle. `--no-body`
-drops each node's body; `--minimal` ships only `id`/`title` plus the type/tag
-indexes — the lean shape the `server` page boots from.
+`id`/`type`/`title`/`description`/`tags` **and, by default, every `body`** — the
+part that dominates the bytes on a real bundle — plus `edges`) you can pipe into
+other analysis. To *plan* a traversal, structure is all you need: `--no-body`
+drops each node's body, and `--minimal` ships only `id`/`title` plus the type/tag
+indexes — the lean shape the `server` page boots from. Reach for the full dump
+only when the task truly consumes every body; for one question, the
+[search verb](#search--ranked-text-retrieval-metadata--body) is orders cheaper.

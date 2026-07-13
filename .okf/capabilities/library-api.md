@@ -4,7 +4,7 @@ title: Library API
 description: The Ruby surface — a pure in-memory model plus on-disk handles, an "ActiveRecord for the filesystem".
 resource: lib/okf.rb
 tags: [library, api, ruby, diagram]
-timestamp: 2026-07-12T12:00:00Z
+timestamp: 2026-07-13T12:00:00Z
 ---
 
 # Overview
@@ -56,7 +56,8 @@ knowledge it already holds as records. Construct concepts from data, assemble a
 bundle, and call `#validate`, `#lint`, or `#graph` — no Markdown round-trip
 needed. The lower-level pieces work standalone too:
 `OKF::Bundle::Validator.call`, `OKF::Bundle::Linter.call`,
-`OKF::Bundle::Graph.build`, `OKF::Markdown::Frontmatter.parse`.
+`OKF::Bundle::Search.call`, `OKF::Bundle::Graph.build`,
+`OKF::Markdown::Frontmatter.parse`.
 
 # Folder is an ActiveRecord for the filesystem
 

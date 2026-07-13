@@ -14,8 +14,10 @@ is the lede.
    - **No bundle** → lead with **`produce`** (create the first bundle from the
      code, docs, or what lives only in people's heads). Nothing else applies yet.
 3. **Read the bundle's state** from the CLI, not by eyeballing:
-   `okf validate <root> --json`, `okf lint <root> --json`, `okf loose <root>
-   --json`. Then recommend by what they report, most-blocking first:
+   `okf validate <root>`, `okf lint <root>`, `okf loose <root>` — the plain
+   text views, which are lighter than `--json` when you are reading a report
+   rather than extracting structure from it. Then recommend by what they
+   report, most-blocking first:
    - **`validate` has errors** → lead with **`curate`**: §9 conformance errors are
      the only hard failures, and curate fixes them before anything else.
    - **clean `validate`, but `lint`/`loose` findings** → lead with **`curate`** to
