@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.4.0] - 2026-07-12
 
 - Graph server UX round. Selecting a node now makes one camera move instead of
   two (the pan used to race the opening panel and the debounced canvas resize,
