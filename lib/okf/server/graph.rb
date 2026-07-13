@@ -3,7 +3,7 @@
 module OKF
   module Server
     # Renders an OKF::Bundle::Graph as the interactive graph page served by
-    # OKF::Server::App. The markup lives in templates/graph.html.erb; #render
+    # OKF::Server::App. The markup lives in graph/template.html.erb; #render
     # returns the HTML string.
     #
     # The page boots from a *minimal* payload — nodes carry only id + title, plus
@@ -17,7 +17,7 @@ module OKF
     # trust. The inline-<script> data is </script>-escaped by #json_for_script
     # (stdlib ERB does not auto-escape).
     class Graph
-      TEMPLATE = File.expand_path("templates/graph.html.erb", __dir__)
+      TEMPLATE = File.expand_path("graph/template.html.erb", __dir__)
       LAYOUTS = %w[cose concentric breadthfirst circle grid].freeze
 
       # Node-diameter range in px; the template scales within it by node degree.
@@ -55,7 +55,7 @@ module OKF
       end
 
       def og_title
-        html_escape("OKF — #{graph_name}")
+        html_escape("OKF · #{graph_name}")
       end
 
       def og_desc

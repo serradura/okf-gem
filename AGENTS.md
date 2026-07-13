@@ -19,13 +19,13 @@ lib/okf/
   concept/file.rb         shell  one-file on-disk handle
   bundle/reader|writer|folder.rb  shell  directory <-> Bundle (writer is atomic, validates before publish)
   server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types
-  server/graph.rb + templates/graph.html.erb  the whole UI in one self-contained ERB file
+  server/graph.rb + graph/template.html.erb  the whole UI in one self-contained ERB file
   server/runner.rb        shell  built-in WEBrick <-> Rack bridge (replaces any rackup need)
   skill.rb + skill/       shell  the companion agent skill + its installer
   cli.rb                  shell  the only layer that parses argv, prints, and exits
 ```
 
-The core/shell split is *enforced*: `test/unit/boundary_test.rb` fails if a pure
+The core/shell split is _enforced_: `test/unit/boundary_test.rb` fails if a pure
 file names a shell class or touches `File`/`Dir`/`FileUtils`/stdio. Put new I/O
 in the shell; put new logic in the core, pure.
 
@@ -54,7 +54,7 @@ you touch what `require "okf"` pulls in.
    args outside the Frontmatter shim (2.6); `filter_map`, `tally`, numbered
    block params (2.7); endless methods, hash shorthand (3.x).
    The truth test: `docker run --rm -v "$PWD":/app -w /app ruby:2.4 bash -c
-   "bundle install && bundle exec rake test"`.
+"bundle install && bundle exec rake test"`.
 2. **Runtime dependencies are exactly `rack` and `webrick`.** No ActiveSupport —
    `OKF.blank?` and `Markdown::Frontmatter.stringify_keys` exist precisely so it
    is not needed. A new runtime dependency is a design decision, not a
@@ -75,15 +75,13 @@ you touch what `require "okf"` pulls in.
    `DOMPurify.sanitize(marked.parse(...))` before it reaches `innerHTML`. Keep
    both — a new render path that skips the sanitizer reopens the hole.
 6. **The skill ships only from `lib/okf/skill/**`** — that tree is the single
-   canonical copy (`okf skill <dest>` installs from it), so edit it there and
-   nowhere else. Local installs (e.g. `.agents/`, `.claude/`) are gitignored.
-   `plugin/skills/okf` is a *generated* copy for the Claude Code plugin, so
-   never edit it there: run `bundle exec rake plugin:sync` after touching the
-   skill or bumping the version (the task also stamps
-   `plugin/.claude-plugin/plugin.json`), and `test/plugin/sync_test.rb`
-   fails on any drift (file lists and SHA-256 checksums). Signature guidance
-   lines carry stable markers — `<!-- check:<lint-check-id> -->` when a
-   deterministic check enforces the point, `<!-- rule:okf-<slug> -->` for
+canonical copy (`okf skill <dest>`installs from it), so edit it there and
+nowhere else. Local installs (e.g.`.agents/`, `.claude/`) are gitignored.
+`plugin/skills/okf`is a *generated* copy for the Claude Code plugin, so
+never edit it there: run`bundle exec rake plugin:sync`after touching the
+skill or bumping the version (the task also stamps`plugin/.claude-plugin/plugin.json`), and `test/plugin/sync_test.rb`fails on any drift (file lists and SHA-256 checksums). Signature guidance
+lines carry stable markers —`<!-- check:<lint-check-id> -->`when a
+deterministic check enforces the point,`<!-- rule:okf-<slug> -->` for
    pure-judgment craft — as anchors for eval pinning and citation. They render
    invisibly and sync verbatim into the plugin copy, so keep them on the line
    they annotate when you edit it.
