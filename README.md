@@ -18,10 +18,10 @@
 </p>
 
 <p align="center">
-  <b><a href="https://okfgem.com">Website</a></b> &nbsp;·&nbsp;
+  <b><a href="https://okfgem.com">Site</a></b> &nbsp;·&nbsp;
   <b><a href="https://okfgem.com/docs/">Docs</a></b> &nbsp;·&nbsp;
   <b><a href="https://demo.okfgem.com">Live demo</a></b> &nbsp;·&nbsp;
-  <b><a href="https://claude.okfgem.com">Claude Code plugin</a></b>
+  <b><a href="https://claude.okfgem.com">Claude plugin</a></b>
 </p>
 
 **okf-gem** (`okf` on RubyGems) is the complete toolkit for
