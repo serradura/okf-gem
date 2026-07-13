@@ -783,6 +783,13 @@ function setTree(on){if(on===treeMode)return;if(on&&clustered)setClustered(false
   cy.batch(()=>{cy.edges('.tree').remove();cy.nodes('.dir').remove();cy.edges().removeClass('linkhid');});
   runLayout(layoutSel.value);}}
 btnTree.onclick=()=>setTree(!treeMode);
+/* A reserved file's "Open in graph": switch to the file tree, select its
+   folder node, and put the directory's map in the inspector. */
+function openInTree(dir){setView('graph');setTree(true);
+ showDir(dir);
+ requestAnimationFrame(()=>{const ele=cy.getElementById(DIR+(dir==='.'?'':dir));if(!ele.length)return;
+  cy.elements().removeClass('hl').addClass('dim');ele.closedNeighborhood().removeClass('dim');ele.addClass('hl');
+  centerOn(ele,true);});}
 
 /* ── fit to screen ── */
 // cy.animate({fit:…}) is a no-op in this Cytoscape build, so compute the target
@@ -966,7 +973,8 @@ function openReserved(kind,path){fileSel=path;
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.path===path));
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-title').textContent=path;
- document.getElementById('fp-graph').hidden=true;
+ const fg=document.getElementById('fp-graph');
+ fg.hidden=false;fg.onclick=()=>openInTree(dirOfPath(path));
  const type=document.getElementById('fp-type');
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  const done=txt=>{const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);};
