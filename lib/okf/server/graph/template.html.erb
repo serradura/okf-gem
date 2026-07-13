@@ -236,6 +236,8 @@
  .ffolder.closed .chev{transform:rotate(-90deg)}
  .file.res .fn{color:var(--muted)}
  .file .fn .ricon{width:12px;height:12px;flex:none;stroke:var(--faint);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+ .fsect{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);font-weight:600;
+  padding:14px 8px 2px;margin-top:10px;border-top:1px solid var(--line-2)}
  .file .fn .badge-res{margin-left:auto;flex:none;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
   color:var(--faint);background:var(--line-2);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
  .file{display:block;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:7px 9px;cursor:pointer;font-family:inherit;color:var(--ink)}
@@ -591,22 +593,38 @@ function relList(t,arr){if(!arr.length)return'';return `<div class="rel"><h4>${t
    Resolve them against the open concept and navigate in-app instead; external
    links open in a new tab; anything unresolvable is disabled, never a 404. */
 let shownId=null;
-function resolveConcept(href,baseId){let p=href.split('#')[0].split('?')[0];if(!p)return null;
+/* Every directory that holds a concept — the sync existence check for links
+   that point at a directory or its index rather than at a concept file. */
+const DIRSET=new Set();
+NODES.forEach(n=>{const parts=n.id.split('/');for(let i=1;i<parts.length;i++)DIRSET.add(parts.slice(0,i).join('/'));});
+/* A markdown href resolves to a concept ({id}) or to the authored layer
+   ({res:{kind:'index',dir}} / {res:{kind:'log',path}}) — or to null (dead).
+   Directory links (`model/`, `/`) count as that directory's index. */
+function resolveTarget(href,baseId){let p=href.split('#')[0].split('?')[0];if(!p)return null;
  try{p=decodeURIComponent(p);}catch(e){}
  const out=p.charAt(0)==='/'?[]:(baseId?baseId.split('/').slice(0,-1):[]);
  for(const s of p.replace(/^\//,'').split('/')){if(!s||s==='.')continue;if(s==='..'){out.pop();continue;}out.push(s);}
- const id=out.join('/').replace(/\.md$/i,'');
- return byId[id]?id:null;}
-function interceptMdLinks(container,baseIdOf,go){container.addEventListener('click',e=>{
+ const path=out.join('/');
+ const id=path.replace(/\.md$/i,'');
+ if(byId[id])return {id:id};
+ if(/(^|\/)index\.md$/i.test(path))return {res:{kind:'index',dir:dirOfPath(path)}};
+ if(/(^|\/)log\.md$/i.test(path))return {res:{kind:'log',path:path}};
+ if(path===''||DIRSET.has(path))return {res:{kind:'index',dir:path===''?'.':path}};
+ return null;}
+function interceptMdLinks(container,baseIdOf,go,goRes){container.addEventListener('click',e=>{
  const a=e.target.closest('a');
  if(!a||!container.contains(a)||a.hasAttribute('data-go'))return;
  const href=a.getAttribute('href')||'';
  if(/^[a-z][a-z0-9+.-]*:/i.test(href)||href.indexOf('//')===0){e.preventDefault();window.open(a.href,'_blank','noopener');return;}
  e.preventDefault();if(href.charAt(0)==='#')return;
- const id=resolveConcept(href,baseIdOf());
- if(id)go(id);else{a.classList.add('dead');a.title='not a concept in this bundle';}});}
-interceptMdLinks(sideBody,()=>shownId,select);
-interceptMdLinks(document.getElementById('fp-body'),()=>fileSel,id=>openFile(id));
+ const t=resolveTarget(href,baseIdOf());
+ if(t&&t.id)go(t.id);
+ else if(t&&t.res&&goRes)goRes(t.res);
+ else{a.classList.add('dead');a.title='not a file in this bundle';}});}
+const ixPathOf=dir=>dir==='.'?'index.md':dir+'/index.md';
+interceptMdLinks(sideBody,()=>shownId,select,r=>r.kind==='index'?showDir(r.dir):showLog(r.path));
+interceptMdLinks(document.getElementById('fp-body'),()=>fileSel,id=>openFile(id),
+ r=>openReserved(r.kind,r.kind==='index'?ixPathOf(r.dir):r.path));
 /* Clicking a folder node (tree mode) or an area box (cluster mode) opens that
    directory's §6 index entry in the inspector: the authored map when one
    exists, the synthesized listing when not. */
@@ -622,6 +640,13 @@ function showDir(dir){getIndex().then(dirs=>{const d=dirs.find(x=>x.dir===dir);i
  if(d.present)renderMarkdown(document.getElementById('dir-body'),d.body||'');
  else document.getElementById('dir-body').innerHTML=listingHtml(d.listing);
  sideBody.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
+ if(opened)requestAnimationFrame(()=>cy.resize());});}
+/* A log.md link opens the history in the inspector, fetched fresh. */
+function showLog(path){LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.path===path);if(!l)return;
+ const opened=openPanel();sideBody.scrollTop=0;
+ shownId=path.replace(/\.md$/,'');
+ sideBody.innerHTML=`<span class="type">update log · §7</span><h2 class="title">${esc(path)}</h2><div class="body" id="dir-body"></div>`;
+ renderMarkdown(document.getElementById('dir-body'),l.content||'');
  if(opened)requestAnimationFrame(()=>cy.resize());});}
 function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Untyped';const c=color[ty]||'#64748b';
  shownId=id;const opened=openPanel();sideBody.scrollTop=0;
@@ -860,26 +885,31 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
  const ft=fileTypeCombo.get(), fg=fileTagCombo.get();
  const rows=list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s)));
  const groups={};rows.forEach(c=>{(groups[c.dir]=groups[c.dir]||[]).push(c);});
- const reserved={};
+ const reserved=[];
  if(!ft&&!fg){ /* reserved files carry no type or tag; they hide under those filters */
-  (IXDIRS||[]).forEach(d=>{if(d.present&&(!s||d.index_path.toLowerCase().includes(s)))
-   (reserved[d.dir]=reserved[d.dir]||[]).push({kind:'index',path:d.index_path});});
-  (LOGPATHS||[]).forEach(p=>{if(!s||p.toLowerCase().includes(s))
-   (reserved[dirOfPath(p)]=reserved[dirOfPath(p)]||[]).push({kind:'log',path:p});});}
- const dirs=[...new Set(Object.keys(groups).concat(Object.keys(reserved)))].sort();
+  (IXDIRS||[]).forEach(d=>{if(d.present&&(!s||d.index_path.toLowerCase().includes(s)))reserved.push({kind:'index',path:d.index_path});});
+  (LOGPATHS||[]).forEach(p=>{if(!s||p.toLowerCase().includes(s))reserved.push({kind:'log',path:p});});
+  reserved.sort((a,b)=>{const ra=a.path.indexOf('/')<0?0:1,rb=b.path.indexOf('/')<0?0:1;
+   return ra-rb||(a.path<b.path?-1:1);});}
+ const dirs=Object.keys(groups).sort();
  const el=document.getElementById('ftree-list');
- if(!dirs.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}
+ if(!dirs.length&&!reserved.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}
  const filtering=!!(s||ft||fg);
- el.innerHTML=dirs.map(dir=>{
+ let html='';
+ if(reserved.length){
+  const closed=!filtering&&collapsedDirs.has('::res');
+  html+=`<button class="ffolder${closed?' closed':''}" data-dir="::res"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>Indexes &amp; log</button>`;
+  if(!closed)html+=reserved.map(r=>{
+   const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
+   return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg>${esc(r.path)}<span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');
+  html+='<div class="fsect">Files</div>';}
+ html+=dirs.map(dir=>{
   const closed=!filtering&&collapsedDirs.has(dir);
   const head=`<button class="ffolder${closed?' closed':''}" data-dir="${esc(dir)}"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>${dir==='.'?'(root)':esc(dir)+'/'}</button>`;
   if(closed)return head;
-  const res=(reserved[dir]||[]).map(r=>{const name=r.path.split('/').pop();
-   const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
-   return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg>${esc(name)}<span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');
-  const files=(groups[dir]||[]).map(c=>{const cc=color[c.type]||'#64748b';const name=c.id.split('/').pop()+'.md';
-   return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(name)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('');
-  return head+res+files;}).join('');
+  return head+(groups[dir]||[]).map(c=>{const cc=color[c.type]||'#64748b';const name=c.id.split('/').pop()+'.md';
+   return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(name)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('');}).join('');
+ el.innerHTML=html;
  el.querySelectorAll('.ffolder').forEach(b=>b.onclick=()=>{const d=b.dataset.dir;
   if(collapsedDirs.has(d))collapsedDirs.delete(d);else collapsedDirs.add(d);renderTree(list);});
  el.querySelectorAll('.file[data-id]').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));
@@ -929,13 +959,18 @@ function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byI
 function openReserved(kind,path){fileSel=path;
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.path===path));
  document.getElementById('fp-head').hidden=false;
- document.getElementById('fp-type').textContent=kind==='index'?'directory index · §6':'update log · §7';
  document.getElementById('fp-title').textContent=path;
  document.getElementById('fp-graph').hidden=true;
+ const type=document.getElementById('fp-type');
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  const done=txt=>{const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);};
- if(kind==='index')getIndex().then(dirs=>{const d=dirs.find(x=>x.dir===dirOfPath(path));done((d&&d.body)||'');});
- else{LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.path===path);done((l&&l.content)||'');});}}
+ if(kind==='index')getIndex().then(dirs=>{const d=dirs.find(x=>x.dir===dirOfPath(path));
+  type.textContent=d&&d.synthesized?'directory index · synthesized':'directory index · §6';
+  if(d&&d.synthesized){body.innerHTML='<div class="body">'+listingHtml(d.listing)+'</div>';
+   body.querySelectorAll('[data-go]').forEach(x=>x.onclick=()=>openFile(x.getAttribute('data-go')));}
+  else done((d&&d.body)||'');});
+ else{type.textContent='update log · §7';
+  LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.path===path);done((l&&l.content)||'');});}}
 
 /* ── tags ── */
 const tagSel=new Set(), tagTypes=new Set(), tagAreas=new Set();
@@ -1029,7 +1064,10 @@ function renderIndex(dirs){
   const md=el.querySelector('[data-md]');
   if(md)renderMarkdown(md,d.body||'');
   el.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>goToGraph(a.getAttribute('data-go')));
-  interceptMdLinks(el,()=>el.getAttribute('data-base'),goToGraph);});}
+  interceptMdLinks(el,()=>el.getAttribute('data-base'),goToGraph,r=>{
+   if(r.kind==='index'){const card=list.querySelector('[data-base="'+CSS.escape(r.dir==='.'?'index':r.dir+'/index')+'"]');
+    if(card){card.scrollIntoView({behavior:'smooth',block:'start'});return;}}
+   setView('files');openReserved(r.kind,r.kind==='index'?ixPathOf(r.dir):r.path);});});}
 function listingHtml(items){if(!items||!items.length)return '<p class="empty" style="margin:10px 0 0">No concepts directly here.</p>';
  return '<ul class="ix-listing">'+items.map(it=>`<li><a data-go="${esc(it.id)}">${esc(it.title||it.id)}</a>${it.description?` <span class="d">— ${esc(it.description)}</span>`:''}</li>`).join('')+'</ul>';}
 

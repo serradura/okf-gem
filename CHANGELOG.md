@@ -24,12 +24,16 @@
   its synthesized listing badged as such, with type rollups, every entry
   navigating in-app. Folder nodes in file-tree mode and area boxes in cluster
   mode are clickable now and open that directory's map in the inspector. The
-  Files view gains its missing layer too: each directory lists its `index.md`
-  and `log.md` beside the concepts (the log fetched fresh on every read, so a
-  just-appended entry shows without a restart), directory sections fold, and
-  the files filters move up into the top bar. New `/index` and `/log`
-  endpoints back it all; `?view=<panel>` deep-links a view; keys 1–6 switch
-  panels.
+  Files view gains its missing layer too: an **Indexes & log** section lists
+  every `index.md` and `log.md` above the per-directory file groups (the log
+  fetched fresh on every read, so a just-appended entry shows without a
+  restart), sections fold, and the files filters move up into the top bar.
+  Links to an `index.md`, a `log.md`, or a bare directory (`model/`) now
+  navigate everywhere a body renders — the inspector, the files preview, and
+  the Index panel — instead of striking through as dead; a directory link
+  opens that directory's map, authored or synthesized. New `/index` and
+  `/log` endpoints back it all; `?view=<panel>` deep-links a view; keys 1–6
+  switch panels.
 - Docs: the CLI reference's server section now reflects the DOMPurify
   sanitization that landed in 1.1.0 (it still said bodies render unsanitized).
 
