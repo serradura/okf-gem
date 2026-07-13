@@ -19,25 +19,20 @@
 
 <p align="center">
   <b><a href="https://okfgem.com">Website</a></b> &nbsp;·&nbsp;
+  <b><a href="https://okfgem.com/docs/">Docs</a></b> &nbsp;·&nbsp;
   <b><a href="https://demo.okfgem.com">Live demo</a></b> &nbsp;·&nbsp;
   <b><a href="https://claude.okfgem.com">Claude Code plugin</a></b>
 </p>
 
-**okf-gem** — `okf` on RubyGems — reads, validates, lints, and serves
-**Open Knowledge Format (OKF)** v0.1 bundles: directories of Markdown files with YAML frontmatter that humans and agents read from one source. It does not define a new place to keep knowledge; it gives you leverage over knowledge that already lives as Markdown. Each file is a _concept_; a directory of them is a _bundle_.
+**okf-gem** (`okf` on RubyGems) is the complete toolkit for
+**Open Knowledge Format (OKF)** v0.1 bundles. The package is **Agent Skill + CLI/Lib + Live Graph**: an agent skill that authors and curates, a CLI and Ruby library that validate, lint, and embed, and a live graph server to explore, in one gem that runs 100% local. A bundle is a directory of Markdown files with YAML frontmatter that humans and agents read from one source; each file is a _concept_. The gem does not define a new place to keep knowledge; it gives you leverage over knowledge that already lives as Markdown.
 
-> **Quick start.** One skill, one command, a curation hook, and a CLI that
-> validates, lints, indexes, and serves your Markdown as a graph. In Claude Code,
-> add the plugin and let it set everything up: `/plugin marketplace add
-serradura/okf-gem`, then `/plugin install okf@okfgem`, then `/okf:gem`. On the
-> command line: `gem install okf`, then `okf validate <dir>`.
-
-Here is what it is able to do:
+The package, end to end:
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/overview-dark.png">
-    <img src=".github/overview-light.png" width="100%" alt="The companion agent skill authors and curates an OKF v0.1 bundle (Markdown + YAML). A pure model (Concept, Bundle, Graph) reads that bundle and feeds both the okf CLI (validate — legal per §9; lint — well-curated; server — explore) and a library API you embed in Ruby.">
+    <img src=".github/overview-light.png" width="760" alt="The package: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by the CLI/Lib (validate: legal OKF per section 9; lint: well-curated and fresh; require okf for Ruby objects) and by the Live Graph (okf server: click a node, read its Markdown; mounts in Rails). One gem, 100% local, Ruby 2.4 or newer, only rack and webrick as dependencies.">
   </picture>
 </p>
 
@@ -194,7 +189,7 @@ serving 37 concepts at http://127.0.0.1:8808 (Ctrl-C to stop)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/server-dark.png">
-  <img src=".github/server-dark.png" alt="The okf graph server: a force-directed knowledge graph with a concept selected, its neighbors highlighted, and the inspector panel showing the concept's type, tags, cross-links, and rendered Markdown body.">
+  <img src=".github/server-light.png" alt="The okf graph server: a force-directed knowledge graph with a concept selected, its neighbors highlighted, and the inspector panel showing the concept's type, tags, cross-links, and rendered Markdown body.">
 </picture>
 
 _The graph server on this repo's own [`.okf`](.okf) bundle, with the
@@ -323,6 +318,8 @@ folder.bundle                    # => OKF::Bundle  (the pure bundle it read)
 folder.concepts                  # => [OKF::Concept]  (reserved files excluded)
 folder.validate; folder.lint; folder.graph   # delegate to the pure core
 folder.concept("tables/orders")  # => OKF::Concept::File
+
+require "okf/server/app"         # the server loads on demand, like the CLI does
 OKF::Server::App.new(folder)     # => a Rack app: the interactive graph server
 
 # build in memory, then write it out (validates §9 before publishing):
@@ -335,7 +332,8 @@ file.save; file.delete; file.reload
 
 The lower-level pieces are usable on their own too: `OKF::Bundle::Validator.call(bundle)`,
 `OKF::Bundle::Linter.call(bundle, min_body: 50)`, `OKF::Bundle::Graph.build(bundle)`,
-`OKF::Markdown::Frontmatter.parse(markdown)`.
+`OKF::Markdown::Frontmatter.parse(markdown)`. Mounting the graph in Rails, auth
+included: the [Rails guide](https://okfgem.com/docs/guides/rails/) walks it.
 
 ### Conformance model
 
