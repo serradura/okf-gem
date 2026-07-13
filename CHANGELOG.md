@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+- Graph server UX round. Selecting a node now makes one camera move instead of
+  two (the pan used to race the opening panel and the debounced canvas resize,
+  a dizzying double movement; rapid clicks also queued animations — both fixed).
+  Relative markdown links inside the inspector and the files preview resolve
+  against the open concept and navigate in-app — clicking `../model/graph.md`
+  selects that concept instead of 404ing the page; external links open in a new
+  tab; links that leave the bundle are disabled, never a 404. Nodes are smaller
+  (14–44px, was 24–70) and layouts keep a real gap between them (`nodeOverlap`
+  for cose, `avoidOverlap`/`spacingFactor` elsewhere). The inspector and the
+  files list are drag-resizable (persisted, double-click resets), and the files
+  reader now uses the full pane width. New file-tree mode on the graph toolbar:
+  folders become nodes and the only edges are folder→child, an acyclic layered
+  tree of the bundle's files.
+
 ## [1.3.0] - 2026-07-12
 
 - The graph server page now emits link-preview metadata: Open Graph and Twitter

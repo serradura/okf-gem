@@ -136,14 +136,20 @@
 
  /* ── graph view ── */
  .graph-body{display:grid;grid-template-columns:1fr var(--side-w);height:100%;min-height:0;
-  --side-w:380px;transition:--side-w .22s cubic-bezier(.22,1,.36,1)}
+  --side-w:var(--side-w-user,380px);transition:--side-w .22s cubic-bezier(.22,1,.36,1)}
  .graph-body[data-side=hidden]{--side-w:0px}
  .graph-body[data-side=wide]{--side-w:70vw}
+ .graph-body.side-drag{transition:none}
  #stage{position:relative;min-width:0;overflow:hidden;background:var(--canvas)}
  #cy{position:absolute;inset:0}
  .ghint{position:absolute;right:16px;bottom:14px;z-index:3;font-size:11px;color:var(--faint);pointer-events:none}
- #side{min-width:0;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+ #side{position:relative;min-width:0;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
  .graph-body[data-side=hidden] #side{border-left:0}
+ /* drag handle on the panel's left edge (double-click resets the width) */
+ #side-resizer{position:absolute;left:0;top:0;bottom:0;width:7px;cursor:col-resize;z-index:4;touch-action:none}
+ #side-resizer::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);opacity:0;transition:opacity .15s}
+ #side-resizer:hover::after,.graph-body.side-drag #side-resizer::after{opacity:.7}
+ .graph-body[data-side=hidden] #side-resizer{display:none}
  #side-head{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid var(--line);flex:none}
  #side-head .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin-right:auto}
  #side-head .btn{width:30px;height:30px}
@@ -183,6 +189,7 @@
  .body>*:first-child{margin-top:0}
  .body h1{font-size:19px}.body h2{font-size:16px}.body h3{font-size:14px}.body h1,.body h2,.body h3{line-height:1.3;font-weight:600;margin:1.2em 0 .5em}
  .body a{color:var(--accent-ink)}
+ #side-body a.dead,.fp-body a.dead{opacity:.55;cursor:not-allowed;text-decoration:line-through}
  .body code{background:var(--line-2);border:1px solid var(--line);padding:1px 5px;border-radius:5px;font-size:.85em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
  .body pre{background:var(--line-2);border:1px solid var(--line);padding:12px;border-radius:10px;overflow:auto}
  .body pre code{background:none;border:0;padding:0}
@@ -211,8 +218,12 @@
  .none{grid-column:1/-1;text-align:center;color:var(--faint);padding:48px;border:1px dashed var(--line);border-radius:12px}
 
  /* ── files ── */
- .files-grid{display:grid;grid-template-columns:320px 1fr;height:100%;min-height:0}
- .ftree{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+ .files-grid{display:grid;grid-template-columns:var(--ftree-w,320px) 1fr;height:100%;min-height:0}
+ .ftree{position:relative;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+ /* drag handle on the file list's right edge (double-click resets the width) */
+ #ftree-resizer{position:absolute;right:-4px;top:0;bottom:0;width:7px;cursor:col-resize;z-index:4;touch-action:none}
+ #ftree-resizer::after{content:"";position:absolute;right:3px;top:0;bottom:0;width:2px;background:var(--accent);opacity:0;transition:opacity .15s}
+ #ftree-resizer:hover::after,#ftree-resizer.dragging::after{opacity:.7}
  .ftree-head{padding:12px;border-bottom:1px solid var(--line);flex:none}
  .ftree-list{overflow:auto;flex:1;padding:8px}
  .ffolder{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);padding:12px 8px 5px;font-weight:600}
@@ -224,7 +235,7 @@
  .fpreview{min-width:0;overflow:auto;display:flex;flex-direction:column}
  .fp-head{display:flex;align-items:center;gap:10px;padding:14px 22px;border-bottom:1px solid var(--line);flex:none}
  .fp-head .title{margin:0;font-size:16px}
- .fp-body{padding:20px 24px;overflow:auto;flex:1;max-width:820px}
+ .fp-body{padding:20px 28px;overflow:auto;flex:1}
  .fp-body .body{border-top:0;padding-top:0;margin-top:0}
 
  /* ── tags ── */
@@ -314,6 +325,8 @@
      <svg viewBox="0 0 24 24"><path d="M3 9V6a2 2 0 0 1 2-2h3M21 9V6a2 2 0 0 0-2-2h-3M3 15v3a2 2 0 0 0 2 2h3M21 15v3a2 2 0 0 0-2 2h-3"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/></svg></button>
     <button class="btn" id="btn-cluster" type="button" aria-label="Cluster by area" aria-pressed="false" title="Cluster nodes by area">
      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" opacity=".45"/><circle cx="9" cy="9" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1.9" fill="currentColor" stroke="none"/><circle cx="11" cy="15" r="1.9" fill="currentColor" stroke="none"/></svg></button>
+    <button class="btn" id="btn-tree" type="button" aria-label="File tree" aria-pressed="false" title="File tree: folders and files, parent-to-child edges only">
+     <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M12 12H6v4M12 12h6v4"/></svg></button>
     <button class="btn" id="btn-panel" type="button" aria-label="Toggle inspector" aria-pressed="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
    </div>
   </header>
@@ -338,6 +351,7 @@
       </aside>
      </div>
      <aside id="side">
+      <div id="side-resizer" title="Drag to resize · double-click to reset" aria-hidden="true"></div>
       <div id="side-head"><span class="lbl">Inspector</span>
        <button class="btn" id="side-widen" type="button" aria-label="Widen panel" aria-pressed="false" title="Widen / restore">
         <svg class="wide" viewBox="0 0 24 24"><path d="M13 6l-6 6 6 6M19 6l-6 6 6 6"/></svg>
@@ -380,6 +394,7 @@
        <div class="combo" id="file-type-combo"><input id="file-type-input" class="field" placeholder="all types" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-type-list" aria-autocomplete="list" aria-label="Filter files by type"><button class="clear" id="file-type-clear" type="button" aria-label="Clear type filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-type-list" role="listbox" hidden></ul></div>
        <div class="combo" id="file-tag-combo"><input id="file-tag-input" class="field" placeholder="all tags" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-tag-list" aria-autocomplete="list" aria-label="Filter files by tag"><button class="clear" id="file-tag-clear" type="button" aria-label="Clear tag filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-tag-list" role="listbox" hidden></ul></div></div>
       <div class="ftree-list" id="ftree-list"><p class="empty" style="padding:14px">Loading files…</p></div>
+      <div id="ftree-resizer" title="Drag to resize · double-click to reset" aria-hidden="true"></div>
      </div>
      <div class="fpreview">
       <div class="fp-head" id="fp-head" hidden><span class="type" id="fp-type"></span><h2 class="title" id="fp-title"></h2>
@@ -454,11 +469,15 @@ function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('-
   {selector:'edge',style:{'width':1.2,'line-color':edge,'target-arrow-color':edge,'target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.8}},
   {selector:'.dim',style:{'opacity':.1}},
   {selector:'.hl',style:{'border-width':3,'border-color':cvar('--accent')}},
+  {selector:'node.dir',style:{'shape':'round-rectangle','background-color':cvar('--faint'),'background-opacity':.85,
+   'font-size':9.5,'font-weight':600,'color':cvar('--muted')}},
+  {selector:'edge.tree',style:{'width':1.1,'opacity':.7,'target-arrow-shape':'none'}},
+  {selector:'edge.linkhid',style:{'display':'none'}},
   {selector:':parent',style:{'background-color':cvar('--ink'),'background-opacity':0.05,'border-width':1,'border-color':cvar('--edge'),'shape':'round-rectangle','padding':26,'label':'data(label)','color':cvar('--ink'),'font-size':13,'font-weight':600,'text-valign':'top','text-halign':'center','text-margin-y':-8,'min-zoomed-font-size':0,'text-outline-width':3,'text-outline-color':cvar('--canvas')}}
  ];}
 const cy=cytoscape({container:document.getElementById('cy'),minZoom:.2,maxZoom:1.6,wheelSensitivity:.2,
  elements:[...NODES.map(n=>({data:{id:n.id,title:n.title,c:color[typeOf[n.id]||'Untyped']||'#64748b',sz:szOf(n.id)}})),...EDGES.map(e=>({data:e}))],
- style:styleSheet(),layout:{name:'<%= @layout %>',animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40}});
+ style:styleSheet(),layout:{name:'<%= @layout %>',animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2}});
 function applyCyTheme(){cy.style(styleSheet());}
 /* Debounced so the panel width transition (--side-w, .22s) fires cy.resize()
    once after it settles instead of on every frame — avoids canvas flicker. */
@@ -490,13 +509,62 @@ function setSide(s){gbody.setAttribute('data-side',s);btnPanel.setAttribute('ari
  sideWiden.setAttribute('aria-pressed',String(s==='wide'));
  sideWiden.querySelector('.wide').style.display=s==='wide'?'none':'block';
  sideWiden.querySelector('.narrow').style.display=s==='wide'?'block':'none';}
-function openPanel(){if(gbody.getAttribute('data-side')==='hidden')setSide('default');}
+function openPanel(){if(gbody.getAttribute('data-side')!=='hidden')return false;setSide('default');return true;}
 btnPanel.onclick=()=>setSide(gbody.getAttribute('data-side')==='hidden'?'default':'hidden');
 document.getElementById('side-close').onclick=()=>setSide('hidden');
 sideWiden.onclick=()=>setSide(gbody.getAttribute('data-side')==='wide'?'default':'wide');
+/* ── drag-resize splitters: inspector + files tree (persisted; dblclick resets) ── */
+function splitter(handle,host,cssVar,key,widthAt,opts){opts=opts||{};
+ try{const w=parseInt(localStorage.getItem(key),10);if(w)host.style.setProperty(cssVar,w+'px');}catch(e){}
+ handle.addEventListener('pointerdown',e=>{e.preventDefault();
+  if(opts.onStart)opts.onStart();
+  try{handle.setPointerCapture(e.pointerId);}catch(err){}
+  handle.classList.add('dragging');host.classList.add('side-drag');
+  let lastW=0,raf=false;
+  /* Track the drag on window so it keeps working even where pointer capture
+     is unavailable — the pointer leaves the 7px handle on the first frame. */
+  const move=ev=>{lastW=Math.round(widthAt(ev));host.style.setProperty(cssVar,lastW+'px');
+   if(opts.onMove&&!raf){raf=true;requestAnimationFrame(()=>{raf=false;opts.onMove();});}};
+  const up=()=>{removeEventListener('pointermove',move);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);
+   handle.classList.remove('dragging');host.classList.remove('side-drag');
+   if(opts.onEnd)opts.onEnd();
+   if(lastW){try{localStorage.setItem(key,String(lastW));}catch(e){}}};
+  addEventListener('pointermove',move);addEventListener('pointerup',up);addEventListener('pointercancel',up);});
+ handle.addEventListener('dblclick',()=>{host.style.removeProperty(cssVar);
+  try{localStorage.removeItem(key);}catch(e){}
+  if(opts.onEnd)opts.onEnd();});}
+const clampW=(v,lo,hi)=>Math.min(Math.max(v,lo),hi);
+splitter(document.getElementById('side-resizer'),gbody,'--side-w-user','okf-side-w',
+ ev=>{const r=gbody.getBoundingClientRect();return clampW(r.right-ev.clientX,280,r.width*.8);},
+ {onStart:()=>{if(gbody.getAttribute('data-side')==='wide')setSide('default');},
+  onMove:()=>cy.resize(),onEnd:()=>cy.resize()});
+const fgrid=document.querySelector('.files-grid');
+splitter(document.getElementById('ftree-resizer'),fgrid,'--ftree-w','okf-ftree-w',
+ ev=>{const r=fgrid.getBoundingClientRect();return clampW(ev.clientX-r.left,220,r.width*.55);});
 function relList(t,arr){if(!arr.length)return'';return `<div class="rel"><h4>${t}</h4>${arr.map(id=>`<a data-go="${esc(id)}">${esc((byId[id]||{}).title||id)}</a>`).join('')}</div>`;}
-function show(id){const n=byId[id];if(!n)return;const ty=typeOf[id]||'Untyped';const c=color[ty]||'#64748b';
- openPanel();sideBody.scrollTop=0;
+/* Markdown links inside the inspector are GitHub-style relative file paths;
+   there is no route for them here, so a plain click 404s the whole page.
+   Resolve them against the open concept and navigate in-app instead; external
+   links open in a new tab; anything unresolvable is disabled, never a 404. */
+let shownId=null;
+function resolveConcept(href,baseId){let p=href.split('#')[0].split('?')[0];if(!p)return null;
+ try{p=decodeURIComponent(p);}catch(e){}
+ const out=p.charAt(0)==='/'?[]:(baseId?baseId.split('/').slice(0,-1):[]);
+ for(const s of p.replace(/^\//,'').split('/')){if(!s||s==='.')continue;if(s==='..'){out.pop();continue;}out.push(s);}
+ const id=out.join('/').replace(/\.md$/i,'');
+ return byId[id]?id:null;}
+function interceptMdLinks(container,baseIdOf,go){container.addEventListener('click',e=>{
+ const a=e.target.closest('a');
+ if(!a||!container.contains(a)||a.hasAttribute('data-go'))return;
+ const href=a.getAttribute('href')||'';
+ if(/^[a-z][a-z0-9+.-]*:/i.test(href)||href.indexOf('//')===0){e.preventDefault();window.open(a.href,'_blank','noopener');return;}
+ e.preventDefault();if(href.charAt(0)==='#')return;
+ const id=resolveConcept(href,baseIdOf());
+ if(id)go(id);else{a.classList.add('dead');a.title='not a concept in this bundle';}});}
+interceptMdLinks(sideBody,()=>shownId,select);
+interceptMdLinks(document.getElementById('fp-body'),()=>fileSel,id=>openFile(id));
+function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Untyped';const c=color[ty]||'#64748b';
+ shownId=id;const opened=openPanel();sideBody.scrollTop=0;
  sideBody.innerHTML=`<span class="type"><span class="dot" style="background:${c}"></span>${esc(ty)}</span>
  <h2 class="title">${esc(n.title||id)}</h2><div class="desc loading" id="desc">loading…</div>
  <div class="tags">${(tagsOf[id]||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
@@ -505,12 +573,22 @@ function show(id){const n=byId[id];if(!n)return;const ty=typeOf[id]||'Untyped';c
  const eid=encodeURIComponent(id);
  fetch(META_ENDPOINT+'?id='+eid).then(r=>r.ok?r.text():'').then(h=>{const d=document.getElementById('desc');if(d){d.innerHTML=h||'<span class="empty">no description</span>';d.classList.remove('loading');}}).catch(()=>{});
  const bodyEl=sideBody.querySelector('#body');
- fetch(NODE_ENDPOINT+'?id='+eid).then(r=>r.ok?r.text():'').then(md=>{if(bodyEl.isConnected)renderMarkdown(bodyEl,md);}).catch(()=>{});}
-function select(id){const ele=cy.getElementById(id);if(!ele.length)return;show(id);
+ fetch(NODE_ENDPOINT+'?id='+eid).then(r=>r.ok?r.text():'').then(md=>{if(bodyEl.isConnected)renderMarkdown(bodyEl,md);}).catch(()=>{});
+ return opened;}
+/* One camera move per selection. When the click also opens the panel, the
+   container is still animating (--side-w, .22s), so pan now and the debounced
+   cy.resize() would shift the view again a moment later — the double movement.
+   Instead wait for the panel to settle, resize once, then pan. cy.stop() first
+   so rapid clicks replace the animation instead of queueing repeats. */
+let centerTimer;
+function centerOn(ele,delay){clearTimeout(centerTimer);
+ const go=()=>{cy.resize();cy.stop();cy.animate({center:{eles:ele},duration:250,easing:'ease-out-cubic'});};
+ if(delay)centerTimer=setTimeout(go,260);else{cy.stop();cy.animate({center:{eles:ele},duration:250,easing:'ease-out-cubic'});}}
+function select(id){const ele=cy.getElementById(id);if(!ele.length)return;const opened=show(id);
  cy.elements().removeClass('hl').addClass('dim');const nb=ele.closedNeighborhood();nb.removeClass('dim');ele.addClass('hl');
- cy.animate({center:{eles:ele},duration:250});
+ centerOn(ele,opened);
  try{if(decodeURIComponent((location.hash||'').slice(1))!==id)location.hash=encodeURIComponent(id);}catch(e){}}
-cy.on('tap','node',e=>{if(e.target.isParent())return;select(e.target.id());});
+cy.on('tap','node',e=>{if(e.target.isParent()||e.target.hasClass('dir'))return;select(e.target.id());});
 cy.on('tap',e=>{if(e.target===cy)cy.elements().removeClass('dim hl');});
 
 /* ── graph filters (slide-over) ── */
@@ -518,7 +596,7 @@ const hiddenTypes=new Set(), activeTags=new Set(), activeAreas=new Set();
 const searchInput=document.getElementById('search');
 const q={graph:'',catalog:'',files:'',tags:''};
 function applyGraphFilter(){const s=q.graph.toLowerCase();
- cy.nodes().forEach(n=>{if(n.isParent())return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
+ cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir'))return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
   const hay=(n.data('title')+' '+t+' '+nt.join(' ')).toLowerCase();
   const m=(!s||hay.includes(s))&&!hiddenTypes.has(t)&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
   n.style('display',m?'element':'none');});}
@@ -570,7 +648,10 @@ function loadScript(src){return new Promise((res,rej)=>{const s=document.createE
 async function ensureLayout(name){const ext=LAYOUT_EXT[name];if(!ext||loadedExt[name])return true;
  try{for(const src of ext.srcs)await loadScript(src);cytoscape.use(window[ext.reg]);loadedExt[name]=true;return true;}
  catch(e){console.warn('layout '+name+' failed to load',e);return false;}}
-function layoutOpts(name){const base={animate:true,padding:40};
+/* nodeOverlap keeps a real gap between circles in cose; avoidOverlap +
+   spacingFactor do the same for the geometric layouts. Extras are ignored
+   by layouts that don't know them. */
+function layoutOpts(name){const base={animate:true,padding:40,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2};
  if(name==='fcose')return{...base,name:'fcose',quality:'default',nodeRepulsion:6500,idealEdgeLength:95,nodeSeparation:80,packComponents:true};
  if(name==='dagre')return{...base,name:'dagre',rankDir:'TB',nodeSep:26,rankSep:55,edgeSep:12};
  if(name==='cola')return{...base,name:'cola',maxSimulationTime:2500,edgeLength:95,nodeSpacing:8};
@@ -582,16 +663,45 @@ layoutSel.value='<%= @layout %>';
 
 /* ── cluster by area (compound parent nodes) ── */
 let clustered=false;const btnCluster=document.getElementById('btn-cluster');
-function setClustered(on){if(on===clustered)return;clustered=on;btnCluster.setAttribute('aria-pressed',String(on));layoutSel.disabled=on;
+function setClustered(on){if(on===clustered)return;if(on&&treeMode)setTree(false);
+ clustered=on;btnCluster.setAttribute('aria-pressed',String(on));layoutSel.disabled=on;
  if(on){const as=[...new Set(NODES.map(n=>areaOf(n.id)))];
   cy.add(as.map(a=>({group:'nodes',data:{id:'area::'+a,label:a}})));
   cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length)e.move({parent:'area::'+areaOf(n.id)});}));
-  cy.layout({name:'cose',animate:true,padding:40,nodeRepulsion:8000,idealEdgeLength:70,nestingFactor:1.2,gravity:.7}).run();
+  cy.layout({name:'cose',animate:true,padding:40,nodeRepulsion:8000,idealEdgeLength:70,nodeOverlap:24,nestingFactor:1.2,gravity:.7}).run();
  }else{
   cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length&&e.isChild())e.move({parent:null});}));
   cy.nodes().filter(n=>n.id().indexOf('area::')===0).remove();
-  cy.layout({name:layoutSel.value,animate:true,padding:40,nodeRepulsion:9000,idealEdgeLength:90}).run();}}
+  cy.layout({name:layoutSel.value,animate:true,padding:40,nodeRepulsion:9000,idealEdgeLength:90,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2}).run();}}
 btnCluster.onclick=()=>setClustered(!clustered);
+
+/* ── file-tree mode: folders become nodes and the only edges are folder→child,
+   so the picture is the acyclic files-and-folders tree, not the link graph. ── */
+let treeMode=false;const btnTree=document.getElementById('btn-tree');
+const DIR='dir::';
+function setTree(on){if(on===treeMode)return;if(on&&clustered)setClustered(false);
+ treeMode=on;btnTree.setAttribute('aria-pressed',String(on));layoutSel.disabled=on;btnCluster.disabled=on;
+ if(on){
+  const dirs=new Set(['']);
+  NODES.forEach(n=>{const parts=n.id.split('/');for(let i=1;i<parts.length;i++)dirs.add(parts.slice(0,i).join('/'));});
+  cy.batch(()=>{
+   cy.add([...dirs].map(d=>({group:'nodes',classes:'dir',
+    data:{id:DIR+d,title:d?d.split('/').pop()+'/':'/',c:cvar('--faint'),sz:d?20:28}})));
+   [...dirs].forEach(d=>{if(!d)return;const p=d.split('/').slice(0,-1).join('/');
+    cy.add({group:'edges',classes:'tree',data:{id:'tree::'+d,source:DIR+p,target:DIR+d}});});
+   NODES.forEach(n=>{const p=n.id.split('/').slice(0,-1).join('/');
+    cy.add({group:'edges',classes:'tree',data:{id:'tree::n::'+n.id,source:DIR+p,target:n.id}});});
+   cy.edges().not('.tree').addClass('linkhid');
+   cy.elements().removeClass('dim hl');});
+  /* Layered tree: root on top, folders as branches, files as leaves.
+     animate:false — the freshly added folder nodes have no positions yet, and
+     an animated run from (0,0) is unreliable; cut to the tree and fit. */
+  cy.layout({name:'breadthfirst',directed:true,roots:cy.getElementById(DIR),animate:false,padding:40,spacingFactor:1.6,avoidOverlap:true}).run();
+  fitGraph();
+ }else{
+  cy.batch(()=>{cy.edges('.tree').remove();cy.nodes('.dir').remove();cy.edges().removeClass('linkhid');});
+  runLayout(layoutSel.value);}}
+btnTree.onclick=()=>setTree(!treeMode);
 
 /* ── fit to screen ── */
 // cy.animate({fit:…}) is a no-op in this Cytoscape build, so compute the target

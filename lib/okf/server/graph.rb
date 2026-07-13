@@ -21,8 +21,8 @@ module OKF
       LAYOUTS = %w[cose concentric breadthfirst circle grid].freeze
 
       # Node-diameter range in px; the template scales within it by node degree.
-      MIN_SIZE = 24
-      MAX_SIZE = 70
+      MIN_SIZE = 14
+      MAX_SIZE = 44
 
       # The 6-character JSON unicode escape for `<` (backslash, u, 0, 0, 3, c),
       # built from the backslash code point so no literal escape appears here.
