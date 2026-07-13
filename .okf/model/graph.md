@@ -3,7 +3,7 @@ type: Component
 title: OKF::Bundle::Graph
 description: The in-memory knowledge graph — concepts as nodes, cross-links as directed edges, with type and tag indexes.
 resource: lib/okf/bundle/graph.rb
-tags: [model, graph, pure]
+tags: [graph, pure]
 timestamp: 2026-07-11T21:40:00Z
 ---
 

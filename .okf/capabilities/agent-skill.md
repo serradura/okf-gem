@@ -3,7 +3,7 @@ type: Capability
 title: Companion agent skill (skill)
 description: A SKILL.md plus references and templates, shipped inside the gem, that teaches an agent to author OKF.
 resource: lib/okf/skill.rb
-tags: [skill, agent, install]
+tags: [agent, install]
 timestamp: 2026-07-13T12:00:00Z
 ---
 

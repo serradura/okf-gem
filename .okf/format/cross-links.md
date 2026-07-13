@@ -3,7 +3,7 @@ type: Format
 title: Cross-links (spec §5)
 description: Plain Markdown links between concepts that become the knowledge graph's directed edges.
 resource: lib/okf/markdown/links.rb
-tags: [format, links, graph, diagram]
+tags: [graph, diagram]
 timestamp: 2026-07-11T12:00:00Z
 ---
 

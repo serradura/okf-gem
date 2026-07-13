@@ -3,7 +3,7 @@ type: Constraint
 title: The core/shell split
 description: A pure functional core that never touches disk or stdio, and a thin shell that owns all I/O — enforced by a test.
 resource: test/unit/boundary_test.rb
-tags: [architecture, purity, testing, diagram]
+tags: [architecture, pure, testing, diagram]
 timestamp: 2026-07-13T12:00:00Z
 ---
 

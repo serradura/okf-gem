@@ -3,7 +3,7 @@ type: Capability
 title: Library API
 description: The Ruby surface — a pure in-memory model plus on-disk handles, an "ActiveRecord for the filesystem".
 resource: lib/okf.rb
-tags: [library, api, ruby, diagram]
+tags: [ruby, diagram]
 timestamp: 2026-07-13T12:00:00Z
 ---
 

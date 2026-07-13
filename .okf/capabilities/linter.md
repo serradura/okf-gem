@@ -3,7 +3,7 @@ type: Capability
 title: Curation linter (lint)
 description: An advisory curation-quality report across six categories and sixteen checks — it never rejects a bundle.
 resource: lib/okf/bundle/linter.rb
-tags: [linting, curation, cli]
+tags: [curation, cli]
 timestamp: 2026-07-11T12:00:00Z
 ---
 

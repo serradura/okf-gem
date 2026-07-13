@@ -2,7 +2,7 @@
 type: Overview
 title: okf-gem at a glance
 description: A light Ruby gem that reads, searches, validates, lints, and serves Open Knowledge Format v0.1 bundles.
-tags: [okf, gem, overview, diagram]
+tags: [okf, gem, diagram]
 timestamp: 2026-07-13T12:00:00Z
 ---
 
