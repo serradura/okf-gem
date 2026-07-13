@@ -1,9 +1,23 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OKF — <%= escaped_name %></title>
+<title>OKF · <%= escaped_name %></title>
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1115">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OKF">
 <meta property="og:title" content="<%= og_title %>">
 <meta property="og:description" content="<%= og_desc %>">
-<meta property="og:type" content="website">
+<meta property="og:image" content="https://okfgem.com/og-demo.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="An interactive Open Knowledge Format knowledge graph.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<%= og_title %>">
+<meta name="twitter:description" content="<%= og_desc %>">
+<meta name="twitter:image" content="https://okfgem.com/og-demo.png">
+<meta name="twitter:image:alt" content="An interactive Open Knowledge Format knowledge graph.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%231a1a1a'/><polygon points='38,44 62,44 50,82' fill='%237a0a1e'/><polygon points='18,44 38,44 50,82' fill='%23a8112c'/><polygon points='62,44 82,44 50,82' fill='%23a8112c'/><polygon points='35,28 18,44 38,44' fill='%23dc1e3c'/><polygon points='65,28 82,44 62,44' fill='%23dc1e3c'/><polygon points='35,28 65,28 62,44 38,44' fill='%23f43f5e'/><polygon points='36,29 49,29 42,42' fill='%23fff' opacity='.38'/><polygon points='35,28 65,28 82,44 50,82 18,44' fill='none' stroke='%23ff6b7f' stroke-width='2' stroke-linejoin='round'/></svg>">
 <script>/* Resolve theme before first paint so there is no flash. */
 (function(){try{var t=localStorage.getItem('okf-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>

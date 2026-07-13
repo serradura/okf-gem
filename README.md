@@ -1,12 +1,10 @@
 <p align="center">
-<h1 align="center">
-  <img src=".github/logo.svg" alt="" width="128"><br/>
-  <i>okf-gem</i>
-</h1>
-</p>
-
-<p align="center">
-  <i>A lightweight Ruby gem for OKF: author, curate, and serve bundles as an interactive graph.</i>
+  <a href="https://okfgem.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/hero-dark.png">
+      <img src=".github/hero-light.png" width="100%" alt="okf-gem: your project's knowledge as a living graph. A lightweight Ruby gem for the Open Knowledge Format that authors, curates, and serves bundles of Markdown + YAML as an interactive graph.">
+    </picture>
+  </a>
 </p>
 
 <p align="center">
@@ -17,6 +15,12 @@
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
   <a href="lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.1-6E56CF" alt="OKF v0.1"></a>
   <a href="#claude-code-plugin"><img src="https://img.shields.io/badge/Claude%20Code-plugin-D97757" alt="Claude Code plugin"></a>
+</p>
+
+<p align="center">
+  <b><a href="https://okfgem.com">Website</a></b> &nbsp;·&nbsp;
+  <b><a href="https://demo.okfgem.com">Live demo</a></b> &nbsp;·&nbsp;
+  <b><a href="https://claude.okfgem.com">Claude Code plugin</a></b>
 </p>
 
 **okf-gem** — `okf` on RubyGems — reads, validates, lints, and serves
@@ -194,7 +198,8 @@ serving 37 concepts at http://127.0.0.1:8808 (Ctrl-C to stop)
 </picture>
 
 _The graph server on this repo's own [`.okf`](.okf) bundle, with the
-`capabilities/graph-server` concept selected._
+`capabilities/graph-server` concept selected. Try it live at
+**[demo.okfgem.com](https://demo.okfgem.com)**._
 
 `graph` and `server` are best-effort (§9): a file with invalid frontmatter is
 skipped (and noted on stderr), not fatal, so one bad file never breaks the rest.

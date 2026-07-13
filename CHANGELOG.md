@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0] - 2026-07-12
+
+- The graph server page now emits link-preview metadata: Open Graph and Twitter
+  Card tags with a social image, plus `theme-color` and `color-scheme`, so a
+  shared `okf server` URL unfurls as a proper card in chat and social apps.
+- Docs: a themed README hero (light and dark), a GitHub social preview image,
+  and Website / Live demo / Claude Code plugin links.
+
 ## [1.2.0] - 2026-07-12
 
 - Claude Code plugin. The repository now doubles as a plugin marketplace:
