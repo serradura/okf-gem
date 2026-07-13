@@ -110,7 +110,7 @@
  #graph-controls{display:none;align-items:center;gap:9px}
  #app[data-view=graph] #graph-controls{display:flex}
  #search-wrap{display:flex;flex:1}
- #app[data-view=stats] #search-wrap,#app[data-view=files] #search-wrap{visibility:hidden}
+ #app[data-view=stats] #search-wrap,#app[data-view=files] #search-wrap,#app[data-view=index] #search-wrap,#app[data-view=log] #search-wrap{visibility:hidden}
  #btn-theme .sun{display:none} :root[data-theme=dark] #btn-theme .sun{display:block} :root[data-theme=dark] #btn-theme .moon{display:none}
  #btn-full .compress{display:none} #btn-full[aria-pressed=true] .compress{display:block} #btn-full[aria-pressed=true] .expand{display:none}
 
@@ -280,6 +280,20 @@
  .opt:hover,.opt.active{background:var(--line-2)} .opt.sel{color:var(--accent-ink);font-weight:600}
  @keyframes pop{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
 
+ /* ── index + log panels ── */
+ .viewnote{color:var(--muted);font-size:13px;margin:-6px 0 16px;max-width:640px}
+ .scope{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:14px}
+ .scope-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+ .scope-head h3{margin:0;font-size:14px;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+ .scope-head .mini{color:var(--faint);font-size:12px}
+ .scope-head .synth{font-size:11px;font-weight:600;color:var(--accent-ink);background:var(--line-2);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+ .scope .body{margin-top:10px;padding-top:10px}
+ .ix-listing{margin:10px 0 0;padding:0;list-style:none}
+ .ix-listing li{padding:3px 0;font-size:13.5px}
+ .ix-listing a{color:var(--accent-ink);text-decoration:none;cursor:pointer}
+ .ix-listing a:hover{text-decoration:underline}
+ .ix-listing .d{color:var(--muted)}
+
  @media (max-width:720px){#rail{width:64px}.rail-item{width:52px}.card,.grid{}}
  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style></head>
@@ -290,9 +304,11 @@
    <svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#1a1a1a"/><polygon points="38,44 62,44 50,82" fill="#7a0a1e"/><polygon points="18,44 38,44 50,82" fill="#a8112c"/><polygon points="62,44 82,44 50,82" fill="#a8112c"/><polygon points="35,28 18,44 38,44" fill="#dc1e3c"/><polygon points="65,28 82,44 62,44" fill="#dc1e3c"/><polygon points="35,28 65,28 62,44 38,44" fill="#f43f5e"/><polygon points="36,29 49,29 42,42" fill="#fff" opacity=".38"/><polygon points="35,28 65,28 82,44 50,82 18,44" fill="none" stroke="#ff6b7f" stroke-width="2" stroke-linejoin="round"/></svg>
   </span>
   <button class="rail-item active" data-view="graph"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M7.5 16 8.2 8.3M10.9 16.4 16.3 10.5"/></svg></span><span class="ri-lbl">Graph</span></button>
+  <button class="rail-item" data-view="index"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></span><span class="ri-lbl">Index</span></button>
   <button class="rail-item" data-view="catalog"><span class="ri-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="14.5" width="7.5" height="5.5" rx="1.6"/><rect x="13.5" y="14.5" width="7.5" height="5.5" rx="1.6"/></svg></span><span class="ri-lbl">Catalog</span></button>
   <button class="rail-item" data-view="files"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span><span class="ri-lbl">Files</span></button>
   <button class="rail-item" data-view="tags"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 4.5h6.8L20 13.7l-6.3 6.3L4.5 10.8V4.5Z"/><circle cx="8.4" cy="8.4" r="1.4" fill="currentColor" stroke="none"/></svg></span><span class="ri-lbl">Tags</span></button>
+  <button class="rail-item" data-view="log"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/></svg></span><span class="ri-lbl">Log</span></button>
   <button class="rail-item" data-view="stats"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></span><span class="ri-lbl">Stats</span></button>
   <div class="rail-sp"></div>
   <div class="rail-tools">
@@ -422,6 +438,24 @@
     </aside>
    </section>
 
+   <!-- INDEX -->
+   <section class="view" id="view-index">
+    <div class="pad">
+     <div class="shead"><h2>Index</h2><span class="cnt" id="ix-cnt"></span></div>
+     <p class="viewnote">The bundle's own maps, directory by directory: the authored <code>index.md</code> where one exists, or the listing synthesized from the concepts there (§6). Click an entry to open it in the graph.</p>
+     <div id="ix-list"><p class="empty">Loading the map…</p></div>
+    </div>
+   </section>
+
+   <!-- LOG -->
+   <section class="view" id="view-log">
+    <div class="pad">
+     <div class="shead"><h2>Log</h2><span class="cnt" id="log-cnt"></span></div>
+     <p class="viewnote">The bundle's history (§7): dated entries, newest first, read live from <code>log.md</code>.</p>
+     <div id="log-list"><p class="empty">Loading history…</p></div>
+    </div>
+   </section>
+
    <!-- STATS -->
    <section class="view" id="view-stats">
     <div class="pad">
@@ -440,7 +474,7 @@
 <script>
 const NODES=<%= nodes_json %>, EDGES=<%= edges_json %>, TYPES=<%= types_json %>, TAGS=<%= tags_json %>;
 const NODE_ENDPOINT=<%= @node_endpoint.to_json %>, META_ENDPOINT=<%= @meta_endpoint.to_json %>;
-const CATALOG_ENDPOINT="catalog";
+const CATALOG_ENDPOINT="catalog",INDEX_ENDPOINT="index",LOG_ENDPOINT="log";
 const MIN=<%= OKF::Server::Graph::MIN_SIZE %>, MAX=<%= OKF::Server::Graph::MAX_SIZE %>;
 const PALETTE=["#6E56CF","#D97757","#22C55E","#3B82F6","#EAB308","#EC4899","#14B8A6","#F97316","#A855F7","#0EA5E9","#84CC16","#EF4444","#64748B"];
 const root=document.documentElement;
@@ -734,7 +768,9 @@ function setView(v){if(v===view)return;view=v;document.getElementById('app').set
  if(v==='catalog'&&!inited.catalog)initCatalog();
  if(v==='files'&&!inited.files)initFiles();
  if(v==='tags'&&!inited.tags)initTags();
- if(v==='stats'&&!inited.stats)initStats();}
+ if(v==='stats'&&!inited.stats)initStats();
+ if(v==='index'&&!inited.index)initIndex();
+ if(v==='log'&&!inited.log)initLog();}
 document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));
 searchInput.oninput=()=>{q[view]=searchInput.value;
  if(view==='graph')applyGraphFilter();else if(view==='catalog')renderCatalog();else if(view==='tags')renderCloud();};
@@ -916,8 +952,48 @@ const fsOn=()=>document.fullscreenElement===appEl;
 btnFull.onclick=()=>{if(fsOn())document.exitFullscreen();else if(appEl.requestFullscreen)appEl.requestFullscreen();};
 document.addEventListener('fullscreenchange',()=>btnFull.setAttribute('aria-pressed',String(fsOn())));
 
+/* ── index (the §6 progressive-disclosure map) ── */
+let INDEX=null;
+function getIndex(){return INDEX||(INDEX=fetch(INDEX_ENDPOINT).then(r=>r.json()).then(d=>d.directories));}
+function initIndex(){inited.index=true;
+ getIndex().then(renderIndex).catch(()=>{document.getElementById('ix-list').innerHTML='<div class="none">Could not load the map.</div>';});}
+function renderIndex(dirs){
+ document.getElementById('ix-cnt').textContent=dirs.length+(dirs.length===1?' directory':' directories');
+ const list=document.getElementById('ix-list');
+ list.innerHTML=dirs.map((d,i)=>{
+  const label=d.dir==='.'?'(root)':d.dir+'/';
+  const types=Object.entries(d.types||{}).map(([t,n])=>esc(t||'Untyped')+' '+n).join(' · ');
+  const meta=d.count+(d.count===1?' concept':' concepts')+(types?' · '+types:'');
+  const synth=d.present?'':'<span class="synth">no index.md — synthesized</span>';
+  const base=d.dir==='.'?'index':d.dir+'/index';
+  return `<article class="scope" data-i="${i}" data-base="${esc(base)}">
+   <div class="scope-head"><h3>${esc(label)}</h3><span class="mini">${meta}</span>${synth}</div>
+   ${d.present?'<div class="body" data-md></div>':listingHtml(d.listing)}</article>`;}).join('');
+ dirs.forEach((d,i)=>{const el=list.querySelector(`#ix-list [data-i="${i}"]`);
+  const md=el.querySelector('[data-md]');
+  if(md)renderMarkdown(md,d.body||'');
+  el.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>goToGraph(a.getAttribute('data-go')));
+  interceptMdLinks(el,()=>el.getAttribute('data-base'),goToGraph);});}
+function listingHtml(items){if(!items||!items.length)return '<p class="empty" style="margin:10px 0 0">No concepts directly here.</p>';
+ return '<ul class="ix-listing">'+items.map(it=>`<li><a data-go="${esc(it.id)}">${esc(it.title||it.id)}</a>${it.description?` <span class="d">— ${esc(it.description)}</span>`:''}</li>`).join('')+'</ul>';}
+
+/* ── log (the §7 history, read live) ── */
+let LOGS=null;
+function getLogs(){return LOGS||(LOGS=fetch(LOG_ENDPOINT).then(r=>r.json()).then(d=>d.logs));}
+function initLog(){inited.log=true;
+ getLogs().then(renderLog).catch(()=>{document.getElementById('log-list').innerHTML='<div class="none">Could not load the log.</div>';});}
+function renderLog(logs){
+ document.getElementById('log-cnt').textContent=logs.length===1?'1 log file':logs.length+' log files';
+ const list=document.getElementById('log-list');
+ if(!logs.length){list.innerHTML='<div class="none">No <code>log.md</code> here yet — the history file is optional (§7), and the first dated entry starts it.</div>';return;}
+ list.innerHTML=logs.map((l,i)=>`<article class="scope" data-i="${i}" data-base="${esc(l.path.replace(/\.md$/,''))}">
+  <div class="scope-head"><h3>${esc(l.path)}</h3></div><div class="body" data-md></div></article>`).join('');
+ logs.forEach((l,i)=>{const el=list.querySelector(`#log-list [data-i="${i}"]`);
+  renderMarkdown(el.querySelector('[data-md]'),l.content||'');
+  interceptMdLinks(el,()=>el.getAttribute('data-base'),goToGraph);});}
+
 /* ── keyboard ── */
-const VIEW_KEYS={'1':'graph','2':'catalog','3':'files','4':'tags','5':'stats'};
+const VIEW_KEYS={'1':'graph','2':'index','3':'catalog','4':'files','5':'tags','6':'log','7':'stats'};
 addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea'))return;
  if(VIEW_KEYS[e.key]){setView(VIEW_KEYS[e.key]);}
  else if(e.key==='/'){e.preventDefault();searchInput.focus();}
@@ -928,6 +1004,7 @@ addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea'))retu
 /* ── deep links ── */
 const Q=new URLSearchParams(location.search),QL=Q.get('layout'),QS=Q.get('select');
 if(QL&&[...layoutSel.options].some(o=>o.value===QL)){layoutSel.value=QL;runLayout(QL);}
+const QV=Q.get('view');if(QV&&document.querySelector('.rail-item[data-view="'+CSS.escape(QV)+'"]'))setView(QV);
 function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1));if(h&&byId[h])select(h);}catch(e){}}
 addEventListener('hashchange',fromHash);
 if(QS&&byId[QS])select(QS);else fromHash();

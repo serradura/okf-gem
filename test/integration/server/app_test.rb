@@ -122,6 +122,47 @@ class OKF::Server::AppTest < OKF::TestCase
     assert_equal 404, last_response.status
   end
 
+  test "GET /index serves the §6 map: authored bodies, synthesized listings, root first" do
+    write("tables/index.md", "# Tables\n\n* [Orders](orders.md) - the orders table\n")
+    @app = OKF::Server::App.new(OKF::Bundle::Folder.load(@tmpdir))
+
+    get "/index"
+
+    assert_equal 200, last_response.status
+    dirs = JSON.parse(last_response.body)["directories"]
+    assert_equal ".", dirs.first["dir"], "the bundle root leads"
+
+    tables = dirs.find { |dir| dir["dir"] == "tables" }
+    assert tables["present"]
+    assert_includes tables["body"], "* [Orders](orders.md)"
+
+    notes = dirs.find { |dir| dir["dir"] == "notes" }
+    assert notes["synthesized"]
+    assert_equal [ "pinned" ], notes["listing"].map { |item| item["id"] }, "listing carries the frontmatter id"
+  end
+
+  test "GET /log serves every log.md, root scope first, content read live" do
+    write("log.md", "# Log\n\n## 2026-07-13\n* **Update**: seeded.\n")
+    write("tables/log.md", "# Tables log\n\n## 2026-07-13\n* **Creation**: tables.\n")
+    @app = OKF::Server::App.new(OKF::Bundle::Folder.load(@tmpdir))
+
+    get "/log"
+    logs = JSON.parse(last_response.body)["logs"]
+    assert_equal [ "log.md", "tables/log.md" ], logs.map { |log| log["path"] }
+    assert_includes logs.first["content"], "seeded"
+
+    write("log.md", "# Log\n\n## 2026-07-14\n* **Update**: fresh entry, no restart.\n")
+    get "/log"
+    assert_includes JSON.parse(last_response.body)["logs"].first["content"], "fresh entry, no restart"
+  end
+
+  test "GET /log with no log files is an empty list, not an error" do
+    get "/log"
+
+    assert_equal 200, last_response.status
+    assert_equal [], JSON.parse(last_response.body)["logs"]
+  end
+
   private
 
   def write(path, content)

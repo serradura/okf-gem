@@ -24,6 +24,12 @@ module OKF
     #                       tags, timestamp, status, area, dir, links_*} ] } (JSON)
     #   GET /tags           the tag index  { tag  => [id, …] } (JSON)
     #   GET /types          the type index { type => [id, …] } (JSON)
+    #   GET /index          the §6 progressive-disclosure map for the Index panel:
+    #                       { directories: [ …okf-index rows… ] } (JSON, from the
+    #                       boot snapshot — authored maps are structure)
+    #   GET /log            the §7 history for the Log panel: { logs: [ {path,
+    #                       dir, content} ] } (JSON; content read live from disk,
+    #                       like a body — the log is the file that changes most)
     class App
       def initialize(folder, title: nil, link: nil, layout: "cose")
         @folder = folder
@@ -43,6 +49,8 @@ module OKF
         when "/catalog" then respond_json(catalog)
         when "/tags" then respond_json(graph.tag_index)
         when "/types" then respond_json(graph.type_index)
+        when "/index" then respond_json(directory_index)
+        when "/log" then respond_json(logs)
         else not_found
         end
       end
@@ -61,6 +69,27 @@ module OKF
       # OKF::Bundle#catalog, shared with the `okf catalog/files/tags/stats` CLI views.
       def catalog
         { concepts: @folder.catalog }
+      end
+
+      # The §6 map the Index panel renders — the same rows `okf index` prints,
+      # built by the pure OKF::Bundle#directory_index over the boot snapshot
+      # (authored index bodies are structure, read at load like the graph).
+      def directory_index
+        { directories: @folder.directory_index }
+      end
+
+      # Every log.md with its content, root scope first. Content is read live
+      # from disk so a just-appended entry shows without a restart; paths come
+      # from the loaded bundle, never from the request.
+      def logs
+        entries = @folder.bundle.log_files.sort_by { |path| [ path == "log.md" ? 0 : 1, path ] }
+        { logs: entries.map { |path| { path: path, dir: File.dirname(path), content: log_content(path) } } }
+      end
+
+      def log_content(path)
+        File.read(File.join(@folder.root, path), encoding: "UTF-8")
+      rescue SystemCallError
+        @folder.bundle.reserved_content(path)
       end
 
       def page

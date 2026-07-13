@@ -19,6 +19,13 @@
 - Retrieval eval in the suite: the progressive path (index skeleton → search →
   one body) must answer a planted question in under 25% of the bytes of the
   full graph dump, so the playbook's economics stay true by construction.
+- Graph server: two authored-layer panels join the concept views. **Index**
+  renders the §6 progressive-disclosure map — each directory's authored
+  `index.md` (or its synthesized listing, badged as such) with type rollups,
+  every entry navigating in-app — and **Log** renders each `log.md`, read live
+  from disk so a just-appended entry shows without a restart. New `/index` and
+  `/log` endpoints back them; `?view=<panel>` deep-links any view; keyboard
+  keys 1–7 now cover all seven panels.
 - Docs: the CLI reference's server section now reflects the DOMPurify
   sanitization that landed in 1.1.0 (it still said bodies render unsanitized).
 

@@ -18,7 +18,7 @@ lib/okf/
   bundle/linter*.rb       pure   curation-quality report (never rejects)
   concept/file.rb         shell  one-file on-disk handle
   bundle/reader|writer|folder.rb  shell  directory <-> Bundle (writer is atomic, validates before publish)
-  server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types
+  server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types, /index, /log
   server/graph.rb + graph/template.html.erb  the whole UI in one self-contained ERB file
   server/runner.rb        shell  built-in WEBrick <-> Rack bridge (replaces any rackup need)
   skill.rb + skill/       shell  the companion agent skill + its installer

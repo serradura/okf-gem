@@ -132,9 +132,10 @@ bodies last — is the [search playbook](../playbooks/search.md).
 
 ## index — the progressive-disclosure map (§6)
 
-The "orient before you read" view, and the one read verb that sees the layer the
-others can't: `index.md` files are reserved/structural, so `catalog`/`files`/… (all
-concept views) never show them. `okf index <dir>` prints one entry per directory
+The "orient before you read" view, and the read verb that sees the layer the
+concept views can't: `index.md` files are reserved/structural, so
+`catalog`/`files`/… never show them (in the browser, the server's Index panel
+is this same map). `okf index <dir>` prints one entry per directory
 that holds concepts or carries an `index.md`, root first — the authored index body
 (frontmatter stripped), a `type`/`tag` rollup over the concepts that live directly
 there, its child directories, and the concept listing. Run it first when picking up
@@ -202,8 +203,12 @@ fetches each concept's markdown body **live from disk** as you click it, so the
 initial load stays small and edits show without a restart. Concepts render as nodes
 coloured by `type` and sized by degree, links as edges, with a detail panel
 (rendered markdown, "Links to" / "Linked from" backlinks), layout switching,
-type/area/tag filters on every view, and search. It is a Rack app, so the same
-server can be mounted in a host app (e.g. Rails).
+type/area/tag filters on every view, and search. Beyond the concept views, an
+**Index panel** renders the §6 map (each directory's authored `index.md`, or its
+synthesized listing) and a **Log panel** renders every `log.md` — the log read
+live from disk, so a just-appended entry shows without a restart; entries and
+links in both navigate in-app. `?view=index|log|…` deep-links a panel. It is a
+Rack app, so the same server can be mounted in a host app (e.g. Rails).
 
 **Trust boundary:** the page renders each fetched markdown body through
 DOMPurify and escapes everything it inlines (every `<` in the graph data is
