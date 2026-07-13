@@ -22,10 +22,12 @@ is the lede.
      settle the curation debt (reachability, backlog, completeness, hygiene),
      naming the top one or two categories from the report.
    - **clean across the board** → the bundle is healthy, so lead with **`consume`**
-     (put it to work on the task at hand) and offer **`maintain`** as the move for
-     when the code or docs have since changed. If the working tree has uncommitted
-     changes to the code the bundle describes (`git status`), prefer **`maintain`**:
-     that is exactly the drift it exists to close.
+     (put it to work on the task at hand) — or **`search`** when what the user
+     actually has is a question ("what do we know about X?") — and offer
+     **`maintain`** as the move for when the code or docs have since changed. If
+     the working tree has uncommitted changes to the code the bundle describes
+     (`git status`), prefer **`maintain`**: that is exactly the drift it exists
+     to close.
 4. **Freshness is off by default.** If the bundle carries timestamps, note that a
    plain `lint` said nothing about staleness and `okf lint <root> --stale-after
    90d` is the check that would.

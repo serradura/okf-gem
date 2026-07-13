@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased]
+
+- New CLI verb: `okf search <dir> <term…>` — deterministic ranked retrieval
+  over concept metadata *and bodies*, the browser page's search brought to the
+  CLI. Terms AND together as case-insensitive substrings, or as Ruby regexps
+  with `--regexp`/`-e`; `--in` restricts the searched fields; the shared
+  `--type/--area/--tag` filters and `--fields/--except` projections apply.
+  Matches rank by where they hit (title > id > tags > type/description > body)
+  and carry a bounded context snippet, so "which concept covers X?" costs a
+  few rows instead of a body read. Advisory read: exit 0 even with no matches.
+  Deliberately not fuzzy — the consuming agent is the fuzzy layer.
+- The skill learns retrieval as a first-class verb: a new `search` playbook
+  (progressive disclosure end to end: ingest `okf index`, decide where to
+  look, cut across with `okf search`, read only the winning bodies),
+  search-aware routing in SKILL.md and the menu/consume playbooks, and
+  `/okf:gem search <query>` first in the Claude Code plugin's routing.
+- Retrieval eval in the suite: the progressive path (index skeleton → search →
+  one body) must answer a planted question in under 25% of the bytes of the
+  full graph dump, so the playbook's economics stay true by construction.
+- Docs: the CLI reference's server section now reflects the DOMPurify
+  sanitization that landed in 1.1.0 (it still said bodies render unsanitized).
+
 ## [1.4.0] - 2026-07-12
 
 - Graph server UX round. Selecting a node now makes one camera move instead of

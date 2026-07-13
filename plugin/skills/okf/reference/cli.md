@@ -1,7 +1,7 @@
 # OKF tool verbs — the `okf` CLI
 
-`validate`, `lint`, `loose`, `index`, `catalog`, `files`, `tags`, `types`, `stats`,
-`server`, and `graph` are **not** eyeball passes and are not
+`validate`, `lint`, `loose`, `search`, `index`, `catalog`, `files`, `tags`, `types`,
+`stats`, `server`, and `graph` are **not** eyeball passes and are not
 reimplemented in this skill. They run the deterministic `okf` executable shipped by
 the companion gem — the single source of truth for OKF mechanics. Your job is to
 invoke it correctly and interpret the result, not to reason out conformance by hand.
@@ -108,6 +108,28 @@ defect — a terminal leaf (a backlog item, a spec reference) can be loose by de
 `loose` surfaces the set so you can judge intent (see the
 [maintain playbook](../playbooks/maintain.md)).
 
+## search — ranked text retrieval (metadata + body)
+
+The browser page's search brought to the CLI and extended to bodies, so "which
+concept covers X?" costs rows, not body reads. `okf search <dir> <term…>`:
+terms AND together — every term must hit at least one searched field, not
+necessarily the same one — as case-insensitive substrings, or as Ruby regular
+expressions with `--regexp`/`-e` (an invalid pattern is a usage error, exit 2).
+`--in a,b` restricts the searched fields (title, id, tags, type, description,
+body); the shared `--type/--area/--tag` filters narrow the candidates *first*,
+so a search scoped by what `index` taught you stays surgical.
+
+Rows rank by **where** they hit — title 5, id 4, tags 3, type/description 2,
+body 1, summed over matched fields — and carry one bounded context snippet from
+the strongest match that needs context (description or body). Deliberately not
+fuzzy: the consuming agent is the fuzzy layer — when terms miss, learn the
+bundle's vocabulary from `tags`/`types` and re-ask in its own words, rather
+than hammering synonyms. Advisory read: **exit 0 even with zero matches**.
+JSON: `{ bundle, query, count, matches: [{ id, title, type, area, tags,
+matched, score, snippet }] }`, projectable with `--fields/--except`. The
+retrieval procedure that puts this verb in sequence — map first, finder second,
+bodies last — is the [search playbook](../playbooks/search.md).
+
 ## index — the progressive-disclosure map (§6)
 
 The "orient before you read" view, and the one read verb that sees the layer the
@@ -183,10 +205,11 @@ coloured by `type` and sized by degree, links as edges, with a detail panel
 type/area/tag filters on every view, and search. It is a Rack app, so the same
 server can be mounted in a host app (e.g. Rails).
 
-**Trust boundary:** the page loads Cytoscape and marked from a CDN and
-renders each concept's markdown body **without sanitization**, so only serve
-bundles you trust. Inlined graph data cannot break out of its `<script>` (every
-`<` is escaped), but the fetched markdown is rendered unsanitized.
+**Trust boundary:** the page renders each fetched markdown body through
+DOMPurify and escapes everything it inlines (every `<` in the graph data is
+escaped, so it cannot break out of its `<script>`), but it still loads its
+viewer libraries (Cytoscape, marked, DOMPurify) from a CDN and renders whatever
+links the bundle carries — so only serve bundles you trust.
 
 ## graph — the raw structure
 

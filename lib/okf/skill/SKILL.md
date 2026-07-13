@@ -7,14 +7,16 @@ description: >-
   what the tools report — and routes every mechanical question (validation,
   linting, views, the graph server) to the installed `okf` CLI. Use whenever
   capturing project knowledge (services, APIs, schemas, metrics, runbooks,
-  decisions) into a bundle, updating one after code or docs change, checking a
-  bundle's conformance or curation quality, rendering it as a graph, or working in
+  decisions) into a bundle, retrieving an answer from a bundle without reading
+  it whole, updating one after code or docs change, checking a bundle's
+  conformance or curation quality, rendering it as a graph, or working in
   a repo that contains an OKF bundle — a `.okf/` directory or a root `index.md`
   carrying `okf_version`. Triggers on: "document this in OKF", "update the
-  knowledge bundle", "capture this as a concept", "validate/lint/serve the
+  knowledge bundle", "capture this as a concept", "what do we know about X?",
+  "where is X documented?", "search the bundle", "validate/lint/serve the
   bundle", or a task needing knowledge from an OKF bundle already in the repo.
 user-invocable: true
-argument-hint: "[produce|maintain|consume|<okf-cli-verb>] [dir] [--flags]"
+argument-hint: "[search|produce|maintain|consume|<okf-cli-verb>] [dir] [--flags]"
 allowed-tools: Read Write Edit Grep Glob Bash
 ---
 
@@ -116,10 +118,10 @@ producing or maintaining, and the verbatim spec [SPEC.md](reference/SPEC.md)
 when you need chapter and verse.
 
 **No subcommand?** Infer intent: "document this / capture X" → `produce`; "the
-code changed, update the docs" → `maintain`; a repo already carrying a bundle
-plus a task needing its knowledge → `consume`; "check / graph / preview it" →
-run the matching CLI verb and interpret the result. When genuinely ambiguous,
-ask.
+code changed, update the docs" → `maintain`; "what do we know about X / where
+is X documented" → `search`; a repo already carrying a bundle plus a task
+needing its knowledge → `consume`; "check / graph / preview it" → run the
+matching CLI verb and interpret the result. When genuinely ambiguous, ask.
 
 **Which directory?** Use the path given. Otherwise default to `.okf/` at the repo
 root, but first detect whether the project already keeps its bundle elsewhere
@@ -136,6 +138,7 @@ Read the referenced playbook before executing — it *is* the procedure.
 | Verb | Category | What it does | Reference |
 |------|----------|--------------|-----------|
 | *(none)*   | Orient | recommend the highest-value next move; never auto-run | [playbooks/menu.md](playbooks/menu.md) |
+| `search`   | Use    | answer a question from the bundle: map → finder → only the winning bodies | [playbooks/search.md](playbooks/search.md) |
 | `produce`  | Author | create or extend a bundle | [playbooks/produce.md](playbooks/produce.md) |
 | `maintain` | Author | sync the bundle's content with reality after a change | [playbooks/maintain.md](playbooks/maintain.md) |
 | `consume`  | Use    | use the bundle as context for a task | [playbooks/consume.md](playbooks/consume.md) |
