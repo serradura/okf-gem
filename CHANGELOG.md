@@ -30,9 +30,17 @@
   Links to an `index.md`, a `log.md`, or a bare directory (`model/`) navigate
   everywhere a body renders instead of striking through as dead, and the log
   is fetched fresh on every read, so a just-appended entry shows without a
-  restart. New `/index` and `/log` endpoints back it all.
+  restart. A reserved file's "Open in graph" jumps to its folder in the file
+  tree, map in the inspector. New `/index` and `/log` endpoints back it all.
+- Skill efficiency audit: every playbook now takes the CLI's lean paths.
+  `maintain` hunts affected concepts with `okf search` and pulls edges via
+  `graph --json --minimal` instead of the full-body dump, `menu` reads the
+  plain-text reports it only scans, and SKILL.md pins the discipline as a
+  rule: skeleton first, bodies last.
 - Docs: the CLI reference's server section now reflects the DOMPurify
-  sanitization that landed in 1.1.0 (it still said bodies render unsanitized).
+  sanitization that landed in 1.1.0 (it still said bodies render unsanitized),
+  and the server page's link-preview image points at the renamed
+  `okfgem.com/og-demo-v2.png`.
 
 ## [1.4.0] - 2026-07-12
 
