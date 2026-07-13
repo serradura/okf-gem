@@ -447,6 +447,93 @@ class OKF::CLITest < OKF::TestCase
     assert_match(/mutually exclusive/, @err.string)
   end
 
+  test "search prints ranked matches with where they hit" do
+    build_sample
+
+    assert_equal 0, invoke("search", @tmpdir, "alpha")
+    assert_match(/Search — .* · alpha \(2 of 3 concepts\)/, @out.string)
+    assert_match(%r{features/a\s+Alpha\s+·\s+Feature\s+·\s+title}, @out.string)
+    assert_operator @out.string.index("features/a"), :<, @out.string.index("product/mission"),
+      "a title hit ranks above a body hit"
+  end
+
+  test "search with no matches stays exit 0 (advisory read)" do
+    write("a.md", concept)
+
+    assert_equal 0, invoke("search", @tmpdir, "absent-term")
+    assert_match(/no matches/, @out.string)
+  end
+
+  test "search --json carries the query and the ranked rows" do
+    build_sample
+
+    assert_equal 0, invoke("search", @tmpdir, "alpha", "--json")
+    data = JSON.parse(@out.string)
+    assert_equal [ "alpha" ], data["query"]
+    assert_equal 2, data["count"]
+    assert_equal "features/a", data["matches"].first["id"]
+    assert_equal %w[area id matched score snippet tags title type], data["matches"].first.keys.sort
+  end
+
+  test "search terms are ANDed across fields" do
+    build_sample
+
+    assert_equal 0, invoke("search", @tmpdir, "alpha", "beta", "--json")
+    assert_equal [ "features/a" ], JSON.parse(@out.string)["matches"].map { |row| row["id"] }
+  end
+
+  test "search composes with the shared filters" do
+    build_sample
+
+    assert_equal 0, invoke("search", @tmpdir, "okf", "--area", "product", "--json")
+    assert_equal [ "product/mission" ], JSON.parse(@out.string)["matches"].map { |row| row["id"] }
+  end
+
+  test "search --in restricts the searched fields" do
+    build_sample
+
+    assert_equal 0, invoke("search", @tmpdir, "alpha", "--in", "body", "--json")
+    assert_equal [ "product/mission" ], JSON.parse(@out.string)["matches"].map { |row| row["id"] }
+  end
+
+  test "search --in rejects an unknown field, listing the searchable ones" do
+    write("a.md", concept)
+
+    assert_equal 2, invoke("search", @tmpdir, "x", "--in", "bogus")
+    assert_match(/unknown field\(s\): bogus/, @err.string)
+    assert_match(/searchable:.*\bbody\b/, @err.string)
+  end
+
+  test "search without a term is a usage error" do
+    write("a.md", concept)
+
+    assert_equal 2, invoke("search", @tmpdir)
+    assert_match(/Usage: okf search/, @err.string)
+  end
+
+  test "search --regexp matches Ruby patterns" do
+    build_sample
+
+    assert_equal 0, invoke("search", @tmpdir, "al.ha|beta", "--regexp", "--json")
+    ids = JSON.parse(@out.string)["matches"].map { |row| row["id"] }
+    assert_includes ids, "features/a"
+    assert_includes ids, "features/b"
+  end
+
+  test "search --regexp rejects an invalid pattern as a usage error" do
+    write("a.md", concept)
+
+    assert_equal 2, invoke("search", @tmpdir, "[unclosed", "--regexp")
+    assert_match(/invalid pattern/, @err.string)
+  end
+
+  test "projection generalizes to search" do
+    build_sample
+
+    assert_equal 0, invoke("search", @tmpdir, "alpha", "--fields", "id,score")
+    assert_equal %w[id score], JSON.parse(@out.string)["matches"].first.keys.sort
+  end
+
   private
 
   def invoke(*argv)

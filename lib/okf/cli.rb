@@ -3,7 +3,7 @@
 require "optparse"
 
 module OKF
-  # Command-line front end: `okf graph|validate|lint|loose|index|catalog|files|tags|types|stats|server <dir>`.
+  # Command-line front end: `okf graph|validate|lint|loose|search|index|catalog|files|tags|types|stats|server <dir>`.
   # This is the
   # only layer that parses argv, prints, writes files, and decides exit codes — the
   # lib classes below it just return data. Streams are injectable for testing.
@@ -47,6 +47,7 @@ module OKF
       when "validate" then validate(argv)
       when "lint" then lint(argv)
       when "loose" then loose(argv)
+      when "search" then search(argv)
       when "index" then index(argv)
       when "catalog" then catalog(argv)
       when "files" then files(argv)
@@ -129,6 +130,65 @@ module OKF
       files = loose_files(folder.graph(minimal: true))
       options[:json] ? print_loose_json(dir, files) : print_loose(dir, files)
       0
+    end
+
+    # Deterministic text retrieval — the browser page's search brought to the CLI
+    # and extended to bodies. Terms after the directory are ANDed case-insensitive
+    # substrings (Ruby regexps with --regexp); rows rank by where they hit (title >
+    # id > tags > type/description > body) and carry one bounded context snippet,
+    # so "which concept covers X?" costs a few rows, not a body read. Advisory
+    # read: exit 0 even with no matches. Deliberately not fuzzy — the consuming
+    # agent is the fuzzy layer.
+    def search(argv)
+      options = { json: false, regexp: false }
+      parser = OptionParser.new do |o|
+        o.banner = "Usage: okf search <bundle-dir> <term> [term ...] [--regexp] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
+        json_flags(o, options, "emit the matches as JSON")
+        projection_flags(o, options)
+        o.on("-e", "--regexp", "treat each term as a Ruby regular expression (case-insensitive)") { options[:regexp] = true }
+        o.on("--in LIST", Array, "search only these fields (#{OKF::Bundle::Search::FIELDS.join(", ")})") { |v| options[:in] = v.map(&:downcase) }
+        filter_flags(o, options, :type, :area, :tag)
+      end
+      dir = positional_dir(parser, argv) or return 2
+      terms = argv
+      if terms.empty?
+        @err.puts parser.banner
+        return 2
+      end
+
+      unknown = Array(options[:in]) - OKF::Bundle::Search::FIELDS
+      return usage_error("unknown field(s): #{unknown.join(", ")} (searchable: #{OKF::Bundle::Search::FIELDS.join(", ")})") unless unknown.empty?
+
+      folder = OKF::Bundle::Folder.load(dir)
+      report_skipped(folder)
+      rows = OKF::Bundle::Search.call(folder.bundle, terms, fields: options[:in], regexp: options[:regexp])
+      keep = filter_ids(folder, options)
+      rows = rows.select { |row| keep.include?(row[:id]) } unless keep.nil?
+      return print_search_json(dir, terms, rows, options) if options[:json]
+
+      print_search(dir, terms, rows, folder.bundle.concepts.size)
+      0
+    rescue RegexpError => e
+      usage_error("invalid pattern: #{e.message}")
+    end
+
+    def print_search(dir, terms, rows, total)
+      @out.puts "Search — #{dir} · #{terms.join(" ")} (#{counted(rows.size, total, "concepts")})"
+      if rows.empty?
+        @out.puts "  no matches — fewer or broader terms, or scan `okf tags #{dir}` for the vocabulary"
+        return
+      end
+
+      width = rows.map { |row| row[:id].length }.max
+      rows.each do |row|
+        @out.puts
+        @out.puts "  #{row[:id].ljust(width)}  #{row[:title]}  ·  #{row[:type]}  ·  #{row[:matched].join("+")}"
+        @out.puts "    #{truncate(row[:snippet], 100)}" unless row[:snippet].empty?
+      end
+    end
+
+    def print_search_json(dir, terms, rows, options)
+      emit_list_json(dir, "matches", rows.map { |row| stringify(row) }, options, "query" => terms)
     end
 
     def server(argv)
@@ -801,13 +861,16 @@ module OKF
     # Emit a list view's JSON envelope with --fields/--except projection applied to
     # each item. Returns the verb's exit code (0, or 2 on a bad projection request —
     # both flags at once, or a field name no item carries).
-    def emit_list_json(dir, key, items, options)
+    def emit_list_json(dir, key, items, options, extra = {})
       return usage_error("--fields and --except are mutually exclusive") if options[:fields] && options[:except]
 
       unknown = unknown_fields(items, options)
       return usage_error("unknown field(s): #{unknown.join(", ")} (available: #{available_fields(items).join(", ")})") unless unknown.empty?
 
-      emit_json("bundle" => dir, "count" => items.size, key => project(items, options))
+      payload = { "bundle" => dir }.merge(extra)
+      payload["count"] = items.size
+      payload[key] = project(items, options)
+      emit_json(payload)
       0
     end
 
@@ -889,6 +952,7 @@ module OKF
           loose     <dir> [--json]                          list files with no graph links, by folder
           validate  <dir> [--json]                          check OKF v0.1 conformance
 
+          search    <dir> <term…> [-e] [--in FIELDS] [...]  find concepts by text or regexp, ranked
           index     <dir> [--json] [--area A] [--no-body]   the index map: dirs, their listings and rollups
           stats     <dir> [--json]                          bundle rollups (concepts, types, areas, links, tags)
           types     <dir> [--json] [filters]                list types with their concepts, by count
@@ -903,7 +967,7 @@ module OKF
         tags --by DIM regroups the tags per concept dimension — type or area — with
         within-group counts, the view for curating a tag vocabulary.
         --json emits compact JSON (the machine substrate); add --pretty to indent it.
-        --fields / --except project the JSON to the properties you want (index/catalog/files).
+        --fields / --except project the JSON to the properties you want (search/index/catalog/files).
 
         okf --version
       USAGE
