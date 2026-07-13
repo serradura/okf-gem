@@ -19,21 +19,18 @@
 - Retrieval eval in the suite: the progressive path (index skeleton → search →
   one body) must answer a planted question in under 25% of the bytes of the
   full graph dump, so the playbook's economics stay true by construction.
-- Graph server: the authored layer joins the UI. A new **Index panel** renders
-  the §6 progressive-disclosure map — each directory's authored `index.md`, or
-  its synthesized listing badged as such, with type rollups, every entry
-  navigating in-app. Folder nodes in file-tree mode and area boxes in cluster
-  mode are clickable now and open that directory's map in the inspector. The
-  Files view gains its missing layer too: an **Indexes & log** section lists
-  every `index.md` and `log.md` above the per-directory file groups (the log
-  fetched fresh on every read, so a just-appended entry shows without a
-  restart), sections fold, and the files filters move up into the top bar.
-  Links to an `index.md`, a `log.md`, or a bare directory (`model/`) now
-  navigate everywhere a body renders — the inspector, the files preview, and
-  the Index panel — instead of striking through as dead; a directory link
-  opens that directory's map, authored or synthesized. New `/index` and
-  `/log` endpoints back it all; `?view=<panel>` deep-links a view; keys 1–6
-  switch panels.
+- Graph server: the authored layer joins the UI. The Files view carries two
+  tabs — **Files** (the per-directory concept groups, foldable) and
+  **Indexes** (the log first, as the chronological index, then every
+  `index.md`, root before nested) — with the files filters moved up into the
+  top bar. The rail's **Index** item, the `2` key, and `?view=index` are
+  shortcuts straight to the Indexes tab. Folder nodes in file-tree mode and
+  area boxes in cluster mode are clickable and open that directory's §6 map
+  in the inspector (authored, or the synthesized listing when none exists).
+  Links to an `index.md`, a `log.md`, or a bare directory (`model/`) navigate
+  everywhere a body renders instead of striking through as dead, and the log
+  is fetched fresh on every read, so a just-appended entry shows without a
+  restart. New `/index` and `/log` endpoints back it all.
 - Docs: the CLI reference's server section now reflects the DOMPurify
   sanitization that landed in 1.1.0 (it still said bodies render unsanitized).
 

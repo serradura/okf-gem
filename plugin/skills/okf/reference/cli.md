@@ -134,8 +134,8 @@ bodies last — is the [search playbook](../playbooks/search.md).
 
 The "orient before you read" view, and the read verb that sees the layer the
 concept views can't: `index.md` files are reserved/structural, so
-`catalog`/`files`/… never show them (in the browser, the server's Index panel
-is this same map). `okf index <dir>` prints one entry per directory
+`catalog`/`files`/… never show them (in the browser, the Indexes tab and
+folder clicks render this same map). `okf index <dir>` prints one entry per directory
 that holds concepts or carries an `index.md`, root first — the authored index body
 (frontmatter stripped), a `type`/`tag` rollup over the concepts that live directly
 there, its child directories, and the concept listing. Run it first when picking up
@@ -204,14 +204,15 @@ initial load stays small and edits show without a restart. Concepts render as no
 coloured by `type` and sized by degree, links as edges, with a detail panel
 (rendered markdown, "Links to" / "Linked from" backlinks), layout switching,
 type/area/tag filters on every view, and search. The authored layer is in the
-UI too: an **Index panel** renders the §6 map (each directory's authored
-`index.md`, or its synthesized listing, badged as such); folder nodes in
-file-tree mode and area boxes in cluster mode open the same map in the
-inspector; and the Files view lists each directory's `index.md` and `log.md`
-alongside its concepts — the log fetched fresh on every read, so a
-just-appended entry shows without a restart. `?view=index|files|…` deep-links
-a panel. It is a Rack app, so the same server can be mounted in a host app
-(e.g. Rails).
+UI too: the Files view carries **Files | Indexes** tabs — the Indexes tab
+lists the log first (the chronological index), then every `index.md` — and
+folder nodes in file-tree mode and area boxes in cluster mode open a
+directory's §6 map in the inspector (authored, or synthesized when none
+exists). Links to an `index.md`, `log.md`, or bare directory navigate instead
+of dead-ending, and the log is fetched fresh on every read, so a
+just-appended entry shows without a restart. `?view=index` jumps straight to
+the Indexes tab. It is a Rack app, so the same server can be mounted in a
+host app (e.g. Rails).
 
 **Trust boundary:** the page renders each fetched markdown body through
 DOMPurify and escapes everything it inlines (every `<` in the graph data is
