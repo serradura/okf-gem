@@ -203,12 +203,15 @@ fetches each concept's markdown body **live from disk** as you click it, so the
 initial load stays small and edits show without a restart. Concepts render as nodes
 coloured by `type` and sized by degree, links as edges, with a detail panel
 (rendered markdown, "Links to" / "Linked from" backlinks), layout switching,
-type/area/tag filters on every view, and search. Beyond the concept views, an
-**Index panel** renders the §6 map (each directory's authored `index.md`, or its
-synthesized listing) and a **Log panel** renders every `log.md` — the log read
-live from disk, so a just-appended entry shows without a restart; entries and
-links in both navigate in-app. `?view=index|log|…` deep-links a panel. It is a
-Rack app, so the same server can be mounted in a host app (e.g. Rails).
+type/area/tag filters on every view, and search. The authored layer is in the
+UI too: an **Index panel** renders the §6 map (each directory's authored
+`index.md`, or its synthesized listing, badged as such); folder nodes in
+file-tree mode and area boxes in cluster mode open the same map in the
+inspector; and the Files view lists each directory's `index.md` and `log.md`
+alongside its concepts — the log fetched fresh on every read, so a
+just-appended entry shows without a restart. `?view=index|files|…` deep-links
+a panel. It is a Rack app, so the same server can be mounted in a host app
+(e.g. Rails).
 
 **Trust boundary:** the page renders each fetched markdown body through
 DOMPurify and escapes everything it inlines (every `<` in the graph data is

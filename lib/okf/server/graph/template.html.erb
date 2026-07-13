@@ -109,8 +109,13 @@
  .btn.on-filter .fbadge{display:grid}
  #graph-controls{display:none;align-items:center;gap:9px}
  #app[data-view=graph] #graph-controls{display:flex}
+ #file-controls{display:none;align-items:center;gap:8px}
+ #app[data-view=files] #file-controls{display:flex}
+ /* below this width the topbar wraps in the files view so search + combos share two rows */
+ @media (max-width:700px){#app[data-view=files] #topbar{flex-wrap:wrap}
+  #app[data-view=files] #file-controls{flex:1 1 100%}#file-controls .combo{flex:1;width:auto;min-width:0}}
  #search-wrap{display:flex;flex:1}
- #app[data-view=stats] #search-wrap,#app[data-view=files] #search-wrap,#app[data-view=index] #search-wrap,#app[data-view=log] #search-wrap{visibility:hidden}
+ #app[data-view=stats] #search-wrap,#app[data-view=index] #search-wrap{visibility:hidden}
  #btn-theme .sun{display:none} :root[data-theme=dark] #btn-theme .sun{display:block} :root[data-theme=dark] #btn-theme .moon{display:none}
  #btn-full .compress{display:none} #btn-full[aria-pressed=true] .compress{display:block} #btn-full[aria-pressed=true] .expand{display:none}
 
@@ -167,7 +172,6 @@
  .slideover .fgroup h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin:0 0 9px}
  .slideover .fchips{display:flex;flex-wrap:wrap;gap:6px}
  .cat-types{align-items:center;gap:10px} .cat-types #cat-types{display:flex;flex-wrap:wrap;gap:7px}
- .ftree-head .combo{width:100%} .ftree-head .combo+.combo{margin-top:8px}
  .link{background:none;border:0;color:var(--accent-ink);font:inherit;font-size:12.5px;cursor:pointer;padding:0;font-weight:500}
  .link:hover{text-decoration:underline}
 
@@ -224,9 +228,16 @@
  #ftree-resizer{position:absolute;right:-4px;top:0;bottom:0;width:7px;cursor:col-resize;z-index:4;touch-action:none}
  #ftree-resizer::after{content:"";position:absolute;right:3px;top:0;bottom:0;width:2px;background:var(--accent);opacity:0;transition:opacity .15s}
  #ftree-resizer:hover::after,#ftree-resizer.dragging::after{opacity:.7}
- .ftree-head{padding:12px;border-bottom:1px solid var(--line);flex:none}
  .ftree-list{overflow:auto;flex:1;padding:8px}
- .ffolder{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);padding:12px 8px 5px;font-weight:600}
+ .ffolder{display:flex;align-items:center;gap:6px;width:100%;text-align:left;border:0;background:none;cursor:pointer;font-family:inherit;
+  font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);padding:12px 8px 5px;font-weight:600}
+ .ffolder:hover{color:var(--muted)}
+ .ffolder .chev{width:11px;height:11px;flex:none;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+ .ffolder.closed .chev{transform:rotate(-90deg)}
+ .file.res .fn{color:var(--muted)}
+ .file .fn .ricon{width:12px;height:12px;flex:none;stroke:var(--faint);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+ .file .fn .badge-res{margin-left:auto;flex:none;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--faint);background:var(--line-2);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
  .file{display:block;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:7px 9px;cursor:pointer;font-family:inherit;color:var(--ink)}
  .file:hover{background:var(--panel-2)} .file.sel{background:var(--accent-soft)}
  .file .fn{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px}
@@ -308,7 +319,6 @@
   <button class="rail-item" data-view="catalog"><span class="ri-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="14.5" width="7.5" height="5.5" rx="1.6"/><rect x="13.5" y="14.5" width="7.5" height="5.5" rx="1.6"/></svg></span><span class="ri-lbl">Catalog</span></button>
   <button class="rail-item" data-view="files"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span><span class="ri-lbl">Files</span></button>
   <button class="rail-item" data-view="tags"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 4.5h6.8L20 13.7l-6.3 6.3L4.5 10.8V4.5Z"/><circle cx="8.4" cy="8.4" r="1.4" fill="currentColor" stroke="none"/></svg></span><span class="ri-lbl">Tags</span></button>
-  <button class="rail-item" data-view="log"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/></svg></span><span class="ri-lbl">Log</span></button>
   <button class="rail-item" data-view="stats"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></span><span class="ri-lbl">Stats</span></button>
   <div class="rail-sp"></div>
   <div class="rail-tools">
@@ -326,6 +336,10 @@
    <span class="ident"><%= escaped_name %><span class="muted"><%= @graph.nodes.length %> concepts · <%= @graph.edges.length %> links</span><%= source_link %></span>
    <div id="search-wrap"><label class="search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
     <input id="search" class="field" placeholder="search concepts…" autocomplete="off" aria-label="Search"></label></div>
+   <div id="file-controls">
+    <div class="combo" id="file-type-combo"><input id="file-type-input" class="field" placeholder="all types" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-type-list" aria-autocomplete="list" aria-label="Filter files by type"><button class="clear" id="file-type-clear" type="button" aria-label="Clear type filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-type-list" role="listbox" hidden></ul></div>
+    <div class="combo" id="file-tag-combo"><input id="file-tag-input" class="field" placeholder="all tags" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-tag-list" aria-autocomplete="list" aria-label="Filter files by tag"><button class="clear" id="file-tag-clear" type="button" aria-label="Clear tag filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-tag-list" role="listbox" hidden></ul></div>
+   </div>
    <div id="graph-controls">
     <button class="btn text" id="btn-filters" type="button" aria-label="Filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4-2v-4Z"/></svg>Filters<span class="fbadge">0</span></button>
     <span class="selwrap"><select id="layout" class="field" aria-label="Layout">
@@ -405,10 +419,6 @@
    <section class="view" id="view-files">
     <div class="files-grid">
      <div class="ftree">
-      <div class="ftree-head"><label class="search" style="max-width:none;margin-bottom:8px"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-       <input id="file-filter" class="field" placeholder="filter files…" autocomplete="off"></label>
-       <div class="combo" id="file-type-combo"><input id="file-type-input" class="field" placeholder="all types" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-type-list" aria-autocomplete="list" aria-label="Filter files by type"><button class="clear" id="file-type-clear" type="button" aria-label="Clear type filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-type-list" role="listbox" hidden></ul></div>
-       <div class="combo" id="file-tag-combo"><input id="file-tag-input" class="field" placeholder="all tags" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-tag-list" aria-autocomplete="list" aria-label="Filter files by tag"><button class="clear" id="file-tag-clear" type="button" aria-label="Clear tag filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-tag-list" role="listbox" hidden></ul></div></div>
       <div class="ftree-list" id="ftree-list"><p class="empty" style="padding:14px">Loading files…</p></div>
       <div id="ftree-resizer" title="Drag to resize · double-click to reset" aria-hidden="true"></div>
      </div>
@@ -444,15 +454,6 @@
      <div class="shead"><h2>Index</h2><span class="cnt" id="ix-cnt"></span></div>
      <p class="viewnote">The bundle's own maps, directory by directory: the authored <code>index.md</code> where one exists, or the listing synthesized from the concepts there (§6). Click an entry to open it in the graph.</p>
      <div id="ix-list"><p class="empty">Loading the map…</p></div>
-    </div>
-   </section>
-
-   <!-- LOG -->
-   <section class="view" id="view-log">
-    <div class="pad">
-     <div class="shead"><h2>Log</h2><span class="cnt" id="log-cnt"></span></div>
-     <p class="viewnote">The bundle's history (§7): dated entries, newest first, read live from <code>log.md</code>.</p>
-     <div id="log-list"><p class="empty">Loading history…</p></div>
     </div>
    </section>
 
@@ -606,6 +607,22 @@ function interceptMdLinks(container,baseIdOf,go){container.addEventListener('cli
  if(id)go(id);else{a.classList.add('dead');a.title='not a concept in this bundle';}});}
 interceptMdLinks(sideBody,()=>shownId,select);
 interceptMdLinks(document.getElementById('fp-body'),()=>fileSel,id=>openFile(id));
+/* Clicking a folder node (tree mode) or an area box (cluster mode) opens that
+   directory's §6 index entry in the inspector: the authored map when one
+   exists, the synthesized listing when not. */
+function showDir(dir){getIndex().then(dirs=>{const d=dirs.find(x=>x.dir===dir);if(!d)return;
+ const opened=openPanel();sideBody.scrollTop=0;
+ shownId=d.dir==='.'?'index':d.dir+'/index'; /* pseudo-id: relative links in the map resolve against its directory */
+ const label=d.dir==='.'?'(root)':d.dir+'/';
+ const types=Object.entries(d.types||{}).map(([t,n])=>esc(t||'Untyped')+' '+n).join(' · ');
+ sideBody.innerHTML=`<span class="type">${d.present?'index.md':'no index.md · synthesized'}</span>
+  <h2 class="title">${esc(label)}</h2>
+  <div class="desc">${d.count} concept${d.count===1?'':'s'}${types?' · '+types:''}</div>
+  <div class="body" id="dir-body"></div>`;
+ if(d.present)renderMarkdown(document.getElementById('dir-body'),d.body||'');
+ else document.getElementById('dir-body').innerHTML=listingHtml(d.listing);
+ sideBody.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
+ if(opened)requestAnimationFrame(()=>cy.resize());});}
 function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Untyped';const c=color[ty]||'#64748b';
  shownId=id;const opened=openPanel();sideBody.scrollTop=0;
  sideBody.innerHTML=`<span class="type"><span class="dot" style="background:${c}"></span>${esc(ty)}</span>
@@ -631,7 +648,10 @@ function select(id){const ele=cy.getElementById(id);if(!ele.length)return;const 
  cy.elements().removeClass('hl').addClass('dim');const nb=ele.closedNeighborhood();nb.removeClass('dim');ele.addClass('hl');
  centerOn(ele,opened);
  try{if(decodeURIComponent((location.hash||'').slice(1))!==id)location.hash=encodeURIComponent(id);}catch(e){}}
-cy.on('tap','node',e=>{if(e.target.isParent()||e.target.hasClass('dir'))return;select(e.target.id());});
+cy.on('tap','node',e=>{const t=e.target;
+ if(t.hasClass('dir'))return showDir(t.id().slice(DIR.length)||'.');
+ if(t.isParent()){const a=t.id().indexOf('area::')===0?t.id().slice(6):null;return showDir(a&&a!=='(root)'?a:'.');}
+ select(t.id());});
 cy.on('tap',e=>{if(e.target===cy)cy.elements().removeClass('dim hl');});
 
 /* ── graph filters (slide-over) ── */
@@ -762,18 +782,18 @@ function goToGraph(id){setView('graph');requestAnimationFrame(()=>select(id));}
 function setView(v){if(v===view)return;view=v;document.getElementById('app').setAttribute('data-view',v);
  document.querySelectorAll('.rail-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
- const ph={graph:'search concepts…',catalog:'search concepts…',files:'',tags:'search tags…'}[v];
+ const ph={graph:'search concepts…',catalog:'search concepts…',files:'filter files…',tags:'search tags…'}[v];
  if(ph!==undefined){searchInput.placeholder=ph;searchInput.value=q[v]||'';}
  if(v==='graph')requestAnimationFrame(()=>cy.resize());
  if(v==='catalog'&&!inited.catalog)initCatalog();
  if(v==='files'&&!inited.files)initFiles();
  if(v==='tags'&&!inited.tags)initTags();
  if(v==='stats'&&!inited.stats)initStats();
- if(v==='index'&&!inited.index)initIndex();
- if(v==='log'&&!inited.log)initLog();}
+ if(v==='index'&&!inited.index)initIndex();}
 document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));
 searchInput.oninput=()=>{q[view]=searchInput.value;
- if(view==='graph')applyGraphFilter();else if(view==='catalog')renderCatalog();else if(view==='tags')renderCloud();};
+ if(view==='graph')applyGraphFilter();else if(view==='catalog')renderCatalog();else if(view==='tags')renderCloud();
+ else if(view==='files')refreshTree();};
 
 /* ── catalog ── */
 let CATALOG=null;
@@ -829,18 +849,41 @@ function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.
 
 /* ── files ── */
 let fileSel=null;
-function initFiles(){inited.files=true;getCatalog().then(renderTree);}
-function renderTree(list){const s=(document.getElementById('file-filter').value||'').toLowerCase();
+function initFiles(){inited.files=true;refreshTree();}
+/* Reserved files (index.md / log.md) join the tree from the /index and /log
+   payloads — they are not concepts, so the catalog cannot know them. Sections
+   fold; while any filter is active the fold state is ignored so matches show. */
+let IXDIRS=null,LOGPATHS=null;
+const collapsedDirs=new Set();
+function dirOfPath(p){return p.indexOf('/')<0?'.':p.split('/').slice(0,-1).join('/');}
+function renderTree(list){const s=(q.files||'').toLowerCase();
  const ft=fileTypeCombo.get(), fg=fileTagCombo.get();
  const rows=list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s)));
  const groups={};rows.forEach(c=>{(groups[c.dir]=groups[c.dir]||[]).push(c);});
+ const reserved={};
+ if(!ft&&!fg){ /* reserved files carry no type or tag; they hide under those filters */
+  (IXDIRS||[]).forEach(d=>{if(d.present&&(!s||d.index_path.toLowerCase().includes(s)))
+   (reserved[d.dir]=reserved[d.dir]||[]).push({kind:'index',path:d.index_path});});
+  (LOGPATHS||[]).forEach(p=>{if(!s||p.toLowerCase().includes(s))
+   (reserved[dirOfPath(p)]=reserved[dirOfPath(p)]||[]).push({kind:'log',path:p});});}
+ const dirs=[...new Set(Object.keys(groups).concat(Object.keys(reserved)))].sort();
  const el=document.getElementById('ftree-list');
- if(!rows.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}
- el.innerHTML=Object.keys(groups).sort().map(dir=>`<div class="ffolder">${dir==='.'?'(root)':esc(dir)+'/'}</div>`+
-  groups[dir].map(c=>{const cc=color[c.type]||'#64748b';const name=c.id.split('/').pop()+'.md';
-   return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(name)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('')).join('');
- el.querySelectorAll('.file').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));}
-document.getElementById('file-filter').oninput=()=>getCatalog().then(renderTree);
+ if(!dirs.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}
+ const filtering=!!(s||ft||fg);
+ el.innerHTML=dirs.map(dir=>{
+  const closed=!filtering&&collapsedDirs.has(dir);
+  const head=`<button class="ffolder${closed?' closed':''}" data-dir="${esc(dir)}"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>${dir==='.'?'(root)':esc(dir)+'/'}</button>`;
+  if(closed)return head;
+  const res=(reserved[dir]||[]).map(r=>{const name=r.path.split('/').pop();
+   const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
+   return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg>${esc(name)}<span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');
+  const files=(groups[dir]||[]).map(c=>{const cc=color[c.type]||'#64748b';const name=c.id.split('/').pop()+'.md';
+   return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(name)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('');
+  return head+res+files;}).join('');
+ el.querySelectorAll('.ffolder').forEach(b=>b.onclick=()=>{const d=b.dataset.dir;
+  if(collapsedDirs.has(d))collapsedDirs.delete(d);else collapsedDirs.add(d);renderTree(list);});
+ el.querySelectorAll('.file[data-id]').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));
+ el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));}
 /* Searchable single-select combobox (keyboard-navigable) — one per files filter:
    type and tag. `items` is lazy so counts always reflect the current indexes. */
 function makeCombo(name,allLabel,items,onChange){
@@ -867,7 +910,7 @@ function makeCombo(name,allLabel,items,onChange){
  list.addEventListener('mousedown',e=>{const li=e.target.closest('li');if(!li)return;e.preventDefault();pick(li);});
  document.getElementById(name+'-clear').addEventListener('click',()=>{value=null;input.value='';combo.classList.remove('has');onChange();input.focus();});
  return {get:()=>value};}
-const refreshTree=()=>getCatalog().then(renderTree);
+const refreshTree=()=>Promise.all([ getCatalog(),getIndex(),getLogs() ]).then(([ list,dirs,logs ])=>{IXDIRS=dirs;LOGPATHS=logs.map(l=>l.path);renderTree(list);});
 const fileTypeCombo=makeCombo('file-type','All types',()=>catByCount.map(t=>({v:t,n:(TYPES[t]||[]).length,c:color[t]})),refreshTree);
 const fileTagCombo=makeCombo('file-tag','All tags',()=>tagsByCount.map(t=>({v:t,n:(TAGS[t]||[]).length})),refreshTree);
 function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
@@ -876,10 +919,23 @@ function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byI
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-type').innerHTML=`<span class="dot" style="background:${cc}"></span>${esc(ty)}`;
  document.getElementById('fp-title').textContent=c.title||(byId[id]||{}).title||id;
+ document.getElementById('fp-graph').hidden=false;
  document.getElementById('fp-graph').onclick=()=>goToGraph(id);
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  fetch(NODE_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'').then(txt=>{
   const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);}).catch(()=>{body.innerHTML='<p class="empty">could not load this file</p>';});}
+/* Reserved files read in the preview too: the index map from its payload, the
+   log fetched fresh on every click so a just-appended entry shows. */
+function openReserved(kind,path){fileSel=path;
+ document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.path===path));
+ document.getElementById('fp-head').hidden=false;
+ document.getElementById('fp-type').textContent=kind==='index'?'directory index · §6':'update log · §7';
+ document.getElementById('fp-title').textContent=path;
+ document.getElementById('fp-graph').hidden=true;
+ const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
+ const done=txt=>{const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);};
+ if(kind==='index')getIndex().then(dirs=>{const d=dirs.find(x=>x.dir===dirOfPath(path));done((d&&d.body)||'');});
+ else{LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.path===path);done((l&&l.content)||'');});}}
 
 /* ── tags ── */
 const tagSel=new Set(), tagTypes=new Set(), tagAreas=new Set();
@@ -977,23 +1033,12 @@ function renderIndex(dirs){
 function listingHtml(items){if(!items||!items.length)return '<p class="empty" style="margin:10px 0 0">No concepts directly here.</p>';
  return '<ul class="ix-listing">'+items.map(it=>`<li><a data-go="${esc(it.id)}">${esc(it.title||it.id)}</a>${it.description?` <span class="d">— ${esc(it.description)}</span>`:''}</li>`).join('')+'</ul>';}
 
-/* ── log (the §7 history, read live) ── */
+/* ── log payload (the §7 history) — read by the Files view's log entries ── */
 let LOGS=null;
 function getLogs(){return LOGS||(LOGS=fetch(LOG_ENDPOINT).then(r=>r.json()).then(d=>d.logs));}
-function initLog(){inited.log=true;
- getLogs().then(renderLog).catch(()=>{document.getElementById('log-list').innerHTML='<div class="none">Could not load the log.</div>';});}
-function renderLog(logs){
- document.getElementById('log-cnt').textContent=logs.length===1?'1 log file':logs.length+' log files';
- const list=document.getElementById('log-list');
- if(!logs.length){list.innerHTML='<div class="none">No <code>log.md</code> here yet — the history file is optional (§7), and the first dated entry starts it.</div>';return;}
- list.innerHTML=logs.map((l,i)=>`<article class="scope" data-i="${i}" data-base="${esc(l.path.replace(/\.md$/,''))}">
-  <div class="scope-head"><h3>${esc(l.path)}</h3></div><div class="body" data-md></div></article>`).join('');
- logs.forEach((l,i)=>{const el=list.querySelector(`#log-list [data-i="${i}"]`);
-  renderMarkdown(el.querySelector('[data-md]'),l.content||'');
-  interceptMdLinks(el,()=>el.getAttribute('data-base'),goToGraph);});}
 
 /* ── keyboard ── */
-const VIEW_KEYS={'1':'graph','2':'index','3':'catalog','4':'files','5':'tags','6':'log','7':'stats'};
+const VIEW_KEYS={'1':'graph','2':'index','3':'catalog','4':'files','5':'tags','6':'stats'};
 addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea'))return;
  if(VIEW_KEYS[e.key]){setView(VIEW_KEYS[e.key]);}
  else if(e.key==='/'){e.preventDefault();searchInput.focus();}
