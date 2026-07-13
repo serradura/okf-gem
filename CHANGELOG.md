@@ -14,7 +14,9 @@
   files list are drag-resizable (persisted, double-click resets), and the files
   reader now uses the full pane width. New file-tree mode on the graph toolbar:
   folders become nodes and the only edges are folder→child, an acyclic layered
-  tree of the bundle's files.
+  tree of the bundle's files. On small screens (≤900px) the inspector starts
+  hidden and opens on the first node tap; camera moves are gentler (450ms,
+  ease-in-out).
 
 ## [1.3.0] - 2026-07-12
 

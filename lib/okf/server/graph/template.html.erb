@@ -475,6 +475,10 @@ function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('-
   {selector:'edge.linkhid',style:{'display':'none'}},
   {selector:':parent',style:{'background-color':cvar('--ink'),'background-opacity':0.05,'border-width':1,'border-color':cvar('--edge'),'shape':'round-rectangle','padding':26,'label':'data(label)','color':cvar('--ink'),'font-size':13,'font-weight':600,'text-valign':'top','text-halign':'center','text-margin-y':-8,'min-zoomed-font-size':0,'text-outline-width':3,'text-outline-color':cvar('--canvas')}}
  ];}
+/* Small screens start with the inspector hidden — it opens on the first node
+   tap (openPanel). Done before Cytoscape reads the container, so the graph
+   lays out at full width; larger screens keep the open panel as the hint. */
+if(matchMedia('(max-width: 900px)').matches)document.querySelector('.graph-body').setAttribute('data-side','hidden');
 const cy=cytoscape({container:document.getElementById('cy'),minZoom:.2,maxZoom:1.6,wheelSensitivity:.2,
  elements:[...NODES.map(n=>({data:{id:n.id,title:n.title,c:color[typeOf[n.id]||'Untyped']||'#64748b',sz:szOf(n.id)}})),...EDGES.map(e=>({data:e}))],
  style:styleSheet(),layout:{name:'<%= @layout %>',animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2}});
@@ -513,9 +517,14 @@ function openPanel(){if(gbody.getAttribute('data-side')!=='hidden')return false;
 btnPanel.onclick=()=>setSide(gbody.getAttribute('data-side')==='hidden'?'default':'hidden');
 document.getElementById('side-close').onclick=()=>setSide('hidden');
 sideWiden.onclick=()=>setSide(gbody.getAttribute('data-side')==='wide'?'default':'wide');
+/* sync the header buttons with the responsive initial state set before cy init */
+if(gbody.getAttribute('data-side')==='hidden')setSide('hidden');
 /* ── drag-resize splitters: inspector + files tree (persisted; dblclick resets) ── */
 function splitter(handle,host,cssVar,key,widthAt,opts){opts=opts||{};
- try{const w=parseInt(localStorage.getItem(key),10);if(w)host.style.setProperty(cssVar,w+'px');}catch(e){}
+ /* restore clamped to the current viewport — a width dragged on a desktop
+    must not swallow a phone screen */
+ try{const w=parseInt(localStorage.getItem(key),10);
+  if(w)host.style.setProperty(cssVar,Math.min(w,Math.round(innerWidth*.7))+'px');}catch(e){}
  handle.addEventListener('pointerdown',e=>{e.preventDefault();
   if(opts.onStart)opts.onStart();
   try{handle.setPointerCapture(e.pointerId);}catch(err){}
@@ -582,8 +591,8 @@ function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Unty
    so rapid clicks replace the animation instead of queueing repeats. */
 let centerTimer;
 function centerOn(ele,delay){clearTimeout(centerTimer);
- const go=()=>{cy.resize();cy.stop();cy.animate({center:{eles:ele},duration:250,easing:'ease-out-cubic'});};
- if(delay)centerTimer=setTimeout(go,260);else{cy.stop();cy.animate({center:{eles:ele},duration:250,easing:'ease-out-cubic'});}}
+ const go=()=>{cy.resize();cy.stop();cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});};
+ if(delay)centerTimer=setTimeout(go,260);else{cy.stop();cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});}}
 function select(id){const ele=cy.getElementById(id);if(!ele.length)return;const opened=show(id);
  cy.elements().removeClass('hl').addClass('dim');const nb=ele.closedNeighborhood();nb.removeClass('dim');ele.addClass('hl');
  centerOn(ele,opened);
@@ -709,7 +718,7 @@ btnTree.onclick=()=>setTree(!treeMode);
 function fitGraph(){const vis=cy.nodes(':visible').filter(n=>!n.isParent());const eles=vis.length?vis:cy.nodes();if(!eles.length)return;
  const bb=eles.boundingBox(),pad=60,w=cy.width(),h=cy.height();
  const z=Math.max(cy.minZoom(),Math.min(cy.maxZoom(),Math.min((w-2*pad)/bb.w,(h-2*pad)/bb.h)));
- cy.stop();cy.animate({zoom:z,pan:{x:w/2-z*(bb.x1+bb.w/2),y:h/2-z*(bb.y1+bb.h/2)}},{duration:300,easing:'ease-out-cubic'});}
+ cy.stop();cy.animate({zoom:z,pan:{x:w/2-z*(bb.x1+bb.w/2),y:h/2-z*(bb.y1+bb.h/2)}},{duration:450,easing:'ease-in-out-cubic'});}
 document.getElementById('btn-fit').onclick=fitGraph;
 
 /* ── view switching ── */
