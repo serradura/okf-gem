@@ -20,9 +20,12 @@ it without opening a socket.
 # The page stays self-contained
 
 One ERB template, inline CSS and JS, no build step and no bundler. The only
-external assets are Cytoscape, marked, and DOMPurify from a CDN — plus Mermaid,
-lazy-loaded only when a concept body actually contains a diagram; everything else
-is inlined.
+external assets are Cytoscape, marked, and DOMPurify from a CDN — plus Mermaid
+and Panzoom, lazy-loaded only when a concept body actually contains a diagram
+and when one is opened; everything else is inlined. A rendered Mermaid diagram
+is **click-to-inspect**: a click, tap, or Enter re-renders it from source into a
+fullscreen viewer — drag pans, wheel or pinch zooms, double-click resets, Esc
+closes — so a wide flowchart is never stuck at panel width.
 The graph draws from a **minimal** node payload and pulls each concept's body
 **on demand** via `fetch()`, which is why even a large bundle loads fast. The
 page also emits link-preview metadata — Open Graph and Twitter Card tags with a
