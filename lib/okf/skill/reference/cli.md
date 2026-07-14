@@ -200,7 +200,9 @@ Starts a local HTTP server (`okf server <dir>`; `-p`/`--port`, default 8808, and
 `--bind`) and prints its URL — stop it with Ctrl-C. The page boots from a lean
 payload (nodes carry only `id` and `title`, plus compact type/tag indexes) and
 fetches each concept's markdown body **live from disk** as you click it, so the
-initial load stays small and edits show without a restart. Concepts render as nodes
+initial load stays small and edits show without a restart. Mermaid code blocks
+in a body render as diagrams, and a click (or tap) opens the diagram full
+screen with drag-to-pan and wheel/pinch zoom. Concepts render as nodes
 coloured by `type` and sized by degree, links as edges, with a detail panel
 (rendered markdown, "Links to" / "Linked from" backlinks), layout switching,
 type/area/tag filters on every view, and search. The authored layer is in the
@@ -217,7 +219,8 @@ host app (e.g. Rails).
 **Trust boundary:** the page renders each fetched markdown body through
 DOMPurify and escapes everything it inlines (every `<` in the graph data is
 escaped, so it cannot break out of its `<script>`), but it still loads its
-viewer libraries (Cytoscape, marked, DOMPurify) from a CDN and renders whatever
+viewer libraries (Cytoscape, marked, DOMPurify — plus Mermaid and Panzoom,
+lazy-loaded on first use) from a CDN and renders whatever
 links the bundle carries — so only serve bundles you trust.
 
 ## graph — the raw structure

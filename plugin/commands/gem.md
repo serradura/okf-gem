@@ -21,6 +21,11 @@ this plugin:
   as written. Curation is structural upkeep of the bundle as it stands
   (validate + lint + loose); nothing in the project needs to have changed.
 - Anything else (produce, maintain, consume, an okf CLI verb, or a free-form
-  task): invoke the skill with the arguments unchanged; the skill owns the
-  judgment. `maintain` is the one to reach for when the code or docs changed
-  and the bundle's content must catch up with reality.
+  task): first weigh the shape of the ask. A question about what the bundle
+  knows — "how do we…", "where is…", "why did we choose…", or any request to
+  find/look up something — is a `search` in disguise: follow
+  `playbooks/search.md` with the question as the query and answer from the
+  retrieved concepts instead of guessing. Everything else, invoke the skill
+  with the arguments unchanged; the skill owns the judgment. `maintain` is the
+  one to reach for when the code or docs changed and the bundle's content must
+  catch up with reality.

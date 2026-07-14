@@ -68,8 +68,9 @@ you touch what `require "okf"` pulls in.
    to the right side, and exit codes keep the contract: 0 ok, 1 failing bundle,
    2 usage error.
 5. **The server page stays self-contained**: one ERB template, inline CSS/JS,
-   only Cytoscape, marked, and DOMPurify from a CDN, bodies pulled on demand
-   with `fetch()`. No htmx, no bundler, no build step. Two XSS defenses hold the
+   only Cytoscape, marked, and DOMPurify from a CDN at boot (Mermaid, Panzoom,
+   and the extra layout engines lazy-load from the same CDN on first use),
+   bodies pulled on demand with `fetch()`. No htmx, no bundler, no build step. Two XSS defenses hold the
    line: inlined data goes through `json_for_script` (escapes `<` so it cannot
    break out of its `<script>`), and every fetched body is run through
    `DOMPurify.sanitize(marked.parse(...))` before it reaches `innerHTML`. Keep

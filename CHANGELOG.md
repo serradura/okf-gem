@@ -32,6 +32,14 @@
   is fetched fresh on every read, so a just-appended entry shows without a
   restart. A reserved file's "Open in graph" jumps to its folder in the file
   tree, map in the inspector. New `/index` and `/log` endpoints back it all.
+- Graph server: Mermaid diagrams in concept bodies are click-to-inspect. A
+  click (or tap) opens the diagram full screen — drag to pan, wheel or pinch
+  to zoom, buttons and double-click reset, Esc closes — powered by
+  [Panzoom](https://github.com/timmywil/panzoom), lazy-loaded from the CDN
+  exactly like Mermaid itself.
+- The Claude Code plugin's `/okf:gem` command now weighs the shape of a
+  free-form ask: a question about what the bundle knows routes through the
+  search playbook and answers from retrieved concepts instead of guessing.
 - Skill efficiency audit: every playbook now takes the CLI's lean paths.
   `maintain` hunts affected concepts with `okf search` and pulls edges via
   `graph --json --minimal` instead of the full-body dump, `menu` reads the

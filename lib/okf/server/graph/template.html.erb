@@ -201,8 +201,21 @@
  .body td,.body th{border:1px solid var(--line);padding:5px 9px}
  .body img{max-width:100%}
  .body blockquote{margin:.6em 0;padding:.2em 0 .2em 14px;border-left:3px solid var(--line);color:var(--muted)}
- .mermaid{margin:14px 0;display:flex;justify-content:center;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto}
+ .mermaid{margin:14px 0;display:flex;justify-content:center;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;cursor:zoom-in}
+ .mermaid:hover{border-color:var(--accent)}
+ .mermaid:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
  .mermaid svg{max-width:100%;height:auto}
+
+ /* ── fullscreen diagram viewer (Panzoom, lazy like Mermaid itself) ── */
+ #dgv{position:fixed;inset:0;z-index:80;background:var(--canvas)}
+ #dgv[hidden]{display:none}
+ #dgv-stage{position:absolute;inset:0;overflow:hidden;touch-action:none;cursor:grab;display:flex;align-items:center;justify-content:center}
+ #dgv-stage:active{cursor:grabbing}
+ #dgv-pan{flex:none}
+ #dgv-pan svg{display:block;max-width:none}
+ .dgv-bar{position:absolute;top:14px;right:14px;display:flex;gap:8px;z-index:2}
+ .dgv-bar .btn{background:var(--panel);box-shadow:var(--shadow)}
+ .dgv-hint{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:12px;color:var(--faint);pointer-events:none}
 
  /* ── catalog ── */
  .pad{padding:22px 24px;overflow:auto;flex:1}
@@ -467,6 +480,18 @@
  </div>
 </div>
 
+<!-- fullscreen diagram viewer — click (or tap) a rendered Mermaid block to open it -->
+<div id="dgv" hidden role="dialog" aria-modal="true" aria-label="Diagram viewer">
+ <div id="dgv-stage"><div id="dgv-pan"></div></div>
+ <div class="dgv-bar">
+  <button class="btn" id="dgv-out" type="button" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+  <button class="btn" id="dgv-reset" type="button" aria-label="Reset view"><svg viewBox="0 0 24 24"><path d="M9 3H4v5M15 3h5v5M9 21H4v-5M15 21h5v-5"/></svg></button>
+  <button class="btn" id="dgv-in" type="button" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button class="btn" id="dgv-close" type="button" aria-label="Close diagram viewer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+ </div>
+ <p class="dgv-hint">drag to pan · scroll or pinch to zoom · double-click resets · Esc closes</p>
+</div>
+
 <script>
 const NODES=<%= nodes_json %>, EDGES=<%= edges_json %>, TYPES=<%= types_json %>, TAGS=<%= tags_json %>;
 const NODE_ENDPOINT=<%= @node_endpoint.to_json %>, META_ENDPOINT=<%= @meta_endpoint.to_json %>;
@@ -528,13 +553,48 @@ function loadMermaid(){return _mermaid||(_mermaid=new Promise((res,rej)=>{const 
 let mermaidSeq=0;
 function processMermaid(el){const blocks=[...el.querySelectorAll('code.language-mermaid')];if(!blocks.length)return;
  loadMermaid().then(m=>{const nodes=[];blocks.forEach(b=>{const pre=b.closest('pre');const d=document.createElement('div');
-  d.className='mermaid';d.dataset.src=b.textContent;d.id='mmd-'+(++mermaidSeq);d.textContent=b.textContent;pre.replaceWith(d);nodes.push(d);});
+  d.className='mermaid';d.dataset.src=b.textContent;d.id='mmd-'+(++mermaidSeq);d.textContent=b.textContent;
+  d.tabIndex=0;d.setAttribute('role','button');d.setAttribute('aria-label','Expand diagram');d.title='Expand — pan & zoom';
+  pre.replaceWith(d);nodes.push(d);});
   m.run({nodes}).catch(()=>{});}).catch(()=>{});}
 function rethemeMermaid(){if(!window.mermaid)return;const nodes=[...document.querySelectorAll('.mermaid')];if(!nodes.length)return;
  window.mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:isDark()?'dark':'default'});
  nodes.forEach(d=>{if(d.dataset.src){d.removeAttribute('data-processed');d.innerHTML='';d.textContent=d.dataset.src;}});
  window.mermaid.run({nodes}).catch(()=>{});}
 function renderMarkdown(el,text){el.innerHTML=text?DOMPurify.sanitize(marked.parse(text)):'<span class="empty">empty body</span>';processMermaid(el);}
+
+/* ── fullscreen diagram viewer — Panzoom (lazy, like Mermaid): click a rendered
+   diagram to inspect it full screen; drag pans, wheel or pinch zooms. ── */
+let _panzoom=null;
+function loadPanzoom(){return _panzoom||(_panzoom=loadScript('https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4/dist/panzoom.min.js').then(()=>window.Panzoom));}
+const dgv=document.getElementById('dgv'),dgvStage=document.getElementById('dgv-stage'),dgvPan=document.getElementById('dgv-pan');
+let dgvPz=null,dgvBack=null,dgvSeq=0;
+function openDiagram(m){const src=m.dataset.src;if(!src||!m.querySelector('svg'))return;
+ /* re-render from source rather than cloning the inline svg — mermaid scopes
+    the styles it embeds to the svg's id, so a clone would lose its colors */
+ Promise.all([ loadPanzoom(), loadMermaid() ]).then(all=>
+  all[1].render('dgv-mmd-'+(++dgvSeq),src).then(out=>{
+   dgvPan.innerHTML=out.svg;
+   const c=dgvPan.querySelector('svg'),vb=c.viewBox&&c.viewBox.baseVal;
+   const w=(vb&&vb.width)||800,h=(vb&&vb.height)||500;
+   c.style.maxWidth='none';c.setAttribute('width',w);c.setAttribute('height',h);
+   dgvBack=m;dgv.hidden=false;
+   const fit=Math.min((innerWidth-48)/w,(innerHeight-96)/h,2);
+   dgvPz=Panzoom(dgvPan,{maxScale:10,minScale:.1,startScale:fit,canvas:true,step:.2});
+   document.getElementById('dgv-close').focus();
+  })).catch(()=>{});}
+function closeDiagram(){if(dgv.hidden)return;
+ if(dgvPz){dgvPz.destroy();dgvPz=null;}
+ dgv.hidden=true;dgvPan.innerHTML='';
+ if(dgvBack){try{dgvBack.focus();}catch(e){}dgvBack=null;}}
+dgvStage.addEventListener('wheel',e=>{if(dgvPz)dgvPz.zoomWithWheel(e);},{passive:false});
+dgvStage.addEventListener('dblclick',()=>{if(dgvPz)dgvPz.reset();});
+document.getElementById('dgv-in').onclick=()=>{if(dgvPz)dgvPz.zoomIn();};
+document.getElementById('dgv-out').onclick=()=>{if(dgvPz)dgvPz.zoomOut();};
+document.getElementById('dgv-reset').onclick=()=>{if(dgvPz)dgvPz.reset();};
+document.getElementById('dgv-close').onclick=closeDiagram;
+document.addEventListener('click',e=>{const m=e.target.closest&&e.target.closest('.mermaid');if(m&&!dgv.contains(e.target))openDiagram(m);});
+document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('mermaid')){e.preventDefault();openDiagram(e.target);}});
 
 /* ── inspector ── */
 const gbody=document.querySelector('.graph-body'), sideBody=document.getElementById('side-body');
@@ -1069,7 +1129,8 @@ function getLogs(){return LOGS||(LOGS=fetch(LOG_ENDPOINT).then(r=>r.json()).then
 
 /* ── keyboard ── */
 const VIEW_KEYS={'1':'graph','3':'files','4':'catalog','5':'tags','6':'stats'};
-addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea'))return;
+addEventListener('keydown',e=>{if(!dgv.hidden){if(e.key==='Escape')closeDiagram();return;}
+ if(e.target.matches('input,select,textarea'))return;
  if(e.key==='2'){goIndexes();}
  else if(VIEW_KEYS[e.key]){setView(VIEW_KEYS[e.key]);}
  else if(e.key==='/'){e.preventDefault();searchInput.focus();}

@@ -38,6 +38,14 @@ class OKF::Server::AppTest < OKF::TestCase
     refute_includes last_response.body, "The orders body."
   end
 
+  test "GET / carries the fullscreen diagram viewer, Panzoom lazy-loaded" do
+    get "/"
+
+    assert_includes last_response.body, 'id="dgv"'
+    assert_includes last_response.body, "@panzoom/panzoom@4"
+    refute_includes last_response.body, '<script src="https://cdn.jsdelivr.net/npm/@panzoom'
+  end
+
   test "GET /node returns the concept's raw markdown, live from disk" do
     get "/node", id: "tables/orders"
 
