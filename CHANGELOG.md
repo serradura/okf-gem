@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.5.0] - 2026-07-13
 
 - New CLI verb: `okf search <dir> <term…>` — deterministic ranked retrieval
   over concept metadata *and bodies*, the browser page's search brought to the
