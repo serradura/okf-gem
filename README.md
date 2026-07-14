@@ -18,21 +18,21 @@
 </p>
 
 <p align="center">
-  <b><a href="https://okfgem.com">Website</a></b> &nbsp;·&nbsp;
+  <b><a href="https://okfgem.com">Site</a></b> &nbsp;·&nbsp;
   <b><a href="https://okfgem.com/docs/">Docs</a></b> &nbsp;·&nbsp;
   <b><a href="https://demo.okfgem.com">Live demo</a></b> &nbsp;·&nbsp;
-  <b><a href="https://claude.okfgem.com">Claude Code plugin</a></b>
+  <b><a href="https://claude.okfgem.com">Claude plugin</a></b>
 </p>
 
 **okf-gem** (`okf` on RubyGems) is the complete toolkit for
-**Open Knowledge Format (OKF)** v0.1 bundles. The package is **Agent Skill + CLI/Lib + Live Graph**: an agent skill that authors and curates, a CLI and Ruby library that validate, lint, and embed, and a live graph server to explore, in one gem that runs 100% local. A bundle is a directory of Markdown files with YAML frontmatter that humans and agents read from one source; each file is a _concept_. The gem does not define a new place to keep knowledge; it gives you leverage over knowledge that already lives as Markdown.
+**Open Knowledge Format (OKF)** v0.1 bundles. The package is **Agent Skill + CLI/Lib + Live Graph**: an agent skill that authors and curates, a CLI and Ruby library that validate, lint, search, and embed, and a live graph server to explore, in one gem that runs 100% local. A bundle is a directory of Markdown files with YAML frontmatter that humans and agents read from one source; each file is a _concept_. The gem does not define a new place to keep knowledge; it gives you leverage over knowledge that already lives as Markdown.
 
 The package, end to end:
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/overview-dark.png">
-    <img src=".github/overview-light.png" width="760" alt="The package: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by the CLI/Lib (validate: legal OKF per section 9; lint: well-curated and fresh; require okf for Ruby objects) and by the Live Graph (okf server: click a node, read its Markdown; mounts in Rails). One gem, 100% local, Ruby 2.4 or newer, only rack and webrick as dependencies.">
+    <img src=".github/overview-light.png" width="760" alt="The package: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by the CLI/Lib (validate: legal OKF per section 9; lint: well-curated and fresh; search: ranked retrieval; require okf for Ruby objects) and by the Live Graph (okf server: click a node, read its Markdown; mounts in Rails). One gem, 100% local, Ruby 2.4 or newer, only rack and webrick as dependencies.">
   </picture>
 </p>
 
@@ -164,6 +164,7 @@ bundle exec rake install
 okf validate  <dir> [--json]                            # check OKF v0.1 conformance (§9)
 okf lint      <dir> [--json] [--fail-on warn] [...]     # report curation-quality issues
 okf loose     <dir> [--json]                            # list files with no graph links, by folder
+okf search    <dir> <term…> [-e] [--in a,b] [...]       # ranked text retrieval across metadata + bodies
 okf index     <dir> [--json] [--area A] [--no-body]     # progressive-disclosure map (§6): bodies, rollups, listings
 okf server    <dir> [-p PORT] [--bind ADDR] [...]       # serve the interactive graph over HTTP
 okf graph     <dir> [--json] [--minimal] [--no-body]    # print the knowledge graph
@@ -249,12 +250,13 @@ The skill routes a small set of verbs. In Claude Code they run as `/okf:gem
 | Verb             | What it does                                                                                      |
 | ---------------- | ------------------------------------------------------------------------------------------------- |
 | _(none)_         | Orient on the bundle and recommend the highest-value next move                                    |
+| `search`         | Answer a question from the bundle, token-lean: the map, the finder, only the winning bodies      |
 | `produce`        | Create or extend a bundle from code, docs, or knowledge in people's heads                         |
 | `maintain`       | Sync the bundle's content with reality after the code or docs change                              |
 | `consume`        | Use the bundle as context for a task, writing back what you learn                                 |
 | `curate`         | Structural upkeep as it stands: `validate` + `lint` + `loose`                                     |
 | `doctor`         | Install and verify the CLI, then doctor the bundle                                                |
-| `<okf-cli-verb>` | Run any CLI verb (`validate`, `lint`, `index`, `server`, the read views) and interpret its output |
+| `<okf-cli-verb>` | Run any CLI verb (`validate`, `lint`, `search`, `index`, `server`, the read views) and interpret its output |
 
 Point it at your agent's config directory (or its skills directory) and the tree
 settles in its own `skills/okf/` folder, so a shared skills directory never gets

@@ -39,6 +39,7 @@ module OKF
   require "okf/concept"
   require "okf/bundle"
   require "okf/bundle/graph"
+  require "okf/bundle/search"
   require "okf/bundle/validator"
   require "okf/bundle/validator/result"
   require "okf/bundle/linter"

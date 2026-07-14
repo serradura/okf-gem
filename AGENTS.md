@@ -18,7 +18,7 @@ lib/okf/
   bundle/linter*.rb       pure   curation-quality report (never rejects)
   concept/file.rb         shell  one-file on-disk handle
   bundle/reader|writer|folder.rb  shell  directory <-> Bundle (writer is atomic, validates before publish)
-  server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types
+  server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types, /index, /log
   server/graph.rb + graph/template.html.erb  the whole UI in one self-contained ERB file
   server/runner.rb        shell  built-in WEBrick <-> Rack bridge (replaces any rackup need)
   skill.rb + skill/       shell  the companion agent skill + its installer
@@ -68,8 +68,9 @@ you touch what `require "okf"` pulls in.
    to the right side, and exit codes keep the contract: 0 ok, 1 failing bundle,
    2 usage error.
 5. **The server page stays self-contained**: one ERB template, inline CSS/JS,
-   only Cytoscape, marked, and DOMPurify from a CDN, bodies pulled on demand
-   with `fetch()`. No htmx, no bundler, no build step. Two XSS defenses hold the
+   only Cytoscape, marked, and DOMPurify from a CDN at boot (Mermaid, Panzoom,
+   and the extra layout engines lazy-load from the same CDN on first use),
+   bodies pulled on demand with `fetch()`. No htmx, no bundler, no build step. Two XSS defenses hold the
    line: inlined data goes through `json_for_script` (escapes `<` so it cannot
    break out of its `<script>`), and every fetched body is run through
    `DOMPurify.sanitize(marked.parse(...))` before it reaches `innerHTML`. Keep

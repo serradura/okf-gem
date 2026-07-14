@@ -10,7 +10,7 @@ class OKF::BoundaryTest < OKF::TestCase
   CORE = %w[
     path
     markdown/frontmatter markdown/links markdown/citations
-    concept bundle bundle/graph
+    concept bundle bundle/graph bundle/search
     bundle/validator bundle/validator/result bundle/linter bundle/linter/report
   ].freeze
 

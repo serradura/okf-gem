@@ -7,14 +7,16 @@ description: >-
   what the tools report — and routes every mechanical question (validation,
   linting, views, the graph server) to the installed `okf` CLI. Use whenever
   capturing project knowledge (services, APIs, schemas, metrics, runbooks,
-  decisions) into a bundle, updating one after code or docs change, checking a
-  bundle's conformance or curation quality, rendering it as a graph, or working in
+  decisions) into a bundle, retrieving an answer from a bundle without reading
+  it whole, updating one after code or docs change, checking a bundle's
+  conformance or curation quality, rendering it as a graph, or working in
   a repo that contains an OKF bundle — a `.okf/` directory or a root `index.md`
   carrying `okf_version`. Triggers on: "document this in OKF", "update the
-  knowledge bundle", "capture this as a concept", "validate/lint/serve the
+  knowledge bundle", "capture this as a concept", "what do we know about X?",
+  "where is X documented?", "search the bundle", "validate/lint/serve the
   bundle", or a task needing knowledge from an OKF bundle already in the repo.
 user-invocable: true
-argument-hint: "[produce|maintain|consume|<okf-cli-verb>] [dir] [--flags]"
+argument-hint: "[search|produce|maintain|consume|<okf-cli-verb>] [dir] [--flags]"
 allowed-tools: Read Write Edit Grep Glob Bash
 ---
 
@@ -79,9 +81,12 @@ Don't memorize the surface — `okf --help` maps every verb, `okf <verb> --help`
 flags. The division of labour is the whole game:
 
 - **Shell out — never eyeball —** anything a verb computes: conformance (§9), what
-  exists, what links where, what's stale, the map. Every read verb takes `--json`
-  and the list views filter by type/area/tag, so ask the narrow question instead of
-  paging the bundle.
+  exists, what links where, where a term lives, what's stale, the map. Every read
+  verb takes `--json` and the list views filter by type/area/tag, so ask the narrow
+  question instead of paging the bundle.
+- **Skeleton first, bodies last.** `index --no-body`, `search`, `graph --minimal`,
+  and `--fields` projections each answer for a fraction of a dump's bytes; full
+  bodies are the final step of a retrieval, never the first. <!-- rule:okf-skeleton-first -->
 - **You judge — the CLI can't —** meaning: contradictions, semantic staleness
   (parses fine, no longer true), whether a loose file is terminal-by-design, whether
   a singleton tag is a deliberate marker. Tool output is evidence, never a verdict.
@@ -116,10 +121,10 @@ producing or maintaining, and the verbatim spec [SPEC.md](reference/SPEC.md)
 when you need chapter and verse.
 
 **No subcommand?** Infer intent: "document this / capture X" → `produce`; "the
-code changed, update the docs" → `maintain`; a repo already carrying a bundle
-plus a task needing its knowledge → `consume`; "check / graph / preview it" →
-run the matching CLI verb and interpret the result. When genuinely ambiguous,
-ask.
+code changed, update the docs" → `maintain`; "what do we know about X / where
+is X documented" → `search`; a repo already carrying a bundle plus a task
+needing its knowledge → `consume`; "check / graph / preview it" → run the
+matching CLI verb and interpret the result. When genuinely ambiguous, ask.
 
 **Which directory?** Use the path given. Otherwise default to `.okf/` at the repo
 root, but first detect whether the project already keeps its bundle elsewhere
@@ -136,6 +141,7 @@ Read the referenced playbook before executing — it *is* the procedure.
 | Verb | Category | What it does | Reference |
 |------|----------|--------------|-----------|
 | *(none)*   | Orient | recommend the highest-value next move; never auto-run | [playbooks/menu.md](playbooks/menu.md) |
+| `search`   | Use    | answer a question from the bundle: map → finder → only the winning bodies | [playbooks/search.md](playbooks/search.md) |
 | `produce`  | Author | create or extend a bundle | [playbooks/produce.md](playbooks/produce.md) |
 | `maintain` | Author | sync the bundle's content with reality after a change | [playbooks/maintain.md](playbooks/maintain.md) |
 | `consume`  | Use    | use the bundle as context for a task | [playbooks/consume.md](playbooks/consume.md) |

@@ -14,18 +14,22 @@ is the lede.
    - **No bundle** → lead with **`produce`** (create the first bundle from the
      code, docs, or what lives only in people's heads). Nothing else applies yet.
 3. **Read the bundle's state** from the CLI, not by eyeballing:
-   `okf validate <root> --json`, `okf lint <root> --json`, `okf loose <root>
-   --json`. Then recommend by what they report, most-blocking first:
+   `okf validate <root>`, `okf lint <root>`, `okf loose <root>` — the plain
+   text views, which are lighter than `--json` when you are reading a report
+   rather than extracting structure from it. Then recommend by what they
+   report, most-blocking first:
    - **`validate` has errors** → lead with **`curate`**: §9 conformance errors are
      the only hard failures, and curate fixes them before anything else.
    - **clean `validate`, but `lint`/`loose` findings** → lead with **`curate`** to
      settle the curation debt (reachability, backlog, completeness, hygiene),
      naming the top one or two categories from the report.
    - **clean across the board** → the bundle is healthy, so lead with **`consume`**
-     (put it to work on the task at hand) and offer **`maintain`** as the move for
-     when the code or docs have since changed. If the working tree has uncommitted
-     changes to the code the bundle describes (`git status`), prefer **`maintain`**:
-     that is exactly the drift it exists to close.
+     (put it to work on the task at hand) — or **`search`** when what the user
+     actually has is a question ("what do we know about X?") — and offer
+     **`maintain`** as the move for when the code or docs have since changed. If
+     the working tree has uncommitted changes to the code the bundle describes
+     (`git status`), prefer **`maintain`**: that is exactly the drift it exists
+     to close.
 4. **Freshness is off by default.** If the bundle carries timestamps, note that a
    plain `lint` said nothing about staleness and `okf lint <root> --stale-after
    90d` is the check that would.

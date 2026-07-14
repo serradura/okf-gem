@@ -2,7 +2,7 @@
 type: Constraint
 title: The Ruby 2.4 floor
 description: The gem runs on every Ruby since 2.4 so it works on the interpreter an OS already ships.
-tags: [ruby, compatibility, portability]
+tags: [ruby, portability]
 timestamp: 2026-07-11T12:00:00Z
 ---
 

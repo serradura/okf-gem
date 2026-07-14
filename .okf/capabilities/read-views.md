@@ -3,7 +3,7 @@ type: Capability
 title: Read views (index, catalog, files, types, tags, stats, loose, graph)
 description: The server's browser panels reproduced on the CLI, plus the index map, so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-12T12:00:00Z
+timestamp: 2026-07-13T12:00:00Z
 ---
 
 # Overview
@@ -13,7 +13,9 @@ render the same knowledge as text, so an agent (or a terminal) reads it directly
 Each prints a scannable human view by default and machine JSON with `--json`, and
 all are advisory reads that exit `0`. They share
 [`OKF::Bundle#catalog`](../model/bundle.md) and the
-[graph indexes](../model/graph.md) for their data.
+[graph indexes](../model/graph.md) for their data. When the question is lexical —
+"which concept covers X?" — [ranked search](search.md) cuts across every field
+these views group by, for the price of a few rows.
 
 # The views
 

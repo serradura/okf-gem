@@ -3,7 +3,7 @@ type: Component
 title: OKF::Bundle
 description: The pure in-memory collection of concepts that validate, lint, and graph run over.
 resource: lib/okf/bundle.rb
-tags: [model, bundle, pure]
+tags: [pure]
 timestamp: 2026-07-11T12:00:00Z
 ---
 

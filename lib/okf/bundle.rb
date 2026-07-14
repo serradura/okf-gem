@@ -136,8 +136,8 @@ module OKF
     # the map on the fly (§6 permits exactly that). Grouped by the concept's file
     # path — index files are physical directory listings, so a custom frontmatter
     # `id` must not move a concept out of the directory it lives in. Pure: derived
-    # from the concepts and the reserved index text, no disk. Shared by the `okf
-    # index` view and the server's /index endpoint.
+    # from the concepts and the reserved index text, no disk. Shared by the
+    # `okf index` view and the server's Index panel (/index).
     def directory_index
       by_dir = concepts.group_by { |concept| File.dirname(concept.path) }
       dirs = directory_set(by_dir.keys)

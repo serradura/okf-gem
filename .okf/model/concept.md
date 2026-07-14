@@ -3,7 +3,7 @@ type: Component
 title: OKF::Concept
 description: The pure in-memory model of a single OKF file — frontmatter, body, and a stable id.
 resource: lib/okf/concept.rb
-tags: [model, concept, pure]
+tags: [pure]
 timestamp: 2026-07-11T12:00:00Z
 ---
 

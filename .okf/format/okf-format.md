@@ -3,7 +3,7 @@ type: Format
 title: Open Knowledge Format v0.1
 description: Portable knowledge as a directory of Markdown files with YAML frontmatter that humans and agents both read.
 resource: lib/okf/skill/reference/SPEC.md
-tags: [okf, format, conformance]
+tags: [okf, conformance]
 timestamp: 2026-07-11T12:00:00Z
 ---
 

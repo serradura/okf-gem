@@ -1,7 +1,7 @@
 # OKF tool verbs — the `okf` CLI
 
-`validate`, `lint`, `loose`, `index`, `catalog`, `files`, `tags`, `types`, `stats`,
-`server`, and `graph` are **not** eyeball passes and are not
+`validate`, `lint`, `loose`, `search`, `index`, `catalog`, `files`, `tags`, `types`,
+`stats`, `server`, and `graph` are **not** eyeball passes and are not
 reimplemented in this skill. They run the deterministic `okf` executable shipped by
 the companion gem — the single source of truth for OKF mechanics. Your job is to
 invoke it correctly and interpret the result, not to reason out conformance by hand.
@@ -108,11 +108,34 @@ defect — a terminal leaf (a backlog item, a spec reference) can be loose by de
 `loose` surfaces the set so you can judge intent (see the
 [maintain playbook](../playbooks/maintain.md)).
 
+## search — ranked text retrieval (metadata + body)
+
+The browser page's search brought to the CLI and extended to bodies, so "which
+concept covers X?" costs rows, not body reads. `okf search <dir> <term…>`:
+terms AND together — every term must hit at least one searched field, not
+necessarily the same one — as case-insensitive substrings, or as Ruby regular
+expressions with `--regexp`/`-e` (an invalid pattern is a usage error, exit 2).
+`--in a,b` restricts the searched fields (title, id, tags, type, description,
+body); the shared `--type/--area/--tag` filters narrow the candidates *first*,
+so a search scoped by what `index` taught you stays surgical.
+
+Rows rank by **where** they hit — title 5, id 4, tags 3, type/description 2,
+body 1, summed over matched fields — and carry one bounded context snippet from
+the strongest match that needs context (description or body). Deliberately not
+fuzzy: the consuming agent is the fuzzy layer — when terms miss, learn the
+bundle's vocabulary from `tags`/`types` and re-ask in its own words, rather
+than hammering synonyms. Advisory read: **exit 0 even with zero matches**.
+JSON: `{ bundle, query, count, matches: [{ id, title, type, area, tags,
+matched, score, snippet }] }`, projectable with `--fields/--except`. The
+retrieval procedure that puts this verb in sequence — map first, finder second,
+bodies last — is the [search playbook](../playbooks/search.md).
+
 ## index — the progressive-disclosure map (§6)
 
-The "orient before you read" view, and the one read verb that sees the layer the
-others can't: `index.md` files are reserved/structural, so `catalog`/`files`/… (all
-concept views) never show them. `okf index <dir>` prints one entry per directory
+The "orient before you read" view, and the read verb that sees the layer the
+concept views can't: `index.md` files are reserved/structural, so
+`catalog`/`files`/… never show them (in the browser, the Indexes tab and
+folder clicks render this same map). `okf index <dir>` prints one entry per directory
 that holds concepts or carries an `index.md`, root first — the authored index body
 (frontmatter stripped), a `type`/`tag` rollup over the concepts that live directly
 there, its child directories, and the concept listing. Run it first when picking up
@@ -177,21 +200,36 @@ Starts a local HTTP server (`okf server <dir>`; `-p`/`--port`, default 8808, and
 `--bind`) and prints its URL — stop it with Ctrl-C. The page boots from a lean
 payload (nodes carry only `id` and `title`, plus compact type/tag indexes) and
 fetches each concept's markdown body **live from disk** as you click it, so the
-initial load stays small and edits show without a restart. Concepts render as nodes
+initial load stays small and edits show without a restart. Mermaid code blocks
+in a body render as diagrams, and a click (or tap) opens the diagram full
+screen with drag-to-pan and wheel/pinch zoom. Concepts render as nodes
 coloured by `type` and sized by degree, links as edges, with a detail panel
 (rendered markdown, "Links to" / "Linked from" backlinks), layout switching,
-type/area/tag filters on every view, and search. It is a Rack app, so the same
-server can be mounted in a host app (e.g. Rails).
+type/area/tag filters on every view, and search. The authored layer is in the
+UI too: the Files view carries **Files | Indexes** tabs — the Indexes tab
+lists the log first (the chronological index), then every `index.md` — and
+folder nodes in file-tree mode and area boxes in cluster mode open a
+directory's §6 map in the inspector (authored, or synthesized when none
+exists). Links to an `index.md`, `log.md`, or bare directory navigate instead
+of dead-ending, and the log is fetched fresh on every read, so a
+just-appended entry shows without a restart. `?view=index` jumps straight to
+the Indexes tab. It is a Rack app, so the same server can be mounted in a
+host app (e.g. Rails).
 
-**Trust boundary:** the page loads Cytoscape and marked from a CDN and
-renders each concept's markdown body **without sanitization**, so only serve
-bundles you trust. Inlined graph data cannot break out of its `<script>` (every
-`<` is escaped), but the fetched markdown is rendered unsanitized.
+**Trust boundary:** the page renders each fetched markdown body through
+DOMPurify and escapes everything it inlines (every `<` in the graph data is
+escaped, so it cannot break out of its `<script>`), but it still loads its
+viewer libraries (Cytoscape, marked, DOMPurify — plus Mermaid and Panzoom,
+lazy-loaded on first use) from a CDN and renders whatever
+links the bundle carries — so only serve bundles you trust.
 
 ## graph — the raw structure
 
 Prints the node/edge graph. `--json` emits a machine-readable dump (`nodes` with
-`id`/`type`/`title`/`description`/`tags`, and `edges`) you can pipe into other
-analysis or use to plan a traversal before consuming a large bundle. `--no-body`
-drops each node's body; `--minimal` ships only `id`/`title` plus the type/tag
-indexes — the lean shape the `server` page boots from.
+`id`/`type`/`title`/`description`/`tags` **and, by default, every `body`** — the
+part that dominates the bytes on a real bundle — plus `edges`) you can pipe into
+other analysis. To *plan* a traversal, structure is all you need: `--no-body`
+drops each node's body, and `--minimal` ships only `id`/`title` plus the type/tag
+indexes — the lean shape the `server` page boots from. Reach for the full dump
+only when the task truly consumes every body; for one question, the
+[search verb](#search--ranked-text-retrieval-metadata--body) is orders cheaper.

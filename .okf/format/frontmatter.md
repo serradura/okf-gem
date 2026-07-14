@@ -3,7 +3,7 @@ type: Format
 title: Frontmatter (spec §4)
 description: The YAML header on every concept, parsed through the gem's single, hardened YAML gateway.
 resource: lib/okf/markdown/frontmatter.rb
-tags: [format, yaml, frontmatter]
+tags: [yaml]
 timestamp: 2026-07-11T12:00:00Z
 ---
 

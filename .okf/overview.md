@@ -1,9 +1,9 @@
 ---
 type: Overview
 title: okf-gem at a glance
-description: A light Ruby gem that reads, validates, lints, and serves Open Knowledge Format v0.1 bundles.
-tags: [okf, gem, overview, diagram]
-timestamp: 2026-07-12T12:00:00Z
+description: A light Ruby gem that reads, searches, validates, lints, and serves Open Knowledge Format v0.1 bundles.
+tags: [okf, gem, diagram]
+timestamp: 2026-07-13T12:00:00Z
 ---
 
 # Overview
@@ -21,13 +21,14 @@ flowchart LR
   subgraph cli ["okf CLI"]
     validate["validate — legal? §9"]
     lint["lint — well-curated?"]
+    search["search — which concept?"]
     server["server — explore"]
   end
   model --> cli
   model --> library["library API<br/>embed in Ruby"]
 ```
 
-Over such a bundle the gem gives you five capabilities behind one
+Over such a bundle the gem gives you six capabilities behind one
 [command-line tool](cli.md):
 
 | Capability                                               | What it answers                   | Verb             |
@@ -35,6 +36,7 @@ Over such a bundle the gem gives you five capabilities behind one
 | [Companion agent skill](capabilities/agent-skill.md)     | Can an agent author it?           | `skill`          |
 | [Conformance validator](capabilities/validator.md)       | Is this a legal OKF bundle? (§9)  | `validate`       |
 | [Curation linter](capabilities/linter.md)                | Is it navigable, complete, fresh? | `lint` / `loose` |
+| [Ranked text search](capabilities/search.md)             | Which concept covers X?           | `search`         |
 | [Interactive graph server](capabilities/graph-server.md) | Can I explore it visually?        | `server`         |
 | [Library API](capabilities/library-api.md)               | Can my Ruby program use it?       | (in-process)     |
 

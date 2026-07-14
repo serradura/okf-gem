@@ -3,7 +3,7 @@ type: Capability
 title: Conformance validator (validate)
 description: Implements the spec's §9 conformance definition exactly — three hard conditions, everything else a warning.
 resource: lib/okf/bundle/validator.rb
-tags: [validation, conformance, cli]
+tags: [conformance, cli]
 timestamp: 2026-07-11T12:00:00Z
 ---
 
