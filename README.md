@@ -25,8 +25,9 @@
   <b><a href="https://claude.okfgem.com">Claude plugin</a></b>
 </p>
 
-**okf-gem** (`okf` on RubyGems) is the complete toolkit for
-**Open Knowledge Format (OKF)** v0.1 bundles. The package is **Agent Skill + CLI/Lib + Live Graph**: an agent skill that authors and curates, a CLI and Ruby library that validate, lint, search, and embed, and a live graph server to explore, in one gem that runs 100% local. A bundle is a directory of Markdown files with YAML frontmatter that humans and agents read from one source; each file is a _concept_. The gem does not define a new place to keep knowledge; it gives you leverage over knowledge that already lives as Markdown.
+**okf-gem** (`okf` on RubyGems) is the complete harness for
+**Open Knowledge Format (OKF)** v0.1 bundles: create, maintain, and consume
+your project's knowledge with your agent. The package is **Agent Skill + CLI/Lib + Live Graph**: an agent skill that authors and curates, a CLI and Ruby library that validate, lint, search, and embed, and a live graph server to explore, in one gem that runs 100% local. A bundle is a directory of Markdown files with YAML frontmatter that humans and agents read from one source; each file is a _concept_. The gem does not define a new place to keep knowledge; it gives you leverage over knowledge that already lives as Markdown.
 
 The package, end to end:
 
