@@ -147,7 +147,7 @@ Read the referenced playbook before executing — it *is* the procedure.
 | `consume`  | Use    | use the bundle as context for a task | [playbooks/consume.md](playbooks/consume.md) |
 | `curate`   | Curate | structural upkeep as it stands: validate + lint + loose | [playbooks/curate.md](playbooks/curate.md) |
 | `doctor`   | Setup  | install and verify the CLI, then doctor the bundle | [playbooks/doctor.md](playbooks/doctor.md) |
-| `<okf-cli-verb>` | Read | validate, lint, loose, index, catalog, files, tags, types, stats, graph, server, skill | `okf <verb> --help` + [reference/cli.md](reference/cli.md) |
+| `<okf-cli-verb>` | Read | validate, lint, loose, index, catalog, files, tags, types, stats, graph, server, render, skill | `okf <verb> --help` + [reference/cli.md](reference/cli.md) |
 
 Two boundaries worth keeping sharp: `curate` is structural upkeep only — when
 the *content* no longer matches reality, that is `maintain` — and `doctor` is

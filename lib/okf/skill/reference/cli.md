@@ -1,7 +1,7 @@
 # OKF tool verbs — the `okf` CLI
 
 `validate`, `lint`, `loose`, `search`, `index`, `catalog`, `files`, `tags`, `types`,
-`stats`, `server`, and `graph` are **not** eyeball passes and are not
+`stats`, `server`, `render`, and `graph` are **not** eyeball passes and are not
 reimplemented in this skill. They run the deterministic `okf` executable shipped by
 the companion gem — the single source of truth for OKF mechanics. Your job is to
 invoke it correctly and interpret the result, not to reason out conformance by hand.
@@ -39,7 +39,7 @@ difference between a few hundred bytes and hundreds of KB, since the per-item ro
 `body`.
 
 **Exit codes:** `0` success · `1` non-conformant bundle (or a `lint --fail-on`
-threshold crossed) · `2` usage error. `graph` and `server` are best-effort
+threshold crossed) · `2` usage error. `graph`, `server`, and `render` are best-effort
 (§9): a file with invalid frontmatter is skipped and noted on stderr, never fatal.
 
 ## validate — the hard gate (§9)
@@ -222,6 +222,23 @@ escaped, so it cannot break out of its `<script>`), but it still loads its
 viewer libraries (Cytoscape, marked, DOMPurify — plus Mermaid and Panzoom,
 lazy-loaded on first use) from a CDN and renders whatever
 links the bundle carries — so only serve bundles you trust.
+
+## render — static graph export
+
+Writes the same interactive page as one static, self-contained HTML file
+(`okf render <dir>`), so the graph hosts where there is no server — GitHub Pages,
+an object store, an attachment. Prints to stdout (`okf render <dir> > graph.html`)
+or writes `-o FILE`; `--title`/`--link`/`--layout` mirror `server`. It is the same
+template `server` renders, one switch apart: rather than fetching each body,
+description, catalog, index, and log live, `render` bakes the whole bundle into
+the page and the browser reads from that embedded payload — no server, no build
+step. The trade-off is weight (every body is inlined), so `server` stays the
+choice for a bundle too large to ship whole.
+
+**Trust boundary:** the same two guards as `server` — every inlined body is
+`</script>`-escaped like the graph data and still sanitized by DOMPurify when
+rendered — so a static file is no laxer than the live server. Only render bundles
+you trust.
 
 ## graph — the raw structure
 
