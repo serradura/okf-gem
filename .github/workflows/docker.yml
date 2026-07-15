@@ -5,8 +5,8 @@ name: docker
 #   - on a v* tag (what `rake release` already pushes): build the multi-arch
 #     image and push it as ghcr.io/serradura/okf:<version> + :latest.
 #   - on a PR that touches the image: build amd64 only, no push, as a smoke test.
-#   - manually (workflow_dispatch): publish the current tag's image on demand,
-#     e.g. to ship the first image without waiting for the next release.
+#   - manually (workflow_dispatch): publish the current lib/okf/version.rb as
+#     :<version> + :latest on demand, to ship the first image without a release.
 #
 # The image is built from source (see Dockerfile), so the tag's commit already
 # carries the right lib/okf/version.rb — nothing here depends on RubyGems.
@@ -36,6 +36,13 @@ jobs:
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
+      # On a tag the version comes from the ref; on a manual run, read it from the
+      # gem so the dispatched image is still tagged (metadata-action's semver
+      # patterns only fire on a tag ref).
+      - name: Gem version
+        id: ver
+        run: echo "value=$(grep -oE '"[0-9]+\.[0-9]+\.[0-9]+"' lib/okf/version.rb | tr -d '"')" >> "$GITHUB_OUTPUT"
+
       - name: Derive image tags
         id: meta
         uses: docker/metadata-action@v5
@@ -44,7 +51,8 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+            type=raw,value=${{ steps.ver.outputs.value }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
 
       # No login (and no push) on PRs — the smoke-test build stays credential-free.
       - name: Log in to ghcr.io
