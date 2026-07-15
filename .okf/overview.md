@@ -3,7 +3,7 @@ type: Overview
 title: okf-gem at a glance
 description: A light Ruby gem that reads, searches, validates, lints, and serves Open Knowledge Format v0.1 bundles.
 tags: [okf, gem, diagram]
-timestamp: 2026-07-13T12:00:00Z
+timestamp: 2026-07-15T12:00:00Z
 ---
 
 # Overview
@@ -37,7 +37,7 @@ Over such a bundle the gem gives you six capabilities behind one
 | [Conformance validator](capabilities/validator.md)       | Is this a legal OKF bundle? (§9)  | `validate`       |
 | [Curation linter](capabilities/linter.md)                | Is it navigable, complete, fresh? | `lint` / `loose` |
 | [Ranked text search](capabilities/search.md)             | Which concept covers X?           | `search`         |
-| [Interactive graph server](capabilities/graph-server.md) | Can I explore it visually?        | `server`         |
+| [Interactive graph server](capabilities/graph-server.md) | Can I explore it visually?        | `server` / `render` |
 | [Library API](capabilities/library-api.md)               | Can my Ruby program use it?       | (in-process)     |
 
 Alongside those, a family of [read views](capabilities/read-views.md) —

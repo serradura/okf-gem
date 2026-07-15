@@ -4,7 +4,7 @@ title: The okf command-line front end
 description: The only layer that parses argv, prints, writes files, and decides exit codes.
 resource: lib/okf/cli.rb
 tags: [cli, shell]
-timestamp: 2026-07-13T12:00:00Z
+timestamp: 2026-07-15T12:00:00Z
 ---
 
 # Overview
@@ -25,7 +25,7 @@ groups:
 |-------|-------|-------|
 | Judge | `validate`, `lint`, `loose` | [validate](capabilities/validator.md) and [lint](capabilities/linter.md) answer different questions and stay separate. |
 | Read | `search`, `index`, `catalog`, `files`, `types`, `tags`, `stats`, `graph` | the [browser views as text](capabilities/read-views.md), plus the `index` map and [ranked search](capabilities/search.md). |
-| Act | `server`, `skill` | boot the [graph server](capabilities/graph-server.md); install the [agent skill](capabilities/agent-skill.md). |
+| Act | `server`, `render`, `skill` | boot or statically [render](capabilities/graph-server.md) the [graph server](capabilities/graph-server.md); install the [agent skill](capabilities/agent-skill.md). |
 
 Plus `version` / `--version` / `-v` and `help` / `--help` / `-h`.
 
@@ -41,7 +41,7 @@ The contract every verb keeps:
 
 # Best-effort reads
 
-`graph`, `server`, and the read views are best-effort under §9: a file with
+`graph`, `server`, `render`, and the read views are best-effort under §9: a file with
 invalid frontmatter is kept in `bundle.unparseable`, skipped, and *noted on
 stderr* (so JSON on stdout stays clean) rather than aborting the whole command.
 One bad file never breaks the rest. Run [validate](capabilities/validator.md) for
