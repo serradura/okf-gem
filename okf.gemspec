@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.authors = [ "Rodrigo Serradura" ]
   spec.email = [ "rodrigo.serradura@gmail.com" ]
 
-  spec.summary = "A lightweight Ruby gem for OKF: author, curate, and serve bundles as an interactive graph."
+  spec.summary = "The complete toolkit for the Open Knowledge Format: an agent skill, a CLI and library, and a live knowledge graph. 100% local."
   spec.description = <<~DESC
     OKF (Open Knowledge Format) is portable knowledge: Markdown files with YAML
     frontmatter that both humans and agents read from one source. This gem is the
@@ -38,7 +38,8 @@ Gem::Specification.new do |spec|
     ls.readlines("\x0", chomp: true).reject do |f|
       (f == gemspec) ||
         f.start_with?(*%w[bin/ Gemfile Rakefile .gitignore test/ .github/ .rubocop.yml
-                          .claude/ .okf/ AGENTS.md plugin/ .claude-plugin/])
+                          .claude/ .okf/ AGENTS.md plugin/ .claude-plugin/
+                          Dockerfile .dockerignore])
     end
   end
   spec.bindir = "exe"

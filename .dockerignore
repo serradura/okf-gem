@@ -1,0 +1,17 @@
+# Keep the build context small. NOTE: .git is intentionally NOT ignored —
+# okf.gemspec builds spec.files from `git ls-files`, so the build stage needs it.
+node_modules
+coverage
+tmp
+pkg
+*.gem
+.rubocop.yml
+.claude
+.claude-plugin
+.okf
+.github
+test
+mcp
+sqlite3
+.ruby-lsp
+.DS_Store

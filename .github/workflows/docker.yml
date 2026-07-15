@@ -1,0 +1,65 @@
+name: docker
+
+# Publishes the portable okf image to the GitHub Container Registry.
+#
+#   - on a v* tag (what `rake release` already pushes): build the multi-arch
+#     image and push it as ghcr.io/serradura/okf:<version> + :latest.
+#   - on a PR that touches the image: build amd64 only, no push, as a smoke test.
+#   - manually (workflow_dispatch): publish the current tag's image on demand,
+#     e.g. to ship the first image without waiting for the next release.
+#
+# The image is built from source (see Dockerfile), so the tag's commit already
+# carries the right lib/okf/version.rb — nothing here depends on RubyGems.
+
+on:
+  push:
+    tags: [ "v*" ]
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/docker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    name: build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # arm64 support via emulation, plus BuildKit.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Derive image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/serradura/okf
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+
+      # No login (and no push) on PRs — the smoke-test build stays credential-free.
+      - name: Log in to ghcr.io
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
