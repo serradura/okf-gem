@@ -16,6 +16,7 @@
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
   <a href="lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.1-6E56CF" alt="OKF v0.1"></a>
   <a href="#claude-code-plugin"><img src="https://img.shields.io/badge/Claude%20Code-plugin-D97757" alt="Claude Code plugin"></a>
+  <a href="https://bundledex.net/bundles/okf-gem/"><img src="https://bundledex.net/badge/okf-gem.svg" alt="BundleDex"></a>
 </p>
 
 <p align="center">
