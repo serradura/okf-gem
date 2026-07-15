@@ -171,6 +171,18 @@ class OKF::Server::AppTest < OKF::TestCase
     assert_equal [], JSON.parse(last_response.body)["logs"]
   end
 
+  test "render_static bakes the whole bundle into one self-contained page" do
+    html = @app.render_static
+
+    assert_includes html, "<!doctype html"
+    assert_includes html, "const EMBED={"
+    refute_includes html, "const EMBED=null;"
+    assert_includes html, "The orders body.", "bodies the live server fetches are baked in"
+    assert_includes html, %("bodies":)
+    assert_includes html, %("catalog":)
+    assert_includes html, "a &lt;b&gt;bold&lt;/b&gt; claim", "meta mirrors /node/meta's escaped fragment"
+  end
+
   private
 
   def write(path, content)

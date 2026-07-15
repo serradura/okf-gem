@@ -55,6 +55,7 @@ module OKF
       when "types" then types(argv)
       when "stats" then stats(argv)
       when "server" then server(argv)
+      when "render" then render(argv)
       when "skill" then skill(argv)
       when "version", "--version", "-v" then @out.puts(OKF::VERSION); 0
       when "help", "--help", "-h" then usage(@out); 0
@@ -217,6 +218,34 @@ module OKF
       app = OKF::Server::App.new(folder, title: options[:title] || folder.name, link: options[:link], layout: options[:layout])
       @out.puts "serving #{folder.graph.nodes.size} concepts at http://#{options[:bind]}:#{options[:port]} (Ctrl-C to stop)"
       @runner.call(app, options[:bind], options[:port])
+    end
+
+    # The static counterpart to `server`: bake the whole bundle into one
+    # self-contained HTML file (bodies, catalog, index, logs baked in, no server
+    # needed — e.g. hosting on GitHub Pages). Prints to stdout unless -o is given.
+    def render(argv)
+      require "okf/server/app"
+
+      options = { output: nil, title: nil, link: nil, layout: "cose" }
+      parser = OptionParser.new do |o|
+        o.banner = "Usage: okf render <bundle-dir> [-o FILE] [--layout NAME] [-t title] [-l url]"
+        o.on("-o", "--output FILE", "write to FILE instead of stdout") { |v| options[:output] = v }
+        o.on("-t", "--title TITLE", "graph title (default: parent/bundle dir name)") { |v| options[:title] = v }
+        o.on("-l", "--link URL", "source URL shown in the header") { |v| options[:link] = v }
+        o.on("--layout NAME", OKF::Server::Graph::LAYOUTS, "initial layout (#{OKF::Server::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
+      end
+      dir = positional_dir(parser, argv) or return 2
+
+      folder = OKF::Bundle::Folder.load(dir)
+      report_skipped(folder)
+      html = OKF::Server::App.new(folder, title: options[:title] || folder.name, link: options[:link], layout: options[:layout]).render_static
+      if options[:output]
+        File.write(options[:output], html)
+        @out.puts "wrote #{folder.graph(minimal: true).nodes.size} concepts to #{options[:output]}"
+      else
+        @out.print html
+      end
+      0
     end
 
     def graph(argv)
@@ -947,6 +976,7 @@ module OKF
 
           skill     <dest> [--here] [--force]               install the companion agent skill
           server    <dir> [-p PORT] [--bind ADDR] [...]     serve an interactive HTML graph
+          render    <dir> [-o FILE] [--layout NAME] [...]   write a static, self-contained HTML graph
 
           lint      <dir> [--json] [--fail-on warn] [...]   report curation-quality issues
           loose     <dir> [--json]                          list files with no graph links, by folder

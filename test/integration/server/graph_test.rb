@@ -69,6 +69,37 @@ class OKF::Server::GraphTest < OKF::TestCase
     assert_includes render(link: "https://example.com"), "https://example.com"
   end
 
+  test "server mode injects EMBED=null so the getters fetch live" do
+    write("a.md", "---\ntype: Note\ntitle: A\n---\n\n" + ("x" * 5000))
+
+    html = render
+
+    assert_includes html, "const EMBED=null;"
+    refute_includes html, "x" * 5000, "server mode embeds no body"
+  end
+
+  test "render mode bakes the payload into EMBED and keeps the sanitizer on the path" do
+    write("a.md", "---\ntype: Note\ntitle: A\n---\n\nz\n")
+    payload = { catalog: [], index: [], logs: [], bodies: { "a" => "BAKEDBODYMARK" }, meta: { "a" => "d" } }
+
+    html = render(embed: payload)
+
+    assert_includes html, "const EMBED={"
+    refute_includes html, "const EMBED=null;"
+    assert_includes html, "BAKEDBODYMARK", "the body is embedded for offline render"
+    assert_includes html, "DOMPurify.sanitize(marked.parse(text))", "embedded bodies still route through the sanitizer"
+  end
+
+  test "escaping neutralizes a </script> breakout inside an embedded body" do
+    write("a.md", "---\ntype: Note\ntitle: A\n---\n\nz\n")
+    payload = { catalog: [], index: [], logs: [], bodies: { "a" => "x</script><script>alert(1)</script>" }, meta: {} }
+
+    html = render(embed: payload)
+
+    assert_includes html, "\\u003c/script>"
+    refute_includes html, "</script><script>alert(1)", "the raw breakout never reaches the page"
+  end
+
   private
 
   def render(**opts)

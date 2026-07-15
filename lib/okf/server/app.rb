@@ -55,6 +55,13 @@ module OKF
         end
       end
 
+      # The same interactive page, but with the whole bundle baked in — bodies,
+      # catalog, index and logs — so it needs no server. This is what `okf render`
+      # writes: the fetch getters resolve from the embedded payload, not from here.
+      def render_static
+        Graph.new(graph, title: @title || @folder.name, link: @link, layout: @layout, embed: embed_payload).render
+      end
+
       private
 
       # The minimal graph snapshot taken at boot — drives the page and the indexes.
@@ -94,6 +101,29 @@ module OKF
 
       def page
         @page ||= Graph.new(graph, title: @title || @folder.name, link: @link, layout: @layout).render
+      end
+
+      # Everything the on-demand endpoints would serve, baked for render mode. The
+      # arrays match what each client getter extracts from the JSON envelope; the
+      # per-concept maps mirror /node (raw, unstripped body) and /node/meta (the
+      # same escaped fragment). Read from the in-memory bundle — no live disk read,
+      # since a static file is a snapshot, not a window on edits.
+      def embed_payload
+        {
+          catalog: @folder.catalog,
+          index: @folder.directory_index,
+          logs: logs[:logs],
+          bodies: bodies,
+          meta: meta
+        }
+      end
+
+      def bodies
+        @folder.bundle.concepts.each_with_object({}) { |concept, map| map[concept.id] = concept.body.to_s }
+      end
+
+      def meta
+        @folder.bundle.concepts.each_with_object({}) { |concept, map| map[concept.id] = description_fragment(concept) }
       end
 
       def node_body(id)
