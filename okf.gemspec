@@ -38,7 +38,8 @@ Gem::Specification.new do |spec|
     ls.readlines("\x0", chomp: true).reject do |f|
       (f == gemspec) ||
         f.start_with?(*%w[bin/ Gemfile Rakefile .gitignore test/ .github/ .rubocop.yml
-                          .claude/ .okf/ AGENTS.md plugin/ .claude-plugin/])
+                          .claude/ .okf/ AGENTS.md plugin/ .claude-plugin/
+                          Dockerfile .dockerignore])
     end
   end
   spec.bindir = "exe"

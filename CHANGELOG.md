@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+- Official Docker image: `ghcr.io/serradura/okf`, a portable CLI that runs every
+  `okf` command (the graph server included) with no Ruby on the host. It is built
+  from source and published multi-arch (`linux/amd64`, `linux/arm64`) to the
+  GitHub Container Registry on each release tag, so the image always matches the
+  gem. Mount a bundle at `/data`; for `server`, add `--bind 0.0.0.0` and publish
+  `-p 8808:8808`. See the README's Docker section.
+
 ## [1.5.0] - 2026-07-13
 
 - New CLI verb: `okf search <dir> <term…>` — deterministic ranked retrieval

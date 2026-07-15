@@ -10,6 +10,7 @@
 <p align="center">
   <a href="https://rubygems.org/gems/okf"><img src="https://img.shields.io/gem/v/okf" alt="Gem version"></a>
   <a href="https://rubygems.org/gems/okf"><img src="https://img.shields.io/gem/dt/okf" alt="Downloads"></a>
+  <a href="https://github.com/serradura/okf-gem/pkgs/container/okf"><img src="https://img.shields.io/badge/ghcr.io-okf-2496ED?logo=docker&logoColor=white" alt="Docker image"></a>
   <a href="https://github.com/serradura/okf-gem/actions/workflows/main.yml"><img src="https://github.com/serradura/okf-gem/actions/workflows/main.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/serradura/okf-gem"><img src="https://img.shields.io/badge/ruby-%3E%3D%202.4-black" alt="Ruby >= 2.4"></a>
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
@@ -157,6 +158,38 @@ putting the `okf` command on your `PATH`:
 ```bash
 bundle exec rake install
 ```
+
+### Run it with Docker (no Ruby needed)
+
+Prefer not to install Ruby? The official image bundles the CLI, so every `okf`
+command runs against a bundle you mount at `/data`:
+
+```bash
+# validate / lint / search / index … mirror the CLI, over the mounted bundle
+docker run --rm -v "$PWD:/data" ghcr.io/serradura/okf validate .
+
+# serve the live graph: bind 0.0.0.0 so the host can reach it, and publish the port
+docker run --rm -v "$PWD:/data" -p 8808:8808 ghcr.io/serradura/okf server . --bind 0.0.0.0
+```
+
+Then open <http://127.0.0.1:8808>. Images are published for `linux/amd64` and
+`linux/arm64` on
+[ghcr.io](https://github.com/serradura/okf-gem/pkgs/container/okf): `:latest`
+tracks the newest release, or pin a version like `:1.5.0`.
+
+Tired of the long line? Install a Docker-backed [`okf` command](https://docker.okfgem.com),
+so every verb drops the `docker run` prefix and reads exactly like the native CLI
+(mount, port, and bind handled for you). Do this only on a machine without the
+gem:
+
+```bash
+curl -fsSL https://docker.okfgem.com/install.sh | sh   # or grab the script by hand
+okf validate .
+okf server .
+```
+
+On Windows the image runs under Docker Desktop (WSL2); install with PowerShell
+instead: `irm https://docker.okfgem.com/install.ps1 | iex`.
 
 ## Command line
 
