@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.6.0] - 2026-07-15
 
 - New CLI verb: `okf render <dir> [-o FILE]` — the live graph as one static,
   self-contained HTML file, so it hosts where a server can't (GitHub Pages, an
