@@ -2,7 +2,7 @@
   <a href="https://okfgem.com">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset=".github/hero-dark.png">
-      <img src=".github/hero-light.png" width="100%" alt="okf-gem: your project's knowledge as a living graph. A lightweight Ruby gem for the Open Knowledge Format that authors, curates, and serves bundles of Markdown + YAML as an interactive graph.">
+      <img src=".github/hero-light.png" width="100%" alt="okf-gem: the complete harness for the Open Knowledge Format. An Agent Skill, a CLI and library, and a Live Graph let your agent author, curate, and consume your project's knowledge. 100% local.">
     </picture>
   </a>
 </p>
