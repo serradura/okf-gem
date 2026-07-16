@@ -194,6 +194,7 @@ module OKF
 
     def server(argv)
       require "okf/server/app"
+      require "rack/deflater"
 
       options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose" }
       parser = OptionParser.new do |o|
@@ -216,6 +217,7 @@ module OKF
     # tests drive this without a socket).
     def run_server(folder, options)
       app = OKF::Server::App.new(folder, title: options[:title] || folder.name, link: options[:link], layout: options[:layout])
+      app = Rack::Deflater.new(app) # gzip responses when the client accepts it — transparent, no new dependency
       @out.puts "serving #{folder.graph.nodes.size} concepts at http://#{options[:bind]}:#{options[:port]} (Ctrl-C to stop)"
       @runner.call(app, options[:bind], options[:port])
     end
