@@ -12,9 +12,14 @@
   and reserved files added, bodies kept verbatim (`produce` keeps
   distillation). The verb is routed from SKILL.md's Commands table and intent
   inference, the menu playbook now leads with it when a target already holds
-  markdown docs, and the plugin's `/okf:gem` command suggests
-  `/okf:gem migrate <dir>` whenever its target directory turns out not to be a
-  bundle.
+  markdown docs, and pointing any verb at a directory that is not a bundle now
+  suggests `migrate` instead of grinding through the validate errors.
+- The plugin's `/okf:gem` command is now a pass-through shim: it hands its
+  arguments to the okf skill unchanged, making `SKILL.md` the single router
+  for every channel. The routing prose the command used to duplicate had no
+  drift guard (the sync test covers only the generated skill copy), and the
+  not-a-bundle `migrate` suggestion now lives in `SKILL.md`, so standalone
+  skill installs get it too.
 
 ## [1.6.0] - 2026-07-15
 

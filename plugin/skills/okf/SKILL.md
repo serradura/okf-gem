@@ -127,6 +127,11 @@ matching CLI verb and interpret the result. When genuinely ambiguous, ask.
 root, but first detect whether the project already keeps its bundle elsewhere
 (e.g. `docs/`) and prefer that. Commit the bundle alongside the code it describes.
 
+**Target isn't a bundle?** When a verb points at a directory that holds markdown
+but no root `index.md` carrying `okf_version` — `validate` failing wholesale on
+missing frontmatter — don't grind through the errors: suggest `migrate` (OKFy it
+in place, bodies verbatim) and let the user pick.
+
 ## Commands
 
 The first word of the arguments picks a row. **No arguments at all** — someone
