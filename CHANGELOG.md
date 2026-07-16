@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.7.0] - 2026-07-16
 
 - `okf server`: responses are gzipped when the client accepts it
   (`Rack::Deflater` at the boot seam). Lossless and transparent — the browser
