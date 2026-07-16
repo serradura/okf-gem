@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-07-16
+* **Sync**: the plugin's `/okf:gem` command became a pass-through shim — the [agent skill](capabilities/agent-skill.md) now records that all routing (Commands table, intent inference, the not-a-bundle `migrate` suggestion) lives only in `SKILL.md`, where the drift test guards it, and the command just hands its arguments to the skill unchanged.
 * **Sync**: caught the bundle up with the skill's new `migrate` verb — the [agent skill](capabilities/agent-skill.md) now records the second authoring on-ramp (adopt existing documentation in place: frontmatter and reserved files added, bodies kept verbatim, `okf validate --json` as the worklist) alongside `produce`'s distillation, and its plugin-channel section notes that `/okf:gem` suggests `migrate` when its target directory turns out not to be a bundle.
 
 ## 2026-07-15

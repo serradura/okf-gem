@@ -54,12 +54,14 @@ The repository doubles as a plugin marketplace, and the plugin carries a
 **generated** copy of the same skill (`plugin/skills/okf`) — `rake plugin:sync`
 regenerates it after any skill edit or version bump, and a test fails the build
 on drift, so the canonical-copy rule survives the second channel. Around the
-skill the plugin adds a front-door command (`/okf:gem`, listing `search` first;
-when its target directory turns out not to be a bundle it suggests
-`/okf:gem migrate <dir>` instead of grinding through the validate errors) and a
-PostToolUse hook that runs `okf validate` + `okf lint` after every edit inside
-a bundle and hands the relevant findings back as context. Nothing under
-`plugin/` ships in the gem.
+skill the plugin adds a front-door command (`/okf:gem`) that is deliberately a
+**pass-through shim**: it hands its arguments to the skill unchanged, so
+`SKILL.md` stays the single router for every channel — the Commands table, the
+intent inference, and the not-a-bundle `migrate` suggestion live only there,
+where the drift test guards them, instead of in a second copy the test never
+sees. The plugin also carries a PostToolUse hook that runs `okf validate` +
+`okf lint` after every edit inside a bundle and hands the relevant findings
+back as context. Nothing under `plugin/` ships in the gem.
 
 # Citations
 
