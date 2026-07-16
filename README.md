@@ -73,6 +73,44 @@ It is deliberately light so it runs on the Ruby your OS already ships:
 That range is not aspirational: CI runs the full test suite and RuboCop on every
 one of these on each push.
 
+## Try it in four steps
+
+From zero to your first bundle.
+
+**1. Get the `okf` command.** Two ways in; either one puts `okf` on your `PATH`.
+
+```bash
+gem install okf                                        # with Ruby
+curl -fsSL https://docker.okfgem.com/install.sh | sh   # no Ruby? Docker
+```
+
+**2. Install the skill.** Teach your agent the format — Claude Code, or any
+other agent.
+
+```bash
+okf skill .claude   # or: okf skill .agents
+```
+
+**3. Start an agent session** where your project lives.
+
+```bash
+claude
+```
+
+**4. Make your first bundle.** Two ways in, by what you already have: docs keep
+every word, code gets written up for you.
+
+```
+/okf migrate <path-to-your-docs>            # have docs? adopted in place, bodies verbatim
+/okf produce based on <path-to-your-code>   # only code? the skill authors the concepts
+```
+
+> [!TIP]
+> **Once you have a bundle**, run `/okf maintain` in the agent session to keep it
+> in sync as the code changes, and `okf server <folder>` to explore it as a graph.
+> In Claude Code, the [plugin](#claude-code-plugin) adds a post-edit curation hook
+> that runs `validate` + `lint` for you.
+
 ## Why OKF
 
 Project knowledge (why a service exists, what a metric really measures, the
