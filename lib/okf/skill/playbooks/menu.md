@@ -11,8 +11,11 @@ is the lede.
    here. Everything below needs the CLI.
 2. **Bundle present?** Locate one: the directory you were given, else a `.okf/`
    directory or a root `index.md` whose frontmatter carries `okf_version`.
-   - **No bundle** → lead with **`produce`** (create the first bundle from the
-     code, docs, or what lives only in people's heads). Nothing else applies yet.
+   - **No bundle** → when the target (or an obvious docs directory) already
+     holds markdown documentation, lead with **`migrate`** (OKFy it in place —
+     frontmatter on, bodies verbatim); otherwise lead with **`produce`**
+     (create the first bundle from the code, docs, or what lives only in
+     people's heads). Nothing else applies yet.
 3. **Read the bundle's state** from the CLI, not by eyeballing:
    `okf validate <root>`, `okf lint <root>`, `okf loose <root>` — the plain
    text views, which are lighter than `--json` when you are reading a report

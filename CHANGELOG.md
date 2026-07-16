@@ -7,6 +7,14 @@
   decompresses automatically — and no new dependency, since `Rack::Deflater`
   ships inside rack. Clients that send no `Accept-Encoding` keep getting
   identity responses. `okf render`'s static HTML is untouched.
+- The agent skill gains a `migrate` verb (`playbooks/migrate.md`): convert
+  existing documentation into a conformant bundle **in place** — frontmatter
+  and reserved files added, bodies kept verbatim (`produce` keeps
+  distillation). The verb is routed from SKILL.md's Commands table and intent
+  inference, the menu playbook now leads with it when a target already holds
+  markdown docs, and the plugin's `/okf:gem` command suggests
+  `/okf:gem migrate <dir>` whenever its target directory turns out not to be a
+  bundle.
 
 ## [1.6.0] - 2026-07-15
 

@@ -1,6 +1,6 @@
 ---
 description: Search the bundle, set up and doctor it, run the curation cycle, or hand any task to the OKF skill
-argument-hint: "[search|maintain|curate|produce|consume|doctor|<okf-cli-verb>] [dir] [--flags]"
+argument-hint: "[search|maintain|curate|produce|migrate|consume|doctor|<okf-cli-verb>] [dir] [--flags]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
@@ -20,6 +20,9 @@ this plugin:
 - `curate [dir]`: read the skill's `playbooks/curate.md` and follow it exactly
   as written. Curation is structural upkeep of the bundle as it stands
   (validate + lint + loose); nothing in the project needs to have changed.
+- `migrate [dir]`: read the skill's `playbooks/migrate.md` and follow it
+  exactly as written. Migration adopts existing markdown docs in place —
+  frontmatter on, reserved files in, bodies kept verbatim.
 - Anything else (produce, maintain, consume, an okf CLI verb, or a free-form
   task): first weigh the shape of the ask. A question about what the bundle
   knows — "how do we…", "where is…", "why did we choose…", or any request to
@@ -29,3 +32,9 @@ this plugin:
   with the arguments unchanged; the skill owns the judgment. `maintain` is the
   one to reach for when the code or docs changed and the bundle's content must
   catch up with reality.
+
+Whatever the verb: when the target directory turns out not to be a bundle —
+markdown files but no root `index.md` carrying `okf_version`, `okf validate`
+failing wholesale on missing frontmatter — do not grind through the errors.
+Suggest `/okf:gem migrate <dir>` (OKFy the docs in place, bodies verbatim) as
+the move and let the user pick.
