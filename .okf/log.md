@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-07-15
+* **Sync**: caught the bundle up with the unreleased gzip transport — the [graph server](capabilities/graph-server.md) now records that `okf server` gzips every response a client accepts (`Rack::Deflater` wrapped at the `run_server` boot seam), transparent to the browser and at [no new dependency](design/runtime-dependencies.md) since Deflater ships inside the `rack` already required; the note draws the boundary that the wrap is boot policy, not the app — a host mounting `OKF::Server::App` and the static `okf render` file each carry their own compression — and adds the reciprocal edge into the runtime-dependencies constraint.
 * **Sync**: caught the bundle up with the unreleased `okf render` verb — the [graph server](capabilities/graph-server.md) now documents its static twin (one command writes the whole page as a single self-contained file, the bundle baked in, to host where there is no server) and the data-access design that makes one template serve both modes: the browser's reads flow through getter functions whose source an injected `EMBED` switch selects — live `fetch()` under `okf server`, the embedded payload under `okf render`. The [server trust boundary](design/server-trust-boundary.md) records that render inlines each body through `json_for_script` and still sanitizes it with DOMPurify, so the embedded path carries both defenses; the [CLI](cli.md) verb table gains `render` (Act, best-effort), and the [overview](overview.md) and [capabilities](capabilities/) index listing note the static export.
 
 ## 2026-07-13

@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+- `okf server`: responses are gzipped when the client accepts it
+  (`Rack::Deflater` at the boot seam). Lossless and transparent — the browser
+  decompresses automatically — and no new dependency, since `Rack::Deflater`
+  ships inside rack. Clients that send no `Accept-Encoding` keep getting
+  identity responses. `okf render`'s static HTML is untouched.
+
 ## [1.6.0] - 2026-07-15
 
 - New CLI verb: `okf render <dir> [-o FILE]` — the live graph as one static,

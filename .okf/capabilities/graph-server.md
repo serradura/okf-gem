@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-15T12:00:00Z
+timestamp: 2026-07-15T18:00:00Z
 ---
 
 # Overview
@@ -103,6 +103,18 @@ sequenceDiagram
 | `/index` | the §6 map for the Indexes tab (boot snapshot) |
 | `/log` | every `log.md`, read live from disk for the Log |
 
+# Responses are gzipped on the wire
+
+Under `okf server`, every response is gzipped when the client accepts it:
+`Rack::Deflater` wraps the app at the boot seam (`run_server`), so the browser
+decompresses transparently and the heaviest payloads — the inlined minimal graph,
+the full-body JSON — cross the wire at a fraction of their size. The wrap is boot
+policy, not part of the app: a host that mounts `OKF::Server::App` brings its own
+compression, and `okf render`'s static file carries none (whatever hosts it
+compresses instead). It costs [no new dependency](../design/runtime-dependencies.md) —
+`Rack::Deflater` ships inside the `rack` the gem already requires — and a client
+that sends no `Accept-Encoding` (plain `curl`) still gets an identity response.
+
 # Trust boundary
 
 Both paths into the page are guarded. Inlined data goes through `json_for_script`,
@@ -115,4 +127,4 @@ does not cover.
 # Citations
 
 [1] [lib/okf/server/app.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/app.rb) — the Rack app, its routes, and `render_static`.
-[2] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the `render` verb, the static counterpart to `server`.
+[2] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the `render` verb (the static counterpart to `server`) and the `run_server` boot seam that wraps the app in `Rack::Deflater`.

@@ -64,7 +64,7 @@ class OKF::CLITest < OKF::TestCase
 
     assert_equal 0, cli.run([ "server", @tmpdir, "--port", "9999", "--bind", "0.0.0.0", "-t", "T" ])
     app, host, port = captured.first
-    assert_kind_of OKF::Server::App, app
+    assert_kind_of Rack::Deflater, app # gzip wrap at the boot seam — guards against it silently disappearing
     assert_equal "0.0.0.0", host
     assert_equal 9999, port
     assert_match(/serving 1 concepts/, @out.string)
