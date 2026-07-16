@@ -14,6 +14,11 @@
   inference, the menu playbook now leads with it when a target already holds
   markdown docs, and pointing any verb at a directory that is not a bundle now
   suggests `migrate` instead of grinding through the validate errors.
+- The graph page's link-preview image points at the renamed
+  `okfgem.com/og-demo-v3.png`. The site's OG art was refreshed to drop "Live
+  Graph" from the package formula (it is `Agent Skill + CLI/Lib + Graph` now
+  that `okf render` makes the graph live *or* static), and the filename carries
+  the version so social scrapers pick the new art up.
 - The plugin's `/okf:gem` command is now a pass-through shim: it hands its
   arguments to the okf skill unchanged, making `SKILL.md` the single router
   for every channel. The routing prose the command used to duplicate had no
