@@ -4,20 +4,24 @@ title: Companion agent skill (skill)
 description: A SKILL.md plus references and templates, shipped inside the gem, that teaches an agent to author OKF.
 resource: lib/okf/skill.rb
 tags: [agent, install]
-timestamp: 2026-07-13T12:00:00Z
+timestamp: 2026-07-16T12:00:00Z
 ---
 
 # Overview
 
 The gem carries the **OKF agent skill** — a `SKILL.md` with reference and
-template files that teach a coding agent to *produce*, *maintain*, *consume*,
-and *search* [OKF](../format/okf-format.md) bundles and to drive the
+template files that teach a coding agent to *produce*, *migrate*, *maintain*,
+*consume*, and *search* [OKF](../format/okf-format.md) bundles and to drive the
 [CLI](../cli.md). The authoring judgment the executable can't encode lives here;
 the executable handles the mechanics. Each verb routes to its own playbook
 (`playbooks/`); the search playbook is progressive disclosure end to end —
 ingest the index map, decide where to look, cut across with
 [`okf search`](search.md), read only the winning bodies — and pointed questions
-route to it first from the menu and consume playbooks.
+route to it first from the menu and consume playbooks. The two authoring
+on-ramps stay distinct: `produce` distills sources into new concepts, while
+`migrate` adopts existing documentation in place — frontmatter and reserved
+files added, bodies kept **verbatim**, with `okf validate --json` as the
+worklist — so a document survives conversion recognizably itself.
 
 # `okf skill <dest>` installs it
 
@@ -50,9 +54,11 @@ The repository doubles as a plugin marketplace, and the plugin carries a
 **generated** copy of the same skill (`plugin/skills/okf`) — `rake plugin:sync`
 regenerates it after any skill edit or version bump, and a test fails the build
 on drift, so the canonical-copy rule survives the second channel. Around the
-skill the plugin adds a front-door command (`/okf:gem`, listing `search` first)
-and a PostToolUse hook that runs `okf validate` + `okf lint` after every edit
-inside a bundle and hands the relevant findings back as context. Nothing under
+skill the plugin adds a front-door command (`/okf:gem`, listing `search` first;
+when its target directory turns out not to be a bundle it suggests
+`/okf:gem migrate <dir>` instead of grinding through the validate errors) and a
+PostToolUse hook that runs `okf validate` + `okf lint` after every edit inside
+a bundle and hands the relevant findings back as context. Nothing under
 `plugin/` ships in the gem.
 
 # Citations
