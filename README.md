@@ -73,6 +73,44 @@ It is deliberately light so it runs on the Ruby your OS already ships:
 That range is not aspirational: CI runs the full test suite and RuboCop on every
 one of these on each push.
 
+## Try it in four steps
+
+From zero to your first bundle.
+
+**1. Get the `okf` command.** Two ways in; either one puts `okf` on your `PATH`.
+
+```bash
+gem install okf                                        # with Ruby
+curl -fsSL https://docker.okfgem.com/install.sh | sh   # no Ruby? Docker
+```
+
+**2. Install the skill.** Teach your agent the format — Claude Code, or any
+other agent.
+
+```bash
+okf skill .claude   # or: okf skill .agents
+```
+
+**3. Start an agent session** where your project lives.
+
+```bash
+claude
+```
+
+**4. Make your first bundle.** Two ways in, by what you already have: docs keep
+every word, code gets written up for you.
+
+```
+/okf migrate <path-to-your-docs>            # have docs? adopted in place, bodies verbatim
+/okf produce based on <path-to-your-code>   # only code? the skill authors the concepts
+```
+
+> [!TIP]
+> **Once you have a bundle**, run `/okf maintain` in the agent session to keep it
+> in sync as the code changes, and `okf server <folder>` to explore it as a graph.
+> In Claude Code, the [plugin](#claude-code-plugin) adds a post-edit curation hook
+> that runs `validate` + `lint` for you.
+
 ## Why OKF
 
 Project knowledge (why a service exists, what a metric really measures, the
@@ -297,6 +335,7 @@ The skill routes a small set of verbs. In Claude Code they run as `/okf:gem
 | _(none)_         | Orient on the bundle and recommend the highest-value next move                                              |
 | `search`         | Answer a question from the bundle, token-lean: the map, the finder, only the winning bodies                 |
 | `produce`        | Create or extend a bundle from code, docs, or knowledge in people's heads                                   |
+| `migrate`        | Adopt existing Markdown docs in place: frontmatter and reserved files added, bodies kept verbatim           |
 | `maintain`       | Sync the bundle's content with reality after the code or docs change                                        |
 | `consume`        | Use the bundle as context for a task, writing back what you learn                                           |
 | `curate`         | Structural upkeep as it stands: `validate` + `lint` + `loose`                                               |
@@ -455,7 +494,7 @@ The plugin carries three pieces:
 | Piece         | What it does                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `okf` skill   | The [companion skill](#agent-skill) above, bundled with the plugin (a generated copy that `rake plugin:sync` keeps identical to `lib/okf/skill`).                                                                                                                                                                                                                                                                        |
-| `/okf:gem`    | The front door, routed by argument. No arguments: orients on the CLI, the bundle, and what `validate`/`lint` report, then recommends the highest-value next move (never auto-runs). `doctor`: installs and verifies the `okf` CLI, then doctors the repo's bundle. `curate`: the full curation cycle (`validate` + `lint` + `loose`). Anything else (`produce`, `maintain`, `consume`, a CLI verb): handed to the skill. |
+| `/okf:gem`    | The front door: a pass-through that hands its arguments to the skill unchanged, so the [verb table](#agent-skill) above is the whole routing story — `doctor` installs and verifies the CLI, `curate` runs the full cycle (`validate` + `lint` + `loose`), `produce`/`migrate`/`maintain`/`consume` and any CLI verb do what they say. No arguments: orients on the CLI, the bundle, and what `validate`/`lint` report, then recommends the highest-value next move (never auto-runs). |
 | Curation hook | After every Write or Edit inside a bundle, runs `okf validate` + `okf lint` and returns the findings as context. The checks are the CLI's own, so the feedback is deterministic.                                                                                                                                                                                                                                         |
 
 The hook stays silent outside bundles, and when the CLI is missing it suggests

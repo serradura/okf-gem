@@ -1,12 +1,30 @@
 # Changelog
 
-## [Unreleased]
+## [1.7.0] - 2026-07-16
 
 - `okf server`: responses are gzipped when the client accepts it
   (`Rack::Deflater` at the boot seam). Lossless and transparent — the browser
   decompresses automatically — and no new dependency, since `Rack::Deflater`
   ships inside rack. Clients that send no `Accept-Encoding` keep getting
   identity responses. `okf render`'s static HTML is untouched.
+- The agent skill gains a `migrate` verb (`playbooks/migrate.md`): convert
+  existing documentation into a conformant bundle **in place** — frontmatter
+  and reserved files added, bodies kept verbatim (`produce` keeps
+  distillation). The verb is routed from SKILL.md's Commands table and intent
+  inference, the menu playbook now leads with it when a target already holds
+  markdown docs, and pointing any verb at a directory that is not a bundle now
+  suggests `migrate` instead of grinding through the validate errors.
+- The graph page's link-preview image points at the renamed
+  `okfgem.com/og-demo-v3.png`. The site's OG art was refreshed to drop "Live
+  Graph" from the package formula (it is `Agent Skill + CLI/Lib + Graph` now
+  that `okf render` makes the graph live *or* static), and the filename carries
+  the version so social scrapers pick the new art up.
+- The plugin's `/okf:gem` command is now a pass-through shim: it hands its
+  arguments to the okf skill unchanged, making `SKILL.md` the single router
+  for every channel. The routing prose the command used to duplicate had no
+  drift guard (the sync test covers only the generated skill copy), and the
+  not-a-bundle `migrate` suggestion now lives in `SKILL.md`, so standalone
+  skill installs get it too.
 
 ## [1.6.0] - 2026-07-15
 

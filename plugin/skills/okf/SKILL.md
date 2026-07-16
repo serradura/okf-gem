@@ -116,7 +116,8 @@ read the modelling craft in [authoring.md](reference/authoring.md) before
 producing or maintaining, and the verbatim spec [SPEC.md](reference/SPEC.md)
 when you need chapter and verse.
 
-**No subcommand?** Infer intent: "document this / capture X" → `produce`; "the
+**No subcommand?** Infer intent: "document this / capture X" → `produce`;
+"convert / migrate / OKFy these existing docs into a bundle" → `migrate`; "the
 code changed, update the docs" → `maintain`; "what do we know about X / where
 is X documented" → `search`; a repo already carrying a bundle plus a task
 needing its knowledge → `consume`; "check / graph / preview it" → run the
@@ -125,6 +126,11 @@ matching CLI verb and interpret the result. When genuinely ambiguous, ask.
 **Which directory?** Use the path given. Otherwise default to `.okf/` at the repo
 root, but first detect whether the project already keeps its bundle elsewhere
 (e.g. `docs/`) and prefer that. Commit the bundle alongside the code it describes.
+
+**Target isn't a bundle?** When a verb points at a directory that holds markdown
+but no root `index.md` carrying `okf_version` — `validate` failing wholesale on
+missing frontmatter — don't grind through the errors: suggest `migrate` (OKFy it
+in place, bodies verbatim) and let the user pick.
 
 ## Commands
 
@@ -139,6 +145,7 @@ Read the referenced playbook before executing — it *is* the procedure.
 | *(none)*   | Orient | recommend the highest-value next move; never auto-run | [playbooks/menu.md](playbooks/menu.md) |
 | `search`   | Use    | answer a question from the bundle: map → finder → only the winning bodies | [playbooks/search.md](playbooks/search.md) |
 | `produce`  | Author | create or extend a bundle | [playbooks/produce.md](playbooks/produce.md) |
+| `migrate`  | Author | convert existing docs in place: frontmatter + reserved files, bodies verbatim | [playbooks/migrate.md](playbooks/migrate.md) |
 | `maintain` | Author | sync the bundle's content with reality after a change | [playbooks/maintain.md](playbooks/maintain.md) |
 | `consume`  | Use    | use the bundle as context for a task | [playbooks/consume.md](playbooks/consume.md) |
 | `curate`   | Curate | structural upkeep as it stands: validate + lint + loose | [playbooks/curate.md](playbooks/curate.md) |

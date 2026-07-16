@@ -8,7 +8,8 @@ vocabulary, topology, links, citations — lives in
 2. Pick the source(s): **code** (derive concepts from source, READMEs, docstrings,
    config), **docs/wiki** (distill pages into concepts; cite the originals under
    `# Citations`), **manual** (decisions, playbooks, metrics that live only in
-   people's heads).
+   people's heads). If the source documents should survive as the concepts
+   themselves — verbatim — that is [migrate.md](migrate.md), not produce.
 3. Choose a domain-based directory layout. One concept per file.
 4. Write each concept from [templates/concept.md](../templates/concept.md): a
    descriptive `type` from the bundle's vocabulary, recommended fields filled,
