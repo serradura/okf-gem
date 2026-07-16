@@ -1,7 +1,19 @@
 # Changelog
 
-## [Unreleased]
+## [1.6.0] - 2026-07-15
 
+- New CLI verb: `okf render <dir> [-o FILE]` — the live graph as one static,
+  self-contained HTML file, so it hosts where a server can't (GitHub Pages, an
+  object store, an attachment). It is the same page `okf server` serves, one
+  switch apart: the browser's five on-demand reads — bodies, descriptions,
+  catalog, index, logs — now route through named getters that resolve from an
+  injected `EMBED` payload instead of the network, so the whole bundle rides
+  inside the file with no server and no build step. Prints to stdout (`okf
+  render docs > public/index.html`) or writes `-o FILE`. The embedded data is
+  `</script>`-escaped exactly like the boot payload and every body still renders
+  through `DOMPurify.sanitize(marked.parse(...))`, so the trust boundary holds;
+  the trade-off is weight — each body is inlined, so a big bundle makes a big
+  file, and `okf server` stays the choice at scale.
 - Official Docker image: `ghcr.io/serradura/okf`, a portable CLI that runs every
   `okf` command (the graph server included) with no Ruby on the host. It is built
   from source and published multi-arch (`linux/amd64`, `linux/arm64`) to the

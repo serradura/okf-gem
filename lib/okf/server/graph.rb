@@ -7,15 +7,23 @@ module OKF
     # returns the HTML string.
     #
     # The page boots from a *minimal* payload — nodes carry only id + title, plus
-    # compact TYPES/TAGS inverted indexes for colouring and filtering — and pulls
-    # each concept's markdown body (and metadata) from the server on demand via
-    # fetch, rendering it client-side with marked. Node bodies are therefore NOT
-    # embedded here.
+    # compact TYPES/TAGS inverted indexes for colouring and filtering. It has two
+    # data modes, both driven by one template:
     #
-    # NOTE (trust boundary): the page loads Cytoscape + marked from a CDN and
-    # renders concept markdown without sanitization, so only serve bundles you
-    # trust. The inline-<script> data is </script>-escaped by #json_for_script
-    # (stdlib ERB does not auto-escape).
+    #   server mode (embed: nil) — the default. Each concept's markdown body,
+    #     metadata, catalog, index and log are pulled from OKF::Server::App on
+    #     demand via fetch, so the initial payload stays small and bodies read
+    #     live from disk (edits show without a restart). Nothing extra embedded.
+    #   render mode (embed: payload) — `okf render` bakes the whole bundle in:
+    #     the same fetch getters resolve from the injected payload instead, so
+    #     the single file needs no server (e.g. hosting on GitHub Pages).
+    #
+    # NOTE (trust boundary): the page loads Cytoscape + marked from a CDN, so it
+    # needs network for those libraries even in render mode. Fetched/embedded
+    # markdown is sanitized client-side (DOMPurify.sanitize(marked.parse(...)))
+    # and all inline-<script> data — including any embedded body — is
+    # </script>-escaped by #json_for_script (stdlib ERB does not auto-escape).
+    # Still, only serve bundles you trust.
     class Graph
       TEMPLATE = File.expand_path("graph/template.html.erb", __dir__)
       LAYOUTS = %w[cose concentric breadthfirst circle grid].freeze
@@ -31,13 +39,15 @@ module OKF
       # +node_endpoint+/+meta_endpoint+ are the (mount-relative) URLs the page
       # fetches a concept's raw markdown and metadata fragment from — relative so
       # the page works whether served at "/" or mounted under a Rails prefix.
-      def initialize(graph, title: nil, link: nil, layout: "cose", node_endpoint: "node", meta_endpoint: "node/meta")
+      # +embed+ is the render-mode payload (nil = server mode); see the class doc.
+      def initialize(graph, title: nil, link: nil, layout: "cose", node_endpoint: "node", meta_endpoint: "node/meta", embed: nil)
         @graph = graph
         @title = title
         @link = link
         @layout = layout
         @node_endpoint = node_endpoint
         @meta_endpoint = meta_endpoint
+        @embed = embed
       end
 
       def render
@@ -84,6 +94,12 @@ module OKF
       # { tag => [id, …] } — the client derives a node's tags and offers filters.
       def tags_json
         json_for_script(@graph.tag_index)
+      end
+
+      # The render-mode payload, or the literal `null` in server mode — both from
+      # the same </script>-escaping helper, so injection stays uniform and safe.
+      def embed_json
+        json_for_script(@embed)
       end
 
       # JSON-encode for safe embedding in an inline <script>: escaping every `<` to

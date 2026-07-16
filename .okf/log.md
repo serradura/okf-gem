@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-07-15
+* **Sync**: caught the bundle up with the unreleased `okf render` verb — the [graph server](capabilities/graph-server.md) now documents its static twin (one command writes the whole page as a single self-contained file, the bundle baked in, to host where there is no server) and the data-access design that makes one template serve both modes: the browser's reads flow through getter functions whose source an injected `EMBED` switch selects — live `fetch()` under `okf server`, the embedded payload under `okf render`. The [server trust boundary](design/server-trust-boundary.md) records that render inlines each body through `json_for_script` and still sanitizes it with DOMPurify, so the embedded path carries both defenses; the [CLI](cli.md) verb table gains `render` (Act, best-effort), and the [overview](overview.md) and [capabilities](capabilities/) index listing note the static export.
+
 ## 2026-07-13
 * **Sync**: the [graph server](capabilities/graph-server.md) gains a fullscreen diagram viewer — a rendered Mermaid block is now click-to-inspect (re-rendered from source into a pan-and-zoom overlay, Panzoom lazy-loaded beside Mermaid), and the concept's self-contained-page section records the two lazy CDN assets.
 * **Sync**: caught the bundle up with the server's authored-layer round — the [graph server](capabilities/graph-server.md) now renders the §6 index map and §7 log in the browser (the Files | Indexes tree tabs), resolves in-app links to reserved files and bare directories, and lets folder/area nodes open their directory map, all backed by new `/index` and `/log` endpoints; this closes the parity gap from the other side of search — the CLI had the map, now the browser does too.

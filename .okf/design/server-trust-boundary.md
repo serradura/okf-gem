@@ -1,10 +1,10 @@
 ---
 type: Constraint
 title: The server trust boundary
-description: The served page sanitizes each concept body before rendering and escapes inlined data, so both XSS paths into the page are closed.
+description: The page sanitizes each concept body before rendering and escapes inlined data, so both XSS paths into the page are closed — served live or rendered static.
 resource: lib/okf/server/graph/template.html.erb
 tags: [security, server, xss]
-timestamp: 2026-07-12T12:00:00Z
+timestamp: 2026-07-15T12:00:00Z
 ---
 
 # Overview
@@ -25,6 +25,16 @@ There are two data paths into the page, and each carries its own guard:
 The [description](../format/cross-links.md) shown in the inspector takes a third
 path and never needs the client's help: the server escapes it
 (`OKF::Server::App#description_fragment`) before sending it, so it arrives inert.
+
+# The static render carries both guards
+
+[`okf render`](../capabilities/graph-server.md) bakes every body into the page
+instead of fetching it, so an embedded body takes the *inlined* path **and** the
+rendered one: `json_for_script` escapes it at inject time (a `</script>` inside a
+body cannot break out of its `<script>`), and it is still
+`DOMPurify.sanitize(marked.parse(...))`'d when the getter hands it to the DOM. The
+same two defenses, now both on the one path — a static file is no laxer than the
+server, and the embedded description stays server-escaped exactly as above.
 
 # What sanitizing does not cover
 

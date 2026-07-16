@@ -70,6 +70,46 @@ class OKF::CLITest < OKF::TestCase
     assert_match(/serving 1 concepts/, @out.string)
   end
 
+  test "render prints a static, self-contained HTML graph to stdout" do
+    write("a.md", "---\ntype: Note\ntitle: A\ndescription: d\n---\n\nUNIQUEBODYMARK\n")
+
+    assert_equal 0, invoke("render", @tmpdir)
+    assert_includes @out.string, "<!doctype html"
+    assert_includes @out.string, "const EMBED={"
+    refute_includes @out.string, "const EMBED=null;"
+    assert_includes @out.string, "UNIQUEBODYMARK", "the body is baked in — no server needed"
+  end
+
+  test "render -o writes the file and reports the concept count on stdout" do
+    write("a.md", concept)
+    out_file = File.join(@tmpdir, "graph.html")
+
+    assert_equal 0, invoke("render", @tmpdir, "-o", out_file)
+    assert_includes File.read(out_file), "<!doctype html"
+    assert_match(/wrote 1 concepts to #{Regexp.escape(out_file)}/, @out.string)
+    refute_includes @out.string, "<!doctype html", "with -o, stdout carries only the confirmation"
+  end
+
+  test "render rejects an unknown layout without writing anything (exit 2)" do
+    write("a.md", concept)
+
+    assert_equal 2, invoke("render", @tmpdir, "--layout", "bogus")
+    assert_match(/invalid argument: --layout bogus/, @err.string)
+  end
+
+  test "render notes skipped unparseable files on stderr and still exits 0 with valid HTML" do
+    write("good.md", concept)
+    write("bad.md", "no frontmatter here\n")
+
+    assert_equal 0, invoke("render", @tmpdir)
+    assert_match(/skipped 1 file/, @err.string)
+    assert_includes @out.string, "<!doctype html"
+  end
+
+  test "render rejects a missing directory (exit 2)" do
+    assert_equal 2, invoke("render", File.join(@tmpdir, "nope"))
+  end
+
   test "graph --minimal emits lean nodes plus type and tag indexes" do
     write("a.md", "---\ntype: Note\ntitle: A\ntags: [x]\n---\n\n[B](b.md)\n")
     write("b.md", concept("B"))

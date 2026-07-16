@@ -496,6 +496,11 @@
 const NODES=<%= nodes_json %>, EDGES=<%= edges_json %>, TYPES=<%= types_json %>, TAGS=<%= tags_json %>;
 const NODE_ENDPOINT=<%= @node_endpoint.to_json %>, META_ENDPOINT=<%= @meta_endpoint.to_json %>;
 const CATALOG_ENDPOINT="catalog",INDEX_ENDPOINT="index",LOG_ENDPOINT="log";
+/* null when served live (`okf server`) — the getters below fetch the endpoints
+   above. `okf render` injects a payload {catalog,index,logs,bodies,meta}, and
+   every getter resolves from it instead, so one file needs no server and the
+   endpoint consts above go inert. */
+const EMBED=<%= embed_json %>;
 const MIN=<%= OKF::Server::Graph::MIN_SIZE %>, MAX=<%= OKF::Server::Graph::MAX_SIZE %>;
 const PALETTE=["#6E56CF","#D97757","#22C55E","#3B82F6","#EAB308","#EC4899","#14B8A6","#F97316","#A855F7","#0EA5E9","#84CC16","#EF4444","#64748B"];
 const root=document.documentElement;
@@ -701,6 +706,12 @@ function showLog(path){LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.pa
  sideBody.innerHTML=`<span class="type">update log · §7</span><h2 class="title">${esc(path)}</h2><div class="body" id="dir-body"></div>`;
  renderMarkdown(document.getElementById('dir-body'),l.content||'');
  if(opened)requestAnimationFrame(()=>cy.resize());});}
+/* Two per-concept reads shared by the inspector and the files preview: the raw
+   markdown body (rendered client-side) and the description fragment. Live they
+   hit /node and /node/meta; under EMBED they resolve from the baked payload.
+   Never memoized in server mode, so on-disk edits keep reflecting. */
+function getNodeBody(id){return EMBED?Promise.resolve(EMBED.bodies[id]||''):fetch(NODE_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
+function getNodeMeta(id){return EMBED?Promise.resolve(EMBED.meta[id]||''):fetch(META_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
 function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Untyped';const c=color[ty]||'#64748b';
  shownId=id;const opened=openPanel();sideBody.scrollTop=0;
  sideBody.innerHTML=`<span class="type"><span class="dot" style="background:${c}"></span>${esc(ty)}</span>
@@ -708,10 +719,9 @@ function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Unty
  <div class="tags">${(tagsOf[id]||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
  ${relList('Links to',outL[id])}${relList('Linked from',inL[id])}<div class="body" id="body"></div>`;
  sideBody.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
- const eid=encodeURIComponent(id);
- fetch(META_ENDPOINT+'?id='+eid).then(r=>r.ok?r.text():'').then(h=>{const d=document.getElementById('desc');if(d){d.innerHTML=h||'<span class="empty">no description</span>';d.classList.remove('loading');}}).catch(()=>{});
+ getNodeMeta(id).then(h=>{const d=document.getElementById('desc');if(d){d.innerHTML=h||'<span class="empty">no description</span>';d.classList.remove('loading');}}).catch(()=>{});
  const bodyEl=sideBody.querySelector('#body');
- fetch(NODE_ENDPOINT+'?id='+eid).then(r=>r.ok?r.text():'').then(md=>{if(bodyEl.isConnected)renderMarkdown(bodyEl,md);}).catch(()=>{});
+ getNodeBody(id).then(md=>{if(bodyEl.isConnected)renderMarkdown(bodyEl,md);}).catch(()=>{});
  return opened;}
 /* One camera move per selection. When the click also opens the panel, the
    container is still animating (--side-w, .22s), so pan now and the debounced
@@ -889,7 +899,7 @@ searchInput.oninput=()=>{q[view]=searchInput.value;
 
 /* ── catalog ── */
 let CATALOG=null;
-function getCatalog(){return CATALOG||(CATALOG=fetch(CATALOG_ENDPOINT).then(r=>r.json()).then(d=>d.concepts));}
+function getCatalog(){return CATALOG||(CATALOG=EMBED?Promise.resolve(EMBED.catalog):fetch(CATALOG_ENDPOINT).then(r=>r.json()).then(d=>d.concepts));}
 const catActiveTypes=new Set(), catActiveAreas=new Set(), catActiveTags=new Set();
 const catByCount=types.slice().sort((a,b)=>(TYPES[b]||[]).length-(TYPES[a]||[]).length);
 const catChip=t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} <span class="c">${(TYPES[t]||[]).length}</span></span>`;
@@ -1024,7 +1034,7 @@ function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byI
  document.getElementById('fp-graph').hidden=false;
  document.getElementById('fp-graph').onclick=()=>goToGraph(id);
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
- fetch(NODE_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'').then(txt=>{
+ getNodeBody(id).then(txt=>{
   const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);}).catch(()=>{body.innerHTML='<p class="empty">could not load this file</p>';});}
 /* Reserved files read in the preview too: the index map from its payload, the
    log fetched fresh on every click so a just-appended entry shows. */
@@ -1119,13 +1129,13 @@ document.addEventListener('fullscreenchange',()=>btnFull.setAttribute('aria-pres
 
 /* ── the §6 map payload — feeds folder clicks, the Indexes tab, and previews ── */
 let INDEX=null;
-function getIndex(){return INDEX||(INDEX=fetch(INDEX_ENDPOINT).then(r=>r.json()).then(d=>d.directories));}
+function getIndex(){return INDEX||(INDEX=EMBED?Promise.resolve(EMBED.index):fetch(INDEX_ENDPOINT).then(r=>r.json()).then(d=>d.directories));}
 function listingHtml(items){if(!items||!items.length)return '<p class="empty" style="margin:10px 0 0">No concepts directly here.</p>';
  return '<ul class="ix-listing">'+items.map(it=>`<li><a data-go="${esc(it.id)}">${esc(it.title||it.id)}</a>${it.description?` <span class="d">— ${esc(it.description)}</span>`:''}</li>`).join('')+'</ul>';}
 
 /* ── log payload (the §7 history) — read by the Files view's log entries ── */
 let LOGS=null;
-function getLogs(){return LOGS||(LOGS=fetch(LOG_ENDPOINT).then(r=>r.json()).then(d=>d.logs));}
+function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LOG_ENDPOINT).then(r=>r.json()).then(d=>d.logs));}
 
 /* ── keyboard ── */
 const VIEW_KEYS={'1':'graph','3':'files','4':'catalog','5':'tags','6':'stats'};
