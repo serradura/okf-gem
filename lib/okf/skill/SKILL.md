@@ -1,20 +1,16 @@
 ---
 name: okf
 description: >-
-  Be the expert on Open Knowledge Format (OKF) — portable knowledge as a directory
-  of markdown files with YAML frontmatter that both humans and agents read. The
-  skill carries the judgment — modelling concepts, curating bundles, interpreting
-  what the tools report — and routes every mechanical question (validation,
-  linting, views, the graph server) to the installed `okf` CLI. Use whenever
-  capturing project knowledge (services, APIs, schemas, metrics, runbooks,
-  decisions) into a bundle, retrieving an answer from a bundle without reading
-  it whole, updating one after code or docs change, checking a bundle's
-  conformance or curation quality, rendering it as a graph, or working in
-  a repo that contains an OKF bundle — a `.okf/` directory or a root `index.md`
-  carrying `okf_version`. Triggers on: "document this in OKF", "update the
-  knowledge bundle", "capture this as a concept", "what do we know about X?",
-  "where is X documented?", "search the bundle", "validate/lint/serve the
-  bundle", or a task needing knowledge from an OKF bundle already in the repo.
+  Be the expert on Open Knowledge Format (OKF) — portable project knowledge as a
+  directory of markdown files with YAML frontmatter that humans and agents read
+  from one source. Use when capturing knowledge into a bundle (a service, schema,
+  metric, decision, runbook: "document this in OKF", "capture this as a concept"),
+  retrieving from one without reading it whole ("what do we know about X?", "where
+  is X documented?", "search the bundle"), updating one after code or docs change
+  ("update the knowledge bundle"), checking its conformance or curation quality
+  ("validate/lint the bundle"), serving or rendering it as a graph, or working in a
+  repo that already carries an OKF bundle — a `.okf/` directory or a root `index.md`
+  carrying `okf_version`.
 user-invocable: true
 argument-hint: "[search|produce|maintain|consume|<okf-cli-verb>] [dir] [--flags]"
 allowed-tools: Read Write Edit Grep Glob Bash
