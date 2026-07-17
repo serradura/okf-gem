@@ -4,35 +4,61 @@
 
 - A persistent bundle registry and a multi-bundle hub. `okf registry`
   (list / set / del / default / rename) keeps a per-user list in a plain JSON
-  file at `$OKF_HOME/registry.json` (default `~/.okf`; `--home` overrides), and
-  `okf server` reads its mode from its arguments: one dir is the classic single
-  bundle at `/`, several mount ephemerally behind a hub at `/b/<slug>/`, none
-  serves the whole registry with its chosen default at `/`. Behind a hub the
-  page gains a bundle switcher (⌘/Ctrl-K, or the rail button), `/b/` is a
-  browsable index, and an unknown slug 404s as a page with a way home. The hub
-  reads its bundles at boot — restart after registry changes.
-- `@refs`: wherever a command takes a `<dir>`, `@slug` now names a registered
+  file at `$OKF_HOME/registry.json` (default `~/.okf`), and `okf server` reads
+  its mode from its arguments: one dir is the classic single bundle at `/`,
+  several mount ephemerally behind a hub at `/b/<slug>/`, none serves the whole
+  registry with its default at `/`. Behind a hub the page gains a bundle
+  switcher (⌘/Ctrl-K, or the rail button), `/b/` is a browsable index, and an
+  unknown slug 404s as a page with a way home. The hub reads its bundles at
+  boot — restart after registry changes.
+- The registry is **ordered, and the first entry still on disk is the default** —
+  the bundle a bare `okf server` opens at `/`. `okf registry default <slug>` moves
+  that entry to the front, and `okf registry set --default` registers straight to
+  it; until you do either, the first bundle you registered is the default. Nothing
+  else has to be maintained: a rename keeps its position, a `del` promotes
+  whatever is next, and the file cannot name a default that is not there. A
+  vanished directory is stepped over rather than starred — `registry list`'s `*`
+  always names the bundle `/` opens — and `registry default <slug>` refuses one,
+  just as `registry set` refuses to register a directory that is not there.
+- `$OKF_HOME` is the single lever on which registry a command reads: set it and
+  every verb follows, from `okf registry list` to an `@ref` on `okf lint`. It
+  names exactly one registry, with no fallback to `~/.okf` behind it, and an
+  empty value counts as unset rather than planting `registry.json` in the
+  current directory.
+- `@refs`: wherever a command takes a `<dir>`, `@slug` names a registered
   bundle and bare `@` the registry default — `okf lint @handbook`,
-  `okf render @ -o graph.html` — resolved through `$OKF_HOME`, or `--home DIR`
-  where a verb offers it (`registry`, `server`, `search`). Refs are normalized
-  like registration was (`@One` finds the bundle from dir `One`) but never to a
-  placeholder, so `@***` is a bad ref rather than a silent hit. An unknown
-  slug, a registered-but-gone directory, or a malformed registry file is a
-  usage error naming the registry file and the next move. A hub built from refs
+  `okf render @ -o graph.html`. Refs are normalized like registration was
+  (`@One` finds the bundle from dir `One`) but never to a placeholder, so
+  `@***` is a bad ref rather than a silent hit. An unknown slug, a
+  registered-but-gone directory, or a malformed registry file is a usage error
+  naming the registry file and the next move. A hub built from refs
   (`okf server @a @b`) mounts each bundle under its registered slug, the first
   ref at `/`, and a registered slug reserves its mount ahead of any plain
   directory that shares the name.
+- `okf search` spans bundles: several leading `@refs`, or `@all` for every
+  registered one. Rankings merge across bundles with every row labeled by its
+  bundle's slug (a `bundles` list and a per-match `slug` key in the JSON).
+  Asking for everything tolerates gaps — `@all` skips a bundle whose directory
+  has vanished, with a note — while naming one insists on it, and `@all @docs`
+  simply dedupes. `all` is reserved *in the registry*, on all three ways in: a
+  directory named `all/` registers as `all-2`, `--as all` is refused, and a row
+  already claiming the name in the registry file — hand-typed, or written before
+  the name was reserved — is read as `all-2`, so the reservation never strands a
+  registry it inherited. An ephemeral `okf server ./all` still mounts at
+  `/b/all/` — no registry, no refs, nothing to reserve.
 - The registry validates its file's shape, not just its JSON syntax: a
   hand-edited entry missing `path` is a usage error naming the file instead of
-  a `TypeError`, and `okf registry --home X set <dir>` — a subcommand behind a
-  flag — is now a usage error rather than silently listing and exiting 0. An
-  empty `--home` no longer plants `registry.json` in the current directory, and
-  `okf search --all <dir>` rejects the directory instead of demoting it to a
-  search term.
-- `okf search` spans bundles: several leading `@refs`, or `--all` for every
-  registered one. Rankings merge across bundles with every row labeled by its
-  bundle's slug (a `bundles` list and a per-match `bundle` key in the JSON);
-  `--all` skips a vanished directory with a note, explicit refs fail hard.
+  a `TypeError`, and `okf registry --json set <dir>` — a subcommand behind a
+  flag — is a usage error rather than silently listing and exiting 0.
+- Fixed: a file the reader could not **open** (permissions) threw its errno out
+  of the read, so a single locked file took the whole bundle down through every
+  verb that reads one — `lint`, `validate`, `catalog`, `server`, `registry set`
+  — as a backtrace, under an exit code claiming the bundle was non-conformant.
+  §9's best-effort promise covers it now, the same as frontmatter that will not
+  parse: the file is skipped, noted on stderr, and reported by `validate` under
+  §9.1 naming the file and the errno. One bad file never breaks the rest.
+  The stderr note reads `skipped N unusable file(s)` — it counts two kinds now,
+  so it names neither and points at `validate`, which names both.
 
 ## [1.7.0] - 2026-07-16
 

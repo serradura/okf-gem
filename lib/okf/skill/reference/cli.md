@@ -48,9 +48,9 @@ name it was never given would imply a registration that does not exist.
 
 **@refs — point any verb at a registered bundle.** Wherever a `<dir>` goes,
 `@slug` names a bundle registered via `okf registry set`, and bare `@` the
-registry's default. Refs resolve through `$OKF_HOME` (default `~/.okf`);
-`--home DIR`, where a verb offers it (`registry`, `server`, `search`), points
-at another registry instead. The slug is normalized as registration
+registry's default. Refs resolve through `$OKF_HOME` (default `~/.okf`) — the
+single lever on which registry *any* verb reads, and it names exactly one, with
+no fallback behind it. The slug is normalized as registration
 normalized it — `@One` finds the bundle from dir `One` — but never to a
 placeholder: `@***` is a bad ref, not a bundle. An unknown slug, a
 registered-but-gone directory, or a malformed registry file is a usage error
@@ -60,7 +60,9 @@ or `okf index @` work from any directory, no path recall needed.
 
 **Exit codes:** `0` success · `1` non-conformant bundle (or a `lint --fail-on`
 threshold crossed) · `2` usage error. `graph`, `server`, and `render` are best-effort
-(§9): a file with invalid frontmatter is skipped and noted on stderr, never fatal.
+(§9): a file the reader cannot use — frontmatter that will not parse, or a file it
+cannot open at all — is skipped and noted on stderr, never fatal. The note counts;
+`validate` names each file and why.
 
 **One bundle per verb, except two.** Only `search` merges several bundles and only
 `server` mounts them; hand a second bundle to any other verb — two dirs, two refs,
@@ -145,17 +147,31 @@ body); the shared `--type/--area/--tag` filters narrow the candidates *first*,
 so a search scoped by what `index` taught you stays surgical.
 
 **Search spans bundles.** Leading @refs pick several registered bundles
-(`okf search @handbook @notes auth`); `--all` takes every one. The per-bundle
-rankings merge — scores are absolute term weights, so they compare across
-bundles — and each row carries its bundle's slug. `--all` skips a vanished
-directory with a note; explicit @refs fail hard. This is the cross-bundle
-retrieval the in-page search does not have: one question, every bundle you
-keep. `--home DIR` points either form at another registry. Two sharp edges:
-every *leading* @-arg is taken as a ref, so a literal @-term (`@babel/core`, a
-Ruby `@ivar`) needs a non-@ term before it or `-e '\@term'` — the CLI notes
-both traps on stderr — and any ref, even one, switches the JSON envelope (next
-paragraph). `--all` takes no directory: pass one and it is a usage error, not
-a term.
+(`okf search @handbook @notes auth`); **`@all`** is the ref that means every one.
+The per-bundle rankings merge — scores are absolute term weights, so they
+compare across bundles — and each row carries its bundle's slug. This is the
+cross-bundle retrieval the in-page search does not have: one question, every
+bundle you keep. <!-- rule:okf-search-all -->
+
+`@all` is a ref, not a flag, which is what keeps the grammar single: slot 1 is
+always a bundle identity, so a directory there is a directory and nothing can
+flip it into a term. Being a ref, it is normalized like one — `@ALL` and `@All`
+name every bundle just as `@One` names the bundle registered from dir `One`. It composes accordingly — `@all @docs` expands and dedupes
+(all ⊇ docs), needing no diagnostic. **Asking for everything tolerates gaps;
+naming one bundle demands it**: `@all` skips a bundle whose directory has
+vanished with a note on stderr, while `@docs` fails hard. `@all` is only
+`search`'s: every other verb answers about one bundle, so it refuses `@all` by
+name rather than letting the answer depend on how many bundles you happen to
+have registered. `all` is reserved as a slug — a directory named `all/` registers
+as `all-2`, `--as all` is refused, and an `all` row already in the registry file
+(hand-typed, or written before the name was reserved) is read as `all-2` rather
+than taken as grounds to reject the file — so `@all` is never ambiguous, and the
+reservation never strands a registry it inherited.
+
+Two sharp edges: every *leading* @-arg is taken as a ref, so a literal @-term
+(`@babel/core`, a Ruby `@ivar`) needs a non-@ term before it or `-e '\@term'` —
+the CLI notes both traps on stderr — and any ref, even one, switches the JSON
+envelope (next paragraph).
 
 Rows rank by **where** they hit — title 5, id 4, tags 3, type/description 2,
 body 1, summed over matched fields — and carry one bounded context snippet from
@@ -164,8 +180,8 @@ fuzzy: the consuming agent is the fuzzy layer — when terms miss, learn the
 bundle's vocabulary from `tags`/`types` and re-ask in its own words, rather
 than hammering synonyms. Advisory read: **exit 0 even with zero matches**.
 JSON, plain-dir mode: `{ bundle, query, count, matches: [{ id, title, type,
-area, tags, matched, score, snippet }] }`. Registry mode — any leading @ref
-(even one) or `--all` — swaps the envelope: `{ bundles: [{ slug, dir }, …],
+area, tags, matched, score, snippet }] }`. Registry mode — any leading @ref,
+`@all` among them — swaps the envelope: `{ bundles: [{ slug, dir }, …],
 query, count, matches: [{ slug, id, … }] }`; a parser must branch on which form
 it called. The head maps each slug to its dir once, so a row resolves to
 `<dir>/<id>.md` without a second lookup and without repeating a path per row.
@@ -268,17 +284,27 @@ self-contained **bundle index** (every hosted bundle, concept counts, default
 marked — the browser counterpart of `okf registry`). An unknown slug 404s as a
 page listing the hosted bundles, so a stale bookmark after a rename gets a way
 home. With **no** dir it serves the *persistent registry*, a plain JSON file
-under `$OKF_HOME` (default `~/.okf`; `--home` overrides), managed by the
+under `$OKF_HOME` (default `~/.okf`), managed by the
 `okf registry` umbrella — like git's `remote` family, and split by what each
 verb keys on. **Entry verbs** take a path: `okf registry set <dir>` adds it
 (slug from the basename, or `--as`, which errors on a collision; `--default`
-also elects it), and because the entry is keyed by path, `set` on an
+puts it first), and because the entry is keyed by path, `set` on an
 already-registered dir updates it in place — refreshing its title, and renaming
 it when `--as` is given. `okf registry del <slug-or-dir|@ref>` removes one — by name, so an entry whose
 directory is already gone still deletes.
 **Slug verbs** take the name: `okf registry default <slug>` chooses which
-bundle `/` opens, and `okf registry rename <old> <new>` renames a slug (mount
-path and switcher name; the default follows). `okf registry list` (or a bare
+bundle `/` opens **by moving that entry to the front**, and
+`okf registry rename <old> <new>` renames a slug (mount path and switcher
+name). The registry is ordered and **the first entry still on disk is the
+default** — that is the whole rule, so the first bundle you register is the
+default until you move another one, a rename keeps its position, and a `del`
+promotes whatever is next. A vanished directory is stepped over (the server
+cannot open one, so starring it would name a bundle `/` never serves), and
+`registry default <slug>` refuses one outright — the same refusal `registry set`
+gives a directory that is not there. The file is hand-editable and reorders
+visibly, which is the point: there is no stored slug that can dangle.
+<!-- rule:okf-registry-default-position -->
+`okf registry list` (or a bare
 `okf registry`) stars the default and flags vanished dirs `(missing)` — the
 server skips those with a note; `--json` answers
 `{ registry: <file>, count, bundles: [{ slug, title, dir, mount, default,
@@ -291,11 +317,11 @@ is a server-only affordance — a static `render` file has no siblings and shows
 none.
 
 **Bundle-less run.** Register bundles once, then `okf server` (no dir) hosts
-them all with the chosen default selected (first registered when none chosen) —
-the way to keep several bundles a keystroke apart without re-passing paths.
+them all with the registry's first entry still on disk at `/` — the way to keep
+several bundles a keystroke apart without re-passing paths.
 `okf server @a @b` serves a registry subset, each mounted under its registered
 slug — but as with any dirs-given run, the *first argument* lands at `/`; the
-registry's chosen default applies only to the bundle-less run.
+registry's own order applies only to the bundle-less run.
 
 **Trust boundary:** the page renders each fetched markdown body through
 DOMPurify and escapes everything it inlines (every `<` in the graph data is

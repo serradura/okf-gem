@@ -22,8 +22,8 @@ reads, and full bodies are read last, and only the winners.
    `--area billing`, `--type Decision`, `--tag idempotency`, `--in body`.
    Matches rank by where they hit, and the snippet often *is* the answer.
    When the answer may live in another registered bundle, span them — leading
-   @refs (`okf search @handbook @notes <terms>`) or `--all` for every one —
-   and read the per-row bundle slug before following an id home.
+   @refs (`okf search @handbook @notes <terms>`) or `@all` for every registered
+   one — and read the per-row bundle slug before following an id home.
 4. **Read only the winners.** A match row's `id` is its file: `<dir>/<id>.md`.
    Read that file — not its folder, never the whole tree. Follow its links (§5)
    one hop at a time; check `log.md` when freshness matters.

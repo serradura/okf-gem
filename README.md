@@ -240,23 +240,24 @@ instead: `irm https://docker.okfgem.com/install.ps1 | iex`.
 okf validate  <dir> [--json]                            # check OKF v0.1 conformance (§9)
 okf lint      <dir> [--json] [--fail-on warn] [...]     # report curation-quality issues
 okf loose     <dir> [--json]                            # list files with no graph links, by folder
-okf search    <dir|@ref…> <term…> [--all] [-e] [...]    # ranked retrieval; @refs or --all span bundles
+okf search    <dir|@ref…|@all> <term…> [-e] [...]       # ranked retrieval; @refs or @all span bundles
 okf index     <dir> [--json] [--area A] [--no-body]     # progressive-disclosure map (§6): bodies, rollups, listings
 okf server    [DIR…] [-p PORT] [--bind ADDR] [...]      # serve one bundle, or many behind a hub (⌘K to switch)
 okf render    <dir> [-o FILE] [--layout NAME] [...]     # export the graph as one static, self-contained HTML file
 okf registry  list [--json]                             # list registered bundles (* marks the default)
 okf registry  set <dir> [--as SLUG] [--default]         # add or update a bundle (a bare `server` serves it)
 okf registry  del <slug-or-dir|@ref>                    # remove a bundle from the registry
-okf registry  default <slug> | rename <old> <new>       # set the default bundle / rename a slug
+okf registry  default <slug> | rename <old> <new>       # move a bundle to the front (the default) / rename it
 
-# The registry is a plain JSON file at $OKF_HOME/registry.json (default ~/.okf;
-# --home overrides). The subcommand leads and flags follow it: `registry set
-# <dir> --home X`, never `registry --home X set <dir>`.
+# The registry is a plain JSON file at $OKF_HOME/registry.json (default ~/.okf).
+# It is ordered, and the first entry is the default: `registry default <slug>`
+# moves that entry to the front. The subcommand leads and flags follow it:
+# `registry set <dir> --as X`, never `registry --json set <dir>`.
 # A running server reads it at boot — restart after changes.
 # Behind a multi-bundle server, /b/ lists every bundle and ⌘/Ctrl-K switches.
 # Every <dir> in this table also takes @slug (a registered bundle) or bare @
-# (the default) — okf lint @handbook works from anywhere. @refs read $OKF_HOME;
-# --home (on registry, server, search) points at another registry.
+# (the default) — okf lint @handbook works from anywhere. Set $OKF_HOME to point
+# every verb at another registry.
 okf graph     <dir> [--json] [--minimal] [--no-body]    # print the knowledge graph
 okf catalog | files | tags | types | stats  <dir> [--json]   # the browser views, on the CLI
 okf skill     <dest> [--here] [--force]                 # install the companion agent skill

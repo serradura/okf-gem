@@ -90,6 +90,28 @@ Assertions must be able to fail for a real reason: run the CLI, read what it
 actually prints, then assert *that*. Asserting what you assume the code does is
 how a green suite certifies a bug.
 
+# The order is the proof
+
+A change starts with a failing integration test, not with the fix — and the
+failure has to be *read*, not merely observed: it must fail for the predicted
+reason, since a test that fails on a missing fixture or a typo'd regex has proven
+nothing about the bug. Then the code, then a re-run the test passes unedited.
+<!-- rule:okf-test-first -->
+
+That order is the only thing that establishes a test *can* fail. Written
+afterwards, a test can only certify the code it was read off; written alongside,
+a bug and its test come to agree with each other and stay wrong together — the
+green suite certifying a bug, arrived at from the other direction. Pure refactors
+are the exception rather than a licence, because they change no behavior: the
+existing suite is their test and a green run is the proof the contract held.
+
+The registry's [two derivations of the default](../registry.md) are the worked
+example. The star-versus-`/` disagreement was written as a red test first, and the
+run printed both halves of the bug at once — `/` redirecting to `conformant` while
+the listing starred a `doomed (missing)` entry. Neither the reviewer nor the fix
+had to be trusted: the test failed for exactly the predicted reason, the fix
+turned it green, and it has guarded the agreement since.
+
 # Citations
 
 [1] [AGENTS.md — Testing: integration first](https://github.com/serradura/okf-gem/blob/main/AGENTS.md) — the rule as the maintainer guide states it.

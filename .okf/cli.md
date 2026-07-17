@@ -40,15 +40,22 @@ no `--hub` flag, no second verb:
 |------------|--------|
 | `okf server <dir>` | that bundle at `/` — the classic single server |
 | `okf server <dir> <dir>…` | those bundles behind a [hub](capabilities/graph-server.md), ephemerally (the first is the default); nothing is registered |
-| `okf server` | the [registry](registry.md), at its chosen default |
+| `okf server` | the [registry](registry.md), its first entry still on disk at `/` |
 
 Passing dirs never writes to the registry: an ad-hoc look at two bundles side by
 side should not enrol them in the user's durable list. Registering is always the
 explicit act of `okf registry set`.
 
 `registry` is an umbrella verb — `list`, `set`, `del`, `default`, `rename` — over
-one persistent file, and `--home DIR` (or `$OKF_HOME`) points every one of them at
-a different registry, which is what keeps the tests off the real `~/.okf`.
+one persistent file, and `$OKF_HOME` points every one of them at a different
+registry, which is what keeps the tests off the real `~/.okf`.
+
+One lever, not two. An earlier design also carried a `--home DIR` flag, which had
+to be remembered on the three verbs that offered it and forgotten on the eleven
+that did not — a flag whose whole job was to name a location the env var already
+named. `$OKF_HOME` composes where a flag cannot: it reaches every verb at once
+without being typed, it survives into a subprocess, and if the directory ever
+holds more than `registry.json` it keeps meaning the same thing.
 
 # Every output names its bundle, in the identity the caller used
 
@@ -73,10 +80,9 @@ used is the identity they get back.
 Wherever a `<bundle-dir>` goes, `@slug` resolves a [registered bundle](registry.md)
 and bare `@` the registry's default — one resolution seam (`resolve_ref`, shared
 by the positional parsers and search's ref list), inherited by all verbs at once,
-so `okf lint @handbook` works from any directory. Refs read `$OKF_HOME`, and
-`--home` steers them wherever a verb offers it (`registry`, `server`, `search`) —
-which is why the not-registered error names the registry file it consulted, so a
-mismatch self-diagnoses rather than reading as "never registered".
+so `okf lint @handbook` works from any directory. Refs read `$OKF_HOME`, which is
+why the not-registered error names the registry file it consulted, so a mismatch
+self-diagnoses rather than reading as "never registered".
 
 A leading `@` always means the registry (`./@name` keeps an odd directory
 reachable), the registry file loads only when a ref appears, and an explicit ask
@@ -91,9 +97,17 @@ would quietly resolve to whatever bundle is slugged `bundle`.
 `server` refs carry their registered slug to the mount, and reserve it before any
 plain dir's basename is deduped — otherwise `server ./two @two` would hand `/b/two/`
 to the *unregistered* directory and a bookmark would open the wrong graph. (The
-first argument still lands at `/`; the registry's chosen default applies only to a
+first argument still lands at `/`; the registry's own order applies only to a
 bundle-less run.) [`search`](capabilities/search.md) is the one verb that *merges*
-several bundles into one answer — several refs, or `--all`.
+several bundles into one answer — several refs, or `@all`.
+
+`@all` is a ref, not a flag, and only `search` expands it. That restraint is the
+point: through the shared seam, `okf lint @all` would resolve to one bundle when
+one is registered (and lint it) and to two when two are (exit 2 by the
+[second-bundle rule](#exit-codes)) — the same command's meaning tracking the size
+of the registry, which is the silent-wrong-answer shape the rule exists to stop.
+So every other verb refuses `@all` by name instead, and `all` is reserved as a
+slug so the refusal can never be wrong.
 
 # Exit codes
 
@@ -114,11 +128,25 @@ and not a backtrace.
 
 # Best-effort reads
 
-`graph`, `server`, `render`, and the read views are best-effort under §9: a file with
-invalid frontmatter is kept in `bundle.unparseable`, skipped, and *noted on
+`graph`, `server`, `render`, and the read views are best-effort under §9: a file
+the reader cannot use is kept in `bundle.unparseable`, skipped, and *noted on
 stderr* (so JSON on stdout stays clean) rather than aborting the whole command.
 One bad file never breaks the rest. Run [validate](capabilities/validator.md) for
-the details of what was skipped.
+the details of what was skipped — the note counts, `validate` names each file and
+why.
+
+Two causes reach that bucket, and the tolerance has to cover both or it is not a
+posture but a coincidence: frontmatter that will not **parse**, and a file that
+will not **open** at all. The second was the gap — an unreadable file threw its
+errno out of the reader, and since the read is the one path every verb shares, a
+single locked file took the whole bundle down through all of them, as a backtrace
+under an exit code that claims *non-conformant*. It is one unusable file. It
+reports as one, under §9.1, naming the file and the errno.
+<!-- rule:okf-read-best-effort -->
+
+The boundary: `Path.join_under!` still raises. A path leaving the bundle root is
+not a bad file — it is a bundle lying about its shape, and best-effort is
+tolerance for damage, never for a claim.
 
 # Citations
 

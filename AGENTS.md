@@ -53,8 +53,15 @@ you touch what `require "okf"` pulls in.
    `do…end` block, endless string slices `str[i..]`, `YAML.safe_load` keyword
    args outside the Frontmatter shim (2.6); `filter_map`, `tally`, numbered
    block params (2.7); endless methods, hash shorthand (3.x).
-   The truth test: `docker run --rm -v "$PWD":/app -w /app ruby:2.4 bash -c
-"bundle install && bundle exec rake test"`.
+   The truth test — it copies the tree and drops `Gemfile.lock`, because the
+   committed lockfile is written by a modern Bundler that 2.4's own cannot read
+   (`You must use Bundler 4 or greater with this lockfile`), and mounting the
+   checkout read-only keeps the run from writing one back:
+
+   ```bash
+   docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
+     "cp -a /src /build && cd /build && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
+   ```
 2. **Runtime dependencies are exactly `rack` and `webrick`.** No ActiveSupport —
    `OKF.blank?` and `Markdown::Frontmatter.stringify_keys` exist precisely so it
    is not needed. A new runtime dependency is a design decision, not a
@@ -135,8 +142,8 @@ the command appears in*, not once and cited from the others. For each command:
 every flag at least once, every output format it offers (human, `--json`,
 `--pretty`, `--fields`/`--except`), every filter, every exit code it can return
 (`0`/`1`/`2`), and the combinations that actually interact (a filter plus a
-projection, `--all` plus refs). The CLI is the agent's whole world; an untested
-flag is a promise nobody checked.
+projection, `@all` plus a named ref). The CLI is the agent's whole world; an
+untested flag is a promise nobody checked.
 
 **Coverage is measured on integration alone**, because the full suite's number
 is flattering — unit tests call classes directly and reach code no user can:
@@ -161,6 +168,19 @@ never let an untestable path stay untested because building the world for it fel
 like work. Fixtures are the cheap part. (`rooted` exists because `tags --by area`'s
 `(root)` label was unreachable from all twelve fixtures that preceded it — a
 branch no fixture can reach is a branch nobody has ever proven.)
+
+**Test first, and at this level.** A change starts with a failing integration
+test, not with the fix. Write it in `test/integration/cli/`, run it, and read the
+failure: it must fail for the reason you predicted, not because a fixture is
+missing or a regex has a typo — those prove nothing about the bug. Then write the
+code and re-run; the same test passes, unedited. A test written *after* the fix
+only certifies the code it was read off, and editing test and code together in one
+pass is how a bug and its test come to agree with each other and stay wrong
+together. A bug report earns a red test before it earns a patch.
+
+Pure refactors are the exception, not a licence: they change no behavior, so the
+existing suite is the test and a green run is the proof the contract held. If a
+change is too small to fail visibly first, say so — never skip the step quietly.
 
 Assertions must be able to fail for a real reason: run the CLI, read what it
 actually prints, then assert *that*. Never assert what you assume the code does

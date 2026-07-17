@@ -48,19 +48,36 @@ even with zero matches — only an invalid `--regexp` pattern is a usage error
 
 Knowledge rarely lives in one bundle, so search is the one verb that spans the
 [registry](../registry.md): leading @refs pick bundles explicitly
-(`okf search @handbook @notes auth`), `--all` takes every registered one. Each
-bundle runs the same pure `Search` and the rankings merge — legitimate because
-scores are absolute term weights, not per-bundle normalized — with every row
-labeled by its bundle's slug. The two modes keep the registry's temperament:
-`--all` skips a vanished directory with a note, explicit refs fail hard. The
-graph stays per-bundle on purpose — cross-links are bundle-relative, so a
-merged graph would be disconnected components — which makes search the one
-cross-bundle question the CLI can answer honestly, and (for now) a capability
-the [hub](graph-server.md) does not mirror.
+(`okf search @handbook @notes auth`), and `@all` is the ref that means every
+registered one. Each bundle runs the same pure `Search` and the rankings merge —
+legitimate because scores are absolute term weights, not per-bundle normalized —
+with every row labeled by its bundle's slug. The graph stays per-bundle on
+purpose — cross-links are bundle-relative, so a merged graph would be
+disconnected components — which makes search the one cross-bundle question the
+CLI can answer honestly, and (for now) a capability the [hub](graph-server.md)
+does not mirror.
 
-Four edges of the grammar, all deliberate. `--all` takes no directory: one
-passed anyway is a usage error, because demoting it to a search term would
-answer a confident "no matches" for a bundle nobody searched. Any leading @ref — even one —
+**Asking for everything tolerates gaps; naming one bundle demands it.** `@all`
+skips a registered bundle whose directory has vanished, with a note — the same
+forgiveness the hub shows a stale entry — while `@handbook` fails hard, because
+an explicit ask that silently answered about less than it named would be a
+confident wrong answer. `@all @handbook` needs no diagnostic at all: all ⊇
+handbook, so it expands, dedupes by resolved path, and answers.
+
+That "every bundle" is a **ref rather than a flag** is what keeps the grammar
+single, and it was not always so. A `--all` flag *reinterpreted the
+positionals* — `okf search .okf home` read `.okf` as the bundle, `okf search
+--all .okf` read it as a term — the same slot meaning opposite things, decided
+by a flag optparse accepts anywhere in argv. Every diagnostic around it existed
+to explain that flip. As a ref, slot 1 is always a bundle identity: a directory
+there is a directory, a term after it is a term, and the explanations have
+nothing left to explain. Being a ref also means being normalized like one:
+`@ALL` reaches `@all` through the same `Registry.normalize` that makes `@One`
+find dir `One`, because a ref exempt from the grammar's one normalization is a
+trapdoor. Only `search` expands `@all`, since it is the only verb
+that merges; see [the CLI](../cli.md) for why the others refuse it by name.
+
+Three edges of the grammar, all deliberate. Any leading @ref — even one —
 switches the JSON envelope from `{ bundle, slug, … }` to
 `{ bundles: [{ slug, dir }, …], …, matches: [{ slug, id, … }] }`, so a consumer
 branches on the form it called; the head maps each slug to its dir once, which

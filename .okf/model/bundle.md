@@ -17,8 +17,10 @@ class and return a result. A bundle also carries the reserved files
 
 # Best-effort by construction
 
-When a bundle is built from disk, files that fail to parse do not vanish and do
-not abort the build: they are collected in `bundle.unparseable`. That is what
+When a bundle is built from disk, files the reader cannot use do not vanish and do
+not abort the build: they are collected in `bundle.unparseable` — frontmatter that
+would not parse, and files that would not open, since a locked file is one file's
+problem and not the bundle's. That is what
 lets [graph](graph.md), the [server](../capabilities/graph-server.md), and the
 [read views](../capabilities/read-views.md) render everything that *is* valid
 while the [CLI](../cli.md) notes the skips on stderr — §9's best-effort posture,
