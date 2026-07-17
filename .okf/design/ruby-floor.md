@@ -3,7 +3,7 @@ type: Constraint
 title: The Ruby 2.4 floor
 description: The gem runs on every Ruby since 2.4 so it works on the interpreter an OS already ships.
 tags: [ruby, portability]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-17T16:00:00Z
 ---
 
 # Overview
@@ -32,11 +32,14 @@ These constraints apply to `test/` too, because the suite runs on 2.4 as well.
 # The truth test
 
 "Works on my Ruby" is not verification here. The floor is checked in CI across
-every supported Ruby, and locally with:
+every supported Ruby, and locally by copying the tree into a throwaway build dir,
+dropping `Gemfile.lock` (the committed lockfile is written by a modern Bundler that
+2.4's own cannot read), and mounting the checkout **read-only** so the run cannot
+write one back:
 
 ```bash
-docker run --rm -v "$PWD":/app -w /app ruby:2.4 \
-  bash -c "bundle install && bundle exec rake test"
+docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
+  "cp -a /src /build && cd /build && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
 ```
 
 # Citations

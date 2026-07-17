@@ -1,10 +1,10 @@
 ---
 type: Capability
 title: Curation linter (lint)
-description: An advisory curation-quality report across six categories and sixteen checks — it never rejects a bundle.
+description: An advisory curation-quality report across six categories and seventeen checks — it never rejects a bundle.
 resource: lib/okf/bundle/linter.rb
 tags: [curation, cli]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-17T16:00:00Z
 ---
 
 # Overview
@@ -15,7 +15,7 @@ exactly the soft things §9 tolerates, has its own `OKF::Bundle::Linter` and
 report, and never emits a conformance error. It is **advisory**: exit `0` even
 with findings unless you opt in with `--fail-on warn`.
 
-# Six categories, sixteen checks
+# Six categories, seventeen checks
 
 | Category | Checks |
 |----------|--------|
@@ -46,4 +46,4 @@ the single `unlinked` check.
 
 # Citations
 
-[1] [lib/okf/bundle/linter.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/bundle/linter.rb) — the sixteen checks and their categories.
+[1] [lib/okf/bundle/linter.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/bundle/linter.rb) — the seventeen checks and their categories.

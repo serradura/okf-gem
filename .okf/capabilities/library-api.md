@@ -4,7 +4,7 @@ title: Library API
 description: The Ruby surface — a pure in-memory model plus on-disk handles, an "ActiveRecord for the filesystem".
 resource: lib/okf.rb
 tags: [ruby, diagram]
-timestamp: 2026-07-16T12:00:00Z
+timestamp: 2026-07-17T16:00:00Z
 ---
 
 # Overview
@@ -68,7 +68,8 @@ needed. The lower-level pieces work standalone too:
 `Folder.new(bundle:, root:).save` materializes one back — and **validates §9
 before publishing** through an atomic writer, so it never leaves a broken bundle
 on disk. `OKF::Server::App.new(folder)` turns a folder straight into the
-[graph server](graph-server.md).
+[graph server](graph-server.md); its `#render_static` bakes that same page into one
+self-contained file, the Ruby side of [`okf render`](render.md).
 
 # Citations
 

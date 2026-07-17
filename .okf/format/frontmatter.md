@@ -4,7 +4,7 @@ title: Frontmatter (spec §4)
 description: The YAML header on every concept, parsed through the gem's single, hardened YAML gateway.
 resource: lib/okf/markdown/frontmatter.rb
 tags: [yaml]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-17T16:00:00Z
 ---
 
 # Overview

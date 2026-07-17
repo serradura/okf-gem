@@ -4,7 +4,7 @@ title: Cross-links (spec §5)
 description: Plain Markdown links between concepts that become the knowledge graph's directed edges.
 resource: lib/okf/markdown/links.rb
 tags: [graph, diagram]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-17T16:00:00Z
 ---
 
 # Overview
