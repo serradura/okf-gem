@@ -107,15 +107,6 @@ module ByRegistry
       end
     end
 
-    test "--home is not validate's to offer — refs read $OKF_HOME" do
-      with_registry("conformant") do
-        result = okf("validate", "@conformant", "--home", @home)
-
-        assert_equal 2, result.status
-        assert_match(/invalid option: --home/, result.err)
-      end
-    end
-
     test "a second bundle is a question validate cannot answer (exit 2)" do
       with_registry("conformant", "minimal") do
         result = okf("validate", "@conformant", "@minimal")
@@ -133,7 +124,7 @@ module ByRegistry
     def register_doomed
       dir = File.join(@out_dir, "doomed")
       FileUtils.cp_r(fixture("minimal"), dir)
-      okf("registry", "set", dir, "--as", "doomed", "--home", @home)
+      okf("registry", "set", dir, "--as", "doomed")
       FileUtils.rm_rf(dir)
       dir
     end

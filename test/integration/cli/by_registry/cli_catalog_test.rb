@@ -224,18 +224,6 @@ module ByRegistry
       end
     end
 
-    # A ref reads $OKF_HOME (or ~/.okf); catalog offers no --home to steer it —
-    # only registry, server, and search do.
-    test "--home is not offered: catalog steers its refs by $OKF_HOME alone (exit 2)" do
-      with_registry("conformant") do
-        result = okf("catalog", "@conformant", "--home", @home)
-
-        assert_equal 2, result.status
-        assert_match(/invalid option: --home/, result.err)
-        assert_equal "", result.out
-      end
-    end
-
     test "a second bundle is a usage error — catalog answers about one (exit 2)" do
       with_registry("conformant", "minimal") do
         result = okf("catalog", "@conformant", "@minimal")
@@ -250,7 +238,7 @@ module ByRegistry
       with_registry("malformed") do
         result = okf("catalog", "@malformed")
         assert_equal 0, result.status, "a bundle full of §9 errors still catalogs — this is an advisory read, never exit 1"
-        assert_match(/skipped 2 file\(s\) with invalid frontmatter/, result.err)
+        assert_match(/skipped 2 unusable file\(s\)/, result.err)
         assert_match(/Good {2}·  Note/, result.out)
 
         machine = okf("catalog", "@malformed", "--json")
@@ -278,7 +266,7 @@ module ByRegistry
       dir = File.join(@out_dir, slug)
       FileUtils.mkdir_p(dir)
       File.write(File.join(dir, "note.md"), "---\ntype: Note\ntitle: Doomed\n---\n\nA concept about to lose its directory.\n")
-      okf("registry", "set", dir, "--home", @home)
+      okf("registry", "set", dir)
       FileUtils.rm_rf(dir)
       dir
     end

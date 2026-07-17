@@ -237,16 +237,6 @@ module ByRegistry
       end
     end
 
-    test "--home is not offered: tags steers its refs by $OKF_HOME alone (exit 2)" do
-      with_registry("conformant") do
-        result = okf("tags", "@conformant", "--home", @home)
-
-        assert_equal 2, result.status
-        assert_match(/invalid option: --home/, result.err)
-        assert_equal "", result.out
-      end
-    end
-
     test "a second bundle is a usage error — tags answers about one (exit 2)" do
       with_registry("conformant", "minimal") do
         result = okf("tags", "@conformant", "@minimal")
@@ -276,7 +266,7 @@ module ByRegistry
         result = okf("tags", "@malformed", "--json")
 
         assert_equal 0, result.status, "a bundle full of §9 errors still indexes — this is an advisory read, never exit 1"
-        assert_match(/skipped 2 file\(s\) with invalid frontmatter/, result.err)
+        assert_match(/skipped 2 unusable file\(s\)/, result.err)
         assert_equal 0, json(result).fetch("count") # the note went to stderr, not into stdout
         assert_equal "malformed", json(result).fetch("slug")
         refute_match(/note:/, result.out)
@@ -292,7 +282,7 @@ module ByRegistry
       dir = File.join(@out_dir, slug)
       FileUtils.mkdir_p(dir)
       File.write(File.join(dir, "note.md"), "---\ntype: Note\ntitle: Doomed\n---\n\nA concept about to lose its directory.\n")
-      okf("registry", "set", dir, "--home", @home)
+      okf("registry", "set", dir)
       FileUtils.rm_rf(dir)
       dir
     end

@@ -86,14 +86,6 @@ module ByDir
       refute_match(/example\.test/, page, "the ignored --link reaches no app behind the hub")
     end
 
-    test "--home is ignored with a note when dirs are given" do
-      result, booted = okf_server(fixture("conformant"), "--home", @home)
-
-      assert_equal 0, result.status
-      assert_match(/note: --home applies to a bundle-less run or an @ref; ignored/, result.err)
-      assert_kind_of OKF::Server::App, booted_app(booted.first), "the note does not stop the boot"
-    end
-
     test "every valid --layout reaches the served page" do
       OKF::Server::Graph::LAYOUTS.each do |layout|
         result, booted = okf_server(fixture("minimal"), "--layout", layout)
@@ -143,10 +135,10 @@ module ByDir
     end
 
     test "@refs mount each bundle under its registered slug" do
-      okf("registry", "set", fixture("conformant"), "--as", "uno", "--home", @home)
-      okf("registry", "set", fixture("minimal"), "--as", "dos", "--home", @home)
+      okf("registry", "set", fixture("conformant"), "--as", "uno")
+      okf("registry", "set", fixture("minimal"), "--as", "dos")
 
-      result, booted = okf_server("@uno", "@dos", "--home", @home)
+      result, booted = okf_server("@uno", "@dos")
       hub = booted_app(booted.first)
 
       assert_equal 0, result.status
@@ -154,7 +146,6 @@ module ByDir
       assert_match(%r{^ {2}\* /b/uno/\s+fixtures/conformant$}, result.out)
       assert_match(%r{^ {4}/b/dos/\s+fixtures/minimal$}, result.out)
       refute_match(%r{/b/conformant/}, result.out, "the mount carries the registry slug, not the dir basename")
-      refute_match(/--home applies/, result.err, "--home steers an @ref — nothing to ignore")
 
       status, _headers, page = get_page(hub, "/b/uno/")
       assert_equal 200, status
@@ -162,12 +153,12 @@ module ByDir
     end
 
     test "a registered slug is reserved before a plain dir's basename is deduped" do
-      okf("registry", "set", fixture("conformant"), "--as", "notes", "--home", @home)
+      okf("registry", "set", fixture("conformant"), "--as", "notes")
       plain = scratch_bundle("x/notes")
 
       # The plain dir leads, so argv order alone would hand it /b/notes/ — but a
       # bookmark to /b/notes/ must keep meaning @notes.
-      result, booted = okf_server(plain, "@notes", "--home", @home)
+      result, booted = okf_server(plain, "@notes")
 
       assert_equal 0, result.status
       assert_match(%r{/b/notes/\s+fixtures/conformant$}, result.out)
@@ -191,9 +182,9 @@ module ByDir
     end
 
     test "an unknown @ref is a usage error that never reaches the runner" do
-      okf("registry", "set", fixture("conformant"), "--home", @home)
+      okf("registry", "set", fixture("conformant"))
 
-      result, booted = okf_server("@ghost", "@conformant", "--home", @home)
+      result, booted = okf_server("@ghost", "@conformant")
 
       assert_equal 2, result.status
       assert_nil booted
@@ -202,7 +193,7 @@ module ByDir
     end
 
     test "a bundle-less run with an empty registry boots the hub's empty state" do
-      result, booted = okf_server("--home", @home)
+      result, booted = okf_server
       hub = booted_app(booted.first)
 
       assert_equal 0, result.status
@@ -219,7 +210,7 @@ module ByDir
       result, booted = okf_server(fixture("malformed"))
 
       assert_equal 0, result.status
-      assert_match(/note: skipped 2 file\(s\) with invalid frontmatter/, result.err)
+      assert_match(/note: skipped 2 unusable file\(s\)/, result.err)
       assert_kind_of OKF::Server::App, booted_app(booted.first)
       assert_match(/serving 3 concepts/, result.out)
     end

@@ -172,7 +172,7 @@ module ByRegistry
         result = okf("index", "@malformed")
 
         assert_equal 0, result.status
-        assert_match(/note: skipped 2 file\(s\) with invalid frontmatter/, result.err)
+        assert_match(/note: skipped 2 unusable file\(s\)/, result.err)
         assert_match(/\AIndex map — @malformed \(#{Regexp.escape(fixture("malformed"))}\) \(1 directory\)$/, result.out)
         assert_match(/^    • Good — A valid concept living among malformed ones\.$/, result.out)
       end
@@ -210,16 +210,6 @@ module ByRegistry
       end
     end
 
-    test "--home is not index's to offer — refs read $OKF_HOME" do
-      with_registry("conformant") do
-        result = okf("index", "@conformant", "--home", @home)
-
-        assert_equal 2, result.status
-        assert_match(/invalid option: --home/, result.err)
-        assert_empty result.out
-      end
-    end
-
     test "a second bundle is a question index cannot answer (exit 2)" do
       with_registry("conformant", "minimal") do
         result = okf("index", "@conformant", "@minimal")
@@ -237,7 +227,7 @@ module ByRegistry
     def register_doomed
       dir = File.join(@out_dir, "doomed")
       FileUtils.cp_r(fixture("minimal"), dir)
-      okf("registry", "set", dir, "--as", "doomed", "--home", @home)
+      okf("registry", "set", dir, "--as", "doomed")
       FileUtils.rm_rf(dir)
       dir
     end

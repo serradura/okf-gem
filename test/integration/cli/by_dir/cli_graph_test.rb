@@ -21,7 +21,7 @@ module ByDir
 
     test "is best-effort — malformed files are skipped (stderr) not fatal (issue #2)" do
       status = nil
-      assert_output(/3 concepts, 0 links/, /skipped 2 file\(s\) with invalid frontmatter/) do
+      assert_output(/3 concepts, 0 links/, /skipped 2 unusable file\(s\)/) do
         status = start_cli("graph", fixture("malformed"))
       end
       assert_equal 0, status

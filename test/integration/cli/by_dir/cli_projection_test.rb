@@ -31,7 +31,7 @@ module ByDir
 
     test "the registry list shape is declared too" do
       with_registry("conformant") do
-        row = json(okf("registry", "list", "--json", "--home", @home)).fetch("bundles").first
+        row = json(okf("registry", "list", "--json")).fetch("bundles").first
         assert_equal row.keys.sort, OKF::CLI::ROW_FIELDS.fetch("bundles").sort
       end
     end

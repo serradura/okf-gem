@@ -190,7 +190,7 @@ module ByDir
       result = okf("index", fixture("malformed"))
 
       assert_equal 0, result.status
-      assert_match(/note: skipped 2 file\(s\) with invalid frontmatter/, result.err)
+      assert_match(/note: skipped 2 unusable file\(s\)/, result.err)
       assert_match(/^  \(root\)  \(no index\.md\)  ·  3 concepts/, result.out, "the files that parse still map")
       assert_match(/^    • Good — A valid concept living among malformed ones\.$/, result.out)
     end

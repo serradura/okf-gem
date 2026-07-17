@@ -114,7 +114,7 @@ module ByRegistry
         result = okf("render", "@malformed")
 
         assert_equal 0, result.status
-        assert_match(/note: skipped 2 file\(s\) with invalid frontmatter/, result.err)
+        assert_match(/note: skipped 2 unusable file\(s\)/, result.err)
         assert_match(/\A<!doctype html>/, result.out)
         assert_match(/A valid concept living among malformed ones\./, result.out, "the files that parse are still baked in")
       end
@@ -155,16 +155,6 @@ module ByRegistry
       end
     end
 
-    test "--home is not render's to offer — refs read $OKF_HOME" do
-      with_registry("conformant") do
-        result = okf("render", "@conformant", "--home", @home)
-
-        assert_equal 2, result.status
-        assert_match(/invalid option: --home/, result.err)
-        assert_empty result.out
-      end
-    end
-
     test "a second bundle is a question render cannot answer (exit 2)" do
       with_registry("conformant", "minimal") do
         result = okf("render", "@conformant", "@minimal")
@@ -182,7 +172,7 @@ module ByRegistry
     def register_doomed
       dir = File.join(@out_dir, "doomed")
       FileUtils.cp_r(fixture("minimal"), dir)
-      okf("registry", "set", dir, "--as", "doomed", "--home", @home)
+      okf("registry", "set", dir, "--as", "doomed")
       FileUtils.rm_rf(dir)
       dir
     end

@@ -37,7 +37,7 @@ module ByDir
       result = okf("loose", fixture("malformed"))
 
       assert_equal 0, result.status
-      assert_match(/skipped 2 file\(s\) with invalid frontmatter/, result.err)
+      assert_match(/skipped 2 unusable file\(s\)/, result.err)
     end
   end
 end

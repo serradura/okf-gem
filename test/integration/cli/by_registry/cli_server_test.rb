@@ -114,42 +114,6 @@ module ByRegistry
       assert_match(/invalid argument: --layout bogus/, result.err)
     end
 
-    test "--home steers a ref, and is not ignored when it does" do
-      elsewhere = File.join(@out_dir, "other-home")
-      okf("registry", "set", fixture("minimal"), "--as", "elsewhere", "--home", elsewhere)
-
-      result, booted = okf_server("@elsewhere", "--home", elsewhere)
-
-      assert_equal 0, result.status
-      refute_match(/--home applies/, result.err, "--home steers an @ref — nothing to ignore")
-      assert_kind_of OKF::Server::App, booted_app(booted.first)
-      assert_match(/serving 1 concept/, result.out)
-
-      _status, _headers, page = get_page(booted_app(booted.first))
-      assert_match(%r{<title>OKF · fixtures/minimal</title>}, page)
-    end
-
-    test "--home means that registry and no other — $OKF_HOME is no fallback" do
-      elsewhere = File.join(@out_dir, "other-home")
-      okf("registry", "set", fixture("minimal"), "--as", "elsewhere", "--home", elsewhere)
-
-      result, booted = with_registry("conformant") { okf_server("@conformant", "--home", elsewhere) }
-
-      assert_equal 2, result.status
-      assert_nil booted
-      assert_match(/not a registered bundle: @conformant in #{Regexp.escape(File.join(elsewhere, "registry.json"))}/, result.err)
-    end
-
-    test "--home alongside a plain dir is ignored with a note; alongside a ref it is not" do
-      noted, booted = okf_server(fixture("conformant"), "--home", @home)
-      assert_equal 0, noted.status
-      assert_match(/note: --home applies to a bundle-less run or an @ref; ignored/, noted.err)
-      assert_kind_of OKF::Server::App, booted_app(booted.first), "the note does not stop the boot"
-
-      quiet, = with_registry("conformant") { okf_server("@conformant", "--home", @home) }
-      assert_empty quiet.err, "a ref is exactly what --home is for"
-    end
-
     test "an unknown slug is a usage error that never reaches the runner" do
       result, booted = with_registry("conformant") { okf_server("@ghost") }
 
@@ -172,7 +136,7 @@ module ByRegistry
     end
 
     test "bare @ on an empty registry hints at registering one, and boots nothing" do
-      result, booted = okf_server("@", "--home", @home)
+      result, booted = okf_server("@")
 
       assert_equal 2, result.status
       assert_nil booted, "bare @ is an explicit ask — unlike a bundle-less run, it never falls back to the empty hub"
@@ -183,7 +147,7 @@ module ByRegistry
       result, booted = with_registry("malformed") { okf_server("@malformed") }
 
       assert_equal 0, result.status
-      assert_match(/note: skipped 2 file\(s\) with invalid frontmatter/, result.err)
+      assert_match(/note: skipped 2 unusable file\(s\)/, result.err)
       assert_kind_of OKF::Server::App, booted_app(booted.first)
       assert_match(/serving 3 concepts/, result.out)
     end
@@ -195,7 +159,7 @@ module ByRegistry
     def register_doomed
       dir = File.join(@out_dir, "doomed")
       FileUtils.cp_r(fixture("minimal"), dir)
-      okf("registry", "set", dir, "--as", "doomed", "--home", @home)
+      okf("registry", "set", dir, "--as", "doomed")
       FileUtils.rm_rf(dir)
       dir
     end

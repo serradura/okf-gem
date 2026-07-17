@@ -7,6 +7,18 @@ require_relative "../cli_integration_case"
 module ByDir
   # Bundles named by path — the plain form every verb accepts.
   class CLILintTest < CLIIntegrationCase
+    test "a file the reader cannot open is skipped, not a backtrace through the whole bundle" do
+      skip_unless_permissions_bite
+      dir = unreadable_bundle("locked")
+
+      result = okf("lint", dir)
+
+      assert_equal 0, result.status, "lint is advisory; one unusable file does not make it fail, let alone raise"
+      refute_match(/\.rb:\d+/, result.err, "one bad file never breaks the rest — least of all with a stack trace")
+      assert_match(/note: skipped 1 unusable file\(s\) \(run `okf validate` for details\)/, result.err)
+      assert_match(/OKF lint —/, result.out, "the report still prints: the rest of the bundle is still readable")
+    end
+
     test "an unhealthy bundle reports grouped findings but stays advisory (exit 0)" do
       result = okf("lint", fixture("unhealthy"))
 
@@ -134,7 +146,7 @@ module ByDir
       result = okf("lint", fixture("malformed"))
 
       assert_equal 0, result.status
-      assert_match(/skipped 2 file/, result.err)
+      assert_match(/skipped 2 unusable file/, result.err)
     end
 
     test "usage errors exit 2: unknown check, bad stale value, missing dir" do

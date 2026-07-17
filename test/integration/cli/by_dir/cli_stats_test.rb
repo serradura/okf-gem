@@ -106,7 +106,7 @@ module ByDir
       result = okf("stats", fixture("malformed"), "--json")
 
       assert_equal 0, result.status
-      assert_match(/skipped 2 file\(s\) with invalid frontmatter/, result.err)
+      assert_match(/skipped 2 unusable file\(s\)/, result.err)
       data = json(result)
       assert_equal 3, data.fetch("concepts") # the three that parse still count
       assert_equal({ "(root)" => 3 }, data.fetch("by_area"))

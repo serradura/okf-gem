@@ -170,16 +170,6 @@ module ByRegistry
       end
     end
 
-    test "--home is not offered: stats steers its refs by $OKF_HOME alone (exit 2)" do
-      with_registry("conformant") do
-        result = okf("stats", "@conformant", "--home", @home)
-
-        assert_equal 2, result.status
-        assert_match(/invalid option: --home/, result.err)
-        assert_equal "", result.out
-      end
-    end
-
     test "the read views' filters are not on offer — stats rolls up the whole bundle (exit 2)" do
       with_registry("conformant") do
         filtered = okf("stats", "@conformant", "--type", "BigQuery Table")
@@ -205,7 +195,7 @@ module ByRegistry
         result = okf("stats", "@malformed", "--json")
 
         assert_equal 0, result.status, "a bundle full of §9 errors still rolls up — this is an advisory read, never exit 1"
-        assert_match(/skipped 2 file\(s\) with invalid frontmatter/, result.err)
+        assert_match(/skipped 2 unusable file\(s\)/, result.err)
         data = json(result)
         assert_equal 3, data.fetch("concepts") # the three that parse still count
         assert_equal({ "(root)" => 3 }, data.fetch("by_area"))
@@ -223,7 +213,7 @@ module ByRegistry
       dir = File.join(@out_dir, slug)
       FileUtils.mkdir_p(dir)
       File.write(File.join(dir, "note.md"), "---\ntype: Note\ntitle: Doomed\n---\n\nA concept about to lose its directory.\n")
-      okf("registry", "set", dir, "--home", @home)
+      okf("registry", "set", dir)
       FileUtils.rm_rf(dir)
       dir
     end

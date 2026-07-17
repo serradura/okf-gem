@@ -10,62 +10,63 @@ require_relative "../cli_integration_case"
 # writes the developer's own ~/.okf.
 class CLIRegistryRenameTest < CLIIntegrationCase
   test "renaming changes the slug, and with it the /b/<slug>/ mount" do
-    okf("registry", "set", fixture("conformant"), "--home", @home)
+    okf("registry", "set", fixture("conformant"))
 
-    result = okf("registry", "rename", "conformant", "handbook", "--home", @home)
+    result = okf("registry", "rename", "conformant", "handbook")
 
     assert_equal 0, result.status
     assert_equal "renamed conformant → handbook\n", result.out
-    row = json(okf("registry", "list", "--json", "--home", @home))["bundles"].first
+    row = json(okf("registry", "list", "--json"))["bundles"].first
     assert_equal "handbook", row["slug"]
     assert_equal "/b/handbook/", row["mount"]
     assert_equal fixture("conformant"), row["dir"], "the bundle stays put — only its name moved"
   end
 
   test "the default follows the rename" do
-    okf("registry", "set", fixture("conformant"), "--home", @home)
-    okf("registry", "set", fixture("minimal"), "--home", @home)
-    okf("registry", "default", "minimal", "--home", @home)
+    okf("registry", "set", fixture("conformant"))
+    okf("registry", "set", fixture("minimal"))
+    okf("registry", "default", "minimal")
 
-    assert_equal 0, okf("registry", "rename", "minimal", "tiny", "--home", @home).status
+    assert_equal 0, okf("registry", "rename", "minimal", "tiny").status
 
-    listing = okf("registry", "list", "--home", @home).out
+    listing = okf("registry", "list").out
     assert_match(/^\* tiny/, listing, "the star moves with the bundle it marked")
     assert_match(/^ {2}conformant/, listing)
-    assert_equal "tiny", registry_json["default"]
+    assert_equal %w[tiny conformant], registry_json["bundles"].map { |row| row["slug"] },
+      "a rename touches the name, never the position — so the default follows with no bookkeeping"
   end
 
   test "the new name is slugified" do
-    okf("registry", "set", fixture("conformant"), "--home", @home)
+    okf("registry", "set", fixture("conformant"))
 
-    result = okf("registry", "rename", "conformant", "Team Handbook!", "--home", @home)
+    result = okf("registry", "rename", "conformant", "Team Handbook!")
 
     assert_equal 0, result.status
     assert_equal "renamed conformant → team-handbook\n", result.out
-    assert_equal "/b/team-handbook/", json(okf("registry", "list", "--json", "--home", @home))["bundles"].first["mount"]
+    assert_equal "/b/team-handbook/", json(okf("registry", "list", "--json"))["bundles"].first["mount"]
   end
 
   test "a collision with another entry raises (exit 2) — explicit is explicit, never suffixed" do
-    okf("registry", "set", fixture("conformant"), "--home", @home)
-    okf("registry", "set", fixture("minimal"), "--home", @home)
+    okf("registry", "set", fixture("conformant"))
+    okf("registry", "set", fixture("minimal"))
 
-    result = okf("registry", "rename", "minimal", "conformant", "--home", @home)
+    result = okf("registry", "rename", "minimal", "conformant")
 
     assert_equal 2, result.status
     assert_match(/error: slug already taken: conformant/, result.err)
     assert_empty result.out
     assert_equal %w[conformant minimal], registry_json["bundles"].map { |row| row["slug"] }
-    refute_match(/conformant-2/, okf("registry", "list", "--home", @home).out, "a rename never silently suffixes its way out")
+    refute_match(/conformant-2/, okf("registry", "list").out, "a rename never silently suffixes its way out")
 
     # An entry does not collide with itself: the new name is checked against the
     # *other* entries only.
-    assert_equal 0, okf("registry", "rename", "minimal", "MINIMAL", "--home", @home).status
+    assert_equal 0, okf("registry", "rename", "minimal", "MINIMAL").status
   end
 
   test "an unknown old slug is a usage error (exit 2)" do
-    okf("registry", "set", fixture("conformant"), "--home", @home)
+    okf("registry", "set", fixture("conformant"))
 
-    result = okf("registry", "rename", "ghost", "handbook", "--home", @home)
+    result = okf("registry", "rename", "ghost", "handbook")
 
     assert_equal 2, result.status
     assert_match(/error: no such bundle: ghost/, result.err)
@@ -74,9 +75,9 @@ class CLIRegistryRenameTest < CLIIntegrationCase
   end
 
   test "a new name with nothing sluggable left is a usage error (exit 2)" do
-    okf("registry", "set", fixture("conformant"), "--home", @home)
+    okf("registry", "set", fixture("conformant"))
 
-    result = okf("registry", "rename", "conformant", "***", "--home", @home)
+    result = okf("registry", "rename", "conformant", "***")
 
     assert_equal 2, result.status
     assert_match(/error: not a usable slug: \*\*\* \(letters and digits, please\)/, result.err)
@@ -84,34 +85,34 @@ class CLIRegistryRenameTest < CLIIntegrationCase
   end
 
   test "missing args print the banner (exit 2)" do
-    okf("registry", "set", fixture("conformant"), "--home", @home)
+    okf("registry", "set", fixture("conformant"))
 
     [ [], [ "conformant" ] ].each do |args|
-      result = okf("registry", "rename", *args, "--home", @home)
+      result = okf("registry", "rename", *args)
 
       assert_equal 2, result.status, "rename #{args.inspect} takes two slugs"
-      assert_match(/Usage: okf registry rename <old> <new> \[--home DIR\]/, result.err)
+      assert_match(/Usage: okf registry rename <old> <new>/, result.err)
       assert_empty result.out
     end
     assert_equal %w[conformant], registry_json["bundles"].map { |row| row["slug"] }
   end
 
   test "a stray extra positional is a usage error (exit 2), and nothing is renamed" do
-    okf("registry", "set", fixture("conformant"), "--home", @home)
+    okf("registry", "set", fixture("conformant"))
 
-    result = okf("registry", "rename", "conformant", "handbook", "extra", "--home", @home)
+    result = okf("registry", "rename", "conformant", "handbook", "extra")
 
     assert_equal 2, result.status
     assert_match(/error: unexpected argument 'extra'/, result.err)
     assert_equal %w[conformant], registry_json["bundles"].map { |row| row["slug"] }
   end
 
-  test "--home picks the registry the rename lands in" do
+  test "$OKF_HOME picks the registry the rename lands in" do
     other = File.join(@out_dir, "other-home")
-    okf("registry", "set", fixture("conformant"), "--home", @home)
-    okf("registry", "set", fixture("minimal"), "--home", other)
+    okf("registry", "set", fixture("conformant"))
+    with_home(other) { okf("registry", "set", fixture("minimal")) }
 
-    stray = okf("registry", "rename", "conformant", "handbook", "--home", other)
+    stray = with_home(other) { okf("registry", "rename", "conformant", "handbook") }
 
     assert_equal 2, stray.status
     assert_match(/error: no such bundle: conformant/, stray.err)
@@ -120,15 +121,14 @@ class CLIRegistryRenameTest < CLIIntegrationCase
   end
 
   test "the on-disk JSON after a rename moves the slug and leaves the rest alone" do
-    okf("registry", "set", fixture("conformant"), "--home", @home)
-    okf("registry", "set", fixture("minimal"), "--home", @home)
-    okf("registry", "default", "conformant", "--home", @home)
+    okf("registry", "set", fixture("conformant"))
+    okf("registry", "set", fixture("minimal"))
+    okf("registry", "default", "conformant")
 
-    okf("registry", "rename", "conformant", "handbook", "--home", @home)
+    okf("registry", "rename", "conformant", "handbook")
 
     data = registry_json
-    assert_equal "handbook", data["default"]
-    assert_equal %w[handbook minimal], data["bundles"].map { |row| row["slug"] }, "registration order survives the rename"
+    assert_equal %w[handbook minimal], data["bundles"].map { |row| row["slug"] }, "order survives the rename"
     entry = data["bundles"].first
     assert_equal fixture("conformant"), entry["path"]
     assert_equal "fixtures/conformant", entry["title"]

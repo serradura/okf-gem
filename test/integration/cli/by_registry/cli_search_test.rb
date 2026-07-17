@@ -8,7 +8,7 @@ require_relative "../cli_integration_case"
 # not the `bundle`/`slug` head every other read verb prints. Every flag re-proven
 # through that envelope.
 #
-# One ref only: --all and several refs are the multi-bundle surface, tested where
+# One ref only: @all and several refs are the multi-bundle surface, tested where
 # multi-bundle behavior lives.
 module ByRegistry
   # Bundles named by @ref — the identity form the registry gives.
@@ -153,22 +153,6 @@ module ByRegistry
       end
     end
 
-    test "--home steers ref resolution away from $OKF_HOME" do
-      elsewhere = File.join(@out_dir, "other-home")
-      okf("registry", "set", fixture("minimal"), "--as", "elsewhere", "--home", elsewhere)
-
-      with_registry("conformant") do
-        found = json(okf("search", "@elsewhere", "note", "--json", "--home", elsewhere))
-        assert_equal [ "elsewhere" ], found["bundles"].map { |bundle| bundle["slug"] }
-        assert_equal fixture("minimal"), found["bundles"].first["dir"]
-
-        missed = okf("search", "@conformant", "orders", "--home", elsewhere)
-        assert_equal 2, missed.status
-        assert_match(/not a registered bundle: @conformant in #{Regexp.escape(File.join(elsewhere, "registry.json"))}/, missed.err,
-          "--home means that registry and no other — $OKF_HOME is not consulted as a fallback")
-      end
-    end
-
     test "an unknown slug fails hard, names the registry, and offers the literal-term reading" do
       with_registry("conformant") do
         result = okf("search", "@ghost", "orders")
@@ -210,7 +194,7 @@ module ByRegistry
         result = okf("search", "@conformant")
 
         assert_equal 2, result.status
-        assert_match(/Usage: okf search <bundle-dir\|@ref…> <term> \[term \.\.\.\]/, result.err)
+        assert_match(/Usage: okf search <bundle-dir\|@ref…\|@all> <term> \[term \.\.\.\]/, result.err)
         assert_empty result.out
       end
     end
@@ -220,7 +204,7 @@ module ByRegistry
         result = okf("search", "@malformed", "valid")
 
         assert_equal 0, result.status
-        assert_match(/note: skipped 2 file\(s\) with invalid frontmatter/, result.err)
+        assert_match(/note: skipped 2 unusable file\(s\)/, result.err)
         assert_match(/@malformed\s+good\s+Good/, result.out, "the files that parse are still searched")
       end
     end
@@ -232,7 +216,7 @@ module ByRegistry
     def register_doomed
       dir = File.join(@out_dir, "doomed")
       FileUtils.cp_r(fixture("minimal"), dir)
-      okf("registry", "set", dir, "--as", "doomed", "--home", @home)
+      okf("registry", "set", dir, "--as", "doomed")
       FileUtils.rm_rf(dir)
       dir
     end

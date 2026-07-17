@@ -115,7 +115,7 @@ module ByRegistry
         result = okf("lint", "@malformed")
 
         assert_equal 0, result.status
-        assert_match(/note: skipped 2 file\(s\) with invalid frontmatter/, result.err)
+        assert_match(/note: skipped 2 unusable file\(s\)/, result.err)
         assert_match(/OKF lint — @malformed/, result.out)
       end
     end
@@ -163,15 +163,6 @@ module ByRegistry
       end
     end
 
-    test "--home is not lint's to offer — refs read $OKF_HOME" do
-      with_registry("unhealthy") do
-        result = okf("lint", "@unhealthy", "--home", @home)
-
-        assert_equal 2, result.status
-        assert_match(/invalid option: --home/, result.err)
-      end
-    end
-
     test "a second bundle is a question lint cannot answer (exit 2)" do
       with_registry("conformant", "unhealthy") do
         result = okf("lint", "@conformant", "@unhealthy")
@@ -189,7 +180,7 @@ module ByRegistry
     def register_doomed
       dir = File.join(@out_dir, "doomed")
       FileUtils.cp_r(fixture("minimal"), dir)
-      okf("registry", "set", dir, "--as", "doomed", "--home", @home)
+      okf("registry", "set", dir, "--as", "doomed")
       FileUtils.rm_rf(dir)
       dir
     end

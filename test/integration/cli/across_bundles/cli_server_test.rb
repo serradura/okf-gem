@@ -35,7 +35,7 @@ module AcrossBundles
 
       # Ephemeral is the whole point: the slugs came from the basenames and the
       # run left no trace behind it.
-      assert_match(/no bundles registered/, okf("registry", "list", "--home", @home).out,
+      assert_match(/no bundles registered/, okf("registry", "list").out,
         "an ephemeral hub registers nothing — its slugs live for one run")
     end
 
@@ -101,7 +101,7 @@ module AcrossBundles
 
     test "zero dirs boot a hub over the persistent registry, honoring its chosen default at /" do
       result, booted = with_registry("conformant", "rooted") do
-        okf("registry", "default", "rooted", "--home", @home)
+        okf("registry", "default", "rooted")
         okf_server
       end
       hub = booted_app(booted.first)
@@ -126,8 +126,64 @@ module AcrossBundles
       refute_match(/serving 0 bundles/, result.out)
     end
 
+    test "a vanished first entry drops out, and / opens the same bundle the listing stars" do
+      # The two derive the default separately — the hub from the bundles it could
+      # actually load, `registry list` from the entries on disk — so they are
+      # pinned against each other here. Drifting apart would put the * on a
+      # bundle `/` never opens, which is what the star exists to name.
+      doomed = scratch_bundle("doomed")
+      okf("registry", "set", doomed)
+      okf("registry", "set", fixture("conformant"))
+      FileUtils.rm_rf(doomed)
+
+      result, booted = okf_server
+
+      assert_equal 0, result.status
+      assert_match(/note: skipping doomed/, result.err, "the hole is named, never silently closed")
+      assert_match(/serving 1 bundle, 3 concepts/, result.out)
+      assert_match(%r{^ {2}\* /b/conformant/}, result.out)
+      assert_equal "/b/conformant/", get_page(booted_app(booted.first))[1]["location"]
+      assert_match(/^\* conformant/, okf("registry", "list").out,
+        "the listing stars exactly the bundle / just redirected to")
+    end
+
+    test "a first entry that is on disk but holds an unreadable file still opens at /" do
+      # The other half of the pin above. "On disk" and "the hub could load it"
+      # agree everywhere except here: a directory that is present and readable
+      # but carries a file that is not. The listing stars it — it is on disk,
+      # not even (missing) — so the hub has to open it, which means one
+      # unreadable file must not cost the whole bundle.
+      skip_unless_permissions_bite
+      locked = scratch_bundle("locked")
+      okf("registry", "set", locked)
+      okf("registry", "set", fixture("conformant"))
+      make_unreadable(locked) # registered while healthy, rotted afterwards — the way it happens
+
+      result, booted = okf_server
+
+      assert_equal 0, result.status
+      assert_match(/serving 2 bundles/, result.out, "an unreadable file costs a concept, never the bundle")
+      assert_equal "/b/locked/", get_page(booted_app(booted.first))[1]["location"]
+      assert_match(/^\* locked/, okf("registry", "list").out,
+        "the listing stars exactly the bundle / just redirected to")
+      refute_match(/note: skipping locked/, result.err, "nothing is skipped: the bundle loads, minus the file it cannot read")
+    end
+
+    test "an ephemeral dir named all/ mounts at /b/all/ — nothing is reserved without a registry" do
+      # `all` is reserved in the *registry*, because `@all` names every registered
+      # bundle there. An ephemeral run has no registry and no refs, so there is no
+      # name to protect and no collision to dodge: suffixing here would invent a
+      # /b/all-2/ whose /b/all/ does not exist.
+      result, booted = okf_server(fixture("all"), fixture("minimal"))
+
+      assert_equal 0, result.status
+      assert_match(%r{^ {2}\* /b/all/\s}, result.out)
+      assert_equal 200, get_page(booted_app(booted.first), "/b/all/")[0]
+      refute_match(%r{/b/all-2/}, result.out, "a suffix dodging a collision with nothing")
+    end
+
     test "a bundle-less run with an empty registry boots the hub's empty state" do
-      result, booted = okf_server("--home", @home)
+      result, booted = okf_server
       hub = booted_app(booted.first)
 
       assert_equal 0, result.status
@@ -143,11 +199,11 @@ module AcrossBundles
     test "a registered bundle whose directory is gone is skipped, and the hub boots without it" do
       gone = File.join(@out_dir, "gone")
       FileUtils.cp_r(fixture("minimal"), gone)
-      okf("registry", "set", fixture("conformant"), "--home", @home)
-      okf("registry", "set", gone, "--home", @home)
+      okf("registry", "set", fixture("conformant"))
+      okf("registry", "set", gone)
       FileUtils.rm_rf(gone)
 
-      result, booted = okf_server("--home", @home)
+      result, booted = okf_server
 
       assert_equal 0, result.status, "one stale entry does not sink the hub"
       assert_match(/note: skipping gone — cannot read #{Regexp.escape(gone)}/, result.err)
@@ -160,10 +216,10 @@ module AcrossBundles
     # -- @refs across bundles
 
     test "several @refs mount each bundle under its registered slug" do
-      okf("registry", "set", fixture("conformant"), "--as", "handbook", "--home", @home)
-      okf("registry", "set", fixture("mentions"), "--as", "runbooks", "--home", @home)
+      okf("registry", "set", fixture("conformant"), "--as", "handbook")
+      okf("registry", "set", fixture("mentions"), "--as", "runbooks")
 
-      result, booted = okf_server("@handbook", "@runbooks", "--home", @home)
+      result, booted = okf_server("@handbook", "@runbooks")
       hub = booted_app(booted.first)
 
       assert_equal 0, result.status
@@ -172,7 +228,6 @@ module AcrossBundles
       assert_match(%r{^ {4}/b/runbooks/\s+fixtures/mentions$}, result.out)
       refute_match(%r{/b/conformant/}, result.out, "the mount carries the registry slug, not the dir basename")
       refute_match(%r{/b/mentions/}, result.out)
-      refute_match(/--home applies/, result.err, "--home steers an @ref — nothing to ignore")
 
       status, _headers, page = get_page(hub, "/b/handbook/")
       assert_equal 200, status
@@ -180,13 +235,13 @@ module AcrossBundles
     end
 
     test "a registered slug is reserved before a plain dir's basename is deduped" do
-      okf("registry", "set", fixture("rooted"), "--as", "two", "--home", @home)
+      okf("registry", "set", fixture("rooted"), "--as", "two")
       plain = scratch_bundle("x/two")
 
       # The plain dir leads, so argv order alone would hand it /b/two/ — but
       # /b/two/ is @two's name, and a bookmark from a bundle-less run must keep
       # meaning @two. Reserve every ref's slug first, then dedupe the basenames.
-      result, booted = okf_server(plain, "@two", "--home", @home)
+      result, booted = okf_server(plain, "@two")
 
       assert_equal 0, result.status
       assert_match(%r{^ {4}/b/two/\s+fixtures/rooted$}, result.out, "@two keeps the slug it is registered under")
@@ -200,9 +255,9 @@ module AcrossBundles
     end
 
     test "a dir and a ref naming one bundle mount it once, under the registered slug" do
-      okf("registry", "set", fixture("conformant"), "--as", "handbook", "--home", @home)
+      okf("registry", "set", fixture("conformant"), "--as", "handbook")
 
-      result, _booted = okf_server(fixture("conformant"), "@handbook", "--home", @home)
+      result, _booted = okf_server(fixture("conformant"), "@handbook")
 
       assert_equal 0, result.status
       assert_match(/serving 1 bundle, 3 concepts/, result.out, "one resolved path is one bundle, however it was spelled")
@@ -262,17 +317,12 @@ module AcrossBundles
       refute_match(/example\.test/, page, "the ignored --link reaches no app behind the hub")
     end
 
-    test "--home is ignored with a note when dirs are given, but not when a ref needs it" do
-      ignored, booted = okf_server(fixture("conformant"), fixture("minimal"), "--home", @home)
-      assert_equal 0, ignored.status
-      assert_match(/note: --home applies to a bundle-less run or an @ref; ignored/, ignored.err)
-      assert_kind_of OKF::Server::Hub, booted_app(booted.first), "the note does not stop the boot"
+    test "a plain dir and a ref mount side by side, each under its own name" do
+      okf("registry", "set", fixture("rooted"), "--as", "steered")
 
-      # A mix: the ref needs --home to resolve at all, so there is nothing to ignore.
-      okf("registry", "set", fixture("rooted"), "--as", "steered", "--home", @home)
-      mixed, booted = okf_server(fixture("minimal"), "@steered", "--home", @home)
+      mixed, booted = okf_server(fixture("minimal"), "@steered")
+
       assert_equal 0, mixed.status
-      refute_match(/--home applies/, mixed.err)
       assert_match(%r{^ {4}/b/steered/\s+fixtures/rooted$}, mixed.out)
       assert_kind_of OKF::Server::Hub, booted_app(booted.first)
     end
@@ -291,9 +341,9 @@ module AcrossBundles
     end
 
     test "an unknown @ref among several is a usage error that never boots" do
-      okf("registry", "set", fixture("conformant"), "--home", @home)
+      okf("registry", "set", fixture("conformant"))
 
-      result, booted = okf_server("@conformant", "@ghost", "--home", @home)
+      result, booted = okf_server("@conformant", "@ghost")
 
       assert_equal 2, result.status
       assert_nil booted
@@ -309,7 +359,7 @@ module AcrossBundles
       hub = booted_app(booted.first)
 
       assert_equal 0, result.status
-      assert_match(/note: skipped 2 file\(s\) with invalid frontmatter \(run `okf validate` for details\)/, result.err)
+      assert_match(/note: skipped 2 unusable file\(s\) \(run `okf validate` for details\)/, result.err)
       assert_kind_of OKF::Server::Hub, hub
       assert_match(/serving 2 bundles, 4 concepts/, result.out, "the 3 concepts that parsed are served")
       assert_equal 200, get_page(hub, "/b/malformed/").first

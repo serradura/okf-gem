@@ -30,12 +30,19 @@ class CLIIntegrationCase < OKF::TestCase
 
   Result = Struct.new(:status, :out, :err)
 
+  # $OKF_HOME is the only lever the CLI offers on the registry, so isolation is
+  # not something a test opts into: point it at a scratch dir for *every* test,
+  # and the real ~/.okf is unreachable from the suite by construction. A test
+  # that never touches the registry simply leaves the scratch one empty.
   setup do
     @out_dir = Dir.mktmpdir("okf-integration")
     @home = Dir.mktmpdir("okf-integration-home")
+    @okf_home_was = ENV.fetch("OKF_HOME", nil)
+    ENV["OKF_HOME"] = @home
   end
 
   teardown do
+    @okf_home_was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = @okf_home_was
     FileUtils.rm_rf(@out_dir)
     FileUtils.rm_rf(@home)
   end
@@ -56,13 +63,58 @@ class CLIIntegrationCase < OKF::TestCase
     GROUP_FIXTURES[self.class.name.split("::").first]
   end
 
-  # Register fixture bundles in the scratch registry and run the block with
-  # $OKF_HOME pointing at it, so @refs resolve there and never at the real
-  # ~/.okf. Returns whatever the block returns.
+  # Seed the scratch registry with fixture bundles, in the order given — the
+  # first is the default. $OKF_HOME already points at it (see setup), so this
+  # only registers; naming the block is what marks a test as registry-shaped.
+  # Returns whatever the block returns.
   def with_registry(*names)
-    names.each { |name| okf("registry", "set", fixture(name), "--home", @home) }
+    names.each { |name| okf("registry", "set", fixture(name)) }
+    yield
+  end
+
+  # A one-concept bundle under @out_dir — a directory a test is free to delete.
+  # The committed fixtures cannot serve here: proving what the CLI does when a
+  # registered directory vanishes needs a bundle that *can* vanish, and a
+  # fixture that deletes itself is not a fixture.
+  def scratch_bundle(name)
+    dir = File.join(@out_dir, name)
+    FileUtils.mkdir_p(dir)
+    File.write(File.join(dir, "note.md"), "---\ntype: Note\ntitle: Scratch Note\n---\n\nA scratch concept.\n")
+    dir
+  end
+
+  # A one-concept bundle under @out_dir whose only concept file cannot be read —
+  # the file exists and globs, so the bundle is *on disk*, but File.read raises
+  # EACCES. The one shape that separates "the directory is there" from "the
+  # reader can use it", which is where the two of them used to disagree.
+  def unreadable_bundle(name)
+    make_unreadable(scratch_bundle(name))
+  end
+
+  # Rot a scratch bundle's concept file in place. Separate from #unreadable_bundle
+  # so a test can register the bundle while it is still healthy and lock it after:
+  # `registry set` reads the bundle to count its concepts, so a bundle born
+  # unreadable never survives its own registration, and a test that dies there
+  # proves nothing about what the server does with the entry.
+  def make_unreadable(dir)
+    File.chmod(0o000, File.join(dir, "note.md"))
+    dir
+  end
+
+  # chmod cannot deny root, so a permission-shaped test asserts nothing when the
+  # suite runs as one — which the Ruby 2.4 Docker check does. Skip rather than
+  # pass vacuously: a test that goes green because the world is not the way it
+  # says it is certifies nothing.
+  def skip_unless_permissions_bite
+    skip "running as root — chmod cannot make a file unreadable" if Process.uid.zero?
+  end
+
+  # Point $OKF_HOME at a different registry for the block. It is the CLI's only
+  # lever, so this is how a test proves two registries stay separate; teardown
+  # restores the scratch one either way.
+  def with_home(dir)
     was = ENV.fetch("OKF_HOME", nil)
-    ENV["OKF_HOME"] = @home
+    ENV["OKF_HOME"] = dir
     yield
   ensure
     was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = was

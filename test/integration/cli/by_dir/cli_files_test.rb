@@ -148,7 +148,7 @@ module ByDir
     test "best-effort read: malformed files are skipped (stderr), stdout stays valid" do
       result = okf("files", fixture("malformed"))
       assert_equal 0, result.status
-      assert_match(/skipped 2 file\(s\) with invalid frontmatter/, result.err)
+      assert_match(/skipped 2 unusable file\(s\)/, result.err)
       assert_match(/good\.md {8}Good/, result.out) # the three that parse still list
 
       machine = okf("files", fixture("malformed"), "--json")

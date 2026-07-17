@@ -71,6 +71,19 @@ module ByDir
       assert_equal 0, status
     end
 
+    test "a file the reader cannot open is a §9.1 error naming it, not a backtrace" do
+      skip_unless_permissions_bite
+      dir = unreadable_bundle("locked")
+
+      result = okf("validate", dir)
+
+      assert_equal 1, result.status, "a file that cannot be read cannot be shown to carry a type — §9.1 fails, and 1 is what a failing bundle exits"
+      refute_match(/\.rb:\d+/, result.err, "exit 1 means non-conformant; a backtrace means neither that nor a usage error")
+      assert_match(/✗ ERROR  note\.md: .*Permission denied/, result.out,
+        "the report names the file and why it could not be read, which is the whole point of failing instead of raising")
+      assert_match(/✗ non-conformant \(1 error\(s\)\)/, result.out)
+    end
+
     test "--json emits a machine-readable report" do
       result = okf("validate", fixture("malformed"), "--json")
       report = JSON.parse(result.out)

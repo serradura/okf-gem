@@ -147,16 +147,6 @@ module ByRegistry
       end
     end
 
-    test "--home is not offered: loose steers its refs by $OKF_HOME alone (exit 2)" do
-      with_registry("minimal") do
-        result = okf("loose", "@minimal", "--home", @home)
-
-        assert_equal 2, result.status
-        assert_match(/invalid option: --home/, result.err)
-        assert_equal "", result.out
-      end
-    end
-
     test "the read views' filters and projections are not on offer (exit 2)" do
       with_registry("minimal") do
         assert_match(/invalid option: --type/, okf("loose", "@minimal", "--type", "Note").err)
@@ -181,7 +171,7 @@ module ByRegistry
         result = okf("loose", "@malformed", "--json")
 
         assert_equal 0, result.status
-        assert_match(/skipped 2 file\(s\) with invalid frontmatter/, result.err)
+        assert_match(/skipped 2 unusable file\(s\)/, result.err)
         assert_equal %w[blank-type good no-type], json(result).fetch("loose").map { |row| row.fetch("id") },
           "the three that parse are all degree-0, and all report"
         assert_equal "malformed", json(result).fetch("slug")
@@ -198,7 +188,7 @@ module ByRegistry
       dir = File.join(@out_dir, slug)
       FileUtils.mkdir_p(dir)
       File.write(File.join(dir, "note.md"), "---\ntype: Note\ntitle: Doomed\n---\n\nA concept about to lose its directory.\n")
-      okf("registry", "set", dir, "--home", @home)
+      okf("registry", "set", dir)
       FileUtils.rm_rf(dir)
       dir
     end

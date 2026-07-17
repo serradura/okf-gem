@@ -105,7 +105,7 @@ module ByDir
       result = okf("render", fixture("malformed"))
 
       assert_equal 0, result.status
-      assert_match(/note: skipped 2 file\(s\) with invalid frontmatter/, result.err)
+      assert_match(/note: skipped 2 unusable file\(s\)/, result.err)
       assert_match(/\A<!doctype html>/, result.out)
       assert_match(/const EMBED=\{"catalog":/, result.out)
       assert_match(/A valid concept living among malformed ones\./, result.out, "the files that parse are still baked in")
