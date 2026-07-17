@@ -7,6 +7,11 @@ begin
   SimpleCov.start do
     enable_coverage :branch
     add_filter "/test/"
+    # `rake test:integration` points these at a separate report, so the
+    # integration-only figure — the honest one, since it only counts what a user
+    # can reach through the CLI — never overwrites the full suite's.
+    coverage_dir ENV["OKF_COVERAGE_DIR"] if ENV["OKF_COVERAGE_DIR"]
+    command_name ENV["OKF_COVERAGE_NAME"] if ENV["OKF_COVERAGE_NAME"]
   end
   # Generate the coverage report *after* the Minitest suite finishes rather than
   # when SimpleCov's own at_exit fires. Under `rake test`, the test task requires

@@ -1,0 +1,143 @@
+# frozen_string_literal: true
+
+require_relative "../cli_integration_case"
+
+# `okf registry del` end-to-end — dropping an entry from the persistent registry
+# at $OKF_HOME/registry.json. It takes a slug, the bundle's directory, or an
+# @ref, and the removal is asserted through what a later command sees: the
+# listing, the effective default, and the file on disk.
+#
+# Every run here is pinned to the scratch @home (or the $OKF_HOME `with_registry`
+# sets), so the suite never reads or writes the developer's own ~/.okf.
+class CLIRegistryDelTest < CLIIntegrationCase
+  test "removing by slug reports what went and drops it from the listing" do
+    okf("registry", "set", fixture("conformant"), "--home", @home)
+    okf("registry", "set", fixture("minimal"), "--home", @home)
+
+    result = okf("registry", "del", "minimal", "--home", @home)
+
+    assert_equal 0, result.status
+    assert_equal "removed minimal\n", result.out
+    listing = okf("registry", "list", "--home", @home).out
+    assert_match(/conformant/, listing)
+    refute_match(/minimal/, listing)
+  end
+
+  test "a bundle removes by its directory too — del takes a slug or a dir" do
+    # Registered under a slug its basename would never mint, so only the *path*
+    # can match: a del that succeeds here read the argument as a directory.
+    okf("registry", "set", fixture("conformant"), "--as", "handbook", "--home", @home)
+
+    result = okf("registry", "del", fixture("conformant"), "--home", @home)
+
+    assert_equal 0, result.status
+    assert_equal "removed handbook\n", result.out
+    assert_match(/no bundles registered/, okf("registry", "list", "--home", @home).out)
+  end
+
+  test "an @ref removes by name, and a bare @ removes the default" do
+    with_registry("conformant", "minimal") do
+      assert_equal "removed minimal\n", okf("registry", "del", "@minimal").out
+      assert_equal "removed conformant\n", okf("registry", "del", "@").out
+
+      exhausted = okf("registry", "del", "@")
+      assert_equal 2, exhausted.status
+      assert_match(/error: no bundle is registered, so `@` names nothing \(okf registry set <dir>\)/, exhausted.err)
+    end
+  end
+
+  test "an unknown slug is a usage error (exit 2) and leaves the registry alone" do
+    okf("registry", "set", fixture("conformant"), "--home", @home)
+
+    result = okf("registry", "del", "ghost", "--home", @home)
+
+    assert_equal 2, result.status
+    assert_match(/error: no such bundle: ghost/, result.err)
+    assert_empty result.out
+    assert_equal %w[conformant], registry_json["bundles"].map { |row| row["slug"] }
+  end
+
+  test "removing the default clears the choice — the first remaining bundle takes over" do
+    okf("registry", "set", fixture("conformant"), "--home", @home)
+    okf("registry", "set", fixture("minimal"), "--home", @home)
+    okf("registry", "set", fixture("empty"), "--home", @home)
+    okf("registry", "default", "minimal", "--home", @home)
+    assert_match(/^\* minimal/, okf("registry", "list", "--home", @home).out)
+
+    assert_equal 0, okf("registry", "del", "minimal", "--home", @home).status
+
+    listing = okf("registry", "list", "--home", @home).out
+    assert_match(/^\* conformant/, listing, "the first remaining bundle is the effective default")
+    assert_match(/^ {2}empty/, listing)
+    refute_includes registry_json.keys, "default", "the choice goes with the entry — no dangling slug is left behind"
+  end
+
+  test "an entry whose directory is already gone still deletes" do
+    dir = File.join(@out_dir, "vanishing")
+    FileUtils.mkdir_p(dir)
+    File.write(File.join(dir, "index.md"), <<~MD)
+      ---
+      okf_version: "0.1"
+      title: Vanishing
+      ---
+    MD
+    okf("registry", "set", dir, "--home", @home)
+    FileUtils.rm_rf(dir)
+    assert_match(/vanishing.*\(missing\)/, okf("registry", "list", "--home", @home).out)
+
+    result = okf("registry", "del", "vanishing", "--home", @home)
+
+    assert_equal 0, result.status
+    assert_equal "removed vanishing\n", result.out
+    assert_empty registry_json["bundles"], "the entry a gone directory left behind is exactly the one worth deleting"
+  end
+
+  test "--home picks the registry the del lands in" do
+    other = File.join(@out_dir, "other-home")
+    okf("registry", "set", fixture("conformant"), "--home", @home)
+    okf("registry", "set", fixture("minimal"), "--home", other)
+
+    stray = okf("registry", "del", "conformant", "--home", other)
+
+    assert_equal 2, stray.status
+    assert_match(/error: no such bundle: conformant/, stray.err)
+    assert_equal %w[conformant], registry_json["bundles"].map { |row| row["slug"] }, "the other home's del cannot reach this one"
+  end
+
+  test "a stray extra positional is a usage error (exit 2), and nothing is removed" do
+    okf("registry", "set", fixture("conformant"), "--home", @home)
+
+    result = okf("registry", "del", "conformant", "extra", "--home", @home)
+
+    assert_equal 2, result.status
+    assert_match(/error: unexpected argument 'extra'/, result.err)
+    assert_equal %w[conformant], registry_json["bundles"].map { |row| row["slug"] }
+  end
+
+  test "no slug at all prints the banner (exit 2)" do
+    result = okf("registry", "del", "--home", @home)
+
+    assert_equal 2, result.status
+    assert_match(%r{Usage: okf registry del <slug-or-dir\|@ref> \[--home DIR\]}, result.err)
+    assert_empty result.out
+  end
+
+  test "the on-disk JSON after a del keeps the survivors in registration order" do
+    okf("registry", "set", fixture("conformant"), "--home", @home)
+    okf("registry", "set", fixture("minimal"), "--home", @home)
+    okf("registry", "set", fixture("empty"), "--home", @home)
+
+    okf("registry", "del", "minimal", "--home", @home)
+
+    rows = registry_json["bundles"]
+    assert_equal %w[conformant empty], rows.map { |row| row["slug"] }
+    assert_equal [ fixture("conformant"), fixture("empty") ], rows.map { |row| row["path"] }
+  end
+
+  private
+
+  # The registry as it sits on disk under the scratch home.
+  def registry_json
+    JSON.parse(File.read(File.join(@home, "registry.json")))
+  end
+end

@@ -2,25 +2,11 @@
 
 require_relative "cli_integration_case"
 
-# `okf` top-level behavior that isn't tied to one command: version, help, and the
-# usage-error paths (unknown command, missing directory, bad flag, no command).
+# The dispatcher itself, before any command runs: the usage-error paths (unknown
+# command, missing directory, bad flag, no command) and the contract that a
+# rejected invocation leaves stdout clean. Each command has its own file, and
+# `version`/`help` live in cli_version_test.rb / cli_help_test.rb.
 class CLIMiscTest < CLIIntegrationCase
-  test "version prints just the semantic version" do
-    status = nil
-    assert_output(/\A\d+\.\d+\.\d+\n\z/, "") { status = start_cli("--version") }
-    assert_equal 0, status
-  end
-
-  test "help lists every command with a description" do
-    result = okf("--help")
-
-    assert_equal 0, result.status
-    assert_match(/okf <command> \[options\]/, result.out)
-    %w[skill server validate lint loose search index catalog files tags types stats graph].each do |command|
-      assert_match(/^\s+#{command}\s+\S.*/, result.out, "help should list the `#{command}` command")
-    end
-  end
-
   test "an unknown command reports the error and usage on stderr (exit 2)" do
     result = okf("frobnicate")
 

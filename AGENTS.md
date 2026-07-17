@@ -89,6 +89,82 @@ deterministic check enforces the point,`<!-- rule:okf-<slug> -->` for
 7. **Tests use `OKF::TestCase`** (`test/test_helper.rb`): plain Minitest plus
    `test "..."` / block `setup`/`teardown` sugar. The tests run on 2.4 too, so
    the API constraints above apply to `test/` as well.
+8. **Integration first — `test/integration/cli/` is the critical layer.** It is
+   the only place the gem is exercised the way it is actually used: real argv,
+   real streams, real exit codes, real files. A unit test proves a method
+   behaves; an integration test proves the *product* behaves, so when the two
+   compete for effort, integration wins. See the section below for what that
+   obliges you to do.
+
+## Testing: integration first
+
+**Every command and subcommand gets its own file**, named for it —
+`cli_catalog_test.rb`, `cli_registry_set_test.rb`. Not one file per topic, and
+not one file for a verb family: `registry list`/`set`/`del`/`default`/`rename`
+are five files, because each is a surface a user invokes on its own. A new verb
+or subcommand ships with its file or it is not done.
+
+**The folders are the three ways a user names a bundle**, and a command is
+proven in each one it has:
+
+```
+test/integration/cli/
+  cli_integration_case.rb   the shared base: okf(), with_registry(), okf_server()
+  fixtures/                 bundles used by more than one group
+  by_dir/                   `okf lint ./docs`      — named by path
+  by_registry/              `okf lint @handbook`   — named through the registry
+  across_bundles/           `okf search @a @b`     — several at once
+  cli_help_test.rb …        the commands that name no bundle (help, version, skill)
+```
+
+Same command, same flags, three identities — because the identity is where the
+CLI decides what to answer about, and a verb that works by path can still be
+broken by ref. `across_bundles/` covers **every** bundle-taking verb, not just
+the two that merge: for the eleven with no multi-bundle form, the test proves a
+second bundle is *rejected* (exit 2). That boundary was a real silent-wrong-answer
+bug — `okf lint a b` once linted `a`, ignored `b`, and exited 0 — so it is
+guarded, not assumed. Classes are namespaced per folder (`module ByDir`,
+`module ByRegistry`, `module AcrossBundles`) so three files can share a name.
+
+**Fixtures follow common closure**: a bundle used by one group lives under that
+group; one used by several lives in the shared `fixtures/`. Keep them where the
+tests that change with them are.
+
+**Exercise the whole surface, not the happy path** — and do it *in every folder
+the command appears in*, not once and cited from the others. For each command:
+every flag at least once, every output format it offers (human, `--json`,
+`--pretty`, `--fields`/`--except`), every filter, every exit code it can return
+(`0`/`1`/`2`), and the combinations that actually interact (a filter plus a
+projection, `--all` plus refs). The CLI is the agent's whole world; an untested
+flag is a promise nobody checked.
+
+**Coverage is measured on integration alone**, because the full suite's number
+is flattering — unit tests call classes directly and reach code no user can:
+
+```bash
+bundle exec rake test:integration   # integration only + coverage/integration/
+```
+
+Read the result as a map, not a score. Low coverage in `bundle/writer.rb` or
+`concept/file.rb` is *expected* — no CLI verb writes a bundle, so those are the
+library API's to prove. Low coverage in `cli.rb`, `registry.rb`, or `server/` is
+a **hole**: it means a path a user can reach that no user-shaped test walks.
+Chase those, and let the residue tell you honestly which code the CLI cannot
+reach at all.
+
+**Do not skimp on fixtures.** They are the substrate the whole layer stands on; a
+bundle committed there is cheaper than a mock and far more honest, and reviewers
+can read it. When a path is unreachable from the existing fixtures — a tagged
+root-level concept, a registry entry pointing at a deleted directory — **add the
+fixture**. Never bend a test toward what the fixtures happen to make easy, and
+never let an untestable path stay untested because building the world for it felt
+like work. Fixtures are the cheap part. (`rooted` exists because `tags --by area`'s
+`(root)` label was unreachable from all twelve fixtures that preceded it — a
+branch no fixture can reach is a branch nobody has ever proven.)
+
+Assertions must be able to fail for a real reason: run the CLI, read what it
+actually prints, then assert *that*. Never assert what you assume the code does
+— that is how a green suite certifies a bug.
 
 ## Commands
 
@@ -96,6 +172,7 @@ deterministic check enforces the point,`<!-- rule:okf-<slug> -->` for
 bin/setup                          # install dependencies
 bundle exec rake                   # test + rubocop — the default task, what CI runs
 bundle exec rake test              # just the suite (SimpleCov report in coverage/)
+bundle exec rake test:integration  # the critical layer alone + coverage/integration/
 ruby -Ilib exe/okf <cmd> <dir>     # the CLI from the checkout, no install
 ruby -Ilib exe/okf server <dir>    # boot the graph server locally
 bundle exec rake plugin:sync       # regenerate the plugin's skill copy + version stamp
