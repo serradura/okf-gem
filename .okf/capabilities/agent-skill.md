@@ -4,15 +4,15 @@ title: Companion agent skill (skill)
 description: A SKILL.md plus references and templates, shipped inside the gem, that teaches an agent to author OKF.
 resource: lib/okf/skill.rb
 tags: [agent, install]
-timestamp: 2026-07-16T12:00:00Z
+timestamp: 2026-07-17T15:00:00Z
 ---
 
 # Overview
 
 The gem carries the **OKF agent skill** — a `SKILL.md` with reference and
 template files that teach a coding agent to *produce*, *migrate*, *maintain*,
-*consume*, and *search* [OKF](../format/okf-format.md) bundles and to drive the
-[CLI](../cli.md). The authoring judgment the executable can't encode lives here;
+*consume*, *search*, *curate*, and *doctor* [OKF](../format/okf-format.md) bundles
+and to drive the [CLI](../cli.md). The authoring judgment the executable can't encode lives here;
 the executable handles the mechanics. Each verb routes to its own playbook
 (`playbooks/`); the search playbook is progressive disclosure end to end —
 ingest the index map, decide where to look, cut across with
@@ -21,7 +21,13 @@ route to it first from the menu and consume playbooks. The two authoring
 on-ramps stay distinct: `produce` distills sources into new concepts, while
 `migrate` adopts existing documentation in place — frontmatter and reserved
 files added, bodies kept **verbatim**, with `okf validate --json` as the
-worklist — so a document survives conversion recognizably itself.
+worklist — so a document survives conversion recognizably itself. Two more verbs
+bound that loop rather than drive it: `curate` is structural upkeep as the bundle
+*stands* — `validate` + `lint` + `loose` — and hands off to `maintain` the moment
+the finding is that the *content*, not the structure, has drifted; `doctor` is the
+one playbook that assumes nothing, installing and verifying the [CLI](../cli.md)
+before it examines the bundle. A no-argument run is a verb of its own — the menu
+reads the signals and names the highest-value move without running one.
 
 # `okf skill <dest>` installs it
 

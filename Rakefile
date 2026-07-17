@@ -12,6 +12,27 @@ Rake::TestTask.new(:test) do |t|
   t.warning = false
 end
 
+namespace :test do
+  # Integration alone, with its own coverage report. Run this to ask the question
+  # the full suite cannot answer: how much of the gem is reachable the way a user
+  # reaches it? Unit tests inflate the number by calling classes directly, so the
+  # honest figure comes from running this task on its own (OKF_COVERAGE_DIR keeps
+  # its report from overwriting the full suite's).
+  desc "Run only the integration suite, with an integration-only coverage report"
+  Rake::TestTask.new(:integration) do |t|
+    t.libs << "test" << "lib"
+    t.test_files = FileList["test/integration/**/*_test.rb"]
+    t.warning = false
+  end
+end
+
+task "test:integration" => :set_integration_coverage_dir
+
+task :set_integration_coverage_dir do
+  ENV["OKF_COVERAGE_DIR"] = "coverage/integration"
+  ENV["OKF_COVERAGE_NAME"] = "Integration Tests (alone)"
+end
+
 # The Claude Code plugin (plugin/) carries a copy of the canonical skill and the
 # gem's version in its manifest. This regenerates both from their sources
 # (lib/okf/skill and lib/okf/version.rb); test/plugin/sync_test.rb fails

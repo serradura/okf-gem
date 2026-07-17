@@ -4,7 +4,7 @@ title: Citations (spec §8)
 description: The provenance convention that ties empirical claims in a concept back to their sources.
 resource: lib/okf/markdown/citations.rb
 tags: [provenance]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-17T16:00:00Z
 ---
 
 # Overview

@@ -31,11 +31,18 @@ module OKF
     #                       dir, content} ] } (JSON; content read live from disk,
     #                       like a body — the log is the file that changes most)
     class App
-      def initialize(folder, title: nil, link: nil, layout: "cose")
+      # +siblings+/+self_slug+/+hub_path+ are set only when this app is hosted under
+      # a hub (OKF::Server::Hub): the other bundles the in-page switcher offers, this
+      # bundle's own mount slug, and the hub root. They stay nil for a standalone
+      # server and for `okf render`, so a static file never advertises a switcher.
+      def initialize(folder, title: nil, link: nil, layout: "cose", siblings: nil, self_slug: nil, hub_path: nil)
         @folder = folder
         @title = title
         @link = link
         @layout = layout
+        @siblings = siblings
+        @self_slug = self_slug
+        @hub_path = hub_path
       end
 
       def call(env)
@@ -60,6 +67,11 @@ module OKF
       # writes: the fetch getters resolve from the embedded payload, not from here.
       def render_static
         Graph.new(graph, title: @title || @folder.name, link: @link, layout: @layout, embed: embed_payload).render
+      end
+
+      # The 404 both this app and the Hub answer with, so the two cannot drift.
+      def self.not_found
+        [ 404, { "content-type" => "text/plain; charset=utf-8" }, [ "not found\n" ] ]
       end
 
       private
@@ -100,7 +112,10 @@ module OKF
       end
 
       def page
-        @page ||= Graph.new(graph, title: @title || @folder.name, link: @link, layout: @layout).render
+        @page ||= Graph.new(
+          graph, title: @title || @folder.name, link: @link, layout: @layout,
+          siblings: @siblings, self_slug: @self_slug, hub_path: @hub_path
+        ).render
       end
 
       # Everything the on-demand endpoints would serve, baked for render mode. The
@@ -168,11 +183,11 @@ module OKF
       end
 
       def not_found
-        [ 404, { "content-type" => "text/plain; charset=utf-8" }, [ "not found\n" ] ]
+        self.class.not_found
       end
 
       def html_escape(str)
-        str.to_s.gsub("&", "&amp;").gsub("<", "&lt;").gsub(">", "&gt;")
+        Rack::Utils.escape_html(str.to_s)
       end
     end
   end

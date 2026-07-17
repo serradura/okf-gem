@@ -4,7 +4,7 @@ title: OKF::Bundle::Graph
 description: The in-memory knowledge graph — concepts as nodes, cross-links as directed edges, with type and tag indexes.
 resource: lib/okf/bundle/graph.rb
 tags: [graph, pure]
-timestamp: 2026-07-11T21:40:00Z
+timestamp: 2026-07-17T04:00:00Z
 ---
 
 # Overview
@@ -32,7 +32,11 @@ Regardless of node fidelity, the graph exposes two inverted indexes computed fro
 every concept:
 
 - `type_index` — `{ type => [id, …] }`, so even a minimal client can colour nodes
-  by [`type`](concept.md);
+  by [`type`](concept.md). A concept whose type is missing *or blank* indexes
+  under `Untyped`: §9.2 rejects the two identically (the
+  [validator](../capabilities/validator.md) asks `OKF.blank?`, not `empty?`), so
+  sorting them into different buckets would give `type: "  "` a row of its own,
+  labelled with spaces;
 - `tag_index` — `{ tag => [id, …] }`, so it can filter by tag.
 
 Those indexes, plus `unlinked_ids` (degree-0 nodes), are what the

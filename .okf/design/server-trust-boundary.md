@@ -4,7 +4,7 @@ title: The server trust boundary
 description: The page sanitizes each concept body before rendering and escapes inlined data, so both XSS paths into the page are closed — served live or rendered static.
 resource: lib/okf/server/graph/template.html.erb
 tags: [security, server, xss]
-timestamp: 2026-07-15T12:00:00Z
+timestamp: 2026-07-17T14:00:00Z
 ---
 
 # Overview
@@ -28,7 +28,7 @@ path and never needs the client's help: the server escapes it
 
 # The static render carries both guards
 
-[`okf render`](../capabilities/graph-server.md) bakes every body into the page
+[`okf render`](../capabilities/render.md) bakes every body into the page
 instead of fetching it, so an embedded body takes the *inlined* path **and** the
 rendered one: `json_for_script` escapes it at inject time (a `</script>` inside a
 body cannot break out of its `<script>`), and it is still

@@ -1,5 +1,156 @@
 # Changelog
 
+## [Unreleased]
+
+## [1.8.0] - 2026-07-17
+
+- A persistent bundle registry and a multi-bundle hub. `okf registry`
+  (list / set / del / default / rename) keeps a per-user list in a plain JSON
+  file at `$OKF_HOME/registry.json` (default `~/.okf`), and `okf server` reads
+  its mode from its arguments: one dir is the classic single bundle at `/`,
+  several mount ephemerally behind a hub at `/b/<slug>/`, none serves the whole
+  registry with its default at `/`. Behind a hub the page gains a bundle
+  switcher (⌘/Ctrl-K, or the rail button), `/b/` is a browsable index, and an
+  unknown slug 404s as a page with a way home. The hub reads its bundles at
+  boot — restart after registry changes.
+- The registry is **ordered, and the first entry still on disk is the default** —
+  the bundle a bare `okf server` opens at `/`. `okf registry default @slug` moves
+  that entry to the front, and `okf registry set --default` registers straight to
+  it; until you do either, the first bundle you registered is the default. Nothing
+  else has to be maintained: a rename keeps its position, a `del` promotes
+  whatever is next, and the file cannot name a default that is not there. A
+  vanished directory is stepped over rather than starred — `registry list`'s `*`
+  always names the bundle `/` opens — and `registry default @slug` refuses one,
+  just as `registry set` refuses to register a directory that is not there.
+- `$OKF_HOME` is the single lever on which registry a command reads: set it and
+  every verb follows, from `okf registry list` to an `@slug` on `okf lint`. It
+  names exactly one registry, with no fallback to `~/.okf` behind it, and an
+  empty value counts as unset rather than planting `registry.json` in the
+  current directory.
+- `@slug`: wherever a command takes a `<dir>`, `@slug` names a registered
+  bundle and bare `@` the registry default — `okf lint @handbook`,
+  `okf render @ -o graph.html`. A slug is normalized like registration was
+  (`@One` finds the bundle from dir `One`) but never to a placeholder, so
+  `@***` is a bad ref rather than a silent hit. An unknown slug, a
+  registered-but-gone directory, or a malformed registry file is a usage error
+  naming the registry file and the next move. A hub built from `@slug`s
+  (`okf server @a @b`) mounts each bundle under its registered slug, the first
+  at `/`, and a registered slug reserves its mount ahead of any plain
+  directory that shares the name.
+- `@slug` is spelled where it is used, not just where it is explained, and it is
+  the one token — `okf help`'s map (`lint <dir|@slug>`) and each command's own
+  banner show it the same way, with a note under the map defining it: the slug
+  from `okf registry set`, or bare `@` for the default. It was documented once,
+  in prose at the foot of `okf help`, past where a reader who already knows the
+  verb ever looks, so seventeen surfaces took a registered bundle while
+  advertising a bare `<dir>`. The registry-editing verbs — `del`, `default`,
+  `rename` — take the slug bare (no `@`) or as an `@slug`; the read verbs need
+  the `@`, since a bare word there is a path.
+- `okf <command> -h` prints that command's own banner and flags. Help now answers
+  on stdout with an exit code like every other command: it was OptionParser's
+  officious handler, which printed past the caller's injected streams and ended
+  the process with `exit` instead of returning a status.
+- `okf search` spans bundles: several leading `@slug`s, or `@all` for every
+  registered one. Rankings merge across bundles with every row labeled by its
+  bundle's slug (a `bundles` list and a per-match `slug` key in the JSON).
+  Asking for everything tolerates gaps — `@all` skips a bundle whose directory
+  has vanished, with a note — while naming one insists on it, and `@all @docs`
+  simply dedupes. `all` is reserved *in the registry*, on all three ways in: a
+  directory named `all/` registers as `all-2`, `--as all` is refused, and a row
+  already claiming the name in the registry file — hand-typed, or written before
+  the name was reserved — is read as `all-2`, so the reservation never strands a
+  registry it inherited. An ephemeral `okf server ./all` still mounts at
+  `/b/all/` — no registry, no refs, nothing to reserve.
+- The registry validates its file's shape, not just its JSON syntax: a
+  hand-edited entry missing `path` is a usage error naming the file instead of
+  a `TypeError`, and `okf registry --json set <dir>` — a subcommand behind a
+  flag — is a usage error rather than silently listing and exiting 0.
+- The graph page's ⌘/Ctrl-K palette opens in **every** mode and reaches a view as
+  well as a bundle. It was wired only behind a hub, so a standalone
+  `okf server ./docs` and every `okf render` page — the two modes most people meet
+  first — had no palette at all. Bundles still lead it and own the empty box,
+  because switching bundles is what it is for; views wait until what you type
+  reaches one, arrive underneath, and stay muted until the cursor does. Each view
+  carries the rail's own icon and label, read from the rail so the two cannot
+  drift. Where there is no hub there is no bundle to switch to, and views become
+  the whole list.
+- The inspector's type and tags are filter handles: clicking one focuses the
+  graph on that facet — the same jump the stats bars make — and clicking it again
+  clears it. The chip lights while its facet is the only filter in play, which is
+  exactly when a second click is an undo, so what you see and what the next click
+  does are the same question. With another filter set it re-focuses instead,
+  rather than throwing away more than the click put there.
+- The inspector's *Links to* / *Linked from* rows read as concepts rather than a
+  wall of accent-coloured text. Each carries its type's dot — the colour that node
+  already wears in the graph beside it — with the type named and the section
+  counted, so the column answers what kind of neighbourhood a concept has before a
+  title is read. The rows share one panel with hairline dividers and a hover fill:
+  the container carries the click affordance, which leaves colour free to mean type
+  and nothing else.
+- The inspector's widen chevron splits the screen instead of taking 70% of it. The
+  panel drag-resizes, so the chevron is a preset rather than a maximum, and burying
+  the graph to read one concept was the wrong thing to default to.
+- The graph page answers `?` with a sheet of every keyboard shortcut, reachable
+  from a rail button too — a shortcut list you can only open with a shortcut helps
+  whoever needs it least. `/` focuses the current view's search where it has one,
+  skipping the view that only reads; the sheet is written against the key handler
+  it documents, since a shortcut list that has drifted is worse than none.
+- Fixed: a file the reader could not **open** (permissions) threw its errno out
+  of the read, so a single locked file took the whole bundle down through every
+  verb that reads one — `lint`, `validate`, `catalog`, `server`, `registry set`
+  — as a backtrace, under an exit code claiming the bundle was non-conformant.
+  §9's best-effort promise covers it now, the same as frontmatter that will not
+  parse: the file is skipped, noted on stderr, and reported by `validate` under
+  §9.1 naming the file and the errno. One bad file never breaks the rest.
+  The stderr note reads `skipped N unusable file(s)` — it counts two kinds now,
+  so it names neither and points at `validate`, which names both.
+
+- Fixed: `okf registry del <path>` could delete the wrong bundle. A path that
+  matched no registered directory fell through to a normalized *slug* lookup, so
+  `del ./notes` — naming a local directory — removed whichever entry happened to
+  be slugged `notes`, wherever it pointed, and reported `removed notes` with exit
+  0. An argument with a `/` in it now names a location and only a location.
+- Fixed: the registry read trusted stored slugs verbatim while both write paths
+  normalized, so a hand-typed `"slug": "My Docs"` listed fine but could not be
+  named by `@my-docs`, `registry rename`, or `registry default` — the verbs that
+  could repair it were the ones that could not see it. The read normalizes now,
+  leaving an already-usable slug untouched. This also removes the only way a
+  quote could reach a slug, and with it a DOM XSS in the server's bundle
+  switcher, whose JS escape covered `& < >` but not quotes; the escape now covers
+  quotes too, so the page does not depend on a guarantee three layers away.
+- Fixed: `okf lint` bucketed a whitespace-only `type` under its own literal
+  heading while `types`/`graph`/`stats` bucketed it as `Untyped`, so two verbs
+  reported type inventories for the same bundle that would not reconcile. §9.2
+  makes a blank type as non-conformant as a missing one; both sides say so now.
+- Fixed: `okf search <dir> --fields slug` passed the field guard and returned one
+  empty object per match with exit 0. Only registry mode labels rows with a slug,
+  so the two modes now declare the shape each actually emits and a path-named
+  search names the fields it does have.
+- Fixed: `okf registry set` reported `(0 concepts)` for a bundle whose files it
+  could not read; it notes the skipped files like every other reading verb.
+  `okf registry rename DOCS handbook` echoed the argv rather than the slug it
+  renamed, naming a bundle that never existed. An unwritable `$OKF_HOME` raised
+  a bare `Errno::EACCES` at exit 1 instead of a usage error at exit 2.
+- Fixed: a long path in the Files view's Indexes tab pushed its `map`/`log` badge
+  past the right edge of the list. The badge was already pinned and unshrinkable;
+  the filename beside it was the problem — a bare text node, and an anonymous flex
+  item's automatic minimum size is the full width of its text, so it refused to
+  give way and drove the badge out instead. It truncates now, with the full path on
+  hover. Only a wide enough path in a narrow enough pane reached it, which is why
+  it never showed on mobile, where the list runs full width.
+- Fixed: the bundle switcher scrolled its own first row out of view as it opened.
+  It rendered, and scrolled the active row into view, while the dialog was still
+  hidden — and a list that is not being displayed measures zero, so the scroll
+  landed arbitrarily.
+- Fixed: the `3` (Files) shortcut did nothing once the Indexes tab was open, and
+  the palette's Index row would have blanked the page. "Index" is not a view —
+  there is no `#view-index`, only the Files view showing its Indexes tab — so
+  `setView('files')` from that tab early-returned, and `setView('index')` named a
+  view that does not exist. The keyboard and the palette each re-implemented what
+  the rail button already did right; both now click the rail item, so the one
+  correct path is the only one, and the palette's `current` badge reads the same
+  active-tab answer the rail's own highlight does.
+
 ## [1.7.0] - 2026-07-16
 
 - `okf server`: responses are gzipped when the client accepts it

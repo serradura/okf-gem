@@ -8,10 +8,14 @@ module OKF
     #
     # It parses eagerly: each concept file becomes an OKF::Concept, each
     # index.md/log.md is kept as raw text (its structure is validated as text), and
-    # a concept file whose frontmatter does not parse is retained as an unparseable
-    # entry (carrying the ParseError message, so §9.1 can report it) rather than
-    # dropped or raised. Every read goes through Path.join_under! so a
-    # symlinked or crafted path cannot escape the bundle root.
+    # a file the reader cannot use — frontmatter that does not parse, or a file it
+    # cannot open at all — is retained as an unparseable entry (carrying the
+    # ParseError message or the errno, so §9.1 can report it) rather than dropped
+    # or raised. That tolerance is the whole §9 best-effort promise: one bad file
+    # never breaks the rest, and this is the read every verb shares. Every read
+    # goes through Path.join_under! so a symlinked or crafted path cannot escape
+    # the bundle root — that guard still raises, because a path leaving the root
+    # is not a bad file, it is a bundle lying about its shape.
     class Reader
       def self.read(dir)
         new(dir).read
@@ -39,6 +43,19 @@ module OKF
             end
           rescue Markdown::Frontmatter::ParseError => e
             unparseable << Entry.new(path: path, content: content, error: e.message)
+          rescue SystemCallError => e
+            # A file that cannot be opened is one unusable file, not a broken
+            # bundle. Letting the errno out of here breaks "one bad file never
+            # breaks the rest" for every verb at once — the read is the one path
+            # they all share — and it breaks it in the worst way: a backtrace,
+            # under an exit code that claims the bundle is non-conformant. So it
+            # joins the same bucket a bad frontmatter block does, and §9.1 reports
+            # it naming the file and the errno.
+            #
+            # Its content is "" rather than nil: unknown, but every analyzer reads
+            # it as text, and empty is the honest shape of a file we never saw —
+            # no links to resolve, no encoding to be invalid, nothing claimed.
+            unparseable << Entry.new(path: path, content: "", error: e.message)
           end
         end
 

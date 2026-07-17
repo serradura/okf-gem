@@ -4,7 +4,7 @@ title: Conformance validator (validate)
 description: Implements the spec's §9 conformance definition exactly — three hard conditions, everything else a warning.
 resource: lib/okf/bundle/validator.rb
 tags: [conformance, cli]
-timestamp: 2026-07-11T12:00:00Z
+timestamp: 2026-07-17T16:00:00Z
 ---
 
 # Overview
@@ -17,9 +17,14 @@ capability that can fail a bundle — exit `1` on any hard error, `0` otherwise.
 
 | Rule | Condition |
 |------|-----------|
-| §9.1 | every non-reserved file has a parseable [frontmatter](../format/frontmatter.md) block |
+| §9.1 | every non-reserved file can be **read** and has a parseable [frontmatter](../format/frontmatter.md) block |
 | §9.2 | every such block has a **non-empty `type`** |
 | §9.3 | every `index.md` / `log.md` present is well-formed (nested index has no frontmatter, root index carries only `okf_version`, log dates are ISO) |
+
+A file that will not **open** fails §9.1 too, not only one whose frontmatter will
+not parse: the reader keeps it in [`bundle.unparseable`](../model/bundle.md) with
+its errno rather than letting one locked file abort the read, and `validate`
+reports it there — one unusable file counted as one, named with why.
 
 # Everything else is a warning
 

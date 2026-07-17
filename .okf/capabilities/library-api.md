@@ -4,7 +4,7 @@ title: Library API
 description: The Ruby surface — a pure in-memory model plus on-disk handles, an "ActiveRecord for the filesystem".
 resource: lib/okf.rb
 tags: [ruby, diagram]
-timestamp: 2026-07-13T12:00:00Z
+timestamp: 2026-07-17T16:00:00Z
 ---
 
 # Overview
@@ -21,7 +21,10 @@ gives you two layers, split cleanly by the [core/shell rule](../design/core-shel
 `require "okf"` stops at those two layers: the [CLI](../cli.md) and the skill
 installer load only when asked for (from `exe/okf`, or an explicit
 `require "okf/cli"` / `require "okf/skill"`), so an app embedding the library
-never drags in the command-line machinery.
+never drags in the command-line machinery. The
+[registry](../registry.md) and the server's hub sit behind the same door — the CLI
+requires them at the moment a registry verb or a multi-bundle `server` runs, so
+the library surface stays the same size no matter what the executable grows.
 
 ```mermaid
 classDiagram
@@ -65,7 +68,8 @@ needed. The lower-level pieces work standalone too:
 `Folder.new(bundle:, root:).save` materializes one back — and **validates §9
 before publishing** through an atomic writer, so it never leaves a broken bundle
 on disk. `OKF::Server::App.new(folder)` turns a folder straight into the
-[graph server](graph-server.md).
+[graph server](graph-server.md); its `#render_static` bakes that same page into one
+self-contained file, the Ruby side of [`okf render`](render.md).
 
 # Citations
 

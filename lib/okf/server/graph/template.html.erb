@@ -77,7 +77,12 @@
  /* ── main column ── */
  #main{grid-column:2;display:flex;flex-direction:column;min-width:0}
  #topbar{flex:none;display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
- .ident{font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;letter-spacing:-.01em}
+ /* on desktop the tools wrapper is layout-invisible — its children stay direct
+    flex items of the bar; on mobile (below) it becomes the ⚙ drop-down sheet */
+ #bar-tools{display:contents}
+ /* the title may shrink and ellipsize at every width — mid-size viewports
+    (portrait iPad Air/Pro run the desktop layout) must not overflow the bar */
+ .ident{font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;letter-spacing:-.01em;min-width:0;overflow:hidden;text-overflow:ellipsis}
  .ident .muted{color:var(--muted);font-weight:400;margin-left:9px;font-size:12.5px}
  .ident .src{color:var(--accent-ink);text-decoration:none;margin-left:8px}
  .ident .src:hover{text-decoration:underline}
@@ -103,6 +108,7 @@
  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
  .btn[aria-pressed=true]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
  .btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+ .btn[hidden]{display:none}
  .btn.text{width:auto;display:inline-flex;align-items:center;padding:0 12px;gap:7px;font-size:13px;font-weight:500;color:var(--ink)}
  .btn .fbadge{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--accent);
   color:#fff;font-size:10px;font-weight:600;display:none;place-items:center;line-height:1}
@@ -111,10 +117,15 @@
  #app[data-view=graph] #graph-controls{display:flex}
  #file-controls{display:none;align-items:center;gap:8px}
  #app[data-view=files] #file-controls{display:flex}
- /* below this width the topbar wraps in the files view so search + combos share two rows */
- @media (max-width:700px){#app[data-view=files] #topbar{flex-wrap:wrap}
-  #app[data-view=files] #file-controls{flex:1 1 100%}#file-controls .combo{flex:1;width:auto;min-width:0}}
+ /* the mobile controls toggle — the ≤768px block turns the control groups into
+    a drop-down sheet behind this button, so the topbar never overflows */
+ #btn-controls{display:none;flex:none}
+ #btn-controls[aria-expanded=true]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
  #search-wrap{display:flex;flex:1}
+ /* Stats is the one view that does not filter, so it hides the box rather than
+    offering a dead one. Mirrors SEARCH_PH in the script — a view listed there
+    shows it — and "index" needs no rule of its own: it is the files view on
+    another tab, and filters as files. */
  #app[data-view=stats] #search-wrap{visibility:hidden}
  #btn-theme .sun{display:none} :root[data-theme=dark] #btn-theme .sun{display:block} :root[data-theme=dark] #btn-theme .moon{display:none}
  #btn-full .compress{display:none} #btn-full[aria-pressed=true] .compress{display:block} #btn-full[aria-pressed=true] .expand{display:none}
@@ -143,7 +154,9 @@
  .graph-body{display:grid;grid-template-columns:1fr var(--side-w);height:100%;min-height:0;
   --side-w:var(--side-w-user,380px);transition:--side-w .22s cubic-bezier(.22,1,.36,1)}
  .graph-body[data-side=hidden]{--side-w:0px}
- .graph-body[data-side=wide]{--side-w:70vw}
+ /* the chevron is a preset, not a maximum — the resizer goes wider on demand,
+    so it splits the screen rather than burying the graph */
+ .graph-body[data-side=wide]{--side-w:50vw}
  .graph-body.side-drag{transition:none}
  #stage{position:relative;min-width:0;overflow:hidden;background:var(--canvas)}
  #cy{position:absolute;inset:0}
@@ -182,10 +195,35 @@
  .title{font-size:18px;font-weight:600;margin:.5em 0 0;letter-spacing:-.01em;line-height:1.3;text-wrap:balance}
  .desc{color:var(--muted);margin:10px 0 14px}
  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+ /* the inspector's type and tags are filter handles — clicking one focuses the
+    graph on that facet, the same jump a stats bar makes. Real buttons, like
+    .tcloud, so the keyboard reaches them for free; font-size stays with .type
+    and .tag, which set their own and are the reason this rule sets neither. */
+ .facet{cursor:pointer;font-family:inherit;line-height:inherit}
+ .facet:hover{border-color:var(--accent);color:var(--accent-ink)}
+ .facet.on{background:var(--accent);border-color:var(--accent);color:#fff}
  .rel{margin:14px 0 0}
  .rel h4{margin:0 0 5px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
- .rel a{display:block;color:var(--accent-ink);cursor:pointer;font-size:13px;padding:2px 0;text-decoration:none}
- .rel a:hover{text-decoration:underline}
+ .rel h4 .c{margin-left:6px;font-variant-numeric:tabular-nums}
+ /* A link row is a concept row, so it speaks the vocabulary .titem already uses
+    in the tags view: the type's dot, the title, the type name trailing faint.
+    The dot is the bullet that carries information — it is the colour the node
+    already wears in the graph beside it, so the column reads as a map of the
+    neighbourhood before a single title is.
+    What makes these read as *links* is the container, not the colour. Accent
+    text on every row spends the accent on nothing and leaves the eye no way in;
+    ink text alone reads as prose. So the rows share one panel with hairline
+    dividers and a hover fill — the affordance a menu has, carried by structure,
+    which leaves colour free to mean type and nothing else. One box rather than
+    .titem's per-row cards: at nine links in a side panel, six borders weigh
+    more than the concepts do, and a single surface stays quiet. */
+ .rellist{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel-2)}
+ .rel a{display:flex;align-items:center;gap:9px;padding:6px 10px;color:var(--ink);cursor:pointer;font-size:13px;text-decoration:none;transition:background .12s,color .12s}
+ .rel a+a{border-top:1px solid var(--line)}
+ .rel a:hover{background:var(--accent-soft);color:var(--accent-ink)}
+ .rel a .dot{width:8px;height:8px;border-radius:50%;flex:none}
+ .rel a .rt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .rel a .ty{margin-left:auto;padding-left:8px;flex:none;font-size:11px;color:var(--faint)}
  .empty{color:var(--muted)} .empty b{color:var(--ink);font-weight:600} .loading{color:var(--faint)}
 
  /* ── markdown body ── */
@@ -216,6 +254,64 @@
  .dgv-bar{position:absolute;top:14px;right:14px;display:flex;gap:8px;z-index:2}
  .dgv-bar .btn{background:var(--panel);box-shadow:var(--shadow)}
  .dgv-hint{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:12px;color:var(--faint);pointer-events:none}
+ /* ── bundle switcher (hub only) ── */
+ #sw{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.34);display:flex;align-items:flex-start;justify-content:center;padding-top:14vh}
+ #sw[hidden]{display:none}
+ #sw-box{width:min(540px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:12px}
+ #sw-input{width:100%;box-sizing:border-box}
+ #sw-list{list-style:none;margin:10px 0 0;padding:0;max-height:46vh;overflow:auto}
+ #sw-list a{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}
+ #sw-list a .slug{margin-left:auto;color:var(--faint);font-size:12px}
+ #sw-list .sw-grp{margin:9px 0 3px;padding:0 10px;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+ #sw-list .sw-grp:first-child{margin-top:0}
+ /* Under a hub a view is the sideline, so it sits at the muted weight until the
+    cursor reaches it — present, never competing with the bundle you came for.
+    Standalone drops the class: there, views are all there is to pick. */
+ #sw-list a.sw-view{color:var(--muted)}
+ #sw-list a.sw-view:hover,#sw-list a.sw-view.active{color:var(--ink)}
+ /* The rail sets its own svg size, so the copy needs one here — smaller, since
+    a palette row is not a 76px rail tile. currentColor is what the rail already
+    draws with, which means the icon dims and lifts with the row for free. */
+ #sw-list a .sw-ico{flex:none;display:flex;align-items:center}
+ #sw-list a .sw-ico svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+ #sw-list a:hover,#sw-list a.active{background:var(--line-2)}
+ #sw-list a.cur{color:var(--muted);cursor:default}
+ #sw-list a.cur:hover{background:none}
+ #sw-list a.none{color:var(--muted);cursor:default;font-size:13px}
+ .sw-def{margin-left:7px;padding:1px 7px;border-radius:99px;background:var(--line-2);color:var(--muted);font-size:11px;vertical-align:1px}
+
+ /* ── the ? sheet — same overlay shape as the palette, one row per binding ── */
+ #kb{position:fixed;inset:0;z-index:91;background:rgba(0,0,0,.34);display:flex;align-items:flex-start;justify-content:center;padding-top:14vh}
+ #kb[hidden]{display:none}
+ #kb-box{width:min(420px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px 16px}
+ #kb-head{display:flex;align-items:center;margin-bottom:12px}
+ #kb-head h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.02em}
+ #kb-head .btn{margin-left:auto;width:28px;height:28px}
+ /* the key column sizes to the widest chord, so every description starts on one
+    line and the sheet reads as a table without drawing one */
+ #kb-list{margin:0;display:grid;grid-template-columns:auto 1fr;gap:9px 14px;align-items:center}
+ #kb-list dt{justify-self:start}
+ #kb-list dd{margin:0;font-size:13px;color:var(--muted)}
+ #kb-list kbd{display:inline-block;min-width:22px;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+  color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:2px 6px}
+ .sw-hint{margin:9px 2px 2px;font-size:11.5px;color:var(--faint)}
+ /* ── bundle-count badge (hub only) ── */
+ #btn-switch{position:relative}
+ .swcount{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--accent);
+  color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center;line-height:1}
+ .swcount[hidden]{display:none}
+ @keyframes swping{0%{box-shadow:0 0 0 0 rgba(226,30,30,.5)}100%{box-shadow:0 0 0 9px rgba(226,30,30,0)}}
+ .swcount:not([hidden]){animation:swping 1.6s ease-out .6s 4}
+ /* ── mobile nav (hamburger + drawer) and the one-time desktop note ── */
+ #btn-menu{display:none;position:relative;flex:none}
+ #btn-menu .menudot{position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--accent)}
+ #btn-menu .menudot[hidden]{display:none}
+ #nav-bk{position:fixed;inset:0;z-index:74;background:rgba(0,0,0,.35)}
+ #nav-bk[hidden]{display:none}
+ #mnote{position:fixed;left:12px;right:12px;bottom:12px;z-index:72;display:flex;gap:10px;align-items:center;justify-content:space-between;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;font-size:13px;color:var(--ink)}
+ #mnote[hidden]{display:none}
+ #mnote .btn{flex:none;width:28px;height:28px;font-size:13px}
 
  /* ── catalog ── */
  .pad{padding:22px 24px;overflow:auto;flex:1}
@@ -236,7 +332,10 @@
 
  /* ── files ── */
  .files-grid{display:grid;grid-template-columns:var(--ftree-w,320px) 1fr;height:100%;min-height:0}
- .ftree{position:relative;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+ /* min-width:0 — the file rows' nowrap descriptions would otherwise set the
+    pane's min-content width and blow the 1fr column past a phone viewport
+    (the fixed desktop column never hits this) */
+ .ftree{position:relative;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--panel)}
  /* drag handle on the file list's right edge (double-click resets the width) */
  #ftree-resizer{position:absolute;right:-4px;top:0;bottom:0;width:7px;cursor:col-resize;z-index:4;touch-action:none}
  #ftree-resizer::after{content:"";position:absolute;right:3px;top:0;bottom:0;width:2px;background:var(--accent);opacity:0;transition:opacity .15s}
@@ -249,7 +348,11 @@
  .ffolder.closed .chev{transform:rotate(-90deg)}
  .file.res .fn{color:var(--muted)}
  .file .fn .ricon{width:12px;height:12px;flex:none;stroke:var(--faint);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
- .ftabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--line);flex:none}
+ .ftabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--line);flex:none;align-items:center}
+ /* mobile-only: collapses the stacked file list down to this tab bar */
+ #ftree-min{display:none;width:28px;height:28px;flex:none;margin-bottom:4px}
+ #ftree-min svg{transition:transform .15s}
+ .files-grid.tree-min #ftree-min svg{transform:rotate(180deg)}
  .ftab{flex:1;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);
   padding:8px 10px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
  .ftab:hover{color:var(--ink)}
@@ -258,6 +361,12 @@
  #app[data-ftab=indexes] #file-controls .combo{display:none}
  .file .fn .badge-res{margin-left:auto;flex:none;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
   color:var(--faint);background:var(--line-2);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
+ /* The name needs an element of its own: as a bare text node it was an
+    anonymous flex item, whose automatic minimum size is the full width of the
+    text — so a long path refused to shrink and drove the badge past the right
+    edge instead. overflow:hidden takes that minimum to zero, which is what lets
+    the name give way and the badge stay put. */
+ .file .fn .rn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .file{display:block;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:7px 9px;cursor:pointer;font-family:inherit;color:var(--ink)}
  .file:hover{background:var(--panel-2)} .file.sel{background:var(--accent-soft)}
  .file .fn{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px}
@@ -318,7 +427,61 @@
  .ix-listing a:hover{text-decoration:underline}
  .ix-listing .d{color:var(--muted)}
 
- @media (max-width:720px){#rail{width:64px}.rail-item{width:52px}.card,.grid{}}
+ /* ── compact chrome for ≤768px (phones and portrait tablets): the rail becomes
+    a drawer behind ☰ and every topbar tool collapses into the ⚙ sheet. Wider
+    viewports — a rotated tablet included — fall back to the desktop layout;
+    the media query re-evaluates live, so rotation flips strategy on its own ── */
+ @media (max-width:768px){
+  #app{grid-template-columns:1fr}
+  #main{grid-column:1}
+  #rail{position:fixed;left:0;top:0;bottom:0;z-index:75;width:76px;transform:translateX(-100%);transition:transform .18s ease}
+  #app.nav-open #rail{transform:none;box-shadow:0 0 40px rgba(0,0,0,.4)}
+  #btn-menu{display:inline-grid}
+  #topbar{gap:8px;padding:10px 10px;position:relative;flex-wrap:nowrap}
+  .ident{min-width:0;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto}
+  .ident .muted{display:none}
+  /* the bar keeps only ☰ · title · ⚙ — search and every control move into the
+     ⚙ sheet, on every view (stats has nothing to show, so no ⚙ there) */
+  #btn-controls{display:inline-grid}
+  #app[data-view=stats] #btn-controls{display:none}
+  #bar-tools{display:none}
+  #app.controls-open #bar-tools{display:flex;position:absolute;top:100%;left:0;right:0;z-index:55;
+   flex-direction:column;align-items:stretch;gap:9px;padding:10px 12px;
+   background:var(--panel);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+  #bar-tools .search{min-width:0;max-width:none;flex:1 1 auto} /* search spans the full sheet width */
+  #app.controls-open #graph-controls,#app.controls-open #file-controls{flex-wrap:wrap}
+  #app.controls-open #file-controls .combo{flex:1 1 44%;width:auto;min-width:130px}
+  /* the graph inspector takes the whole viewport — the ✕ closes it; widening,
+     drag-resizing, and the topbar panel toggle have no job at this size
+     (grid-template beats the resizer's inline --side-w) */
+  .graph-body[data-side=default],.graph-body[data-side=wide]{grid-template-columns:0 1fr}
+  #side{border-left:0}
+  #side-widen,#side-resizer,#btn-panel{display:none}
+  /* the files view stacks: list on top, reader below — side-by-side panes
+     don't survive a phone width */
+  .files-grid{grid-template-columns:1fr;grid-template-rows:minmax(0,42%) minmax(0,1fr)}
+  .ftree{border-right:0;border-bottom:1px solid var(--line)}
+  #ftree-resizer{display:none}
+  .fp-body{padding:16px 14px}
+  /* "Open in graph" shrinks to its icon — the label steals a third of the
+     reader header on a phone (tooltip and aria-label carry the name) */
+  #fp-graph .fpg-lbl{display:none}
+  #fp-graph{width:34px;padding:0;flex:none}
+  /* the list collapses to its tab bar so the reader gets the screen — picking
+     a file collapses it, picking a tab brings it back */
+  #ftree-min{display:inline-grid}
+  .files-grid.tree-min{grid-template-rows:auto minmax(0,1fr)}
+  .files-grid.tree-min .ftree-list{display:none}
+ }
+ /* ── tablet and up: the panes stay side-by-side, but the same chevron folds
+    the whole list column into a slim strip so the reader takes the width ── */
+ @media (min-width:769px){
+  #ftree-min{display:inline-grid;margin-left:auto}
+  #ftree-min svg{transform:rotate(90deg)}
+  .files-grid.tree-min #ftree-min svg{transform:rotate(-90deg)}
+  .files-grid.tree-min{grid-template-columns:auto 1fr}
+  .files-grid.tree-min .ftree-list,.files-grid.tree-min .ftab,.files-grid.tree-min #ftree-resizer{display:none}
+ }
  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style></head>
 <body>
@@ -335,18 +498,26 @@
   <button class="rail-item" data-view="stats"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></span><span class="ri-lbl">Stats</span></button>
   <div class="rail-sp"></div>
   <div class="rail-tools">
+   <button class="btn" id="btn-switch" type="button" hidden aria-label="Switch bundle (⌘K)" title="Switch bundle (⌘K)">
+    <svg viewBox="0 0 24 24"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3Z"/></svg>
+    <span class="swcount" id="sw-count" hidden>0</span></button>
    <button class="btn" id="btn-theme" type="button" aria-label="Toggle theme">
     <svg class="moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg>
     <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.5 1.5M17.3 17.3l1.5 1.5M18.8 5.2l-1.5 1.5M6.7 17.3l-1.5 1.5"/></svg></button>
    <button class="btn" id="btn-full" type="button" aria-label="Toggle full screen" aria-pressed="false">
     <svg class="expand" viewBox="0 0 24 24"><path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4"/></svg>
     <svg class="compress" viewBox="0 0 24 24"><path d="M4 8h4V4M20 8h-4V4M4 16h4v4M20 16h-4v4"/></svg></button>
+   <button class="btn" id="btn-help" type="button" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.2 9.4a2.9 2.9 0 0 1 5.6 1c0 1.9-2.8 2.3-2.8 3.9"/><circle cx="12" cy="17.3" r=".95" fill="currentColor" stroke="none"/></svg></button>
   </div>
  </nav>
 
  <div id="main">
   <header id="topbar">
+   <button class="btn" id="btn-menu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="rail">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="menudot" hidden></span></button>
    <span class="ident"><%= escaped_name %><span class="muted"><%= @graph.nodes.length %> concepts · <%= @graph.edges.length %> links</span><%= source_link %></span>
+   <div id="bar-tools">
    <div id="search-wrap"><label class="search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
     <input id="search" class="field" placeholder="search concepts…" autocomplete="off" aria-label="Search"></label></div>
    <div id="file-controls">
@@ -372,12 +543,15 @@
      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M12 12H6v4M12 12h6v4"/></svg></button>
     <button class="btn" id="btn-panel" type="button" aria-label="Toggle inspector" aria-pressed="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
    </div>
+   </div>
+   <button class="btn" id="btn-controls" type="button" aria-label="View controls" aria-expanded="false">
+    <svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9M14.5 4.5v5M8.5 14.5v5"/></svg><span class="fbadge">0</span></button>
   </header>
 
   <div id="views">
    <!-- GRAPH -->
    <section class="view active" id="view-graph">
-    <div class="graph-body" data-side="default">
+    <div class="graph-body" data-side="hidden">
      <div id="stage">
       <div id="cy"></div>
       <div class="ghint">click a concept · scroll to zoom · drag to pan</div>
@@ -435,13 +609,15 @@
       <div class="ftabs" role="tablist" aria-label="File kinds">
        <button class="ftab active" id="ftab-files" type="button" role="tab" aria-selected="true">Files</button>
        <button class="ftab" id="ftab-indexes" type="button" role="tab" aria-selected="false">Indexes</button>
+       <button class="btn" id="ftree-min" type="button" aria-label="Collapse file list" aria-expanded="true" aria-controls="ftree-list">
+        <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
       </div>
       <div class="ftree-list" id="ftree-list"><p class="empty" style="padding:14px">Loading files…</p></div>
       <div id="ftree-resizer" title="Drag to resize · double-click to reset" aria-hidden="true"></div>
      </div>
      <div class="fpreview">
       <div class="fp-head" id="fp-head" hidden><span class="type" id="fp-type"></span><h2 class="title" id="fp-title"></h2>
-       <button class="btn text" id="fp-graph" type="button" style="margin-left:auto"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M10.9 16.4 16.3 10.5"/></svg>Open in graph</button></div>
+       <button class="btn text" id="fp-graph" type="button" style="margin-left:auto" aria-label="Open in graph" title="Open in graph"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M10.9 16.4 16.3 10.5"/></svg><span class="fpg-lbl">Open in graph</span></button></div>
       <div class="fp-body" id="fp-body"><p class="empty">Pick a file on the left to read it here — Mermaid diagrams render inline.</p></div>
      </div>
     </div>
@@ -492,10 +668,35 @@
  <p class="dgv-hint">drag to pan · scroll or pinch to zoom · double-click resets · Esc closes</p>
 </div>
 
+<div id="sw" hidden role="dialog" aria-modal="true" aria-label="Switch bundle">
+ <div id="sw-box">
+  <input id="sw-input" class="field" placeholder="switch bundle…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sw-list" aria-label="Switch bundle">
+  <ul id="sw-list" role="listbox"></ul>
+  <p class="sw-hint" id="sw-hint">↑↓ move · ⏎ open · ⌘/Ctrl-⏎ new tab · Esc close</p>
+ </div>
+</div>
+
+<div id="kb" hidden role="dialog" aria-modal="true" aria-labelledby="kb-h">
+ <div id="kb-box">
+  <div id="kb-head"><h3 id="kb-h">Keyboard</h3>
+   <button class="btn" id="kb-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <dl id="kb-list"></dl>
+ </div>
+</div>
+
+<div id="nav-bk" hidden></div>
+<div id="mnote" hidden role="note">
+ <span>Best experienced on a desktop — tap ☰ for views, pinch to zoom, tap a concept to read it.</span>
+ <button class="btn" id="mnote-x" type="button" aria-label="Dismiss">✕</button>
+</div>
+
 <script>
 const NODES=<%= nodes_json %>, EDGES=<%= edges_json %>, TYPES=<%= types_json %>, TAGS=<%= tags_json %>;
 const NODE_ENDPOINT=<%= @node_endpoint.to_json %>, META_ENDPOINT=<%= @meta_endpoint.to_json %>;
 const CATALOG_ENDPOINT="catalog",INDEX_ENDPOINT="index",LOG_ENDPOINT="log";
+/* The hub's bundle switcher (⌘/Ctrl-K). SIBLINGS is empty for a standalone
+   server and for `okf render`, so a single bundle or a static file offers none. */
+const SIBLINGS=<%= siblings_json %>, SELF_SLUG=<%= self_slug_json %>, HUB_PATH=<%= hub_path_json %>;
 /* null when served live (`okf server`) — the getters below fetch the endpoints
    above. `okf render` injects a payload {catalog,index,logs,bodies,meta}, and
    every getter resolves from it instead, so one file needs no server and the
@@ -514,7 +715,12 @@ const types=Object.keys(TYPES).sort();
 const color=Object.fromEntries(types.map((t,i)=>[t,PALETTE[i%PALETTE.length]]));
 const deg=id=>(outL[id]||[]).length+(inL[id]||[]).length;
 const szOf=id=>Math.max(MIN,Math.min(MAX,MIN+deg(id)*4));
-const esc=s=>(s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+// Quotes included, because this escape feeds attributes as well as text:
+// `href="${esc(...)}"` breaks out of its own quoting the moment one survives.
+// The Ruby half of the page escapes the same set (Rack::Utils.escape_html), and
+// an escape whose safety depends on where the caller happens to interpolate it
+// is the shape of the XSS this page's trust boundary exists to refuse.
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cvar=n=>getComputedStyle(root).getPropertyValue(n).trim();
 const isDark=()=>root.getAttribute('data-theme')==='dark';
 const reduce=()=>matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -535,18 +741,20 @@ function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('-
   {selector:'edge.linkhid',style:{'display':'none'}},
   {selector:':parent',style:{'background-color':cvar('--ink'),'background-opacity':0.05,'border-width':1,'border-color':cvar('--edge'),'shape':'round-rectangle','padding':26,'label':'data(label)','color':cvar('--ink'),'font-size':13,'font-weight':600,'text-valign':'top','text-halign':'center','text-margin-y':-8,'min-zoomed-font-size':0,'text-outline-width':3,'text-outline-color':cvar('--canvas')}}
  ];}
-/* Small screens start with the inspector hidden — it opens on the first node
-   tap (openPanel). Done before Cytoscape reads the container, so the graph
-   lays out at full width; larger screens keep the open panel as the hint. */
-if(matchMedia('(max-width: 900px)').matches)document.querySelector('.graph-body').setAttribute('data-side','hidden');
-const cy=cytoscape({container:document.getElementById('cy'),minZoom:.2,maxZoom:1.6,wheelSensitivity:.2,
+/* Only the floor for a graph that already fits. "Far enough out to see
+   everything" is not a constant — a big bundle, especially clustered by area
+   where cose spreads the compound boxes wide, needs to go well below this, and
+   a floor above the fitting zoom puts the whole picture out of reach, fit
+   button included. relaxZoom() lowers it to follow anything bigger. */
+const MIN_ZOOM=.2;
+const cy=cytoscape({container:document.getElementById('cy'),minZoom:MIN_ZOOM,maxZoom:1.6,wheelSensitivity:.2,
  elements:[...NODES.map(n=>({data:{id:n.id,title:n.title,c:color[typeOf[n.id]||'Untyped']||'#64748b',sz:szOf(n.id)}})),...EDGES.map(e=>({data:e}))],
- style:styleSheet(),layout:{name:'<%= @layout %>',animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2}});
+ style:styleSheet(),layout:{name:'<%= @layout %>',animate:false,nodeRepulsion:9000,idealEdgeLength:170,padding:40,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2,nodeDimensionsIncludeLabels:true}});
 function applyCyTheme(){cy.style(styleSheet());}
 /* Debounced so the panel width transition (--side-w, .22s) fires cy.resize()
    once after it settles instead of on every frame — avoids canvas flicker. */
 let cyResizeTimer;
-new ResizeObserver(()=>{clearTimeout(cyResizeTimer);cyResizeTimer=setTimeout(()=>cy.resize(),240);}).observe(document.getElementById('cy'));
+new ResizeObserver(()=>{clearTimeout(cyResizeTimer);cyResizeTimer=setTimeout(()=>{cy.resize();relaxZoom();},240);}).observe(document.getElementById('cy'));
 const cyEl=document.getElementById('cy');
 cy.on('mouseover','node',()=>cyEl.style.cursor='pointer');
 cy.on('mouseout','node',()=>cyEl.style.cursor='');
@@ -612,8 +820,10 @@ function openPanel(){if(gbody.getAttribute('data-side')!=='hidden')return false;
 btnPanel.onclick=()=>setSide(gbody.getAttribute('data-side')==='hidden'?'default':'hidden');
 document.getElementById('side-close').onclick=()=>setSide('hidden');
 sideWiden.onclick=()=>setSide(gbody.getAttribute('data-side')==='wide'?'default':'wide');
-/* sync the header buttons with the responsive initial state set before cy init */
-if(gbody.getAttribute('data-side')==='hidden')setSide('hidden');
+/* The inspector boots hidden on every screen (data-side="hidden" in the markup,
+   so the graph lays out at full width) — the first node select opens it via
+   openPanel. This sync just points the header buttons at that initial state. */
+setSide('hidden');
 /* ── drag-resize splitters: inspector + files tree (persisted; dblclick resets) ── */
 function splitter(handle,host,cssVar,key,widthAt,opts){opts=opts||{};
  /* restore clamped to the current viewport — a width dragged on a desktop
@@ -645,7 +855,14 @@ splitter(document.getElementById('side-resizer'),gbody,'--side-w-user','okf-side
 const fgrid=document.querySelector('.files-grid');
 splitter(document.getElementById('ftree-resizer'),fgrid,'--ftree-w','okf-ftree-w',
  ev=>{const r=fgrid.getBoundingClientRect();return clampW(ev.clientX-r.left,220,r.width*.55);});
-function relList(t,arr){if(!arr.length)return'';return `<div class="rel"><h4>${t}</h4>${arr.map(id=>`<a data-go="${esc(id)}">${esc((byId[id]||{}).title||id)}</a>`).join('')}</div>`;}
+/* The count belongs in the eyebrow: how connected a concept is, is the first
+   thing the section answers, and it answers it before the list is read. The
+   title carries a title attribute because .rt truncates — the panel resizes,
+   but the tooltip means a narrow one never hides a name outright. */
+function relList(t,arr){if(!arr.length)return'';
+ const row=id=>{const ty=typeOf[id]||'Untyped', ti=(byId[id]||{}).title||id;
+  return `<a data-go="${esc(id)}" title="${esc(ti)}"><span class="dot" style="background:${color[ty]||'#64748b'}"></span><span class="rt">${esc(ti)}</span><span class="ty">${esc(ty)}</span></a>`;};
+ return `<div class="rel"><h4>${t}<span class="c">${arr.length}</span></h4><div class="rellist">${arr.map(row).join('')}</div></div>`;}
 /* Markdown links inside the inspector are GitHub-style relative file paths;
    there is no route for them here, so a plain click 404s the whole page.
    Resolve them against the open concept and navigate in-app instead; external
@@ -714,11 +931,21 @@ function getNodeBody(id){return EMBED?Promise.resolve(EMBED.bodies[id]||''):fetc
 function getNodeMeta(id){return EMBED?Promise.resolve(EMBED.meta[id]||''):fetch(META_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
 function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Untyped';const c=color[ty]||'#64748b';
  shownId=id;const opened=openPanel();sideBody.scrollTop=0;
- sideBody.innerHTML=`<span class="type"><span class="dot" style="background:${c}"></span>${esc(ty)}</span>
+ sideBody.innerHTML=`<button type="button" class="type facet" data-focus-type="${esc(ty)}" title="Show only ${esc(ty)} in the graph"><span class="dot" style="background:${c}"></span>${esc(ty)}</button>
  <h2 class="title">${esc(n.title||id)}</h2><div class="desc loading" id="desc">loading…</div>
- <div class="tags">${(tagsOf[id]||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+ <div class="tags">${(tagsOf[id]||[]).map(t=>`<button type="button" class="tag facet" data-focus-tag="${esc(t)}" title="Show only concepts tagged ${esc(t)}">${esc(t)}</button>`).join('')}</div>
  ${relList('Links to',outL[id])}${relList('Linked from',inL[id])}<div class="body" id="body"></div>`;
  sideBody.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
+ /* Focus on the way in, clear on the way back out: the chip both sets the
+    filter and undoes it, so the gesture never strands you in a filtered graph
+    with the way back somewhere else. The inspected concept always carries the
+    facet you clicked, so it survives its own filter and the panel stays on the
+    concept you were reading — which is what makes the second click reachable. */
+ sideBody.querySelectorAll('[data-focus-type]').forEach(b=>b.onclick=()=>{
+  const t=b.getAttribute('data-focus-type');typeFocused(t)?clearGraphFilter():focusGraphType(t);});
+ sideBody.querySelectorAll('[data-focus-tag]').forEach(b=>b.onclick=()=>{
+  const t=b.getAttribute('data-focus-tag');tagFocused(t)?clearGraphFilter():focusGraphTag(t);});
+ syncFacets();
  getNodeMeta(id).then(h=>{const d=document.getElementById('desc');if(d){d.innerHTML=h||'<span class="empty">no description</span>';d.classList.remove('loading');}}).catch(()=>{});
  const bodyEl=sideBody.querySelector('#body');
  getNodeBody(id).then(md=>{if(bodyEl.isConnected)renderMarkdown(bodyEl,md);}).catch(()=>{});
@@ -750,8 +977,16 @@ function applyGraphFilter(){const s=q.graph.toLowerCase();
  cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir'))return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
   const hay=(n.data('title')+' '+t+' '+nt.join(' ')).toLowerCase();
   const m=(!s||hay.includes(s))&&!hiddenTypes.has(t)&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
-  n.style('display',m?'element':'none');});}
+  n.style('display',m?'element':'none');});
+ relaxZoom();}
 function fbadge(){const c=hiddenTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
+ b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;ctlBadge();syncFacets();}
+/* mirror the active view's tool state onto the ⚙ toggle — when the sheet is
+   folded away on mobile, an active filter must still call out from the bar */
+function ctlBadge(){const b=document.getElementById('btn-controls');if(!b)return;
+ let c=0;
+ if(view==='graph')c=hiddenTypes.size+activeTags.size+activeAreas.size;
+ else if(view==='files'){try{c=(fileTypeCombo.get()?1:0)+(fileTagCombo.get()?1:0);}catch(err){}}
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;}
 const ftypes=document.getElementById('ftypes'), ftags=document.getElementById('ftags'), fareas=document.getElementById('fareas');
 const graphAreas=[...new Set(NODES.map(n=>areaOf(n.id)))].sort();
@@ -782,6 +1017,23 @@ syncFilterChips();
 function fitVisible(){requestAnimationFrame(()=>requestAnimationFrame(fitGraph));}
 function focusGraphType(t){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();types.forEach(x=>{if(x!==t)hiddenTypes.add(x);});syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
 function focusGraphArea(a){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();activeAreas.add(a);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function focusGraphTag(t){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();activeTags.add(t);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function clearGraphFilter(){hiddenTypes.clear();activeTags.clear();activeAreas.clear();syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+/* Is the graph focused on exactly this facet and nothing else? Only then is a
+   second click on the chip an undo — with any other filter in play, clearing
+   would throw away more than the click put there, so the chip re-focuses
+   instead. This is also what lights the chip, so what you see and what the
+   next click does are the same question, asked once. */
+/* hiddenTypes.size>0 is not redundant: in a one-type bundle `types.length-1` is
+   zero, so an unfiltered graph would read as focused, light the chip, and spend
+   the first click clearing nothing. */
+function typeFocused(t){return !activeTags.size&&!activeAreas.size&&hiddenTypes.size>0&&hiddenTypes.size===types.length-1&&!hiddenTypes.has(t);}
+function tagFocused(t){return !hiddenTypes.size&&!activeAreas.size&&activeTags.size===1&&activeTags.has(t);}
+/* The chips are filter indicators, so they repaint wherever the badge does —
+   that way a filter cleared from the slide-over un-lights the chip too. */
+function syncFacets(){
+ sideBody.querySelectorAll('[data-focus-type]').forEach(b=>b.classList.toggle('on',typeFocused(b.getAttribute('data-focus-type'))));
+ sideBody.querySelectorAll('[data-focus-tag]').forEach(b=>b.classList.toggle('on',tagFocused(b.getAttribute('data-focus-tag'))));}
 const filtersEl=document.getElementById('filters');
 document.getElementById('btn-filters').onclick=()=>filtersEl.classList.toggle('open');
 document.getElementById('filters-close').onclick=()=>filtersEl.classList.remove('open');
@@ -799,14 +1051,20 @@ function loadScript(src){return new Promise((res,rej)=>{const s=document.createE
 async function ensureLayout(name){const ext=LAYOUT_EXT[name];if(!ext||loadedExt[name])return true;
  try{for(const src of ext.srcs)await loadScript(src);cytoscape.use(window[ext.reg]);loadedExt[name]=true;return true;}
  catch(e){console.warn('layout '+name+' failed to load',e);return false;}}
-/* nodeOverlap keeps a real gap between circles in cose; avoidOverlap +
-   spacingFactor do the same for the geometric layouts. Extras are ignored
-   by layouts that don't know them. */
-function layoutOpts(name){const base={animate:true,padding:40,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2};
- if(name==='fcose')return{...base,name:'fcose',quality:'default',nodeRepulsion:6500,idealEdgeLength:95,nodeSeparation:80,packComponents:true};
+/* Labels count as part of a node's footprint (nodeDimensionsIncludeLabels) —
+   the captions here run 3-6x wider than the circles, so spacing by the circle
+   alone stacked every caption onto its neighbours. Edge lengths follow the same
+   ruler: an ideal length shorter than a label's box (wrap at 120px) *instructs*
+   linked nodes to overlap, so the force layouts ask for ~170 between centres —
+   the footprint plus a gap, no more (240 read as wasteland). nodeOverlap
+   keeps a real gap between boxes in cose; avoidOverlap + spacingFactor do the
+   same for the geometric layouts. Extras are ignored by layouts that don't know
+   them. */
+function layoutOpts(name){const base={animate:true,padding:40,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2,nodeDimensionsIncludeLabels:true};
+ if(name==='fcose')return{...base,name:'fcose',quality:'default',nodeRepulsion:6500,idealEdgeLength:160,nodeSeparation:100,packComponents:true};
  if(name==='dagre')return{...base,name:'dagre',rankDir:'TB',nodeSep:26,rankSep:55,edgeSep:12};
- if(name==='cola')return{...base,name:'cola',maxSimulationTime:2500,edgeLength:95,nodeSpacing:8};
- if(name==='cose')return{...base,name:'cose',nodeRepulsion:9000,idealEdgeLength:90};
+ if(name==='cola')return{...base,name:'cola',maxSimulationTime:2500,edgeLength:160,nodeSpacing:8};
+ if(name==='cose')return{...base,name:'cose',nodeRepulsion:9000,idealEdgeLength:170};
  return{...base,name};}
 async function runLayout(name){if(await ensureLayout(name))cy.layout(layoutOpts(name)).run();else layoutSel.value='cose';}
 layoutSel.onchange=e=>{if(clustered)return;runLayout(e.target.value);};
@@ -814,16 +1072,29 @@ layoutSel.value='<%= @layout %>';
 
 /* ── cluster by area (compound parent nodes) ── */
 let clustered=false;const btnCluster=document.getElementById('btn-cluster');
+/* cose treats compounds as an afterthought — nodes with no links drift to
+   opposite corners of a huge half-empty box, and the boxes themselves sprawl —
+   so grouped views needed hand-tidying every time. fcose is the engine built
+   for compound graphs: tiling packs the loose nodes inside each area into neat
+   rows, compound gravity keeps every box tight, and label-aware sizing stops
+   captions from overlapping. Clustering therefore always uses it, with cose
+   kept only for when the CDN is unreachable (a saved render opened offline
+   still groups, just less prettily). */
+function clusterLayout(){ensureLayout('fcose').then(ok=>{if(!clustered)return;
+ cy.layout(ok?{name:'fcose',quality:'proof',animate:true,padding:40,nodeRepulsion:6500,idealEdgeLength:90,
+   nodeSeparation:100,nestingFactor:.1,gravityCompound:1.5,tile:true,tilingPaddingVertical:14,
+   tilingPaddingHorizontal:14,packComponents:true,nodeDimensionsIncludeLabels:true}
+  :{name:'cose',animate:true,padding:40,nodeRepulsion:8000,idealEdgeLength:70,nodeOverlap:24,nestingFactor:1.2,gravity:.7}).run();});}
 function setClustered(on){if(on===clustered)return;if(on&&treeMode)setTree(false);
  clustered=on;btnCluster.setAttribute('aria-pressed',String(on));layoutSel.disabled=on;
  if(on){const as=[...new Set(NODES.map(n=>areaOf(n.id)))];
   cy.add(as.map(a=>({group:'nodes',data:{id:'area::'+a,label:a}})));
   cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length)e.move({parent:'area::'+areaOf(n.id)});}));
-  cy.layout({name:'cose',animate:true,padding:40,nodeRepulsion:8000,idealEdgeLength:70,nodeOverlap:24,nestingFactor:1.2,gravity:.7}).run();
+  clusterLayout();
  }else{
   cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length&&e.isChild())e.move({parent:null});}));
   cy.nodes().filter(n=>n.id().indexOf('area::')===0).remove();
-  cy.layout({name:layoutSel.value,animate:true,padding:40,nodeRepulsion:9000,idealEdgeLength:90,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2}).run();}}
+  runLayout(layoutSel.value);}}
 btnCluster.onclick=()=>setClustered(!clustered);
 
 /* ── file-tree mode: folders become nodes and the only edges are folder→child,
@@ -864,8 +1135,34 @@ function openInTree(dir){setView('graph');setTree(true);
 /* ── fit to screen ── */
 // cy.animate({fit:…}) is a no-op in this Cytoscape build, so compute the target
 // zoom + pan and animate those (which do work): fits the visible nodes, re-centered.
-function fitGraph(){const vis=cy.nodes(':visible').filter(n=>!n.isParent());const eles=vis.length?vis:cy.nodes();if(!eles.length)return;
- const bb=eles.boundingBox(),pad=60,w=cy.width(),h=cy.height();
+/* What "everything" spans, for both the fit button and the zoom floor: the
+   visible leaves plus the area boxes drawn around them. A compound parent is
+   26px of padding wider than its children on every side and carries its label
+   above that, so fitting to the children alone crops the boxes and their names
+   off the edges. A parent whose children are all filtered out is left out too —
+   it collapses to a stale box that would inflate the fit. */
+function fitBox(){const vis=cy.nodes(':visible');
+ const eles=vis.filter(n=>!n.isParent()).union(vis.filter(n=>n.isParent()&&n.children(':visible').nonempty()));
+ const use=eles.length?eles:cy.nodes();
+ return use.length?use.boundingBox():null;}
+
+/* Keep the zoom floor at or below what showing the whole graph needs, so no
+   graph can grow past the point where it is reachable. Runs after every layout
+   (which is what moves nodes) and after filtering, which can shrink the span
+   back — the Math.min against MIN_ZOOM restores the normal floor for a small
+   result rather than leaving it stuck at the big graph's. */
+function relaxZoom(){const bb=fitBox(),w=cy.width(),h=cy.height();
+ if(!bb||!bb.w||!bb.h||!w||!h)return;
+ cy.minZoom(Math.min(MIN_ZOOM,Math.min(w/bb.w,h/bb.h)*.6));}
+// The boot layout runs inside the cytoscape() constructor, so its layoutstop is
+// already gone by the time this binds — relax once here for the graph on screen,
+// and let the handler take every layout after it.
+cy.on('layoutstop',relaxZoom);relaxZoom();
+
+function fitGraph(){relaxZoom();const bb=fitBox();if(!bb)return;
+ /* padding scales with the canvas — 60px is right on a desktop but eats a third
+    of a phone's width */
+ const w=cy.width(),h=cy.height(),pad=Math.min(60,Math.max(16,Math.round(w*.06)));
  const z=Math.max(cy.minZoom(),Math.min(cy.maxZoom(),Math.min((w-2*pad)/bb.w,(h-2*pad)/bb.h)));
  cy.stop();cy.animate({zoom:z,pan:{x:w/2-z*(bb.x1+bb.w/2),y:h/2-z*(bb.y1+bb.h/2)}},{duration:450,easing:'ease-in-out-cubic'});}
 document.getElementById('btn-fit').onclick=fitGraph;
@@ -873,11 +1170,16 @@ document.getElementById('btn-fit').onclick=fitGraph;
 /* ── view switching ── */
 let view='graph';
 const inited={};
+/* Which views have a search, and what it is called there — one table, because
+   three things need the same answer: the placeholder, whether `/` has anywhere
+   to go, and (mirrored in CSS) whether the box is shown at all. Stats is the
+   only view absent here: it reads, it does not filter. */
+const SEARCH_PH={graph:'search concepts…',catalog:'search concepts…',files:'filter files…',tags:'search tags…'};
 function goToGraph(id){setView('graph');requestAnimationFrame(()=>select(id));}
 function setView(v){if(v===view)return;view=v;document.getElementById('app').setAttribute('data-view',v);
- railActive();
+ railActive();ctlBadge();
  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
- const ph={graph:'search concepts…',catalog:'search concepts…',files:'filter files…',tags:'search tags…'}[v];
+ const ph=SEARCH_PH[v];
  if(ph!==undefined){searchInput.placeholder=ph;searchInput.value=q[v]||'';}
  if(v==='graph')requestAnimationFrame(()=>cy.resize());
  if(v==='catalog'&&!inited.catalog)initCatalog();
@@ -886,7 +1188,18 @@ function setView(v){if(v===view)return;view=v;document.getElementById('app').set
  if(v==='stats'&&!inited.stats)initStats();}
 /* The Files view answers to two rail items: Files when the Files tab is up,
    Index when the Indexes tab is — the Index rail item is a shortcut into it. */
-function railActive(){const v=view==='files'&&typeof ftab!=='undefined'&&ftab==='indexes'?'index':view;
+/* Which rail item the page is standing on. "index" is not a view — there is no
+   #view-index — but the files view showing its Indexes tab, so the answer is a
+   question of view *and* tab. Everything that has to name the current place
+   asks here: the rail's own highlight, and the palette's `current` badge. */
+function activeRail(){return view==='files'&&typeof ftab!=='undefined'&&ftab==='indexes'?'index':view;}
+/* And everything that has to *go* somewhere clicks the rail item rather than
+   calling setView: Index and Files are one view differing by tab, so setView
+   alone lands on whichever tab was last open — and for "index" it lands on a
+   view that does not exist. The rail button already gets this right; this is
+   how the keyboard and the palette borrow it instead of drifting from it. */
+function goRail(v){const b=document.querySelector('.rail-item[data-view="'+v+'"]');if(b)b.click();}
+function railActive(){const v=activeRail();
  document.querySelectorAll('.rail-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));}
 function goIndexes(){if(view!=='files')setView('files');setFtab('indexes');railActive();}
 document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>{
@@ -971,7 +1284,7 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
   if(!reserved.length){el.innerHTML='<p class="empty" style="padding:14px">No index.md or log.md files'+(s?' match.':' yet.')+'</p>';return;}
   el.innerHTML=reserved.map(r=>{
    const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
-   return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg>${esc(r.path)}<span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');
+   return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}" title="${esc(r.path)}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg><span class="rn">${esc(r.path)}</span><span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');
   el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));
   return;}
  const ft=fileTypeCombo.get(), fg=fileTagCombo.get();
@@ -1021,7 +1334,7 @@ function makeCombo(name,allLabel,items,onChange){
  list.addEventListener('mousedown',e=>{const li=e.target.closest('li');if(!li)return;e.preventDefault();pick(li);});
  document.getElementById(name+'-clear').addEventListener('click',()=>{value=null;input.value='';combo.classList.remove('has');onChange();input.focus();});
  return {get:()=>value};}
-const refreshTree=()=>Promise.all([ getCatalog(),getIndex(),getLogs() ]).then(([ list,dirs,logs ])=>{IXDIRS=dirs;LOGPATHS=logs.map(l=>l.path);renderTree(list);});
+const refreshTree=()=>{ctlBadge();return Promise.all([ getCatalog(),getIndex(),getLogs() ]).then(([ list,dirs,logs ])=>{IXDIRS=dirs;LOGPATHS=logs.map(l=>l.path);renderTree(list);});};
 const fileTypeCombo=makeCombo('file-type','All types',()=>catByCount.map(t=>({v:t,n:(TYPES[t]||[]).length,c:color[t]})),refreshTree);
 const fileTagCombo=makeCombo('file-tag','All tags',()=>tagsByCount.map(t=>({v:t,n:(TAGS[t]||[]).length})),refreshTree);
 function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
@@ -1137,13 +1450,232 @@ function listingHtml(items){if(!items||!items.length)return '<p class="empty" st
 let LOGS=null;
 function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LOG_ENDPOINT).then(r=>r.json()).then(d=>d.logs));}
 
+/* ── command palette: jump to a view always, and to a sibling bundle when a hub
+   is serving one. It began as the bundle switcher, gated on HUB_PATH — which
+   meant ⌘K did not exist at all under a standalone `okf server` or in `okf
+   render` output, the two modes most people meet first. Views are what earn the
+   palette a place in every mode; bundles are the group that comes and goes.
+   The two are grouped rather than merged because the actions differ: a view is
+   in-page and instant, a bundle is a page load that carries the view and layout
+   across and deliberately drops the selected node. ── */
+(function(){
+ const ov=document.getElementById('sw'),input=document.getElementById('sw-input'),list=document.getElementById('sw-list');
+ const isMac=/Mac|iP/.test(navigator.platform||'');
+ const layout0=layoutSel?layoutSel.value:null;
+ const HUB=HUB_PATH!==null;
+ let active=0,lastFocus=null;
+ /* The rail is the source of truth for which views exist, so read it back
+    rather than keeping a second list here that a new view could fall out of. */
+ const VIEWS=[ ...document.querySelectorAll('.rail-item[data-view]') ].map(b=>{
+  const l=b.querySelector('.ri-lbl'), ic=b.querySelector('.ri-ico');
+  /* The icon comes from the rail with the label, so a view wears the same mark
+     in both places and neither can drift from the other. It is this page's own
+     static markup being copied within the page — not a body, not a payload — so
+     it is not a render path the sanitizer has to cover. */
+  return { v:b.getAttribute('data-view'), label:(l?l.textContent:'').trim()||b.getAttribute('data-view'), icon:ic?ic.innerHTML:'' };});
+ /* the current bundle's display name — the topbar carries it already */
+ const identEl=document.querySelector('#topbar .ident');
+ const IDENT=identEl&&identEl.firstChild?identEl.firstChild.textContent.trim():(SELF_SLUG||'this bundle');
+ const hit=(q,s)=>String(s||'').toLowerCase().includes(q);
+ const matchViews=q=>VIEWS.filter(x=>!q||hit(q,x.label)||hit(q,x.v));
+ const matchBundles=q=>HUB?SIBLINGS.filter(b=>!q||hit(q,b.title)||hit(q,b.slug)):[];
+ /* carry the bundle-agnostic page state (view, layout) into the target — the
+    selected node and hash are bundle-specific and deliberately dropped */
+ function target(p){const ps=new URLSearchParams();
+  try{if(typeof view==='string'&&view!=='graph')ps.set('view',view);
+   if(layoutSel&&layoutSel.value!==layout0)ps.set('layout',layoutSel.value);}catch(err){}
+  const qs=ps.toString();return qs?p+'?'+qs:p;}
+ const grp=t=>`<li class="sw-grp">${t}</li>`;
+ const opt=(i,inner)=>`<a ${inner.attrs} id="sw-opt-${i}" role="option" class="${(i===active?'active':'')+(inner.cls||'')}">${inner.html}</a>`;
+ /* Bundles lead, and on an empty box they are the only thing here: switching
+    bundles is what the palette is for, and six views above them would push the
+    answer below the fold to advertise a convenience. So views wait until what
+    you typed reaches one, and arrive underneath, muted — found when wanted,
+    silent when not. Standalone is the mirror image: no hub, no bundle to switch
+    to, so views stop being the sideline and become the whole list.
+    Headers only earn their line when both groups are up; over a lone list they
+    label the obvious. Same for the you-are-here row — context on an empty box,
+    noise once you are filtering. */
+ function render(qs){const q=(qs||'').trim().toLowerCase();
+  const bs=matchBundles(q);
+  const vs=(q||!HUB)?matchViews(q):[];
+  const showB=HUB&&(bs.length||!q);
+  const heads=showB&&vs.length>0;
+  active=Math.min(active,Math.max(0,bs.length+vs.length-1));
+  let h='';
+  if(showB){
+   if(heads)h+=grp('Bundles');
+   if(!q)h+=`<a class="cur" aria-disabled="true"><span>${esc(IDENT)}</span><span class="slug">current</span></a>`;
+   if(!SIBLINGS.length)h+='<a class="none"><span>only this bundle is registered — okf registry set &lt;dir&gt; adds more</span></a>';
+   else h+=bs.map((b,i)=>opt(i,{
+    attrs:`href="${esc(target(b.path))}" data-path="${esc(b.path)}"`,
+    html:`<span>${esc(b.title)}${b.default?'<span class="sw-def">default</span>':''}</span><span class="slug">${esc(b.slug)}</span>`})).join('');
+  }
+  if(vs.length){
+   if(heads)h+=grp('Views');
+   h+=vs.map((x,i)=>opt(bs.length+i,{
+    cls:HUB?' sw-view':'',
+    attrs:`data-view="${esc(x.v)}"`,
+    html:`<span class="sw-ico">${x.icon}</span><span>${esc(x.label)}${x.v===activeRail()?'<span class="sw-def">current</span>':''}</span>`})).join('');
+  }
+  if(!h)h='<a class="none"><span>no matches</span></a>';
+  list.innerHTML=h;mark();}
+ const items=()=>[ ...list.querySelectorAll('a[data-view],a[data-path]') ];
+ function mark(){const its=items();
+  its.forEach((a,i)=>a.classList.toggle('active',i===active));
+  input.setAttribute('aria-activedescendant',its[active]?its[active].id:'');
+  if(its[active])its[active].scrollIntoView({block:'nearest'});}
+ /* Unhide before rendering: mark() scrolls the active row into view, and a list
+    still display:none measures zero, so the scroll lands somewhere arbitrary
+    and takes the first group's header off the top of the box with it. */
+ function open(){discovered();lastFocus=document.activeElement;active=0;input.value='';ov.hidden=false;render('');input.setAttribute('aria-expanded','true');input.focus();}
+ function close(){ov.hidden=true;input.setAttribute('aria-expanded','false');if(lastFocus&&lastFocus.focus)lastFocus.focus();}
+ /* A view switches in place, so it ignores the new-tab chord — opening this same
+    bundle again in a second tab is not what ⌘⏎ was asked for. A bundle is a real
+    navigation and honours it. */
+ function go(a,newTab){if(!a)return;
+  const v=a.dataset.view;if(v){goRail(v);close();return;}
+  const p=a.dataset.path;if(!p)return;const t=target(p);
+  if(newTab){window.open(t,'_blank');close();}else{location.href=t;}}
+ input.addEventListener('input',()=>{active=0;render(input.value);});
+ input.addEventListener('keydown',e=>{const its=items();
+  if(e.key==='ArrowDown'){e.preventDefault();active=Math.min(its.length-1,active+1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(0,active-1);}
+  else if(e.key==='Enter'){e.preventDefault();go(its[active],e.metaKey||e.ctrlKey);return;}
+  else if(e.key==='Escape'){e.preventDefault();close();return;}
+  else return;
+  mark();});
+ list.addEventListener('click',e=>{const a=e.target.closest('a[data-path]');if(!a)return;
+  if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return; /* let the browser handle its own new-tab/window conventions */
+  e.preventDefault();go(a,false);});
+ ov.addEventListener('mousedown',e=>{if(e.target===ov)close();});
+ addEventListener('keydown',e=>{
+  if(!ov.hidden&&e.key==='Escape'){e.preventDefault();close();return;} /* Esc closes from anywhere, not just the input */
+  if((e.metaKey||e.ctrlKey)&&!e.shiftKey&&!e.altKey&&(e.key==='k'||e.key==='K')){e.preventDefault();ov.hidden?open():close();}});
+ /* OS-aware chord in every hint — and every one of them names only what this
+    mode can actually do, since a standalone bundle has no bundle to switch to
+    and no second tab to open one in. */
+ const chord=isMac?'⌘K':'Ctrl-K';
+ /* Every label names the mode's primary job and nothing else. Under a hub that
+    is switching bundles — the placeholder trails "or a view" only because a
+    convenience nobody can find is not one, and that is the whole billing views
+    get. Standalone has no bundles, so there the view is the job. */
+ const label=HUB?'Switch bundle':'Jump to a view';
+ input.placeholder=HUB?'switch bundle, or type a view…':'jump to a view…';
+ input.setAttribute('aria-label',label);
+ ov.setAttribute('aria-label',HUB?'Switch bundle':'Command palette');
+ document.getElementById('sw-hint').textContent='↑↓ move · ⏎ open · '+(HUB?(isMac?'⌘⏎':'Ctrl-⏎')+' new tab · ':'')+'Esc close';
+ const gh=document.querySelector('.ghint');
+ if(gh)gh.textContent+=' · '+chord+(HUB?' switches bundle':' jumps to a view');
+ /* the ⇄ button is bundle-swap in both icon and meaning, so it stays with the
+    bundles — a standalone page reaches the palette by the chord and the hint */
+ const btn=document.getElementById('btn-switch');
+ if(btn&&HUB){btn.hidden=false;btn.title=label+' ('+chord+')';btn.setAttribute('aria-label',label+' ('+chord+')');
+  btn.addEventListener('click',()=>{ov.hidden?open():close();});}
+ /* the pulse badge (and its hamburger-dot mirror on mobile) exists to get the
+    switcher discovered — once the palette has been opened it has done its job,
+    so it retires, and stays retired across visits */
+ const cnt=document.getElementById('sw-count');
+ const dot=document.querySelector('#btn-menu .menudot');
+ /* The badge counts bundles, so it stays with the hub: on a standalone page it
+    would pulse the number 1 at someone who has nothing to switch to. */
+ let swSeen=false;try{swSeen=localStorage.getItem('okf-swseen')==='1';}catch(err){}
+ if(HUB&&!swSeen){
+  if(cnt){cnt.textContent=String(SIBLINGS.length+1);cnt.hidden=false;}
+  if(dot&&SIBLINGS.length)dot.hidden=false;
+ }
+ function discovered(){if(cnt)cnt.hidden=true;if(dot)dot.hidden=true;try{localStorage.setItem('okf-swseen','1');}catch(err){}}
+})();
+
+/* ── mobile: the rail as a drawer, the topbar controls as a sheet, and a
+   one-time "best on desktop" note ── */
+(function(){
+ const app=document.getElementById('app'),menuBtn=document.getElementById('btn-menu'),bk=document.getElementById('nav-bk');
+ const navSet=o=>{app.classList.toggle('nav-open',o);bk.hidden=!o;menuBtn.setAttribute('aria-expanded',o?'true':'false');};
+ /* ⚙ folds the whole tools row — search plus the active view's controls — into
+    a sheet under the bar, so the bar itself is just ☰ · title · ⚙ */
+ const ctl=document.getElementById('btn-controls');
+ const ctlSet=o=>{app.classList.toggle('controls-open',o);if(ctl)ctl.setAttribute('aria-expanded',o?'true':'false');};
+ if(ctl)ctl.addEventListener('click',()=>ctlSet(!app.classList.contains('controls-open')));
+ /* opening the Filters panel from the sheet folds the sheet — it sits above
+    the panel and would cover the panel's own header (Reset, ✕) */
+ const bf=document.getElementById('btn-filters');
+ if(bf)bf.addEventListener('click',()=>ctlSet(false));
+ menuBtn.addEventListener('click',()=>navSet(!app.classList.contains('nav-open')));
+ bk.addEventListener('mousedown',()=>navSet(false));
+ document.getElementById('rail').addEventListener('click',e=>{if(e.target.closest('.rail-item,.btn')){navSet(false);ctlSet(false);}});
+ let small=false;try{small=matchMedia('(max-width:768px)').matches;}catch(err){}
+ if(small){try{
+  if(!localStorage.getItem('okf-mnote')){const n=document.getElementById('mnote');n.hidden=false;
+   document.getElementById('mnote-x').addEventListener('click',()=>{n.hidden=true;try{localStorage.setItem('okf-mnote','1');}catch(err){}});}
+ }catch(err){}}
+ /* the initial layout runs before the viewport settles (fonts, window chrome,
+    a phone's address bar), which can leave the graph tiny — on any screen. Fit
+    once after load (past the canvas ResizeObserver's 240ms debounce) and again
+    on rotation. Deep links are left alone: ?select/#hash center their own
+    node, ?layout re-runs a layout with its own fit, and ?view starts with the
+    canvas hidden (fitting a 0-width canvas would clamp to min-zoom). */
+ const q=location.search;
+ const deepLinked=q.indexOf('select=')>=0||q.indexOf('layout=')>=0||q.indexOf('view=')>=0||location.hash.length>1;
+ if(!deepLinked&&typeof fitGraph==='function'){
+  addEventListener('load',()=>setTimeout(fitGraph,400));
+  addEventListener('orientationchange',()=>setTimeout(fitGraph,450));
+ }
+ /* files view: the stacked list collapses to its tab bar — picking a file
+    hands the screen to the reader, picking a tab brings the list back */
+ const fgridEl=document.querySelector('.files-grid'),ftmin=document.getElementById('ftree-min');
+ if(fgridEl&&ftmin){
+  const treeSet=o=>{fgridEl.classList.toggle('tree-min',o);
+   ftmin.setAttribute('aria-expanded',o?'false':'true');
+   ftmin.setAttribute('aria-label',o?'Expand file list':'Collapse file list');};
+  ftmin.addEventListener('click',()=>treeSet(!fgridEl.classList.contains('tree-min')));
+  document.getElementById('ftree-list').addEventListener('click',e=>{
+   if(e.target.closest('.file')&&matchMedia('(max-width:768px)').matches)treeSet(true);});
+  [ 'ftab-files','ftab-indexes' ].forEach(id=>{const t=document.getElementById(id);
+   if(t)t.addEventListener('click',()=>treeSet(false));});
+ }
+})();
+
 /* ── keyboard ── */
-const VIEW_KEYS={'1':'graph','3':'files','4':'catalog','5':'tags','6':'stats'};
+/* 2 is no longer a special case: every one of these goes through the rail, so
+   `3` reaches the Files tab from the Indexes tab — it used to call setView
+   ('files') while already on it, early-return, and do nothing at all. */
+const VIEW_KEYS={'1':'graph','2':'index','3':'files','4':'catalog','5':'tags','6':'stats'};
+const swModal=document.getElementById('sw');
+/* The ? sheet reads this, and it is written directly against the handler below
+   because the two have to move together: a shortcut list that has drifted from
+   the keys is worse than no list, since it is believed. Anything bound down
+   there earns a line up here. */
+const KEYS=[
+ [ '1 – 6', 'switch view — graph, index, files, catalog, tags, stats' ],
+ [ '/', 'search the current view (where it has one)' ],
+ [ '\\', 'show or hide the inspector — graph' ],
+ [ '0', 'fit the graph to the screen — graph' ],
+ [ 'f', 'fullscreen' ],
+ [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K', HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
+ [ '?', 'this list' ],
+ [ 'Esc', 'close whatever is open' ]
+];
+const kb=document.getElementById('kb');
+let kbLast=null;
+function kbOpen(){document.getElementById('kb-list').innerHTML=KEYS.map(r=>`<dt><kbd>${esc(r[0])}</kbd></dt><dd>${esc(r[1])}</dd>`).join('');
+ kbLast=document.activeElement;kb.hidden=false;document.getElementById('kb-x').focus();}
+function kbClose(){kb.hidden=true;if(kbLast&&kbLast.focus)kbLast.focus();}
+document.getElementById('kb-x').onclick=kbClose;
+/* the rail's ? is the only way in that does not require already knowing the key
+   — a shortcut sheet reachable only by shortcut helps whoever needs it least */
+document.getElementById('btn-help').onclick=()=>{kb.hidden?kbOpen():kbClose();};
+kb.addEventListener('mousedown',e=>{if(e.target===kb)kbClose();});
 addEventListener('keydown',e=>{if(!dgv.hidden){if(e.key==='Escape')closeDiagram();return;}
+ if(swModal&&!swModal.hidden)return; /* the bundle switcher is modal — no shortcuts leak behind it */
+ /* modal too, and ? closes what ? opened */
+ if(!kb.hidden){if(e.key==='Escape'||e.key==='?'){e.preventDefault();kbClose();}return;}
  if(e.target.matches('input,select,textarea'))return;
- if(e.key==='2'){goIndexes();}
- else if(VIEW_KEYS[e.key]){setView(VIEW_KEYS[e.key]);}
- else if(e.key==='/'){e.preventDefault();searchInput.focus();}
+ if(VIEW_KEYS[e.key]){goRail(VIEW_KEYS[e.key]);}
+ /* only where there is something to focus: stats hides the box, and a key that
+    silently focuses nothing reads as a broken shortcut */
+ else if(e.key==='/'&&SEARCH_PH[view]){e.preventDefault();searchInput.focus();}
+ else if(e.key==='?'){e.preventDefault();kbOpen();}
  else if(e.key==='\\'&&view==='graph'){setSide(gbody.getAttribute('data-side')==='hidden'?'default':'hidden');}
  else if(e.key==='0'&&view==='graph'){fitGraph();}
  else if(e.key==='f'){btnFull.click();}});

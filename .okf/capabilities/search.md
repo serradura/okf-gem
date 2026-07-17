@@ -3,8 +3,8 @@ type: Capability
 title: Ranked text search (search)
 description: Deterministic ranked retrieval over concept metadata and bodies — the browser page's search brought to the CLI, extended to bodies.
 resource: lib/okf/bundle/search.rb
-tags: [read, cli, json]
-timestamp: 2026-07-13T12:00:00Z
+tags: [read, cli, json, registry]
+timestamp: 2026-07-17T13:00:00Z
 ---
 
 # Overview
@@ -44,6 +44,50 @@ filters and `--fields`/`--except` projections shared with the
 even with zero matches — only an invalid `--regexp` pattern is a usage error
 (exit `2`).
 
+# One question, every bundle you keep
+
+Knowledge rarely lives in one bundle, so search is the one verb that spans the
+[registry](../registry.md): leading @slugs pick bundles explicitly
+(`okf search @handbook @notes auth`), and `@all` is the ref that means every
+registered one. Each bundle runs the same pure `Search` and the rankings merge —
+legitimate because scores are absolute term weights, not per-bundle normalized —
+with every row labeled by its bundle's slug. The graph stays per-bundle on
+purpose — cross-links are bundle-relative, so a merged graph would be
+disconnected components — which makes search the one cross-bundle question the
+CLI can answer honestly, and (for now) a capability the [hub](graph-server.md)
+does not mirror.
+
+**Asking for everything tolerates gaps; naming one bundle demands it.** `@all`
+skips a registered bundle whose directory has vanished, with a note — the same
+forgiveness the hub shows a stale entry — while `@handbook` fails hard, because
+an explicit ask that silently answered about less than it named would be a
+confident wrong answer. `@all @handbook` needs no diagnostic at all: all ⊇
+handbook, so it expands, dedupes by resolved path, and answers.
+
+That "every bundle" is a **ref rather than a flag** is what keeps the grammar
+single, and it was not always so. A `--all` flag *reinterpreted the
+positionals* — `okf search .okf home` read `.okf` as the bundle, `okf search
+--all .okf` read it as a term — the same slot meaning opposite things, decided
+by a flag optparse accepts anywhere in argv. Every diagnostic around it existed
+to explain that flip. As a ref, slot 1 is always a bundle identity: a directory
+there is a directory, a term after it is a term, and the explanations have
+nothing left to explain. Being a ref also means being normalized like one:
+`@ALL` reaches `@all` through the same `Registry.normalize` that makes `@One`
+find dir `One`, because a ref exempt from the grammar's one normalization is a
+trapdoor. Only `search` expands `@all`, since it is the only verb
+that merges; see [the CLI](../cli.md) for why the others refuse it by name.
+
+Three edges of the grammar, all deliberate. Any leading @-arg — even one —
+switches the JSON envelope from `{ bundle, slug, … }` to
+`{ bundles: [{ slug, dir }, …], …, matches: [{ slug, id, … }] }`, so a consumer
+branches on the form it called; the head maps each slug to its dir once, which
+is what lets a row resolve to `<dir>/<id>.md` without a second lookup while
+keeping long paths off every row. Projection is literal: when merging, put
+`slug` in `--fields` or the row label drops and same-id concepts from
+different bundles become indistinguishable. And every leading @-arg is taken
+as a ref, so a literal @-term (`@babel/core`) needs a non-@ term before it or
+`-e '\@term'` — the CLI notes each of these traps on stderr when it sees one.
+
 # Deliberately not fuzzy
 
 No stemming, no typo distance, no synonyms. The consuming agent is the fuzzy
@@ -61,4 +105,4 @@ playbook rides that path, so its economics stay true by construction.
 # Citations
 
 [1] [lib/okf/bundle/search.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/bundle/search.rb) — the pure core: weights, ANDing, snippets.
-[2] [test/integration/cli/cli_search_test.rb](https://github.com/serradura/okf-gem/blob/main/test/integration/cli/cli_search_test.rb) — the retrieval eval.
+[2] [test/integration/cli/by_dir/cli_search_test.rb](https://github.com/serradura/okf-gem/blob/main/test/integration/cli/by_dir/cli_search_test.rb) — the retrieval eval.

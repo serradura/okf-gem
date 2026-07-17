@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "rack/utils"
+
 module OKF
   module Server
     # Renders an OKF::Bundle::Graph as the interactive graph page served by
@@ -40,7 +42,12 @@ module OKF
       # fetches a concept's raw markdown and metadata fragment from — relative so
       # the page works whether served at "/" or mounted under a Rails prefix.
       # +embed+ is the render-mode payload (nil = server mode); see the class doc.
-      def initialize(graph, title: nil, link: nil, layout: "cose", node_endpoint: "node", meta_endpoint: "node/meta", embed: nil)
+      # +siblings+/+self_slug+/+hub_path+ carry the hub's bundle switcher into the
+      # page (server mode only). nil — the standalone-server and `okf render`
+      # default — injects an empty SIBLINGS, so the switcher never appears in a
+      # single bundle or a static file.
+      def initialize(graph, title: nil, link: nil, layout: "cose", node_endpoint: "node", meta_endpoint: "node/meta", embed: nil,
+                     siblings: nil, self_slug: nil, hub_path: nil)
         @graph = graph
         @title = title
         @link = link
@@ -48,6 +55,9 @@ module OKF
         @node_endpoint = node_endpoint
         @meta_endpoint = meta_endpoint
         @embed = embed
+        @siblings = siblings
+        @self_slug = self_slug
+        @hub_path = hub_path
       end
 
       def render
@@ -102,6 +112,20 @@ module OKF
         json_for_script(@embed)
       end
 
+      # The hub switcher's data: the other bundles (empty when standalone/static),
+      # this bundle's slug, and the hub root — all </script>-escaped like the rest.
+      def siblings_json
+        json_for_script(@siblings || [])
+      end
+
+      def self_slug_json
+        json_for_script(@self_slug)
+      end
+
+      def hub_path_json
+        json_for_script(@hub_path)
+      end
+
       # JSON-encode for safe embedding in an inline <script>: escaping every `<` to
       # its JSON unicode escape neutralizes </script>, <!-- and <script in one
       # stroke, and the result stays valid JSON *and* JavaScript.
@@ -120,8 +144,10 @@ module OKF
         end
       end
 
+      # Rack's, not a hand-rolled one — this output goes into attributes
+      # (`href="…"`), so the escape set is load-bearing rather than cosmetic.
       def html_escape(str)
-        str.to_s.gsub("&", "&amp;").gsub('"', "&quot;").gsub("<", "&lt;").gsub(">", "&gt;")
+        Rack::Utils.escape_html(str.to_s)
       end
     end
   end
