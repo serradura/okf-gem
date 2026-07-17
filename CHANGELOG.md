@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-07-17
+
 - A persistent bundle registry and a multi-bundle hub. `okf registry`
   (list / set / del / default / rename) keeps a per-user list in a plain JSON
   file at `$OKF_HOME/registry.json` (default `~/.okf`), and `okf server` reads
