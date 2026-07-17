@@ -134,6 +134,32 @@ class CLIRegistryDelTest < CLIIntegrationCase
     assert_equal [ fixture("conformant"), fixture("empty") ], rows.map { |row| row["path"] }
   end
 
+  test "a path that is registered nowhere is refused, never read as a slug" do
+    # `del` takes a slug *or* a directory, and the normalized-slug fallback must
+    # not reach across that line: `./notes` names a directory, and an entry
+    # slugged `notes` pointing somewhere else entirely has nothing to do with it.
+    # Deleting that entry answers a question nobody asked — and answers it
+    # destructively, with exit 0.
+    okf("registry", "set", fixture("conformant"), "--as", "notes")
+
+    result = okf("registry", "del", "./notes")
+
+    assert_equal 2, result.status
+    assert_match(/^error: no such bundle: \.\/notes$/, result.err)
+    assert_equal [ "notes" ], registry_json["bundles"].map { |row| row["slug"] },
+      "the entry the caller did not name is still registered"
+  end
+
+  test "a slug that only needs normalizing still deletes — the fallback keeps its real job" do
+    okf("registry", "set", fixture("conformant"), "--as", "docs")
+
+    result = okf("registry", "del", "DOCS")
+
+    assert_equal 0, result.status
+    assert_match(/^removed docs$/, result.out)
+    assert_empty registry_json["bundles"]
+  end
+
   test "a legacy `all` entry deletes under the name the read minted for it" do
     # The escape hatch has to be reachable: `del` is what a user with a
     # pre-reservation registry reaches for, so it must not be one of the verbs

@@ -36,12 +36,22 @@ module ByDir
       end
     end
 
-    test "a slug joins the declared match shape only in registry mode" do
+    test "search declares two match shapes, because its two modes emit two rows" do
+      # A slug labels a row only when the caller named the bundle through the
+      # registry; a path-named search has one bundle and deliberately no slug.
+      # The shape was declared as the *union* of the two so `--fields slug` would
+      # never read as a typo — but a name the guard accepts and the projection
+      # cannot fill is worse than a refusal: `--fields slug` came back
+      # `matches:[{},{},{}]` under `count: 3`, exit 0. ROW_FIELDS exists to keep
+      # the guard off the *data* (an empty result still knows its field names),
+      # not to merge two views under one name.
       with_registry("conformant") do
         assert_includes json(okf("search", "@conformant", "orders", "--json")).fetch("matches").first.keys, "slug"
       end
       refute_includes json(okf("search", fixture("conformant"), "orders", "--json")).fetch("matches").first.keys, "slug"
-      assert_includes OKF::CLI::ROW_FIELDS.fetch("matches"), "slug", "declared as the union, so --fields slug is never a typo"
+
+      assert_includes OKF::CLI::ROW_FIELDS.fetch("matches_by_ref"), "slug", "registry mode labels every row"
+      refute_includes OKF::CLI::ROW_FIELDS.fetch("matches"), "slug", "a path-named search has no slug to promise"
     end
 
     test "an unknown field is a usage error whether or not the result has rows" do

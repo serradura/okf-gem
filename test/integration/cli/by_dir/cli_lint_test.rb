@@ -142,6 +142,23 @@ module ByDir
       refute_match(/unreachable/, okf("lint", fixture("unhealthy"), "--except", "orphan").out)
     end
 
+    test "lint buckets a blank type exactly as the read views do" do
+      # §9.2 makes `type: "  "` as non-conformant as a missing one, and the graph
+      # was widened to say so — but lint kept its own `type || "Untyped"`, which
+      # only catches nil. Two verbs then report type inventories that cannot be
+      # reconciled: an agent cross-referencing them sees a bucket in one that does
+      # not exist in the other.
+      types = json(okf("types", fixture("malformed"), "--json"))["types"]
+      stats = json(okf("lint", fixture("malformed"), "--json"))["stats"]["types"]
+
+      assert_equal({ "Untyped" => 2, "Note" => 1 }, types.map { |row| [ row["type"], row["count"] ] }.to_h,
+        "blank-type.md and no-type.md are both Untyped to the read views")
+      assert_equal({ "Untyped" => 2, "Note" => 1 }, stats,
+        "lint counts the same concepts, so it must reach the same inventory")
+      refute_match(/^  types:    1,/, okf("lint", fixture("malformed")).out,
+        "a bucket labelled with spaces renders as a blank column and reads as a typo")
+    end
+
     test "a malformed bundle is best-effort — skips noted on stderr, exit 0" do
       result = okf("lint", fixture("malformed"))
 

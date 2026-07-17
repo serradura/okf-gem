@@ -207,16 +207,43 @@ class CLIRegistrySetTest < CLIIntegrationCase
     assert_match(/^Usage: okf registry set <bundle-dir> \[--as SLUG\] \[--default\]$/, result.err)
   end
 
-  private
+  test "registering a bundle it cannot fully read says so, rather than reporting an empty one" do
+    # Every other bundle-reading verb notes its skips; `set` builds its count
+    # straight off the graph and never called report_skipped. Once the reader
+    # started tolerating a file it cannot open, that silence turned a loud
+    # failure into "registered → (0 concepts)" — a registration the user is told
+    # is an empty bundle, with the reason never named.
+    skip_unless_permissions_bite
+    dir = unreadable_bundle("locked")
 
-  # A one-concept bundle under @out_dir, at a relative +path+ (so two can share a
-  # basename under different parents). Returns its absolute directory.
-  def scratch_bundle(path)
-    dir = File.join(@out_dir, path)
-    FileUtils.mkdir_p(dir)
-    File.write(File.join(dir, "note.md"), "---\ntype: Note\ntitle: Scratch Note\n---\n\nA scratch concept.\n")
-    dir
+    result = okf("registry", "set", dir)
+
+    assert_equal 0, result.status
+    assert_match(/note: skipped 1 unusable file\(s\) \(run `okf validate` for details\)/, result.err,
+      "the count is 0 because a file could not be read — say which, or the number is a lie")
+    assert_match(/^registered locked → #{Regexp.escape(dir)} \(0 concepts\)$/, result.out)
   end
+
+  test "an unwritable registry home is a usage error naming it, not a backtrace" do
+    skip_unless_permissions_bite
+    readonly = File.join(@out_dir, "readonly")
+    FileUtils.mkdir_p(readonly)
+    File.chmod(0o500, readonly)
+
+    begin
+      with_home(File.join(readonly, "home")) do
+        result = okf("registry", "set", fixture("conformant"))
+
+        assert_equal 2, result.status, "a home the registry cannot be written to is a usage error, not a failing bundle"
+        refute_match(/\.rb:\d+/, result.err, "#read already turns this errno into a message; #write must not be the hole left")
+        assert_match(/^error: .*ermission denied/, result.err)
+      end
+    ensure
+      File.chmod(0o700, readonly)
+    end
+  end
+
+  private
 
   # Plant a registry file in the scratch home by hand — the way a user editing it
   # (or an older okf) would leave one.

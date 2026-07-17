@@ -124,6 +124,18 @@ module ByDir
         "index skeleton + search + one body must cost <25% of the full graph dump (got #{progressive} vs #{dump})"
     end
 
+    test "--fields slug is a usage error: a path-named search has no slug to project" do
+      # The declared shape is what the typo guard checks against, and it declared
+      # slug for both search modes — but only registry mode labels its rows. So
+      # the guard passed and the projection selected a key no row carried, giving
+      # back one empty object per match under a count that says three.
+      result = okf("search", fixture("conformant"), "orders", "--fields", "slug", "--json")
+
+      assert_equal 2, result.status
+      assert_match(/^error: unknown field\(s\): slug \(available: id, title, type, area, tags, matched, score, snippet\)$/, result.err)
+      assert_empty result.out, "an unprojectable field is a refusal, never an answer shaped like one"
+    end
+
     private
 
     # A synthetic bundle wide enough for the byte comparison to mean something:

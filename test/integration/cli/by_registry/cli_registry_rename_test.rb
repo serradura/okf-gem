@@ -134,6 +134,17 @@ class CLIRegistryRenameTest < CLIIntegrationCase
     assert_equal "fixtures/conformant", entry["title"]
   end
 
+  test "the success line names the slug that was renamed, not the argv that found it" do
+    # rename normalizes to find the entry, so the name it acted on is not always
+    # the name it was handed. Echoing argv reports a bundle that never existed.
+    okf("registry", "set", fixture("conformant"), "--as", "docs")
+
+    result = okf("registry", "rename", "DOCS", "handbook")
+
+    assert_equal 0, result.status
+    assert_match(/^renamed docs → handbook$/, result.out, "no bundle called DOCS was ever registered")
+  end
+
   private
 
   # The registry as it sits on disk under the scratch home.

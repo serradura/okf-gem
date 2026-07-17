@@ -204,6 +204,29 @@ class CLIRegistryListTest < CLIIntegrationCase
     assert_equal fixture("conformant"), rows.first["dir"], "renaming the slug moves no bundle"
   end
 
+  test "a hand-typed slug is normalized on the way in, so the listing never shows a name no ref can reach" do
+    # The write path normalizes and the read path did not, so the file could hold
+    # a slug the listing prints and nothing else can name: `@my-docs` misses it,
+    # and `rename`/`default` — the verbs that could fix it — miss it too, because
+    # they all look up through normalize. Same dead end the reserved `all` row
+    # had, one asymmetry over.
+    write_registry([ { "slug" => "My Docs", "path" => fixture("conformant"), "title" => "hand-typed" } ])
+
+    result = okf("registry", "list")
+
+    assert_equal 0, result.status
+    assert_match(/^\* my-docs /, result.out, "the listing shows the name registration would have given it")
+    assert_equal 0, okf("lint", "@my-docs").status, "the name the listing prints is the name a ref resolves"
+  end
+
+  test "normalizing on read does not rob an entry of a name it already holds" do
+    write_registry([ { "slug" => "My Docs", "path" => fixture("conformant"), "title" => "hand-typed" },
+                     { "slug" => "my-docs", "path" => fixture("minimal"), "title" => "already normal" } ])
+
+    assert_equal %w[my-docs-2 my-docs], slugs_from(okf("registry", "list", "--json")),
+      "the entry that was already usable keeps its slug; the one being fixed mints around it"
+  end
+
   test "the minted name steps past a slug already spoken for" do
     write_registry([ { "slug" => "all", "path" => fixture("conformant"), "title" => "legacy" },
                      { "slug" => "all-2", "path" => fixture("minimal"), "title" => "taken" } ])
