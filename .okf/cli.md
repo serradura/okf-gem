@@ -4,7 +4,7 @@ title: The okf command-line front end
 description: The only layer that parses argv, prints, writes files, and decides exit codes.
 resource: lib/okf/cli.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-17T04:00:00Z
+timestamp: 2026-07-17T13:00:00Z
 ---
 
 # Overview
@@ -16,7 +16,11 @@ CLI is the [shell half](design/core-shell-split.md) of the architecture. Output
 streams are injected (`out:`/`err:`) so the whole surface is driven in tests
 without a real terminal or socket — which is what lets this layer, the product a
 user actually touches, be [proven end to end](design/integration-first.md) rather
-than by proxy.
+than by proxy. Even `--help` keeps that contract: rather than the `exit`
+OptionParser's own handler would call — printing past those streams to the
+process's stdout — each parser writes its banner to `out:` and throws `:help`
+back to `run`, which returns the caught status, so a command's help is driven
+and asserted like the command itself.
 
 # Subcommands
 
@@ -60,7 +64,7 @@ holds more than `registry.json` it keeps meaning the same thing.
 # Every output names its bundle, in the identity the caller used
 
 Two keys, one meaning each: `bundle` is always a directory, `slug` always a
-registry slug. Name a bundle by [@ref](registry.md) and the answer comes back in
+registry slug. Name a bundle by [@slug](registry.md) and the answer comes back in
 that identity — `OKF lint — @handbook (/path/to/one)`, and
 `{ "bundle": "/path/to/one", "slug": "handbook", … }`. The point is an agent
 holding several bundles at once: an output that names only a path forces it to
@@ -75,12 +79,12 @@ exist — while looking one up would cost a registry read on every plain-dir run
 which is the laziness that keeps unregistered use free. The identity the caller
 used is the identity they get back.
 
-# @refs: the registry names bundles for every verb
+# @slug: the registry names bundles for every verb
 
-Wherever a `<bundle-dir>` goes, `@slug` resolves a [registered bundle](registry.md)
+Wherever a `<dir>` goes, `@slug` resolves a [registered bundle](registry.md)
 and bare `@` the registry's default — one resolution seam (`resolve_ref`, shared
 by the positional parsers and search's ref list), inherited by all verbs at once,
-so `okf lint @handbook` works from any directory. Refs read `$OKF_HOME`, which is
+so `okf lint @handbook` works from any directory. They read `$OKF_HOME`, which is
 why the not-registered error names the registry file it consulted, so a mismatch
 self-diagnoses rather than reading as "never registered".
 
@@ -88,18 +92,18 @@ A leading `@` always means the registry (`./@name` keeps an odd directory
 reachable), the registry file loads only when a ref appears, and an explicit ask
 fails hard: an unknown slug, a registered-but-gone directory, or a malformed
 registry is a usage error whose message names the next move, never a silent skip.
-The normalization is the subtle part — a ref is normalized exactly as
+The normalization is the subtle part — a slug is normalized exactly as
 registration normalized it, so `@One` finds the bundle from dir `One`, but
 *without* the placeholder that minting a slug from a basename needs: a name has
 to come out of `slugify("!!!")`, and nothing may come out of a lookup, or `@***`
 would quietly resolve to whatever bundle is slugged `bundle`.
 
-`server` refs carry their registered slug to the mount, and reserve it before any
+A `server` `@slug` carries its registered slug to the mount, and reserves it before any
 plain dir's basename is deduped — otherwise `server ./two @two` would hand `/b/two/`
 to the *unregistered* directory and a bookmark would open the wrong graph. (The
 first argument still lands at `/`; the registry's own order applies only to a
 bundle-less run.) [`search`](capabilities/search.md) is the one verb that *merges*
-several bundles into one answer — several refs, or `@all`.
+several bundles into one answer — several @slugs, or `@all`.
 
 `@all` is a ref, not a flag, and only `search` expands it. That restraint is the
 point: through the shared seam, `okf lint @all` would resolve to one bundle when

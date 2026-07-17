@@ -4,7 +4,7 @@ title: The bundle registry
 description: A per-user, ordered list of bundle references persisted as one JSON file under $OKF_HOME — the kernel behind a bare `okf server`.
 resource: lib/okf/registry.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-17T02:00:00Z
+timestamp: 2026-07-17T13:00:00Z
 ---
 
 # Overview
@@ -130,7 +130,7 @@ registry refreshes its title in place instead of adding a twin.
 # It names bundles for the whole CLI, not just the server
 
 The registry began as the server's boot list and grew into the
-[CLI](cli.md)'s name-resolution layer: wherever a verb takes a `<bundle-dir>`,
+[CLI](cli.md)'s name-resolution layer: wherever a verb takes a `<dir>`,
 `@slug` resolves through it and bare `@` picks the default — the same slugs the
 hub mounts at `/b/<slug>/`, so the name you click is the name you type. That is
 what turns registering from "tell the server" into "give this bundle a name":

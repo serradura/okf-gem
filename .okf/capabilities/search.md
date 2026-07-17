@@ -4,7 +4,7 @@ title: Ranked text search (search)
 description: Deterministic ranked retrieval over concept metadata and bodies — the browser page's search brought to the CLI, extended to bodies.
 resource: lib/okf/bundle/search.rb
 tags: [read, cli, json, registry]
-timestamp: 2026-07-17T05:00:00Z
+timestamp: 2026-07-17T13:00:00Z
 ---
 
 # Overview
@@ -47,7 +47,7 @@ even with zero matches — only an invalid `--regexp` pattern is a usage error
 # One question, every bundle you keep
 
 Knowledge rarely lives in one bundle, so search is the one verb that spans the
-[registry](../registry.md): leading @refs pick bundles explicitly
+[registry](../registry.md): leading @slugs pick bundles explicitly
 (`okf search @handbook @notes auth`), and `@all` is the ref that means every
 registered one. Each bundle runs the same pure `Search` and the rankings merge —
 legitimate because scores are absolute term weights, not per-bundle normalized —
@@ -77,7 +77,7 @@ find dir `One`, because a ref exempt from the grammar's one normalization is a
 trapdoor. Only `search` expands `@all`, since it is the only verb
 that merges; see [the CLI](../cli.md) for why the others refuse it by name.
 
-Three edges of the grammar, all deliberate. Any leading @ref — even one —
+Three edges of the grammar, all deliberate. Any leading @-arg — even one —
 switches the JSON envelope from `{ bundle, slug, … }` to
 `{ bundles: [{ slug, dir }, …], …, matches: [{ slug, id, … }] }`, so a consumer
 branches on the form it called; the head maps each slug to its dir once, which
