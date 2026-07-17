@@ -290,7 +290,12 @@ module OKF
         @report.stat(:backlog, count_findings(:missing_concept))
         @report.stat(:components, components.size)
         @report.stat(:hubs, hubs)
-        @report.stat(:types, frequency(@concepts.map { |c| c.type || "Untyped" }))
+        # Through Graph.default, not a second `|| "Untyped"`: §9.2 makes a
+        # whitespace-only type as non-conformant as a missing one, so the two must
+        # land in one bucket. Spelling the rule twice is how lint came to report a
+        # `"  "` bucket that `types` and `graph` had never heard of — the same
+        # concepts counted by both verbs, into inventories that will not reconcile.
+        @report.stat(:types, frequency(@concepts.map { |c| Graph.default(c.type, "Untyped") }))
         @report.stat(:tags, frequency(@concepts.flat_map { |c| c.tags.is_a?(Array) ? c.tags : [] }))
       end
 
