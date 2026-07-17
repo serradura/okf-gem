@@ -35,7 +35,7 @@ The package, end to end:
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/overview-dark.png">
-    <img src=".github/overview-light.png" width="760" alt="The package: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by the CLI/Lib (validate: legal OKF per section 9; lint: well-curated and fresh; search: ranked retrieval; require okf for Ruby objects) and by the Graph, in three modes: okf server (a live local server), okf render (the same page exported as one static, self-contained HTML file you can host anywhere), and OKF::Server::App (the Rack app mounted in a Rails route). One gem, 100% local, Ruby 2.4 or newer, only rack and webrick as dependencies.">
+    <img src=".github/overview-light.png" width="760" alt="The package: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by the CLI/Lib (validate: legal OKF per section 9; lint: well-curated and fresh; search: ranked retrieval; require okf for Ruby objects) and by the Graph, in four modes: okf server (a live local server), okf render (the same page exported as one static, self-contained HTML file you can host anywhere), okf registry (every registered bundle behind one hub), and OKF::Server::App (the Rack app mounted in a Rails route). One gem, 100% local, Ruby 2.4 or newer, only rack and webrick as dependencies.">
   </picture>
 </p>
 
@@ -44,13 +44,20 @@ command-line tool (the library API is also usable in-process). Each capability
 below links to the concept that documents it: this gem's own knowledge is an OKF
 bundle, so you can read its design in the format it defends.
 
-| Capability                                                | What it answers                   | Verb                |
-| --------------------------------------------------------- | --------------------------------- | ------------------- |
-| [Companion agent skill](.okf/capabilities/agent-skill.md) | Can an agent author it?           | `skill`             |
-| [Conformance validator](.okf/capabilities/validator.md)   | Is this a legal OKF bundle? (§9)  | `validate`          |
-| [Curation linter](.okf/capabilities/linter.md)            | Is it navigable, complete, fresh? | `lint` / `loose`    |
-| [Interactive graph](.okf/capabilities/graph-server.md)    | Explore it — live or static?      | `server` / `render` |
-| [Library API](.okf/capabilities/library-api.md)           | Can my Ruby program use it?       | in-process          |
+| Capability                                                    | What it answers                   | Verb             |
+| ------------------------------------------------------------- | --------------------------------- | ---------------- |
+| [Companion agent skill](.okf/capabilities/agent-skill.md)     | Can an agent author it?           | `skill`          |
+| [Conformance validator](.okf/capabilities/validator.md)       | Is this a legal OKF bundle? (§9)  | `validate`       |
+| [Curation linter](.okf/capabilities/linter.md)                | Is it navigable, complete, fresh? | `lint` / `loose` |
+| [Ranked text search](.okf/capabilities/search.md)             | Which concept covers X?           | `search`         |
+| [Interactive graph server](.okf/capabilities/graph-server.md) | Can I explore it visually?        | `server`         |
+| [Static render](.okf/capabilities/render.md)                  | Can I ship a serverless snapshot? | `render`         |
+| [Library API](.okf/capabilities/library-api.md)               | Can my Ruby program use it?       | in-process       |
+
+And because knowledge rarely lives in one bundle, a per-user
+[registry](.okf/registry.md) gives each bundle a name: `okf registry set ./docs`
+once, then `@docs` works anywhere a `<dir>` does — from any directory — and a
+bare `okf server` hosts every registered bundle behind one hub.
 
 > [!TIP]
 > **Browse the gem as knowledge, not just docs.** This README is the front door;
@@ -218,7 +225,7 @@ docker run --rm -v "$PWD:/data" -p 8808:8808 ghcr.io/serradura/okf server . --bi
 Then open <http://127.0.0.1:8808>. Images are published for `linux/amd64` and
 `linux/arm64` on
 [ghcr.io](https://github.com/serradura/okf-gem/pkgs/container/okf): `:latest`
-tracks the newest release, or pin a version like `:1.5.0`.
+tracks the newest release, or pin a version like `:1.8.0`.
 
 Tired of the long line? Install a Docker-backed [`okf` command](https://docker.okfgem.com),
 so every verb drops the `docker run` prefix and reads exactly like the native CLI
@@ -291,9 +298,38 @@ _The graph server on this repo's own [`.okf`](.okf) bundle, with the
 `capabilities/graph-server` concept selected. Try it live at
 **[demo.okfgem.com](https://demo.okfgem.com)**._
 
+The page is one template from a phone to a desktop: on small screens the
+navigation rail becomes a drawer, the toolbar folds into a `⚙` sheet, and the
+panels go full-bleed — rotate a tablet and the layout re-evaluates. It is
+keyboard-first too: `⌘/Ctrl-K` opens a command palette in every mode (views
+always; bundles too when a [hub](#one-registry-many-bundles) is serving), `/`
+jumps to the current view's search, and `?` answers with a sheet of every
+shortcut.
+
 To skip the server entirely, **`okf render <dir>`** writes that same page as one
 self-contained HTML file, the whole bundle baked in, so you can publish the
 graph on GitHub Pages or any static host.
+
+### One registry, many bundles
+
+The [registry](.okf/registry.md) is a per-user, ordered list of bundles in one
+plain JSON file (`$OKF_HOME/registry.json`, default `~/.okf`) — hand-editable,
+greppable, no database. It stores references, never content: the bundles stay in
+the repos that own them.
+
+```bash
+okf registry set ./docs --as handbook   # give the bundle a name
+okf lint @handbook                      # @slug works wherever a <dir> does, from anywhere
+okf search @all rate limit              # ranked retrieval across every registered bundle
+okf server                              # no args: the whole registry behind one hub
+```
+
+The first entry still on disk is the **default** — the bundle a bare `okf
+server` opens at `/` and a bare `@` names; `okf registry default @slug` moves an
+entry to the front. Behind the hub each bundle mounts at `/b/<slug>/`, `/b/` is
+a browsable index, and the `⌘/Ctrl-K` palette switches bundles without leaving
+the page. The hub reads the registry at boot, so restart it after registry
+changes; set `$OKF_HOME` to point every verb at a different registry.
 
 `graph` and `server` are best-effort (§9): a file with invalid frontmatter is
 skipped (and noted on stderr), not fatal, so one bad file never breaks the rest.
@@ -534,8 +570,8 @@ ruby -Ilib exe/okf validate <dir>   # run the CLI from a checkout
 The suite runs on every supported Ruby; to check the 2.4 floor locally:
 
 ```bash
-docker run --rm -v "$PWD":/app -w /app ruby:2.4 \
-  bash -c "bundle install && bundle exec rake test"
+docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
+  "cp -a /src /build && cd /build && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
 ```
 
 ## Contributing
