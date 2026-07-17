@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-16T23:00:00Z
+timestamp: 2026-07-17T14:00:00Z
 ---
 
 # Overview
@@ -34,17 +34,13 @@ proper card in chat and social apps.
 
 # The same page, without a server
 
-`okf render` writes that page as one static, self-contained HTML file, the whole
-bundle baked in, so it hosts anywhere there is no server to answer a `fetch()` —
-GitHub Pages the motivating case. It is the *same* template `okf server` renders,
-one switch apart. Every data read the browser makes — a body, a description, the
-catalog, the §6 map, the §7 logs — flows through a small set of getter functions,
-and an injected `EMBED` constant chooses their source: `null` when served, so the
-getters `fetch()` the endpoints below live; an embedded payload when rendered, so
-they resolve from the page itself. One interface, two adapters, and the views
-never know which is behind them. `okf render <dir>` prints to stdout (`>
-public/index.html`) or writes `-o FILE`; the price is weight — every body is
-inlined — so `okf server` stays the choice for a bundle too large to ship whole.
+The same template also ships *without* a server: [`okf render`](render.md) bakes
+the whole bundle into one static, self-contained HTML file, so the graph hosts
+anywhere nothing can answer a `fetch()`. It is one switch apart from what `server`
+serves — a single injected `EMBED` adapter swaps the live endpoints below for an
+inlined payload — so there is no second renderer to keep in sync. See
+[static render](render.md) for the embedded-data path, the baked-in flags, and the
+weight it trades for needing no server.
 
 # Many bundles behind one hub
 
@@ -182,5 +178,5 @@ does not cover.
 # Citations
 
 [1] [lib/okf/server/app.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/app.rb) — the Rack app, its routes, and `render_static`.
-[2] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the `render` verb (the static counterpart to `server`) and the `serve` boot seam that wraps every served app in `Rack::Deflater`.
+[2] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the `serve` boot seam that wraps every served app in `Rack::Deflater` (the static counterpart, [`render`](render.md), is its own capability).
 [3] [lib/okf/server/hub.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/hub.rb) — the multi-bundle dispatcher: the `/b/<slug>/` mounts, the default redirect, and the hub's own index, empty-state, and 404 pages.

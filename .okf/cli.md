@@ -4,7 +4,7 @@ title: The okf command-line front end
 description: The only layer that parses argv, prints, writes files, and decides exit codes.
 resource: lib/okf/cli.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-17T13:00:00Z
+timestamp: 2026-07-17T14:00:00Z
 ---
 
 # Overview
@@ -31,7 +31,7 @@ groups:
 |-------|-------|-------|
 | Judge | `validate`, `lint`, `loose` | [validate](capabilities/validator.md) and [lint](capabilities/linter.md) answer different questions and stay separate. |
 | Read | `search`, `index`, `catalog`, `files`, `types`, `tags`, `stats`, `graph` | the [browser views as text](capabilities/read-views.md), plus the `index` map and [ranked search](capabilities/search.md). |
-| Act | `server`, `render`, `registry`, `skill` | boot or statically [render](capabilities/graph-server.md) the [graph server](capabilities/graph-server.md); curate the [bundle registry](registry.md); install the [agent skill](capabilities/agent-skill.md). |
+| Act | `server`, `render`, `registry`, `skill` | boot the [graph server](capabilities/graph-server.md) or write it as a [static file](capabilities/render.md); curate the [bundle registry](registry.md); install the [agent skill](capabilities/agent-skill.md). |
 
 Plus `version` / `--version` / `-v` and `help` / `--help` / `-h`.
 
