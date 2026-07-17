@@ -1,10 +1,10 @@
 ---
 type: Capability
 title: Interactive graph server (server)
-description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, or written to a single static file.
+description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-15T18:00:00Z
+timestamp: 2026-07-16T23:00:00Z
 ---
 
 # Overview
@@ -46,6 +46,42 @@ never know which is behind them. `okf render <dir>` prints to stdout (`>
 public/index.html`) or writes `-o FILE`; the price is weight — every body is
 inlined — so `okf server` stays the choice for a bundle too large to ship whole.
 
+# Many bundles behind one hub
+
+`okf server` takes *zero or more* directories. One is the classic single bundle at
+`/`; two or more mount ephemerally behind `OKF::Server::Hub`; none serves the
+[registry](../registry.md), opening its chosen default. The hub is a Rack app in
+front of one `App` per bundle, each at `/b/<slug>/`, with `/` redirecting to the
+default.
+
+Hosting under a prefix costs almost nothing, and that is a dividend of a decision
+made earlier: the page's fetch endpoints were already **mount-relative**, so the
+hub needs only a clean `PATH_INFO` strip and a trailing-slash redirect — no
+rewriting, no per-mount configuration. The rough edges are all navigational: a
+redirect preserves the query string (a deep link survives the hop), and an unknown
+slug answers `404` with a *page listing the hosted bundles*, so a bookmark left
+stale by a rename gets a way home instead of bare text. `/b/` itself is a browsable
+index with the default marked — a hub is navigable without the switcher, and the
+empty registry lands on a page that says so rather than redirecting nowhere. Those
+pages are self-contained and theme-aware like the graph page: no external requests.
+
+The hub reads its bundles **at boot**. Registering or editing one is not picked up
+by a running server — restart it. That is the honest tradeoff for a hub that never
+re-scans disk per request.
+
+# Switching bundles is a server-only affordance
+
+Under a hub, each `App` is built carrying the *other* bundles as siblings, and the
+page grows a command palette (`Cmd/Ctrl-K`, or the rail button) to filter and open
+one — `Cmd/Ctrl-Enter` opens it in a new tab, and a count badge advertises the
+palette until it has been opened once.
+
+The switcher exists only where switching is *possible*. A single bundle and a
+static `okf render` file inject an empty sibling list, so the affordance never
+appears where there is nowhere to go — the same
+one-template-two-modes discipline `EMBED` follows: the page adapts to what its
+host can answer, rather than offering a control that would dead-end.
+
 # Links navigate in-app; the graph has a second mode
 
 Relative Markdown links inside the inspector, the files preview, and the Index
@@ -58,7 +94,19 @@ disabled: the page never serves a 404 from a body link. A **file-tree mode** on
 the toolbar redraws the bundle as folders-become-nodes with only folder→child
 edges — the acyclic layered tree of the files, next to the emergent link graph.
 The inspector and files panes are drag-resizable (persisted; double-click resets),
-and on small screens the inspector stays hidden until the first node tap.
+and the inspector boots hidden on every screen until the first node tap.
+
+# One page, from a phone to a desktop
+
+At `≤768px` — phones and portrait tablets — the topbar tools fold into a `⚙`
+sheet, panels go full-bleed, the file list collapses to its tab bar, and the graph
+fits itself after load. The sheet shows when a filter is active, so a control
+folded out of sight can never silently narrow what the graph is showing.
+
+The breakpoint tracks the width actually available to the chrome, not a device
+class, which is why rotation is a re-evaluation rather than a one-way door: the
+same tablet crosses back over `769px` in landscape and gets the desktop layout,
+and `orientationchange` refits the graph to its new box.
 
 # The browser shows the authored layer, not just derived views
 
@@ -103,12 +151,19 @@ sequenceDiagram
 | `/index` | the §6 map for the Indexes tab (boot snapshot) |
 | `/log` | every `log.md`, read live from disk for the Log |
 
+Under a hub every path above keeps its shape, mounted under its bundle's prefix
+(`/b/<slug>/node?id=`), plus the hub's own `/` (redirect to the default) and `/b/`
+(the bundle index).
+
 # Responses are gzipped on the wire
 
 Under `okf server`, every response is gzipped when the client accepts it:
-`Rack::Deflater` wraps the app at the boot seam (`run_server`), so the browser
+`Rack::Deflater` wraps the app at the boot seam — `serve`, the one path *both* a
+single bundle and a [hub](../registry.md) pass through — so the browser
 decompresses transparently and the heaviest payloads — the inlined minimal graph,
-the full-body JSON — cross the wire at a fraction of their size. The wrap is boot
+the full-body JSON — cross the wire at a fraction of their size. Putting the wrap
+at the shared seam rather than in either mode is what makes it total: a mode added
+later gets compression for free, and neither mode can forget it. The wrap is boot
 policy, not part of the app: a host that mounts `OKF::Server::App` brings its own
 compression, and `okf render`'s static file carries none (whatever hosts it
 compresses instead). It costs [no new dependency](../design/runtime-dependencies.md) —
@@ -127,4 +182,5 @@ does not cover.
 # Citations
 
 [1] [lib/okf/server/app.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/app.rb) — the Rack app, its routes, and `render_static`.
-[2] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the `render` verb (the static counterpart to `server`) and the `run_server` boot seam that wraps the app in `Rack::Deflater`.
+[2] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the `render` verb (the static counterpart to `server`) and the `serve` boot seam that wraps every served app in `Rack::Deflater`.
+[3] [lib/okf/server/hub.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/hub.rb) — the multi-bundle dispatcher: the `/b/<slug>/` mounts, the default redirect, and the hub's own index, empty-state, and 404 pages.

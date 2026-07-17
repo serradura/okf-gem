@@ -1,5 +1,39 @@
 # Changelog
 
+## [Unreleased]
+
+- A persistent bundle registry and a multi-bundle hub. `okf registry`
+  (list / set / del / default / rename) keeps a per-user list in a plain JSON
+  file at `$OKF_HOME/registry.json` (default `~/.okf`; `--home` overrides), and
+  `okf server` reads its mode from its arguments: one dir is the classic single
+  bundle at `/`, several mount ephemerally behind a hub at `/b/<slug>/`, none
+  serves the whole registry with its chosen default at `/`. Behind a hub the
+  page gains a bundle switcher (⌘/Ctrl-K, or the rail button), `/b/` is a
+  browsable index, and an unknown slug 404s as a page with a way home. The hub
+  reads its bundles at boot — restart after registry changes.
+- `@refs`: wherever a command takes a `<dir>`, `@slug` now names a registered
+  bundle and bare `@` the registry default — `okf lint @handbook`,
+  `okf render @ -o graph.html` — resolved through `$OKF_HOME`, or `--home DIR`
+  where a verb offers it (`registry`, `server`, `search`). Refs are normalized
+  like registration was (`@One` finds the bundle from dir `One`) but never to a
+  placeholder, so `@***` is a bad ref rather than a silent hit. An unknown
+  slug, a registered-but-gone directory, or a malformed registry file is a
+  usage error naming the registry file and the next move. A hub built from refs
+  (`okf server @a @b`) mounts each bundle under its registered slug, the first
+  ref at `/`, and a registered slug reserves its mount ahead of any plain
+  directory that shares the name.
+- The registry validates its file's shape, not just its JSON syntax: a
+  hand-edited entry missing `path` is a usage error naming the file instead of
+  a `TypeError`, and `okf registry --home X set <dir>` — a subcommand behind a
+  flag — is now a usage error rather than silently listing and exiting 0. An
+  empty `--home` no longer plants `registry.json` in the current directory, and
+  `okf search --all <dir>` rejects the directory instead of demoting it to a
+  search term.
+- `okf search` spans bundles: several leading `@refs`, or `--all` for every
+  registered one. Rankings merge across bundles with every row labeled by its
+  bundle's slug (a `bundles` list and a per-match `bundle` key in the JSON);
+  `--all` skips a vanished directory with a note, explicit refs fail hard.
+
 ## [1.7.0] - 2026-07-16
 
 - `okf server`: responses are gzipped when the client accepts it

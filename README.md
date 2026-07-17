@@ -240,10 +240,23 @@ instead: `irm https://docker.okfgem.com/install.ps1 | iex`.
 okf validate  <dir> [--json]                            # check OKF v0.1 conformance (§9)
 okf lint      <dir> [--json] [--fail-on warn] [...]     # report curation-quality issues
 okf loose     <dir> [--json]                            # list files with no graph links, by folder
-okf search    <dir> <term…> [-e] [--in a,b] [...]       # ranked text retrieval across metadata + bodies
+okf search    <dir|@ref…> <term…> [--all] [-e] [...]    # ranked retrieval; @refs or --all span bundles
 okf index     <dir> [--json] [--area A] [--no-body]     # progressive-disclosure map (§6): bodies, rollups, listings
-okf server    <dir> [-p PORT] [--bind ADDR] [...]       # serve the interactive graph over HTTP
+okf server    [DIR…] [-p PORT] [--bind ADDR] [...]      # serve one bundle, or many behind a hub (⌘K to switch)
 okf render    <dir> [-o FILE] [--layout NAME] [...]     # export the graph as one static, self-contained HTML file
+okf registry  list [--json]                             # list registered bundles (* marks the default)
+okf registry  set <dir> [--as SLUG] [--default]         # add or update a bundle (a bare `server` serves it)
+okf registry  del <slug-or-dir|@ref>                    # remove a bundle from the registry
+okf registry  default <slug> | rename <old> <new>       # set the default bundle / rename a slug
+
+# The registry is a plain JSON file at $OKF_HOME/registry.json (default ~/.okf;
+# --home overrides). The subcommand leads and flags follow it: `registry set
+# <dir> --home X`, never `registry --home X set <dir>`.
+# A running server reads it at boot — restart after changes.
+# Behind a multi-bundle server, /b/ lists every bundle and ⌘/Ctrl-K switches.
+# Every <dir> in this table also takes @slug (a registered bundle) or bare @
+# (the default) — okf lint @handbook works from anywhere. @refs read $OKF_HOME;
+# --home (on registry, server, search) points at another registry.
 okf graph     <dir> [--json] [--minimal] [--no-body]    # print the knowledge graph
 okf catalog | files | tags | types | stats  <dir> [--json]   # the browser views, on the CLI
 okf skill     <dest> [--here] [--force]                 # install the companion agent skill

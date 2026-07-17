@@ -11,7 +11,7 @@ by the [CLI](../cli.md).
 
 # Serve & read
 
-* [Interactive graph server](graph-server.md) - a self-contained HTML graph over HTTP or as a single static file (`okf render`), mountable as a Rack app.
+* [Interactive graph server](graph-server.md) - a self-contained HTML graph over HTTP — one bundle or many behind a hub — or as a single static file (`okf render`), mountable as a Rack app.
 * [Read views](read-views.md) - `index`, `catalog`, `files`, `types`, `tags`, `stats`, `loose`, `graph` — the browser views as text, plus the `index` map.
 * [Ranked text search](search.md) - deterministic ranked retrieval over metadata and bodies; answers "which concept covers X?" in a few rows.
 

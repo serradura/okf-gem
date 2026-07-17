@@ -3,8 +3,8 @@ type: Capability
 title: Ranked text search (search)
 description: Deterministic ranked retrieval over concept metadata and bodies — the browser page's search brought to the CLI, extended to bodies.
 resource: lib/okf/bundle/search.rb
-tags: [read, cli, json]
-timestamp: 2026-07-13T12:00:00Z
+tags: [read, cli, json, registry]
+timestamp: 2026-07-17T05:00:00Z
 ---
 
 # Overview
@@ -44,6 +44,33 @@ filters and `--fields`/`--except` projections shared with the
 even with zero matches — only an invalid `--regexp` pattern is a usage error
 (exit `2`).
 
+# One question, every bundle you keep
+
+Knowledge rarely lives in one bundle, so search is the one verb that spans the
+[registry](../registry.md): leading @refs pick bundles explicitly
+(`okf search @handbook @notes auth`), `--all` takes every registered one. Each
+bundle runs the same pure `Search` and the rankings merge — legitimate because
+scores are absolute term weights, not per-bundle normalized — with every row
+labeled by its bundle's slug. The two modes keep the registry's temperament:
+`--all` skips a vanished directory with a note, explicit refs fail hard. The
+graph stays per-bundle on purpose — cross-links are bundle-relative, so a
+merged graph would be disconnected components — which makes search the one
+cross-bundle question the CLI can answer honestly, and (for now) a capability
+the [hub](graph-server.md) does not mirror.
+
+Four edges of the grammar, all deliberate. `--all` takes no directory: one
+passed anyway is a usage error, because demoting it to a search term would
+answer a confident "no matches" for a bundle nobody searched. Any leading @ref — even one —
+switches the JSON envelope from `{ bundle, slug, … }` to
+`{ bundles: [{ slug, dir }, …], …, matches: [{ slug, id, … }] }`, so a consumer
+branches on the form it called; the head maps each slug to its dir once, which
+is what lets a row resolve to `<dir>/<id>.md` without a second lookup while
+keeping long paths off every row. Projection is literal: when merging, put
+`slug` in `--fields` or the row label drops and same-id concepts from
+different bundles become indistinguishable. And every leading @-arg is taken
+as a ref, so a literal @-term (`@babel/core`) needs a non-@ term before it or
+`-e '\@term'` — the CLI notes each of these traps on stderr when it sees one.
+
 # Deliberately not fuzzy
 
 No stemming, no typo distance, no synonyms. The consuming agent is the fuzzy
@@ -61,4 +88,4 @@ playbook rides that path, so its economics stay true by construction.
 # Citations
 
 [1] [lib/okf/bundle/search.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/bundle/search.rb) — the pure core: weights, ANDing, snippets.
-[2] [test/integration/cli/cli_search_test.rb](https://github.com/serradura/okf-gem/blob/main/test/integration/cli/cli_search_test.rb) — the retrieval eval.
+[2] [test/integration/cli/by_dir/cli_search_test.rb](https://github.com/serradura/okf-gem/blob/main/test/integration/cli/by_dir/cli_search_test.rb) — the retrieval eval.

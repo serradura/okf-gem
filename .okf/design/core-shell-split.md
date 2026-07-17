@@ -4,7 +4,7 @@ title: The core/shell split
 description: A pure functional core that never touches disk or stdio, and a thin shell that owns all I/O — enforced by a test.
 resource: test/unit/boundary_test.rb
 tags: [architecture, pure, testing, diagram]
-timestamp: 2026-07-13T12:00:00Z
+timestamp: 2026-07-17T04:00:00Z
 ---
 
 # Overview
@@ -16,13 +16,15 @@ the [search](../capabilities/search.md),
 the [format layer](../format/) — logic that returns data and does no I/O. The
 **shell** owns everything that touches the world: the on-disk handles
 (`Concept::File`, `Bundle::{Reader,Writer,Folder}`), the
-[server](../capabilities/graph-server.md), and the [CLI](../cli.md).
+[server](../capabilities/graph-server.md) and its hub, the
+[registry](../registry.md), and the [CLI](../cli.md).
 
 ```mermaid
 flowchart TB
   subgraph shell ["Shell — the only layer that does I/O"]
     CLI["CLI"]
-    Server["Server::App"]
+    Server["Server::App · Hub"]
+    Registry["Registry"]
     RW["Reader · Writer · Folder"]
     CF["Concept::File"]
   end
@@ -48,7 +50,10 @@ the core, pure.**
 
 - **Testable without disk** — every feature runs against an in-memory
   [bundle](../model/bundle.md), so the suite is fast and the 2.4 Docker check is
-  cheap.
+  cheap. It is also what makes [integration first](integration-first.md)
+  affordable: a shell this thin can be driven for real, with argv and streams and
+  exit codes, in milliseconds — so the layer a user touches never has to be
+  proven by proxy.
 - **Embeddable** — the [library API](../capabilities/library-api.md) exposes the
   pure core to host apps that never want the gem's filesystem opinions.
 - **Best-effort reads** — the reader collects unparseable files instead of

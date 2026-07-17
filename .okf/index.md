@@ -9,6 +9,7 @@ search it, validate it, lint it, serve it, and let an agent author it. Start her
 
 * [Overview](overview.md) - the gem at a glance: the six capabilities and the design ethos behind them.
 * [Command line](cli.md) - the `okf` executable — the one layer that parses argv, prints, and exits.
+* [Bundle registry](registry.md) - the per-user list of bundles under `$OKF_HOME` that a bare `okf server` hosts.
 
 # Areas
 

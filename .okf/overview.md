@@ -3,7 +3,7 @@ type: Overview
 title: okf-gem at a glance
 description: A light Ruby gem that reads, searches, validates, lints, and serves Open Knowledge Format v0.1 bundles.
 tags: [okf, gem, diagram]
-timestamp: 2026-07-15T12:00:00Z
+timestamp: 2026-07-16T12:00:00Z
 ---
 
 # Overview
@@ -43,6 +43,10 @@ Over such a bundle the gem gives you six capabilities behind one
 Alongside those, a family of [read views](capabilities/read-views.md) —
 `index`, `catalog`, `files`, `tags`, `stats`, `graph` — print the bundle at a
 glance so an agent reads it without a browser.
+
+Knowledge rarely lives in one bundle, so `okf server` hosts one, several, or every
+bundle in a per-user [registry](registry.md) — one hub, one switcher, no per-repo
+server to remember.
 
 # The two ideas it inherits from the format
 

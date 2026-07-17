@@ -3,7 +3,7 @@ type: Capability
 title: Read views (index, catalog, files, types, tags, stats, loose, graph)
 description: The server's browser panels reproduced on the CLI, plus the index map, so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-13T12:00:00Z
+timestamp: 2026-07-17T04:00:00Z
 ---
 
 # Overview
@@ -29,6 +29,13 @@ these views group by, for the price of a few rows.
 | `stats` | rollups: concepts, areas, types, cross-links, tags | — |
 | `loose` | degree-0 concepts (no [links](../format/cross-links.md) in or out) | folder |
 | `graph` | the raw nodes and edges | — (`--minimal` / `--no-body`) |
+
+Every one of them names the bundle it answers about, in the identity the caller
+used — the rule the [CLI](../cli.md) keeps: `bundle` is always the directory,
+`slug` always a registry slug, and a header that reads `@handbook (/path)` when a
+[ref](../registry.md) named it. `graph` was the last holdout, printing a bare pair
+of counts over a bare `nodes`/`edges` payload; an agent holding several bundles
+had nothing in that answer to tell them apart.
 
 # `index` is the orient-first map (§6)
 
