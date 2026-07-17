@@ -10,11 +10,11 @@ module OKF
   #
   # Exit codes: 0 success, 1 non-conformant / failing bundle, 2 usage error.
   class CLI
-    # Lint findings grouped for display, in category order.
     # The `registry` umbrella's subcommands — the dispatch, and the words a
     # flag-first invocation is checked against.
     SUBCOMMANDS = %w[set del list default rename].freeze
 
+    # Lint findings grouped for display, in category order.
     LINT_CATEGORIES = {
       "Reachability" => %i[orphan not_in_index disconnected_component unlinked],
       "Backlog" => %i[missing_concept broken_index_entry],
@@ -95,7 +95,13 @@ module OKF
     # Declared in emission order, so the "available:" list a typo prints reads
     # the same as the rows themselves.
     ROW_FIELDS = {
-      "matches" => %w[slug id title type area tags matched score snippet],
+      "matches" => %w[id title type area tags matched score snippet],
+      # Registry mode labels every row with the bundle it came from; a plain-dir
+      # search has one bundle and no slug to carry. Two shapes, because the typo
+      # guard checks against the *declared* one — a single shape covering both
+      # would let `--fields slug` pass on a search whose rows have none, and hand
+      # back an empty object per match under a count that says otherwise.
+      "matches_by_ref" => %w[slug id title type area tags matched score snippet],
       "concepts" => %w[id title type description tags timestamp status backlog_ref dir area links_out links_in],
       "files" => %w[path id dir type title description],
       "directories" => %w[dir index_path present synthesized count types tags subdirs body listing],
@@ -370,7 +376,7 @@ module OKF
     # repeating a long path on every row.
     def print_multi_search_json(pairs, terms, rows, options)
       head = { "bundles" => pairs.map { |slug, dir| { "slug" => slug, "dir" => dir } } }
-      emit_list_json(head, "matches", rows.map { |row| stringify(row) }, options, "query" => terms)
+      emit_list_json(head, "matches", rows.map { |row| stringify(row) }, options, { "query" => terms }, "matches_by_ref")
     end
 
     def server(argv)
@@ -599,7 +605,12 @@ module OKF
       # add, and "registered" for what was a rename reads as a duplicate entry.
       known = reg.listing.any? { |row| row[:dir] == File.expand_path(dir) }
       entry = reg.add(dir, as: options[:as], default: options[:default])
-      count = OKF::Bundle::Folder.load(entry.path).graph(minimal: true).nodes.size
+      # Through report_skipped like every other bundle-reading verb: the reader
+      # tolerates a file it cannot open, so a count taken straight off the graph
+      # reports "0 concepts" for a bundle whose files are simply unreadable.
+      folder = OKF::Bundle::Folder.load(entry.path)
+      report_skipped(folder)
+      count = folder.graph(minimal: true).nodes.size
       @out.puts "#{known ? "updated" : "registered"} #{entry.slug} → #{entry.path} (#{count} #{pluralize(count, "concept")})"
       0
     rescue OKF::Error => e
@@ -707,7 +718,9 @@ module OKF
       # The old name may be a ref; the new one is a name being minted, never one.
       old_slug = registry_slug(old_slug, reg) or return 2
       entry = reg.rename(old_slug, new_slug)
-      @out.puts "renamed #{old_slug} → #{entry.slug}"
+      # The slug it *found*, not the argv that found it: rename normalizes to look
+      # the entry up, so echoing the raw ask names a bundle that never existed.
+      @out.puts "renamed #{OKF::Registry.normalize(old_slug)} → #{entry.slug}"
       0
     rescue OptionParser::ParseError => e
       @err.puts e.message
@@ -1533,11 +1546,14 @@ module OKF
     # both flags at once, or a field name no item carries).
     # +dir+ is the bundle's directory — or a ready-made head Hash when the
     # payload spans bundles (multi-bundle search's "bundles" key).
-    def emit_list_json(dir, key, items, options, extra = {})
+    # +key+ names the JSON property the rows land under; +shape+ names the row
+    # shape to check --fields/--except against. They are the same for every view
+    # but search, whose two modes emit the same property from different rows.
+    def emit_list_json(dir, key, items, options, extra = {}, shape = key)
       return usage_error("--fields and --except are mutually exclusive") if options[:fields] && options[:except]
 
-      unknown = unknown_fields(items, options, key)
-      return usage_error("unknown field(s): #{unknown.join(", ")} (available: #{available_fields(items, key).join(", ")})") unless unknown.empty?
+      unknown = unknown_fields(items, options, shape)
+      return usage_error("unknown field(s): #{unknown.join(", ")} (available: #{available_fields(items, shape).join(", ")})") unless unknown.empty?
 
       payload = (dir.is_a?(Hash) ? dir.dup : bundle_head(dir)).merge(extra)
       payload["count"] = items.size
