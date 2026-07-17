@@ -51,9 +51,16 @@ module OKF
       end
 
       # Human-readable "parent/dir" name — the default HTML title.
-      def name
-        pathname = Pathname.new(@root)
+      # The bundle's display label, "parent/dir" — path arithmetic, no disk. It
+      # is a class method so a caller that only wants the label (the registry
+      # naming an entry) can have it without a Reader.read of every file.
+      def self.label(root)
+        pathname = Pathname.new(root)
         "#{pathname.parent.basename}/#{pathname.basename}"
+      end
+
+      def name
+        self.class.label(@root)
       end
 
       # A single-file handle for one concept id (read live from disk), or nil when no

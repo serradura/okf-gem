@@ -1,0 +1,284 @@
+# frozen_string_literal: true
+
+require "test_helper"
+require "okf"
+require "okf/registry"
+
+# OKF::Registry — the persistent, ordered JSON registry behind a bundle-less
+# server. Every test points --home at a tmpdir, so the real ~/.okf is never read
+# or written.
+class OKF::RegistryTest < OKF::TestCase
+  setup do
+    @home = Dir.mktmpdir("okf-registry-home")
+    @bundles = Dir.mktmpdir("okf-registry-bundles")
+  end
+
+  teardown do
+    FileUtils.rm_rf(@home)
+    FileUtils.rm_rf(@bundles)
+  end
+
+  test "add registers a bundle, slugged by basename, and persists it" do
+    dir = bundle("orders")
+
+    entry = registry.add(dir)
+
+    assert_equal "orders", entry.slug
+    assert_equal File.expand_path(dir), entry.path
+    assert_equal [ "orders" ], reload.slugs, "a fresh load sees the persisted entry"
+    assert File.exist?(OKF::Registry.path(home: @home))
+  end
+
+  test "the first-registered bundle is the default; order is preserved" do
+    registry.add(bundle("alpha"))
+    registry.add(bundle("beta"))
+
+    reg = reload
+    assert_equal "alpha", reg.default.slug
+    assert_equal %w[alpha beta], reg.slugs
+  end
+
+  test "a slug collision is deduped with a numeric suffix" do
+    reg = registry
+    reg.add(bundle("shared/docs"))
+    reg.add(bundle("other/docs"))
+
+    assert_equal %w[docs docs-2], reg.slugs
+  end
+
+  test "--as overrides the derived slug" do
+    entry = registry.add(bundle("orders"), as: "sales")
+
+    assert_equal "sales", entry.slug
+  end
+
+  test "re-registering the same path updates in place, not a duplicate" do
+    dir = bundle("orders")
+    reg = registry
+    reg.add(dir)
+    first_count = reg.size
+
+    reg.add(dir)
+
+    assert_equal first_count, reg.size, "same path does not add a second entry"
+    assert_equal 1, reload.size
+  end
+
+  test "remove deletes by slug and by path, and persists" do
+    reg = registry
+    dir = bundle("orders")
+    reg.add(dir)
+    reg.add(bundle("notes"))
+
+    assert_equal "orders", reg.remove("orders").slug
+    assert_equal [ "notes" ], reg.slugs
+    assert_nil reg.remove("ghost"), "removing an unknown slug returns nil"
+
+    reg.add(dir)
+    assert reg.remove(dir), "remove also matches an absolute path"
+    assert_equal [ "notes" ], reload.slugs
+  end
+
+  test "listing exposes disk dir, mount path, default and missing flags" do
+    dir = bundle("orders")
+    registry.add(dir)
+
+    assert_equal [ { slug: "orders", title: File.basename(@bundles) + "/orders", dir: File.expand_path(dir),
+                     mount: "/b/orders/", default: true, missing: false } ],
+      reload.listing
+  end
+
+  test "listing flags a registered directory that vanished" do
+    dir = bundle("orders")
+    registry.add(dir)
+    FileUtils.rm_rf(dir)
+
+    assert_equal [ true ], reload.listing.map { |row| row[:missing] }
+  end
+
+  test "--as raises on a slug collision instead of silently suffixing" do
+    registry.add(bundle("orders"))
+
+    error = assert_raises(OKF::Error) { registry.add(bundle("notes"), as: "orders") }
+    assert_match(/slug already taken/, error.message)
+    assert_equal [ "orders" ], reload.slugs, "the colliding registration is not persisted"
+  end
+
+  test "an empty OKF_HOME env var counts as unset, not the current directory" do
+    was = ENV.fetch("OKF_HOME", nil)
+    begin
+      ENV["OKF_HOME"] = ""
+      assert_equal File.join(File.expand_path("~/.okf"), "registry.json"), OKF::Registry.path
+    ensure
+      was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = was
+    end
+  end
+
+  test "writes promote via rename — no temp file left behind" do
+    registry.add(bundle("orders"))
+
+    leftovers = Dir.entries(@home).reject { |name| [ ".", "..", "registry.json" ].include?(name) }
+    assert_empty leftovers
+  end
+
+  test "default= persists and default resolves to it" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+
+    reg.default = "beta"
+
+    assert_equal "beta", reload.default.slug
+    assert_equal [ false, true ], reload.listing.map { |row| row[:default] }
+  end
+
+  test "default= rejects an unknown slug" do
+    registry.add(bundle("alpha"))
+
+    assert_raises(OKF::Error) { registry.default = "ghost" }
+  end
+
+  test "removing the default falls back to the first registered" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+    reg.default = "beta"
+
+    reg.remove("beta")
+
+    assert_equal "alpha", reload.default.slug
+  end
+
+  test "add with default: true takes the default from the incumbent" do
+    reg = registry
+    reg.add(bundle("alpha"))
+
+    reg.add(bundle("beta"), default: true)
+
+    assert_equal "beta", reload.default.slug
+  end
+
+  test "rename slugifies the new name, follows the default, and persists" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+    reg.default = "beta"
+
+    entry = reg.rename("beta", "Prod Docs!")
+
+    assert_equal "prod-docs", entry.slug
+    fresh = reload
+    assert_equal %w[alpha prod-docs], fresh.slugs
+    assert_equal "prod-docs", fresh.default.slug
+  end
+
+  test "rename rejects an unknown slug and a collision" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+
+    assert_raises(OKF::Error) { reg.rename("ghost", "x") }
+    assert_raises(OKF::Error) { reg.rename("beta", "alpha") }
+    assert_equal %w[alpha beta], reg.slugs, "a failed rename mutates nothing"
+  end
+
+  test "a bare-array registry file (the original shape) still reads, defaulting to the first" do
+    FileUtils.mkdir_p(@home)
+    rows = [ { "slug" => "a", "path" => "/x", "title" => "t" } ]
+    File.write(OKF::Registry.path(home: @home), JSON.generate(rows))
+
+    reg = registry
+    assert_equal [ "a" ], reg.slugs
+    assert_equal "a", reg.default.slug
+  end
+
+  test "a missing registry file loads as empty" do
+    assert_empty registry
+    assert_nil registry.default
+  end
+
+  test "a malformed registry file raises a clear error" do
+    FileUtils.mkdir_p(@home)
+    File.write(OKF::Registry.path(home: @home), "{ not json")
+
+    error = assert_raises(OKF::Error) { registry }
+    assert_match(/malformed registry/, error.message)
+  end
+
+  test "adding a non-directory raises" do
+    assert_raises(OKF::Error) { registry.add(File.join(@bundles, "nope")) }
+  end
+
+  test "path honours --home over $OKF_HOME and the ~/.okf default" do
+    assert_equal File.join(File.expand_path(@home), "registry.json"), OKF::Registry.path(home: @home)
+  end
+
+  test "an unexpandable home is an OKF::Error, not a raw ArgumentError" do
+    # File.expand_path raises ArgumentError for a ~user that does not exist.
+    # It is a bad argument, so it must arrive as the error the CLI turns into
+    # exit 2 — never as a backtrace.
+    error = assert_raises(OKF::Error) { OKF::Registry.path(home: "~nosuchuser") }
+    assert_match(/cannot expand ~nosuchuser/, error.message)
+  end
+
+  test "add reports an unexpandable path as an OKF::Error" do
+    assert_raises(OKF::Error) { registry.add("~nosuchuser") }
+  end
+
+  test "remove reports an unexpandable path as an OKF::Error once there is an entry to compare" do
+    reg = registry
+    # An empty registry never reaches the path comparison (find skips the
+    # block), so the raise needs an entry to compare against.
+    reg.add(bundle("one"))
+
+    assert_raises(OKF::Error) { reg.remove("~nosuchuser") }
+  end
+
+  test "the slug verbs normalize the ask, so the name typed at --as resolves" do
+    reg = registry
+    reg.add(bundle("one"), as: "My Docs") # stored normalized: "my-docs"
+
+    reg.default = "My Docs"
+    assert_equal "my-docs", reload.default.slug
+
+    reg.rename("My Docs", "Team Notes")
+    assert_equal [ "team-notes" ], reload.slugs
+
+    assert reload.remove("Team Notes"), "remove reads the same name back"
+    assert_empty reload.slugs
+  end
+
+  test "remove prefers a registered directory over the slug that name normalizes to" do
+    reg = registry
+    docs = bundle("docs")
+    reg.add(bundle("other"), as: "docs") # the slug "docs" is NOT the docs/ dir
+    reg.add(docs)                        # registered as "docs-2"
+
+    reg.remove(docs) # a path — must remove the directory's entry, not the "docs" slug
+    assert_equal [ "docs" ], reload.slugs
+    assert_equal File.join(@bundles, "other"), reload.get("docs").path
+  end
+
+  test "slugify and dedupe normalize and disambiguate" do
+    assert_equal "my-bundle", OKF::Registry.slugify("My Bundle!")
+    assert_equal "bundle", OKF::Registry.slugify("---")
+    assert_equal "x-2", OKF::Registry.dedupe("x", [ "x" ])
+    assert_equal "x-3", OKF::Registry.dedupe("x", %w[x x-2])
+  end
+
+  private
+
+  def registry
+    OKF::Registry.load(home: @home)
+  end
+  alias reload registry
+
+  # A minimal on-disk bundle at @bundles/<name> with one concept, so Folder.load
+  # succeeds. Returns its path.
+  def bundle(name)
+    dir = File.join(@bundles, name)
+    FileUtils.mkdir_p(dir)
+    File.write(File.join(dir, "a.md"), "---\ntype: Note\ntitle: A\ndescription: d\n---\n\nhi\n")
+    dir
+  end
+end
