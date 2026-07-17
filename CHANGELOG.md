@@ -35,6 +35,14 @@
   (`okf server @a @b`) mounts each bundle under its registered slug, the first
   ref at `/`, and a registered slug reserves its mount ahead of any plain
   directory that shares the name.
+- Every command's own help now names the `@ref` it takes: `okf lint -h` leads
+  with `<bundle-dir|@ref>`, `okf registry default -h` with `<slug|@ref>`. The
+  grammar was documented once, in prose at the foot of `okf help` — past where a
+  reader who already knows the verb ever looks — so seventeen surfaces accepted a
+  ref while their banners advertised a bare `<dir>`. `-h`/`--help` also answers
+  on stdout with an exit code, like every other command: it was OptionParser's
+  officious handler, which printed past the caller's streams and ended the
+  process instead of returning.
 - `okf search` spans bundles: several leading `@refs`, or `@all` for every
   registered one. Rankings merge across bundles with every row labeled by its
   bundle's slug (a `bundles` list and a per-match `slug` key in the JSON).
@@ -50,6 +58,31 @@
   hand-edited entry missing `path` is a usage error naming the file instead of
   a `TypeError`, and `okf registry --json set <dir>` — a subcommand behind a
   flag — is a usage error rather than silently listing and exiting 0.
+- The graph page's ⌘/Ctrl-K palette opens in **every** mode and reaches a view as
+  well as a bundle. It was wired only behind a hub, so a standalone
+  `okf server ./docs` and every `okf render` page — the two modes most people meet
+  first — had no palette at all. Bundles still lead it and own the empty box,
+  because switching bundles is what it is for; views wait until what you type
+  reaches one, arrive underneath, and stay muted until the cursor does. Each view
+  carries the rail's own icon and label, read from the rail so the two cannot
+  drift. Where there is no hub there is no bundle to switch to, and views become
+  the whole list.
+- The inspector's type and tags are filter handles: clicking one focuses the
+  graph on that facet — the same jump the stats bars make — and clicking it again
+  clears it. The chip lights while its facet is the only filter in play, which is
+  exactly when a second click is an undo, so what you see and what the next click
+  does are the same question. With another filter set it re-focuses instead,
+  rather than throwing away more than the click put there.
+- The inspector's *Links to* / *Linked from* rows read as concepts rather than a
+  wall of accent-coloured text. Each carries its type's dot — the colour that node
+  already wears in the graph beside it — with the type named and the section
+  counted, so the column answers what kind of neighbourhood a concept has before a
+  title is read. The rows share one panel with hairline dividers and a hover fill:
+  the container carries the click affordance, which leaves colour free to mean type
+  and nothing else.
+- The inspector's widen chevron splits the screen instead of taking 70% of it. The
+  panel drag-resizes, so the chevron is a preset rather than a maximum, and burying
+  the graph to read one concept was the wrong thing to default to.
 - Fixed: a file the reader could not **open** (permissions) threw its errno out
   of the read, so a single locked file took the whole bundle down through every
   verb that reads one — `lint`, `validate`, `catalog`, `server`, `registry set`
@@ -86,6 +119,17 @@
   `okf registry rename DOCS handbook` echoed the argv rather than the slug it
   renamed, naming a bundle that never existed. An unwritable `$OKF_HOME` raised
   a bare `Errno::EACCES` at exit 1 instead of a usage error at exit 2.
+- Fixed: a long path in the Files view's Indexes tab pushed its `map`/`log` badge
+  past the right edge of the list. The badge was already pinned and unshrinkable;
+  the filename beside it was the problem — a bare text node, and an anonymous flex
+  item's automatic minimum size is the full width of its text, so it refused to
+  give way and drove the badge out instead. It truncates now, with the full path on
+  hover. Only a wide enough path in a narrow enough pane reached it, which is why
+  it never showed on mobile, where the list runs full width.
+- Fixed: the bundle switcher scrolled its own first row out of view as it opened.
+  It rendered, and scrolled the active row into view, while the dialog was still
+  hidden — and a list that is not being displayed measures zero, so the scroll
+  landed arbitrarily.
 
 ## [1.7.0] - 2026-07-16
 

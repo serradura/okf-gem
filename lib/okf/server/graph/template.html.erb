@@ -150,7 +150,9 @@
  .graph-body{display:grid;grid-template-columns:1fr var(--side-w);height:100%;min-height:0;
   --side-w:var(--side-w-user,380px);transition:--side-w .22s cubic-bezier(.22,1,.36,1)}
  .graph-body[data-side=hidden]{--side-w:0px}
- .graph-body[data-side=wide]{--side-w:70vw}
+ /* the chevron is a preset, not a maximum — the resizer goes wider on demand,
+    so it splits the screen rather than burying the graph */
+ .graph-body[data-side=wide]{--side-w:50vw}
  .graph-body.side-drag{transition:none}
  #stage{position:relative;min-width:0;overflow:hidden;background:var(--canvas)}
  #cy{position:absolute;inset:0}
@@ -189,10 +191,35 @@
  .title{font-size:18px;font-weight:600;margin:.5em 0 0;letter-spacing:-.01em;line-height:1.3;text-wrap:balance}
  .desc{color:var(--muted);margin:10px 0 14px}
  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+ /* the inspector's type and tags are filter handles — clicking one focuses the
+    graph on that facet, the same jump a stats bar makes. Real buttons, like
+    .tcloud, so the keyboard reaches them for free; font-size stays with .type
+    and .tag, which set their own and are the reason this rule sets neither. */
+ .facet{cursor:pointer;font-family:inherit;line-height:inherit}
+ .facet:hover{border-color:var(--accent);color:var(--accent-ink)}
+ .facet.on{background:var(--accent);border-color:var(--accent);color:#fff}
  .rel{margin:14px 0 0}
  .rel h4{margin:0 0 5px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
- .rel a{display:block;color:var(--accent-ink);cursor:pointer;font-size:13px;padding:2px 0;text-decoration:none}
- .rel a:hover{text-decoration:underline}
+ .rel h4 .c{margin-left:6px;font-variant-numeric:tabular-nums}
+ /* A link row is a concept row, so it speaks the vocabulary .titem already uses
+    in the tags view: the type's dot, the title, the type name trailing faint.
+    The dot is the bullet that carries information — it is the colour the node
+    already wears in the graph beside it, so the column reads as a map of the
+    neighbourhood before a single title is.
+    What makes these read as *links* is the container, not the colour. Accent
+    text on every row spends the accent on nothing and leaves the eye no way in;
+    ink text alone reads as prose. So the rows share one panel with hairline
+    dividers and a hover fill — the affordance a menu has, carried by structure,
+    which leaves colour free to mean type and nothing else. One box rather than
+    .titem's per-row cards: at nine links in a side panel, six borders weigh
+    more than the concepts do, and a single surface stays quiet. */
+ .rellist{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel-2)}
+ .rel a{display:flex;align-items:center;gap:9px;padding:6px 10px;color:var(--ink);cursor:pointer;font-size:13px;text-decoration:none;transition:background .12s,color .12s}
+ .rel a+a{border-top:1px solid var(--line)}
+ .rel a:hover{background:var(--accent-soft);color:var(--accent-ink)}
+ .rel a .dot{width:8px;height:8px;border-radius:50%;flex:none}
+ .rel a .rt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .rel a .ty{margin-left:auto;padding-left:8px;flex:none;font-size:11px;color:var(--faint)}
  .empty{color:var(--muted)} .empty b{color:var(--ink);font-weight:600} .loading{color:var(--faint)}
 
  /* ── markdown body ── */
@@ -231,6 +258,18 @@
  #sw-list{list-style:none;margin:10px 0 0;padding:0;max-height:46vh;overflow:auto}
  #sw-list a{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}
  #sw-list a .slug{margin-left:auto;color:var(--faint);font-size:12px}
+ #sw-list .sw-grp{margin:9px 0 3px;padding:0 10px;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+ #sw-list .sw-grp:first-child{margin-top:0}
+ /* Under a hub a view is the sideline, so it sits at the muted weight until the
+    cursor reaches it — present, never competing with the bundle you came for.
+    Standalone drops the class: there, views are all there is to pick. */
+ #sw-list a.sw-view{color:var(--muted)}
+ #sw-list a.sw-view:hover,#sw-list a.sw-view.active{color:var(--ink)}
+ /* The rail sets its own svg size, so the copy needs one here — smaller, since
+    a palette row is not a 76px rail tile. currentColor is what the rail already
+    draws with, which means the icon dims and lifts with the row for free. */
+ #sw-list a .sw-ico{flex:none;display:flex;align-items:center}
+ #sw-list a .sw-ico svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
  #sw-list a:hover,#sw-list a.active{background:var(--line-2)}
  #sw-list a.cur{color:var(--muted);cursor:default}
  #sw-list a.cur:hover{background:none}
@@ -303,6 +342,12 @@
  #app[data-ftab=indexes] #file-controls .combo{display:none}
  .file .fn .badge-res{margin-left:auto;flex:none;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
   color:var(--faint);background:var(--line-2);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
+ /* The name needs an element of its own: as a bare text node it was an
+    anonymous flex item, whose automatic minimum size is the full width of the
+    text — so a long path refused to shrink and drove the badge past the right
+    edge instead. overflow:hidden takes that minimum to zero, which is what lets
+    the name give way and the badge stay put. */
+ .file .fn .rn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .file{display:block;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:7px 9px;cursor:pointer;font-family:inherit;color:var(--ink)}
  .file:hover{background:var(--panel-2)} .file.sel{background:var(--accent-soft)}
  .file .fn{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px}
@@ -781,7 +826,14 @@ splitter(document.getElementById('side-resizer'),gbody,'--side-w-user','okf-side
 const fgrid=document.querySelector('.files-grid');
 splitter(document.getElementById('ftree-resizer'),fgrid,'--ftree-w','okf-ftree-w',
  ev=>{const r=fgrid.getBoundingClientRect();return clampW(ev.clientX-r.left,220,r.width*.55);});
-function relList(t,arr){if(!arr.length)return'';return `<div class="rel"><h4>${t}</h4>${arr.map(id=>`<a data-go="${esc(id)}">${esc((byId[id]||{}).title||id)}</a>`).join('')}</div>`;}
+/* The count belongs in the eyebrow: how connected a concept is, is the first
+   thing the section answers, and it answers it before the list is read. The
+   title carries a title attribute because .rt truncates — the panel resizes,
+   but the tooltip means a narrow one never hides a name outright. */
+function relList(t,arr){if(!arr.length)return'';
+ const row=id=>{const ty=typeOf[id]||'Untyped', ti=(byId[id]||{}).title||id;
+  return `<a data-go="${esc(id)}" title="${esc(ti)}"><span class="dot" style="background:${color[ty]||'#64748b'}"></span><span class="rt">${esc(ti)}</span><span class="ty">${esc(ty)}</span></a>`;};
+ return `<div class="rel"><h4>${t}<span class="c">${arr.length}</span></h4><div class="rellist">${arr.map(row).join('')}</div></div>`;}
 /* Markdown links inside the inspector are GitHub-style relative file paths;
    there is no route for them here, so a plain click 404s the whole page.
    Resolve them against the open concept and navigate in-app instead; external
@@ -850,11 +902,21 @@ function getNodeBody(id){return EMBED?Promise.resolve(EMBED.bodies[id]||''):fetc
 function getNodeMeta(id){return EMBED?Promise.resolve(EMBED.meta[id]||''):fetch(META_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
 function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Untyped';const c=color[ty]||'#64748b';
  shownId=id;const opened=openPanel();sideBody.scrollTop=0;
- sideBody.innerHTML=`<span class="type"><span class="dot" style="background:${c}"></span>${esc(ty)}</span>
+ sideBody.innerHTML=`<button type="button" class="type facet" data-focus-type="${esc(ty)}" title="Show only ${esc(ty)} in the graph"><span class="dot" style="background:${c}"></span>${esc(ty)}</button>
  <h2 class="title">${esc(n.title||id)}</h2><div class="desc loading" id="desc">loading…</div>
- <div class="tags">${(tagsOf[id]||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+ <div class="tags">${(tagsOf[id]||[]).map(t=>`<button type="button" class="tag facet" data-focus-tag="${esc(t)}" title="Show only concepts tagged ${esc(t)}">${esc(t)}</button>`).join('')}</div>
  ${relList('Links to',outL[id])}${relList('Linked from',inL[id])}<div class="body" id="body"></div>`;
  sideBody.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
+ /* Focus on the way in, clear on the way back out: the chip both sets the
+    filter and undoes it, so the gesture never strands you in a filtered graph
+    with the way back somewhere else. The inspected concept always carries the
+    facet you clicked, so it survives its own filter and the panel stays on the
+    concept you were reading — which is what makes the second click reachable. */
+ sideBody.querySelectorAll('[data-focus-type]').forEach(b=>b.onclick=()=>{
+  const t=b.getAttribute('data-focus-type');typeFocused(t)?clearGraphFilter():focusGraphType(t);});
+ sideBody.querySelectorAll('[data-focus-tag]').forEach(b=>b.onclick=()=>{
+  const t=b.getAttribute('data-focus-tag');tagFocused(t)?clearGraphFilter():focusGraphTag(t);});
+ syncFacets();
  getNodeMeta(id).then(h=>{const d=document.getElementById('desc');if(d){d.innerHTML=h||'<span class="empty">no description</span>';d.classList.remove('loading');}}).catch(()=>{});
  const bodyEl=sideBody.querySelector('#body');
  getNodeBody(id).then(md=>{if(bodyEl.isConnected)renderMarkdown(bodyEl,md);}).catch(()=>{});
@@ -889,7 +951,7 @@ function applyGraphFilter(){const s=q.graph.toLowerCase();
   n.style('display',m?'element':'none');});
  relaxZoom();}
 function fbadge(){const c=hiddenTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
- b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;ctlBadge();}
+ b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;ctlBadge();syncFacets();}
 /* mirror the active view's tool state onto the ⚙ toggle — when the sheet is
    folded away on mobile, an active filter must still call out from the bar */
 function ctlBadge(){const b=document.getElementById('btn-controls');if(!b)return;
@@ -926,6 +988,23 @@ syncFilterChips();
 function fitVisible(){requestAnimationFrame(()=>requestAnimationFrame(fitGraph));}
 function focusGraphType(t){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();types.forEach(x=>{if(x!==t)hiddenTypes.add(x);});syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
 function focusGraphArea(a){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();activeAreas.add(a);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function focusGraphTag(t){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();activeTags.add(t);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function clearGraphFilter(){hiddenTypes.clear();activeTags.clear();activeAreas.clear();syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+/* Is the graph focused on exactly this facet and nothing else? Only then is a
+   second click on the chip an undo — with any other filter in play, clearing
+   would throw away more than the click put there, so the chip re-focuses
+   instead. This is also what lights the chip, so what you see and what the
+   next click does are the same question, asked once. */
+/* hiddenTypes.size>0 is not redundant: in a one-type bundle `types.length-1` is
+   zero, so an unfiltered graph would read as focused, light the chip, and spend
+   the first click clearing nothing. */
+function typeFocused(t){return !activeTags.size&&!activeAreas.size&&hiddenTypes.size>0&&hiddenTypes.size===types.length-1&&!hiddenTypes.has(t);}
+function tagFocused(t){return !hiddenTypes.size&&!activeAreas.size&&activeTags.size===1&&activeTags.has(t);}
+/* The chips are filter indicators, so they repaint wherever the badge does —
+   that way a filter cleared from the slide-over un-lights the chip too. */
+function syncFacets(){
+ sideBody.querySelectorAll('[data-focus-type]').forEach(b=>b.classList.toggle('on',typeFocused(b.getAttribute('data-focus-type'))));
+ sideBody.querySelectorAll('[data-focus-tag]').forEach(b=>b.classList.toggle('on',tagFocused(b.getAttribute('data-focus-tag'))));}
 const filtersEl=document.getElementById('filters');
 document.getElementById('btn-filters').onclick=()=>filtersEl.classList.toggle('open');
 document.getElementById('filters-close').onclick=()=>filtersEl.classList.remove('open');
@@ -1160,7 +1239,7 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
   if(!reserved.length){el.innerHTML='<p class="empty" style="padding:14px">No index.md or log.md files'+(s?' match.':' yet.')+'</p>';return;}
   el.innerHTML=reserved.map(r=>{
    const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
-   return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg>${esc(r.path)}<span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');
+   return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}" title="${esc(r.path)}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg><span class="rn">${esc(r.path)}</span><span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');
   el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));
   return;}
  const ft=fileTypeCombo.get(), fg=fileTagCombo.get();
@@ -1326,38 +1405,93 @@ function listingHtml(items){if(!items||!items.length)return '<p class="empty" st
 let LOGS=null;
 function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LOG_ENDPOINT).then(r=>r.json()).then(d=>d.logs));}
 
-/* ── bundle switcher (hub only; HUB_PATH is null for a standalone server and
-   for `okf render`, so nothing below wires up in those modes) ── */
-if(HUB_PATH!==null){(function(){
+/* ── command palette: jump to a view always, and to a sibling bundle when a hub
+   is serving one. It began as the bundle switcher, gated on HUB_PATH — which
+   meant ⌘K did not exist at all under a standalone `okf server` or in `okf
+   render` output, the two modes most people meet first. Views are what earn the
+   palette a place in every mode; bundles are the group that comes and goes.
+   The two are grouped rather than merged because the actions differ: a view is
+   in-page and instant, a bundle is a page load that carries the view and layout
+   across and deliberately drops the selected node. ── */
+(function(){
  const ov=document.getElementById('sw'),input=document.getElementById('sw-input'),list=document.getElementById('sw-list');
  const isMac=/Mac|iP/.test(navigator.platform||'');
  const layout0=layoutSel?layoutSel.value:null;
+ const HUB=HUB_PATH!==null;
  let active=0,lastFocus=null;
+ /* The rail is the source of truth for which views exist, so read it back
+    rather than keeping a second list here that a new view could fall out of. */
+ const VIEWS=[ ...document.querySelectorAll('.rail-item[data-view]') ].map(b=>{
+  const l=b.querySelector('.ri-lbl'), ic=b.querySelector('.ri-ico');
+  /* The icon comes from the rail with the label, so a view wears the same mark
+     in both places and neither can drift from the other. It is this page's own
+     static markup being copied within the page — not a body, not a payload — so
+     it is not a render path the sanitizer has to cover. */
+  return { v:b.getAttribute('data-view'), label:(l?l.textContent:'').trim()||b.getAttribute('data-view'), icon:ic?ic.innerHTML:'' };});
  /* the current bundle's display name — the topbar carries it already */
  const identEl=document.querySelector('#topbar .ident');
  const IDENT=identEl&&identEl.firstChild?identEl.firstChild.textContent.trim():(SELF_SLUG||'this bundle');
- const match=q=>{q=(q||'').trim().toLowerCase();return SIBLINGS.filter(b=>!q||b.title.toLowerCase().includes(q)||b.slug.toLowerCase().includes(q));};
+ const hit=(q,s)=>String(s||'').toLowerCase().includes(q);
+ const matchViews=q=>VIEWS.filter(x=>!q||hit(q,x.label)||hit(q,x.v));
+ const matchBundles=q=>HUB?SIBLINGS.filter(b=>!q||hit(q,b.title)||hit(q,b.slug)):[];
  /* carry the bundle-agnostic page state (view, layout) into the target — the
     selected node and hash are bundle-specific and deliberately dropped */
  function target(p){const ps=new URLSearchParams();
   try{if(typeof view==='string'&&view!=='graph')ps.set('view',view);
    if(layoutSel&&layoutSel.value!==layout0)ps.set('layout',layoutSel.value);}catch(err){}
   const qs=ps.toString();return qs?p+'?'+qs:p;}
- function render(q){const rs=match(q);active=Math.min(active,Math.max(0,rs.length-1));
-  const cur=`<a class="cur" aria-disabled="true"><span>${esc(IDENT)}</span><span class="slug">current</span></a>`;
-  let rows;
-  if(!SIBLINGS.length)rows='<a class="none"><span>only this bundle is registered — okf registry set &lt;dir&gt; adds more</span></a>';
-  else if(!rs.length)rows='<a class="none"><span>no matches</span></a>';
-  else rows=rs.map((b,i)=>`<a href="${esc(target(b.path))}" data-path="${esc(b.path)}" id="sw-opt-${i}" role="option" class="${i===active?'active':''}"><span>${esc(b.title)}${b.default?'<span class="sw-def">default</span>':''}</span><span class="slug">${esc(b.slug)}</span></a>`).join('');
-  list.innerHTML=cur+rows;mark();}
- const items=()=>[...list.querySelectorAll('a[data-path]')];
+ const grp=t=>`<li class="sw-grp">${t}</li>`;
+ const opt=(i,inner)=>`<a ${inner.attrs} id="sw-opt-${i}" role="option" class="${(i===active?'active':'')+(inner.cls||'')}">${inner.html}</a>`;
+ /* Bundles lead, and on an empty box they are the only thing here: switching
+    bundles is what the palette is for, and six views above them would push the
+    answer below the fold to advertise a convenience. So views wait until what
+    you typed reaches one, and arrive underneath, muted — found when wanted,
+    silent when not. Standalone is the mirror image: no hub, no bundle to switch
+    to, so views stop being the sideline and become the whole list.
+    Headers only earn their line when both groups are up; over a lone list they
+    label the obvious. Same for the you-are-here row — context on an empty box,
+    noise once you are filtering. */
+ function render(qs){const q=(qs||'').trim().toLowerCase();
+  const bs=matchBundles(q);
+  const vs=(q||!HUB)?matchViews(q):[];
+  const showB=HUB&&(bs.length||!q);
+  const heads=showB&&vs.length>0;
+  active=Math.min(active,Math.max(0,bs.length+vs.length-1));
+  let h='';
+  if(showB){
+   if(heads)h+=grp('Bundles');
+   if(!q)h+=`<a class="cur" aria-disabled="true"><span>${esc(IDENT)}</span><span class="slug">current</span></a>`;
+   if(!SIBLINGS.length)h+='<a class="none"><span>only this bundle is registered — okf registry set &lt;dir&gt; adds more</span></a>';
+   else h+=bs.map((b,i)=>opt(i,{
+    attrs:`href="${esc(target(b.path))}" data-path="${esc(b.path)}"`,
+    html:`<span>${esc(b.title)}${b.default?'<span class="sw-def">default</span>':''}</span><span class="slug">${esc(b.slug)}</span>`})).join('');
+  }
+  if(vs.length){
+   if(heads)h+=grp('Views');
+   h+=vs.map((x,i)=>opt(bs.length+i,{
+    cls:HUB?' sw-view':'',
+    attrs:`data-view="${esc(x.v)}"`,
+    html:`<span class="sw-ico">${x.icon}</span><span>${esc(x.label)}${x.v===view?'<span class="sw-def">current</span>':''}</span>`})).join('');
+  }
+  if(!h)h='<a class="none"><span>no matches</span></a>';
+  list.innerHTML=h;mark();}
+ const items=()=>[ ...list.querySelectorAll('a[data-view],a[data-path]') ];
  function mark(){const its=items();
   its.forEach((a,i)=>a.classList.toggle('active',i===active));
   input.setAttribute('aria-activedescendant',its[active]?its[active].id:'');
   if(its[active])its[active].scrollIntoView({block:'nearest'});}
- function open(){discovered();lastFocus=document.activeElement;active=0;input.value='';render('');ov.hidden=false;input.setAttribute('aria-expanded','true');input.focus();}
+ /* Unhide before rendering: mark() scrolls the active row into view, and a list
+    still display:none measures zero, so the scroll lands somewhere arbitrary
+    and takes the first group's header off the top of the box with it. */
+ function open(){discovered();lastFocus=document.activeElement;active=0;input.value='';ov.hidden=false;render('');input.setAttribute('aria-expanded','true');input.focus();}
  function close(){ov.hidden=true;input.setAttribute('aria-expanded','false');if(lastFocus&&lastFocus.focus)lastFocus.focus();}
- function go(a,newTab){if(!a)return;const p=a.dataset.path;if(!p)return;const t=target(p);if(newTab){window.open(t,'_blank');close();}else{location.href=t;}}
+ /* A view switches in place, so it ignores the new-tab chord — opening this same
+    bundle again in a second tab is not what ⌘⏎ was asked for. A bundle is a real
+    navigation and honours it. */
+ function go(a,newTab){if(!a)return;
+  const v=a.dataset.view;if(v){setView(v);close();return;}
+  const p=a.dataset.path;if(!p)return;const t=target(p);
+  if(newTab){window.open(t,'_blank');close();}else{location.href=t;}}
  input.addEventListener('input',()=>{active=0;render(input.value);});
  input.addEventListener('keydown',e=>{const its=items();
   if(e.key==='ArrowDown'){e.preventDefault();active=Math.min(its.length-1,active+1);}
@@ -1373,26 +1507,40 @@ if(HUB_PATH!==null){(function(){
  addEventListener('keydown',e=>{
   if(!ov.hidden&&e.key==='Escape'){e.preventDefault();close();return;} /* Esc closes from anywhere, not just the input */
   if((e.metaKey||e.ctrlKey)&&!e.shiftKey&&!e.altKey&&(e.key==='k'||e.key==='K')){e.preventDefault();ov.hidden?open():close();}});
- /* OS-aware chord in every hint */
+ /* OS-aware chord in every hint — and every one of them names only what this
+    mode can actually do, since a standalone bundle has no bundle to switch to
+    and no second tab to open one in. */
  const chord=isMac?'⌘K':'Ctrl-K';
- document.getElementById('sw-hint').textContent='↑↓ move · ⏎ open · '+(isMac?'⌘⏎':'Ctrl-⏎')+' new tab · Esc close';
+ /* Every label names the mode's primary job and nothing else. Under a hub that
+    is switching bundles — the placeholder trails "or a view" only because a
+    convenience nobody can find is not one, and that is the whole billing views
+    get. Standalone has no bundles, so there the view is the job. */
+ const label=HUB?'Switch bundle':'Jump to a view';
+ input.placeholder=HUB?'switch bundle, or type a view…':'jump to a view…';
+ input.setAttribute('aria-label',label);
+ ov.setAttribute('aria-label',HUB?'Switch bundle':'Command palette');
+ document.getElementById('sw-hint').textContent='↑↓ move · ⏎ open · '+(HUB?(isMac?'⌘⏎':'Ctrl-⏎')+' new tab · ':'')+'Esc close';
  const gh=document.querySelector('.ghint');
- if(gh)gh.textContent+=' · '+chord+' switches bundle';
+ if(gh)gh.textContent+=' · '+chord+(HUB?' switches bundle':' jumps to a view');
+ /* the ⇄ button is bundle-swap in both icon and meaning, so it stays with the
+    bundles — a standalone page reaches the palette by the chord and the hint */
  const btn=document.getElementById('btn-switch');
- if(btn){btn.hidden=false;btn.title='Switch bundle ('+chord+')';btn.setAttribute('aria-label','Switch bundle ('+chord+')');
+ if(btn&&HUB){btn.hidden=false;btn.title=label+' ('+chord+')';btn.setAttribute('aria-label',label+' ('+chord+')');
   btn.addEventListener('click',()=>{ov.hidden?open():close();});}
  /* the pulse badge (and its hamburger-dot mirror on mobile) exists to get the
     switcher discovered — once the palette has been opened it has done its job,
     so it retires, and stays retired across visits */
  const cnt=document.getElementById('sw-count');
  const dot=document.querySelector('#btn-menu .menudot');
+ /* The badge counts bundles, so it stays with the hub: on a standalone page it
+    would pulse the number 1 at someone who has nothing to switch to. */
  let swSeen=false;try{swSeen=localStorage.getItem('okf-swseen')==='1';}catch(err){}
- if(!swSeen){
+ if(HUB&&!swSeen){
   if(cnt){cnt.textContent=String(SIBLINGS.length+1);cnt.hidden=false;}
   if(dot&&SIBLINGS.length)dot.hidden=false;
  }
  function discovered(){if(cnt)cnt.hidden=true;if(dot)dot.hidden=true;try{localStorage.setItem('okf-swseen','1');}catch(err){}}
-})();}
+})();
 
 /* ── mobile: the rail as a drawer, the topbar controls as a sheet, and a
    one-time "best on desktop" note ── */
