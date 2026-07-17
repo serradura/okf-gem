@@ -86,8 +86,12 @@ module OKF
         concept.tags.is_a?(Array) ? concept.tags : []
       end
 
+      # Blank, not just nil: §9.2 makes a whitespace-only `type` as non-conformant
+      # as a missing one (the validator says so with the same OKF.blank?), so the
+      # index must not sort them into different buckets. Otherwise `type: "  "`
+      # earns its own row, labelled with spaces, next to Untyped.
       def self.default(value, fallback)
-        value.nil? ? fallback : value.to_s
+        OKF.blank?(value) ? fallback : value.to_s
       end
 
       def initialize(nodes:, edges:, type_index: {}, tag_index: {})
