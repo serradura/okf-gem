@@ -47,16 +47,17 @@ module OKF
         ul.bundles li{border-color:#2a2e36}.meta{color:#9aa0aa}}
       CSS
 
-      # The hosted bundles in mount order, and the one `/` redirects to after
-      # the fallback has been applied — so a caller printing the mount table
-      # asks the hub instead of re-deriving the rule and drifting from it.
+      # The hosted bundles in mount order, and the one `/` redirects to — so a
+      # caller printing the mount table asks the hub instead of re-deriving the
+      # rule and drifting from it.
       attr_reader :bundles, :default
 
-      # +default_slug+ names the bundle `/` redirects to (`okf registry default`);
-      # nil, or a slug that is not hosted, falls back to the first bundle.
-      def initialize(bundles, layout: "cose", default_slug: nil)
+      # The first bundle is the one `/` redirects to — the registry hands them over
+      # in its own order, where first *is* the default (`okf registry default`
+      # moves an entry to the front), and an ephemeral run takes the dirs as typed.
+      def initialize(bundles, layout: "cose")
         @bundles = bundles
-        @default = bundles.find { |bundle| bundle.slug == default_slug } || bundles.first
+        @default = bundles.first
         @apps = build_apps(layout)
       end
 

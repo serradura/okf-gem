@@ -132,18 +132,11 @@ class OKF::Server::HubTest < OKF::TestCase
     assert_equal 404, last_response.status
   end
 
-  test "default_slug picks the / redirect target" do
-    @app = OKF::Server::Hub.new([ bundle("a1", "A"), bundle("b1", "B") ], default_slug: "b1")
+  test "the first bundle is the / redirect target" do
+    @app = OKF::Server::Hub.new([ bundle("b1", "B"), bundle("a1", "A") ])
 
     get "/"
-    assert_equal "/b/b1/", last_response.headers["location"]
-  end
-
-  test "an unknown default_slug falls back to the first bundle" do
-    @app = OKF::Server::Hub.new([ bundle("a2", "A"), bundle("b2", "B") ], default_slug: "ghost")
-
-    get "/"
-    assert_equal "/b/a2/", last_response.headers["location"]
+    assert_equal "/b/b1/", last_response.headers["location"], "order in, default out — the hub holds no separate choice"
   end
 
   test "with a single bundle, / still redirects to it" do
