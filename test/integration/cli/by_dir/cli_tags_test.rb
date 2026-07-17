@@ -188,7 +188,7 @@ module ByDir
 
       bare = okf("tags")
       assert_equal 2, bare.status
-      assert_match(/Usage: okf tags <bundle-dir>/, bare.err)
+      assert_match(/Usage: okf tags <dir\|@slug>/, bare.err)
     end
 
     test "is best-effort — malformed files are skipped (stderr), stdout stays parseable JSON" do

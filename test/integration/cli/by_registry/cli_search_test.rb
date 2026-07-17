@@ -194,7 +194,7 @@ module ByRegistry
         result = okf("search", "@conformant")
 
         assert_equal 2, result.status
-        assert_match(/Usage: okf search <bundle-dir\|@ref…\|@all> <term> \[term \.\.\.\]/, result.err)
+        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term> \[term \.\.\.\]/, result.err)
         assert_empty result.out
       end
     end

@@ -204,7 +204,7 @@ class CLIRegistrySetTest < CLIIntegrationCase
     result = okf("registry", "set")
 
     assert_equal 2, result.status
-    assert_match(/^Usage: okf registry set <bundle-dir> \[--as SLUG\] \[--default\]$/, result.err)
+    assert_match(/^Usage: okf registry set <dir\|@slug> \[--as SLUG\] \[--default\]$/, result.err)
   end
 
   test "registering a bundle it cannot fully read says so, rather than reporting an empty one" do

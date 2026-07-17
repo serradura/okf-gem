@@ -174,7 +174,7 @@ module ByDir
 
       banner = okf("files")
       assert_equal 2, banner.status
-      assert_match(/Usage: okf files <bundle-dir>/, banner.err)
+      assert_match(/Usage: okf files <dir\|@slug>/, banner.err)
     end
   end
 end

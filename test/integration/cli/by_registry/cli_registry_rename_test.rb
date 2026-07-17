@@ -91,7 +91,7 @@ class CLIRegistryRenameTest < CLIIntegrationCase
       result = okf("registry", "rename", *args)
 
       assert_equal 2, result.status, "rename #{args.inspect} takes two slugs"
-      assert_match(/Usage: okf registry rename <old> <new>/, result.err)
+      assert_match(/Usage: okf registry rename <@slug> <new>/, result.err)
       assert_empty result.out
     end
     assert_equal %w[conformant], registry_json["bundles"].map { |row| row["slug"] }

@@ -12,38 +12,43 @@
   unknown slug 404s as a page with a way home. The hub reads its bundles at
   boot — restart after registry changes.
 - The registry is **ordered, and the first entry still on disk is the default** —
-  the bundle a bare `okf server` opens at `/`. `okf registry default <slug>` moves
+  the bundle a bare `okf server` opens at `/`. `okf registry default @slug` moves
   that entry to the front, and `okf registry set --default` registers straight to
   it; until you do either, the first bundle you registered is the default. Nothing
   else has to be maintained: a rename keeps its position, a `del` promotes
   whatever is next, and the file cannot name a default that is not there. A
   vanished directory is stepped over rather than starred — `registry list`'s `*`
-  always names the bundle `/` opens — and `registry default <slug>` refuses one,
+  always names the bundle `/` opens — and `registry default @slug` refuses one,
   just as `registry set` refuses to register a directory that is not there.
 - `$OKF_HOME` is the single lever on which registry a command reads: set it and
-  every verb follows, from `okf registry list` to an `@ref` on `okf lint`. It
+  every verb follows, from `okf registry list` to an `@slug` on `okf lint`. It
   names exactly one registry, with no fallback to `~/.okf` behind it, and an
   empty value counts as unset rather than planting `registry.json` in the
   current directory.
-- `@refs`: wherever a command takes a `<dir>`, `@slug` names a registered
+- `@slug`: wherever a command takes a `<dir>`, `@slug` names a registered
   bundle and bare `@` the registry default — `okf lint @handbook`,
-  `okf render @ -o graph.html`. Refs are normalized like registration was
+  `okf render @ -o graph.html`. A slug is normalized like registration was
   (`@One` finds the bundle from dir `One`) but never to a placeholder, so
   `@***` is a bad ref rather than a silent hit. An unknown slug, a
   registered-but-gone directory, or a malformed registry file is a usage error
-  naming the registry file and the next move. A hub built from refs
+  naming the registry file and the next move. A hub built from `@slug`s
   (`okf server @a @b`) mounts each bundle under its registered slug, the first
-  ref at `/`, and a registered slug reserves its mount ahead of any plain
+  at `/`, and a registered slug reserves its mount ahead of any plain
   directory that shares the name.
-- Every command's own help now names the `@ref` it takes: `okf lint -h` leads
-  with `<bundle-dir|@ref>`, `okf registry default -h` with `<slug|@ref>`. The
-  grammar was documented once, in prose at the foot of `okf help` — past where a
-  reader who already knows the verb ever looks — so seventeen surfaces accepted a
-  ref while their banners advertised a bare `<dir>`. `-h`/`--help` also answers
-  on stdout with an exit code, like every other command: it was OptionParser's
-  officious handler, which printed past the caller's streams and ended the
-  process instead of returning.
-- `okf search` spans bundles: several leading `@refs`, or `@all` for every
+- `@slug` is spelled where it is used, not just where it is explained, and it is
+  the one token — `okf help`'s map (`lint <dir|@slug>`) and each command's own
+  banner show it the same way, with a note under the map defining it: the slug
+  from `okf registry set`, or bare `@` for the default. It was documented once,
+  in prose at the foot of `okf help`, past where a reader who already knows the
+  verb ever looks, so seventeen surfaces took a registered bundle while
+  advertising a bare `<dir>`. The registry-editing verbs — `del`, `default`,
+  `rename` — take the slug bare (no `@`) or as an `@slug`; the read verbs need
+  the `@`, since a bare word there is a path.
+- `okf <command> -h` prints that command's own banner and flags. Help now answers
+  on stdout with an exit code like every other command: it was OptionParser's
+  officious handler, which printed past the caller's injected streams and ended
+  the process with `exit` instead of returning a status.
+- `okf search` spans bundles: several leading `@slug`s, or `@all` for every
   registered one. Rankings merge across bundles with every row labeled by its
   bundle's slug (a `bundles` list and a per-match `slug` key in the JSON).
   Asking for everything tolerates gaps — `@all` skips a bundle whose directory
@@ -83,6 +88,11 @@
 - The inspector's widen chevron splits the screen instead of taking 70% of it. The
   panel drag-resizes, so the chevron is a preset rather than a maximum, and burying
   the graph to read one concept was the wrong thing to default to.
+- The graph page answers `?` with a sheet of every keyboard shortcut, reachable
+  from a rail button too — a shortcut list you can only open with a shortcut helps
+  whoever needs it least. `/` focuses the current view's search where it has one,
+  skipping the view that only reads; the sheet is written against the key handler
+  it documents, since a shortcut list that has drifted is worse than none.
 - Fixed: a file the reader could not **open** (permissions) threw its errno out
   of the read, so a single locked file took the whole bundle down through every
   verb that reads one — `lint`, `validate`, `catalog`, `server`, `registry set`
@@ -130,6 +140,14 @@
   It rendered, and scrolled the active row into view, while the dialog was still
   hidden — and a list that is not being displayed measures zero, so the scroll
   landed arbitrarily.
+- Fixed: the `3` (Files) shortcut did nothing once the Indexes tab was open, and
+  the palette's Index row would have blanked the page. "Index" is not a view —
+  there is no `#view-index`, only the Files view showing its Indexes tab — so
+  `setView('files')` from that tab early-returned, and `setView('index')` named a
+  view that does not exist. The keyboard and the palette each re-implemented what
+  the rail button already did right; both now click the rail item, so the one
+  correct path is the only one, and the palette's `current` badge reads the same
+  active-tab answer the rail's own highlight does.
 
 ## [1.7.0] - 2026-07-16
 

@@ -39,20 +39,20 @@ difference between a few hundred bytes and hundreds of KB, since the per-item ro
 `body`.
 
 **Every output names its bundle.** Two keys, one meaning each: `bundle` is
-always a directory, `slug` always a registry slug. Name a bundle by `@ref` and
+always a directory, `slug` always a registry slug. Name a bundle by `@slug` and
 the answer comes back in that identity — `OKF lint — @handbook (/path/to/one)`,
 and `{ "bundle": "/path/to/one", "slug": "handbook", … }` — so an agent holding
 several bundles never has to remember which invocation produced which output.
 A bundle named by path carries no `slug`: it may not have one, and inventing a
 name it was never given would imply a registration that does not exist.
 
-**@refs — point any verb at a registered bundle.** Wherever a `<dir>` goes,
+**@slug — point any verb at a registered bundle.** Wherever a `<dir>` goes,
 `@slug` names a bundle registered via `okf registry set`, and bare `@` the
-registry's default. Refs resolve through `$OKF_HOME` (default `~/.okf`) — the
+registry's default. They resolve through `$OKF_HOME` (default `~/.okf`) — the
 single lever on which registry *any* verb reads, and it names exactly one, with
 no fallback behind it. The slug is normalized as registration
 normalized it — `@One` finds the bundle from dir `One` — but never to a
-placeholder: `@***` is a bad ref, not a bundle. An unknown slug, a
+placeholder: `@***` names nothing, not a bundle. An unknown slug, a
 registered-but-gone directory, or a malformed registry file is a usage error
 (exit 2) whose message names the registry file consulted and the next move —
 an explicit ask fails hard, never silently skipped. So `okf lint @handbook`
@@ -168,7 +168,7 @@ as `all-2`, `--as all` is refused, and an `all` row already in the registry file
 than taken as grounds to reject the file — so `@all` is never ambiguous, and the
 reservation never strands a registry it inherited. **The read normalizes every
 slug** the same way registration would, so a hand-typed `"slug": "My Docs"` lists
-and resolves as `my-docs`; an entry the listing shows is always an entry `@ref`,
+and resolves as `my-docs`; an entry the listing shows is always an entry `@slug`,
 `rename`, and `default` can name.
 
 `--fields` projects the shape the mode actually emits: `slug` is available in
@@ -295,21 +295,21 @@ verb keys on. **Entry verbs** take a path: `okf registry set <dir>` adds it
 (slug from the basename, or `--as`, which errors on a collision; `--default`
 puts it first), and because the entry is keyed by path, `set` on an
 already-registered dir updates it in place — refreshing its title, and renaming
-it when `--as` is given. `okf registry del <slug-or-dir|@ref>` removes one — by name, so an entry whose
+it when `--as` is given. `okf registry del <dir|@slug>` removes one — by name, so an entry whose
 directory is already gone still deletes. Slug *or* dir, never both readings at
 once: an argument with a `/` in it names a location and only a location, so
 `del ./notes` refuses when no entry points there rather than stripping to the
 slug `notes` and deleting a bundle somewhere else entirely.
 <!-- rule:okf-registry-del-path-or-slug -->
-**Slug verbs** take the name: `okf registry default <slug>` chooses which
-bundle `/` opens **by moving that entry to the front**, and
-`okf registry rename <old> <new>` renames a slug (mount path and switcher
-name). The registry is ordered and **the first entry still on disk is the
+**Slug verbs** take the name — bare, or as an `@slug`: `okf registry default <@slug>`
+chooses which bundle `/` opens **by moving that entry to the front**, and
+`okf registry rename <@slug> <new>` renames a slug (mount path and switcher
+name) — `<new>` is a name being minted, so it is never a ref. The registry is ordered and **the first entry still on disk is the
 default** — that is the whole rule, so the first bundle you register is the
 default until you move another one, a rename keeps its position, and a `del`
 promotes whatever is next. A vanished directory is stepped over (the server
 cannot open one, so starring it would name a bundle `/` never serves), and
-`registry default <slug>` refuses one outright — the same refusal `registry set`
+`registry default @slug` refuses one outright — the same refusal `registry set`
 gives a directory that is not there. The file is hand-editable and reorders
 visibly, which is the point: there is no stored slug that can dangle.
 <!-- rule:okf-registry-default-position -->

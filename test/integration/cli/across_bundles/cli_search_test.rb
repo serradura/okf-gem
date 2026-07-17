@@ -447,7 +447,7 @@ module AcrossBundles
         result = okf("search", "@conformant", "the", "@minimal")
 
         assert_equal 0, result.status, "a trailing @arg is a term, not a ref — no bundle was misread"
-        assert_match(/note: '@minimal' searches as a literal term — @refs must lead/, result.err)
+        assert_match(/note: '@minimal' searches as a literal term — an @slug or @all must lead/, result.err)
         assert_equal [ "conformant" ], json(okf("search", "@conformant", "the", "@minimal", "--json"))["bundles"].map { |b| b["slug"] },
           "@minimal never joined the search, even though it is registered"
         assert_match(/no matches/, result.out)
@@ -464,7 +464,7 @@ module AcrossBundles
 
         leading_term = okf("search", "@all", "escalation", "@payments-oncall")
         assert_equal 0, leading_term.status
-        assert_match(/note: '@payments-oncall' searches as a literal term — @refs must lead/, leading_term.err)
+        assert_match(/note: '@payments-oncall' searches as a literal term — an @slug or @all must lead/, leading_term.err)
         assert_match(/@mentions\s+escalation\s+Escalation/, leading_term.out,
           "a non-@ term first demotes the @arg to a term, and the ANDed pair still finds the concept")
       end
@@ -476,12 +476,12 @@ module AcrossBundles
       with_registry("conformant", "minimal") do
         refs = okf("search", "@conformant", "@minimal")
         assert_equal 2, refs.status
-        assert_match(/Usage: okf search <bundle-dir\|@ref…\|@all> <term> \[term \.\.\.\]/, refs.err)
+        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term> \[term \.\.\.\]/, refs.err)
         assert_empty refs.out, "no terms, no ranking — and no empty answer that looks like one"
 
         every = okf("search", "@all")
         assert_equal 2, every.status
-        assert_match(/Usage: okf search <bundle-dir\|@ref…\|@all> <term> \[term \.\.\.\]/, every.err)
+        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term> \[term \.\.\.\]/, every.err)
         assert_empty every.out
       end
     end

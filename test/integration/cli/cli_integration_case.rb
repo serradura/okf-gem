@@ -157,6 +157,14 @@ class CLIIntegrationCase < OKF::TestCase
     status = nil
     out, err = capture_io { status = OKF::CLI.start(argv) }
     Result.new(status, out, err)
+  rescue SystemExit => e
+    # The CLI *returns* its exit code; `exe/okf` is the only place that exits.
+    # A path that calls exit itself takes the whole runner down with it —
+    # Minitest lets SystemExit through — truncating the suite into a half-report
+    # with no failure named and every later test silently unrun. Name it here so
+    # the cause is legible instead of archaeological. The usual culprit is a new
+    # OptionParser inheriting the officious --help; see CLI#help_flag.
+    flunk "okf #{argv.join(" ")} called exit(#{e.status}) instead of returning a status"
   end
 
   # Run the CLI writing to the live $stdout/$stderr so assert_output can capture

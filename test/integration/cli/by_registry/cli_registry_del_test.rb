@@ -118,7 +118,7 @@ class CLIRegistryDelTest < CLIIntegrationCase
     result = okf("registry", "del")
 
     assert_equal 2, result.status
-    assert_match(%r{Usage: okf registry del <slug-or-dir\|@ref>}, result.err)
+    assert_match(%r{Usage: okf registry del <dir\|@slug>}, result.err)
     assert_empty result.out
   end
 

@@ -168,8 +168,8 @@ class CLIRegistryDefaultTest < CLIIntegrationCase
     result = okf("registry", "default")
 
     assert_equal 2, result.status
-    assert_match(/Usage: okf registry default <slug>/, result.err)
-    assert_match(/moves <slug> to the front/, result.err, "the banner says the move, since the file visibly reorders")
+    assert_match(/Usage: okf registry default <@slug>/, result.err)
+    assert_match(/moves it to the front/, result.err, "the banner says the move, since the file visibly reorders")
     assert_empty result.out
   end
 

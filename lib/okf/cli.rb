@@ -50,29 +50,35 @@ module OKF
       # answer: the ref→slug memo, and the --pretty a previous argv turned on.
       @ref_slugs = {}
       @pretty = false
-      case (command = argv.shift)
-      when "graph" then graph(argv)
-      when "validate" then validate(argv)
-      when "lint" then lint(argv)
-      when "loose" then loose(argv)
-      when "search" then search(argv)
-      when "index" then index(argv)
-      when "catalog" then catalog(argv)
-      when "files" then files(argv)
-      when "tags" then tags(argv)
-      when "types" then types(argv)
-      when "stats" then stats(argv)
-      when "server" then server(argv)
-      when "render" then render(argv)
-      when "registry" then registry(argv)
-      when "skill" then skill(argv)
-      when "version", "--version", "-v" then @out.puts(OKF::VERSION); 0
-      when "help", "--help", "-h" then usage(@out); 0
-      when nil then usage(@err); 2
-      else
-        @err.puts "okf: unknown command '#{command}'"
-        usage(@err)
-        2
+      # -h/--help is answered wherever a parser sees it — deep inside
+      # positional_dir, where returning would only mean "usage error, exit 2".
+      # Thrown here instead, so help keeps the contract every other path keeps:
+      # a status this method returns. See #help_flag.
+      catch(:help) do
+        case (command = argv.shift)
+        when "graph" then graph(argv)
+        when "validate" then validate(argv)
+        when "lint" then lint(argv)
+        when "loose" then loose(argv)
+        when "search" then search(argv)
+        when "index" then index(argv)
+        when "catalog" then catalog(argv)
+        when "files" then files(argv)
+        when "tags" then tags(argv)
+        when "types" then types(argv)
+        when "stats" then stats(argv)
+        when "server" then server(argv)
+        when "render" then render(argv)
+        when "registry" then registry(argv)
+        when "skill" then skill(argv)
+        when "version", "--version", "-v" then @out.puts(OKF::VERSION); 0
+        when "help", "--help", "-h" then usage(@out); 0
+        when nil then usage(@err); 2
+        else
+          @err.puts "okf: unknown command '#{command}'"
+          usage(@err)
+          2
+        end
       end
     end
 
@@ -113,8 +119,9 @@ module OKF
     def validate(argv)
       options = { json: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf validate <bundle-dir> [--json]"
+        o.banner = "Usage: okf validate <dir|@slug> [--json]"
         json_flags(o, options, "emit a JSON report")
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -126,13 +133,14 @@ module OKF
     def lint(argv)
       options = { json: false, min_body: OKF::Bundle::Linter::DEFAULT_MIN_BODY, stale_after: nil, only: nil, except: nil, fail_on: :never }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf lint <bundle-dir> [--json] [--min-body N] [--stale-after DUR] [--only a,b] [--except a,b] [--fail-on warn]"
+        o.banner = "Usage: okf lint <dir|@slug> [--json] [--min-body N] [--stale-after DUR] [--only a,b] [--except a,b] [--fail-on warn]"
         json_flags(o, options, "emit a JSON report")
         o.on("--min-body N", Integer, "stub threshold in body characters (default #{OKF::Bundle::Linter::DEFAULT_MIN_BODY})") { |v| options[:min_body] = v }
         o.on("--stale-after DUR", "flag concepts older than DUR (e.g. 90d, 12w, 2026-01-01)") { |v| options[:stale_after] = v }
         o.on("--only LIST", Array, "run only these checks (comma-separated)") { |v| options[:only] = v.map(&:to_sym) }
         o.on("--except LIST", Array, "skip these checks (comma-separated)") { |v| options[:except] = v.map(&:to_sym) }
         o.on("--fail-on LEVEL", %w[never warn], "exit 1 when a finding at LEVEL exists (never | warn)") { |v| options[:fail_on] = v.to_sym }
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -162,8 +170,9 @@ module OKF
     def loose(argv)
       options = { json: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf loose <bundle-dir> [--json]"
+        o.banner = "Usage: okf loose <dir|@slug> [--json]"
         json_flags(o, options, "emit the loose files as JSON")
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -184,12 +193,13 @@ module OKF
     def search(argv)
       options = { json: false, regexp: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf search <bundle-dir|@ref…|@all> <term> [term ...] [--regexp] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
+        o.banner = "Usage: okf search <dir|@slug…|@all> <term> [term ...] [--regexp] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
         json_flags(o, options, "emit the matches as JSON")
         projection_flags(o, options)
         o.on("-e", "--regexp", "treat each term as a Ruby regular expression (case-insensitive)") { options[:regexp] = true }
         o.on("--in LIST", Array, "search only these fields (#{OKF::Bundle::Search::FIELDS.join(", ")})") { |v| options[:in] = v.map(&:downcase) }
         filter_flags(o, options, :type, :area, :tag)
+        help_flag(o)
       end
       begin
         parser.parse!(argv)
@@ -222,7 +232,7 @@ module OKF
       # user may have meant a ref (refs must lead) and would otherwise see only
       # a silent zero-match.
       stray = terms.find { |term| term.start_with?("@") }
-      @err.puts "note: '#{stray}' searches as a literal term — @refs must lead" if stray
+      @err.puts "note: '#{stray}' searches as a literal term — an @slug or @all must lead" if stray
 
       unknown = Array(options[:in]) - OKF::Bundle::Search::FIELDS
       return usage_error("unknown field(s): #{unknown.join(", ")} (searchable: #{OKF::Bundle::Search::FIELDS.join(", ")})") unless unknown.empty?
@@ -385,12 +395,13 @@ module OKF
 
       options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose" }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf server [DIR…] [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url]"
+        o.banner = "Usage: okf server [DIR|@slug…] [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url]"
         o.on("-p", "--port PORT", Integer, "port to serve on (default #{options[:port]})") { |v| options[:port] = v }
         o.on("--bind ADDR", "address to bind (default #{options[:bind]})") { |v| options[:bind] = v }
         o.on("-t", "--title TITLE", "graph title, single bundle only (default: parent/bundle dir name)") { |v| options[:title] = v }
         o.on("-l", "--link URL", "source URL shown in the header, single bundle only") { |v| options[:link] = v }
         o.on("--layout NAME", OKF::Server::Graph::LAYOUTS, "initial layout (#{OKF::Server::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
+        help_flag(o)
       end
       dirs = positional_dirs(parser, argv) or return 2
 
@@ -524,11 +535,12 @@ module OKF
 
       options = { output: nil, title: nil, link: nil, layout: "cose" }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf render <bundle-dir> [-o FILE] [--layout NAME] [-t title] [-l url]"
+        o.banner = "Usage: okf render <dir|@slug> [-o FILE] [--layout NAME] [-t title] [-l url]"
         o.on("-o", "--output FILE", "write to FILE instead of stdout") { |v| options[:output] = v }
         o.on("-t", "--title TITLE", "graph title (default: parent/bundle dir name)") { |v| options[:title] = v }
         o.on("-l", "--link URL", "source URL shown in the header") { |v| options[:link] = v }
         o.on("--layout NAME", OKF::Server::Graph::LAYOUTS, "initial layout (#{OKF::Server::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -593,9 +605,10 @@ module OKF
     def registry_set(argv)
       options = { as: nil, default: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf registry set <bundle-dir> [--as SLUG] [--default]"
+        o.banner = "Usage: okf registry set <dir|@slug> [--as SLUG] [--default]"
         o.on("--as SLUG", "slug to register under (default: directory basename)") { |v| options[:as] = v }
         o.on("--default", "put it first — the bundle a bare `okf server` opens") { options[:default] = true }
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
       no_extras?(argv) or return 2
@@ -620,7 +633,8 @@ module OKF
     # Remove a bundle from the persistent registry by slug or by its directory.
     def registry_del(argv)
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf registry del <slug-or-dir|@ref>"
+        o.banner = "Usage: okf registry del <dir|@slug>"
+        help_flag(o)
       end
       slug = positional(parser, argv) or return 2
       no_extras?(argv) or return 2
@@ -640,8 +654,9 @@ module OKF
       options = { json: false }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf registry list [--json] [--pretty]\n       " \
-                   "okf registry set <dir> | del <slug-or-dir> | default <slug> | rename <old> <new>"
+                   "okf registry set <dir|@slug> | del <dir|@slug> | default <@slug> | rename <@slug> <new>"
         json_flags(o, options, "emit the registry as JSON")
+        help_flag(o)
       end
       begin
         parser.parse!(argv)
@@ -666,8 +681,9 @@ module OKF
     # discovered from a reordered file.
     def registry_default(argv)
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf registry default <slug>\n       " \
-                   "moves <slug> to the front — the first registered bundle is the default until you do"
+        o.banner = "Usage: okf registry default <@slug>\n       " \
+                   "moves it to the front — the first registered bundle is the default until you do"
+        help_flag(o)
       end
       slug = positional(parser, argv) or return 2
       no_extras?(argv) or return 2
@@ -704,7 +720,8 @@ module OKF
     # Rename a registered bundle's slug — its mount path and switcher name.
     def registry_rename(argv)
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf registry rename <old> <new>"
+        o.banner = "Usage: okf registry rename <@slug> <new>"
+        help_flag(o)
       end
       parser.parse!(argv)
       old_slug, new_slug = argv.shift(2)
@@ -753,10 +770,11 @@ module OKF
     def graph(argv)
       options = { json: false, minimal: false, body: true }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf graph <bundle-dir> [--json] [--minimal] [--no-body]"
+        o.banner = "Usage: okf graph <dir|@slug> [--json] [--minimal] [--no-body]"
         json_flags(o, options, "emit nodes and edges as JSON")
         o.on("--minimal", "leanest nodes (id + title); adds type/tag indexes") { options[:minimal] = true }
         o.on("--[no-]body", "include each concept's body (default: yes)") { |v| options[:body] = v }
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -786,11 +804,12 @@ module OKF
     def index(argv)
       options = { json: false, body: true, areas: nil }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf index <bundle-dir> [--area AREA] [--no-body] [--json]"
+        o.banner = "Usage: okf index <dir|@slug> [--area AREA] [--no-body] [--json]"
         json_flags(o, options, "emit the index map as JSON")
         projection_flags(o, options)
         o.on("--area AREA", "only this directory/area (repeatable; `root` for the bundle root)") { |v| (options[:areas] ||= []) << v }
         o.on("--[no-]body", "include each index's prose body (default: yes)") { |v| options[:body] = v }
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -888,10 +907,11 @@ module OKF
     def catalog(argv)
       options = { json: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf catalog <bundle-dir> [--type T] [--area A] [--tag T] [--json]"
+        o.banner = "Usage: okf catalog <dir|@slug> [--type T] [--area A] [--tag T] [--json]"
         json_flags(o, options, "emit the catalog as JSON")
         projection_flags(o, options)
         filter_flags(o, options, :type, :area, :tag)
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -908,10 +928,11 @@ module OKF
     def files(argv)
       options = { json: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf files <bundle-dir> [--type T] [--area A] [--tag T] [--json]"
+        o.banner = "Usage: okf files <dir|@slug> [--type T] [--area A] [--tag T] [--json]"
         json_flags(o, options, "emit the file tree as JSON")
         projection_flags(o, options)
         filter_flags(o, options, :type, :area, :tag)
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -928,10 +949,11 @@ module OKF
     def tags(argv)
       options = { json: false, by: nil }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf tags <bundle-dir> [--by type|area] [--type T] [--area A] [--json]"
+        o.banner = "Usage: okf tags <dir|@slug> [--by type|area] [--type T] [--area A] [--json]"
         json_flags(o, options, "emit the tag index as JSON")
         o.on("--by DIM", %w[type area], "group the tags by a concept dimension (type | area)") { |v| options[:by] = v.to_sym }
         filter_flags(o, options, :type, :area)
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -943,9 +965,10 @@ module OKF
     def types(argv)
       options = { json: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf types <bundle-dir> [--area A] [--tag T] [--json]"
+        o.banner = "Usage: okf types <dir|@slug> [--area A] [--tag T] [--json]"
         json_flags(o, options, "emit the type index as JSON")
         filter_flags(o, options, :area, :tag)
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -1036,8 +1059,9 @@ module OKF
     def stats(argv)
       options = { json: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf stats <bundle-dir> [--json]"
+        o.banner = "Usage: okf stats <dir|@slug> [--json]"
         json_flags(o, options, "emit the stats as JSON")
+        help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
@@ -1076,6 +1100,21 @@ module OKF
     def json_flags(parser, options, desc)
       parser.on("--json", desc) { options[:json] = true }
       parser.on("--pretty", "indent the JSON for reading (implies --json)") { options[:json] = true; @pretty = true }
+    end
+
+    # Every parser answers its own -h/--help, so no parser inherits
+    # OptionParser's officious one: that prints to the process's $stdout rather
+    # than @out (an embedding app that injects streams never sees it) and ends
+    # the process with `exit` rather than returning a status (a test that asks a
+    # command for help takes the whole runner down with it). Thrown, not
+    # returned — #run catches it — because a parser is parsed inside
+    # positional_dir, where every other early exit means "exit 2".
+    # on_tail, so help sorts last in the list it is printing.
+    def help_flag(parser)
+      parser.on_tail("-h", "--help", "print this message") do
+        @out.puts parser.help
+        throw :help, 0
+      end
     end
 
     # --fields/--except project the JSON down to the properties an agent wants, so it
@@ -1142,6 +1181,7 @@ module OKF
         o.banner = "Usage: okf skill <dest-dir> [--here] [--force]"
         o.on("--here", "install straight into <dest-dir>, wherever it is (no skills/okf nesting)") { options[:nest] = false }
         o.on("--force", "overwrite a non-empty destination") { options[:force] = true }
+        help_flag(o)
       end
       parser.parse!(argv)
       dest = argv.shift
@@ -1232,7 +1272,7 @@ module OKF
     end
 
     # "@slug" — or bare "@", the registry's default — names a registered bundle
-    # wherever a <bundle-dir> goes; anything else must be a directory on disk. A
+    # wherever a <dir> goes; anything else must be a directory on disk. A
     # leading @ always means the registry (a directory literally named that way
     # stays reachable as ./@name), and the registry loads only when a ref
     # appears, so plain-dir invocations never pay for it. Returns the bundle's
@@ -1638,33 +1678,36 @@ module OKF
       io.puts <<~USAGE
         okf <command> [options]
 
-          skill     <dest> [--here] [--force]               install the companion agent skill
-          server    [DIR…] [-p PORT] [--bind ADDR] [...]    serve one bundle, or many behind a hub
-          render    <dir> [-o FILE] [--layout NAME] [...]   write a static, self-contained HTML graph
+          skill     <dest> [--here] [--force]                     install the companion agent skill
+          server    [DIR|@slug…] [-p PORT] [--bind ADDR] [...]    serve one bundle, or many behind a hub
+          render    <dir|@slug> [-o FILE] [--layout NAME] [...]   write a static, self-contained HTML graph
 
-          registry  list [--json]                           list registered bundles (* marks the default)
-          registry  set <dir> [--as SLUG] [--default]       add or update a bundle (a bare `server` serves them)
-          registry  del <slug-or-dir|@ref>                  remove a bundle from the registry
-          registry  default <slug> | rename <old> <new>     move a bundle to the front (the default) / rename it
+          registry  list [--json]                                 list registered bundles (* marks the default)
+          registry  set <dir|@slug> [--as SLUG] [--default]       add or update a bundle (a bare `server` serves them)
+          registry  del <dir|@slug>                               remove a bundle from the registry
+          registry  default <@slug>                               move a bundle to the front (the default)
+          registry  rename <@slug> <new>                          rename a registered bundle (<new> is a new name, not a ref)
 
-          lint      <dir> [--json] [--fail-on warn] [...]   report curation-quality issues
-          loose     <dir> [--json]                          list files with no graph links, by folder
-          validate  <dir> [--json]                          check OKF v0.1 conformance
+          lint      <dir|@slug> [--json] [--fail-on warn] [...]   report curation-quality issues
+          loose     <dir|@slug> [--json]                          list files with no graph links, by folder
+          validate  <dir|@slug> [--json]                          check OKF v0.1 conformance
 
-          search    <dir|@ref…|@all> <term…> [-e] [...]     find concepts by text or regexp, ranked (@all: every bundle)
-          index     <dir> [--json] [--area A] [--no-body]   the index map: dirs, their listings and rollups
-          stats     <dir> [--json]                          bundle rollups (concepts, types, areas, links, tags)
-          types     <dir> [--json] [filters]                list types with their concepts, by count
-          tags      <dir> [--json] [--by DIM] [filters]     list tags with their concepts, by count
-          files     <dir> [--json] [filters]                list files with titles, by folder
-          catalog   <dir> [--json] [filters]                list concepts with metadata, by area
+          search    <dir|@slug…|@all> <term…> [-e] [...]          find concepts by text or regexp, ranked (@all: every bundle)
+          index     <dir|@slug> [--json] [--area A] [--no-body]   the index map: dirs, their listings and rollups
+          stats     <dir|@slug> [--json]                          bundle rollups (concepts, types, areas, links, tags)
+          types     <dir|@slug> [--json] [filters]                list types with their concepts, by count
+          tags      <dir|@slug> [--json] [--by DIM] [filters]     list tags with their concepts, by count
+          files     <dir|@slug> [--json] [filters]                list files with titles, by folder
+          catalog   <dir|@slug> [--json] [filters]                list concepts with metadata, by area
 
-          graph     <dir> [--json] [--minimal] [--no-body]  print the knowledge graph
+          graph     <dir|@slug> [--json] [--minimal] [--no-body]  print the knowledge graph
 
-        Every <dir> also takes @slug — a bundle registered via `okf registry set` —
-        or bare @ for the registry default. The registry lives under $OKF_HOME
-        (default ~/.okf); set it to point every verb at another one.
-        search spans bundles: several leading @refs, or @all for every registered one
+        @slug names a registered bundle instead of a path — the slug from
+        `okf registry set`, or bare @ for the registry default. Anywhere a <dir>
+        goes, an @slug goes: `okf lint @handbook`, `okf render @ -o graph.html`.
+        The registry lives under $OKF_HOME (default ~/.okf); set it to point
+        every verb at another one.
+        search spans bundles: several leading @slugs, or @all for every registered one
         (@all skips a bundle whose directory is gone; a named @slug insists on it).
 
         [filters] narrow a view to matching concepts: --type TYPE, --area AREA, --tag TAG

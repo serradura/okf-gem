@@ -237,29 +237,30 @@ instead: `irm https://docker.okfgem.com/install.ps1 | iex`.
 ## Command line
 
 ```bash
-okf validate  <dir> [--json]                            # check OKF v0.1 conformance (§9)
-okf lint      <dir> [--json] [--fail-on warn] [...]     # report curation-quality issues
-okf loose     <dir> [--json]                            # list files with no graph links, by folder
-okf search    <dir|@ref…|@all> <term…> [-e] [...]       # ranked retrieval; @refs or @all span bundles
-okf index     <dir> [--json] [--area A] [--no-body]     # progressive-disclosure map (§6): bodies, rollups, listings
-okf server    [DIR…] [-p PORT] [--bind ADDR] [...]      # serve one bundle, or many behind a hub (⌘K to switch)
-okf render    <dir> [-o FILE] [--layout NAME] [...]     # export the graph as one static, self-contained HTML file
-okf registry  list [--json]                             # list registered bundles (* marks the default)
-okf registry  set <dir> [--as SLUG] [--default]         # add or update a bundle (a bare `server` serves it)
-okf registry  del <slug-or-dir|@ref>                    # remove a bundle from the registry
-okf registry  default <slug> | rename <old> <new>       # move a bundle to the front (the default) / rename it
+okf validate  <dir|@slug> [--json]                         # check OKF v0.1 conformance (§9)
+okf lint      <dir|@slug> [--json] [--fail-on warn] [...]  # report curation-quality issues
+okf loose     <dir|@slug> [--json]                         # list files with no graph links, by folder
+okf search    <dir|@slug…|@all> <term…> [-e] [...]         # ranked retrieval; @slugs or @all span bundles
+okf index     <dir|@slug> [--json] [--area A] [--no-body]  # progressive-disclosure map (§6): bodies, rollups, listings
+okf server    [DIR|@slug…] [-p PORT] [--bind ADDR] [...]   # serve one bundle, or many behind a hub (⌘K to switch)
+okf render    <dir|@slug> [-o FILE] [--layout NAME] [...]  # export the graph as one static, self-contained HTML file
+okf registry  list [--json]                                # list registered bundles (* marks the default)
+okf registry  set <dir|@slug> [--as SLUG] [--default]      # add or update a bundle (a bare `server` serves it)
+okf registry  del <dir|@slug>                              # remove a bundle from the registry
+okf registry  default <@slug> | rename <@slug> <new>       # move a bundle to the front (the default) / rename it
 
 # The registry is a plain JSON file at $OKF_HOME/registry.json (default ~/.okf).
-# It is ordered, and the first entry is the default: `registry default <slug>`
+# It is ordered, and the first entry is the default: `registry default @slug`
 # moves that entry to the front. The subcommand leads and flags follow it:
 # `registry set <dir> --as X`, never `registry --json set <dir>`.
 # A running server reads it at boot — restart after changes.
 # Behind a multi-bundle server, /b/ lists every bundle and ⌘/Ctrl-K switches.
-# Every <dir> in this table also takes @slug (a registered bundle) or bare @
-# (the default) — okf lint @handbook works from anywhere. Set $OKF_HOME to point
-# every verb at another registry.
-okf graph     <dir> [--json] [--minimal] [--no-body]    # print the knowledge graph
-okf catalog | files | tags | types | stats  <dir> [--json]   # the browser views, on the CLI
+# @slug names a registered bundle instead of a path — the slug from `registry
+# set`, or bare @ for the default. Anywhere a <dir> goes, an @slug goes:
+# okf lint @handbook works from anywhere. Set $OKF_HOME to point every verb
+# at another registry.
+okf graph     <dir|@slug> [--json] [--minimal] [--no-body]        # print the knowledge graph
+okf catalog | files | tags | types | stats  <dir|@slug> [--json]  # the browser views, on the CLI
 okf skill     <dest> [--here] [--force]                 # install the companion agent skill
 okf --version
 ```

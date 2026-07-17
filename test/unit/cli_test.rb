@@ -1160,7 +1160,7 @@ class OKF::CLITest < OKF::TestCase
     write("one/a.md", concept)
 
     assert_equal 0, invoke("search", File.join(@tmpdir, "one"), "@ghost", "hi")
-    assert_match(/'@ghost' searches as a literal term — @refs must lead/, @err.string)
+    assert_match(/'@ghost' searches as a literal term — an @slug or @all must lead/, @err.string)
   end
 
   test "an eaten literal @-term gets an escape-hatch hint" do

@@ -119,7 +119,7 @@ module ByDir
 
       bare = okf("render")
       assert_equal 2, bare.status
-      assert_match(/Usage: okf render <bundle-dir> \[-o FILE\]/, bare.err)
+      assert_match(/Usage: okf render <dir\|@slug> \[-o FILE\]/, bare.err)
     end
   end
 end

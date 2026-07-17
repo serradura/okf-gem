@@ -202,7 +202,7 @@ module ByDir
 
       bare = okf("index")
       assert_equal 2, bare.status
-      assert_match(/Usage: okf index <bundle-dir>/, bare.err)
+      assert_match(/Usage: okf index <dir\|@slug>/, bare.err)
 
       bad_flag = okf("index", fixture("conformant"), "--bogus")
       assert_equal 2, bad_flag.status

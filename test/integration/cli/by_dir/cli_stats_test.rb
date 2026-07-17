@@ -93,7 +93,7 @@ module ByDir
 
       bare = okf("stats")
       assert_equal 2, bare.status
-      assert_match(/Usage: okf stats <bundle-dir>/, bare.err)
+      assert_match(/Usage: okf stats <dir\|@slug>/, bare.err)
 
       # stats rolls up the whole bundle — the read views' filters are not on offer
       filtered = okf("stats", fixture("conformant"), "--type", "BigQuery Table")
