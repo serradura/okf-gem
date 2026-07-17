@@ -60,6 +60,33 @@
   The stderr note reads `skipped N unusable file(s)` — it counts two kinds now,
   so it names neither and points at `validate`, which names both.
 
+- Fixed: `okf registry del <path>` could delete the wrong bundle. A path that
+  matched no registered directory fell through to a normalized *slug* lookup, so
+  `del ./notes` — naming a local directory — removed whichever entry happened to
+  be slugged `notes`, wherever it pointed, and reported `removed notes` with exit
+  0. An argument with a `/` in it now names a location and only a location.
+- Fixed: the registry read trusted stored slugs verbatim while both write paths
+  normalized, so a hand-typed `"slug": "My Docs"` listed fine but could not be
+  named by `@my-docs`, `registry rename`, or `registry default` — the verbs that
+  could repair it were the ones that could not see it. The read normalizes now,
+  leaving an already-usable slug untouched. This also removes the only way a
+  quote could reach a slug, and with it a DOM XSS in the server's bundle
+  switcher, whose JS escape covered `& < >` but not quotes; the escape now covers
+  quotes too, so the page does not depend on a guarantee three layers away.
+- Fixed: `okf lint` bucketed a whitespace-only `type` under its own literal
+  heading while `types`/`graph`/`stats` bucketed it as `Untyped`, so two verbs
+  reported type inventories for the same bundle that would not reconcile. §9.2
+  makes a blank type as non-conformant as a missing one; both sides say so now.
+- Fixed: `okf search <dir> --fields slug` passed the field guard and returned one
+  empty object per match with exit 0. Only registry mode labels rows with a slug,
+  so the two modes now declare the shape each actually emits and a path-named
+  search names the fields it does have.
+- Fixed: `okf registry set` reported `(0 concepts)` for a bundle whose files it
+  could not read; it notes the skipped files like every other reading verb.
+  `okf registry rename DOCS handbook` echoed the argv rather than the slug it
+  renamed, naming a bundle that never existed. An unwritable `$OKF_HOME` raised
+  a bare `Errno::EACCES` at exit 1 instead of a usage error at exit 2.
+
 ## [1.7.0] - 2026-07-16
 
 - `okf server`: responses are gzipped when the client accepts it

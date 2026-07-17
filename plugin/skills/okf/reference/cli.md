@@ -166,9 +166,14 @@ have registered. `all` is reserved as a slug — a directory named `all/` regist
 as `all-2`, `--as all` is refused, and an `all` row already in the registry file
 (hand-typed, or written before the name was reserved) is read as `all-2` rather
 than taken as grounds to reject the file — so `@all` is never ambiguous, and the
-reservation never strands a registry it inherited.
+reservation never strands a registry it inherited. **The read normalizes every
+slug** the same way registration would, so a hand-typed `"slug": "My Docs"` lists
+and resolves as `my-docs`; an entry the listing shows is always an entry `@ref`,
+`rename`, and `default` can name.
 
-Two sharp edges: every *leading* @-arg is taken as a ref, so a literal @-term
+`--fields` projects the shape the mode actually emits: `slug` is available in
+registry mode, and a usage error naming the real fields on a path-named search,
+which has no slug to give. Two sharp edges: every *leading* @-arg is taken as a ref, so a literal @-term
 (`@babel/core`, a Ruby `@ivar`) needs a non-@ term before it or `-e '\@term'` —
 the CLI notes both traps on stderr — and any ref, even one, switches the JSON
 envelope (next paragraph).
@@ -291,7 +296,11 @@ verb keys on. **Entry verbs** take a path: `okf registry set <dir>` adds it
 puts it first), and because the entry is keyed by path, `set` on an
 already-registered dir updates it in place — refreshing its title, and renaming
 it when `--as` is given. `okf registry del <slug-or-dir|@ref>` removes one — by name, so an entry whose
-directory is already gone still deletes.
+directory is already gone still deletes. Slug *or* dir, never both readings at
+once: an argument with a `/` in it names a location and only a location, so
+`del ./notes` refuses when no entry points there rather than stripping to the
+slug `notes` and deleting a bundle somewhere else entirely.
+<!-- rule:okf-registry-del-path-or-slug -->
 **Slug verbs** take the name: `okf registry default <slug>` chooses which
 bundle `/` opens **by moving that entry to the front**, and
 `okf registry rename <old> <new>` renames a slug (mount path and switcher

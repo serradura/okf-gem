@@ -54,6 +54,22 @@ slugged exactly that), or a hand typed it into the file the format invites you t
 edit. So the read *mints around it* — the entry lists, mounts, and answers to
 `all-2`, and the next write persists the name.
 
+**The read normalizes for the same reason**, and it is the same bug one step
+wider: two of the three ways in normalized and the third did not. A hand-typed
+`"slug": "My Docs"` listed perfectly well while `@my-docs` missed it — and so did
+`rename` and `default`, which look an entry up through the very normalization the
+read had skipped. The two verbs that could repair the entry were the two that
+could not see it. A slug registration would have handed back untouched is left
+alone (including one already suffixed, so fixing a sick entry never renames a
+healthy one); everything else is minted around what the other entries hold.
+<!-- rule:okf-registry-read-normalizes -->
+
+That asymmetry was also the [graph server](capabilities/graph-server.md)'s XSS
+trigger: slugs reach the bundle switcher's HTML, and the only way one could carry
+a quote was to arrive un-normalized through this read. Normalizing closes it at
+the source — the escape is hardened too, because a page whose safety depends on a
+guarantee three layers away is not one you can reason about locally.
+
 Refusing the file was the first answer here, and it was worth the correction it
 took. A name the grammar has taken makes **one entry** unnameable; rejecting the
 registry makes **every** entry unreachable — and takes `del` and `rename`, the two
