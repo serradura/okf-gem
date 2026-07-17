@@ -5,8 +5,9 @@ require "okf"
 require "okf/registry"
 
 # OKF::Registry — the persistent, ordered JSON registry behind a bundle-less
-# server. Every test points --home at a tmpdir, so the real ~/.okf is never read
-# or written.
+# server. Every test passes home: a tmpdir — the library seam that names a
+# registry without touching $OKF_HOME — so the real ~/.okf is never read or
+# written.
 class OKF::RegistryTest < OKF::TestCase
   setup do
     @home = Dir.mktmpdir("okf-registry-home")
@@ -121,7 +122,7 @@ class OKF::RegistryTest < OKF::TestCase
     assert_empty leftovers
   end
 
-  test "default= persists and default resolves to it" do
+  test "default= moves the entry to the front, and default resolves to it" do
     reg = registry
     reg.add(bundle("alpha"))
     reg.add(bundle("beta"))
@@ -129,7 +130,18 @@ class OKF::RegistryTest < OKF::TestCase
     reg.default = "beta"
 
     assert_equal "beta", reload.default.slug
-    assert_equal [ false, true ], reload.listing.map { |row| row[:default] }
+    assert_equal %w[beta alpha], reload.slugs, "the default is the first entry, so choosing one moves it"
+    assert_equal [ true, false ], reload.listing.map { |row| row[:default] }
+  end
+
+  test "default is the first entry when nothing was ever chosen, and nil when empty" do
+    reg = registry
+    assert_nil reg.default
+
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+
+    assert_equal "alpha", reload.default.slug
   end
 
   test "default= rejects an unknown slug" do
@@ -168,7 +180,7 @@ class OKF::RegistryTest < OKF::TestCase
 
     assert_equal "prod-docs", entry.slug
     fresh = reload
-    assert_equal %w[alpha prod-docs], fresh.slugs
+    assert_equal %w[prod-docs alpha], fresh.slugs, "beta was moved to the front by default=; the rename leaves it there"
     assert_equal "prod-docs", fresh.default.slug
   end
 
@@ -209,7 +221,7 @@ class OKF::RegistryTest < OKF::TestCase
     assert_raises(OKF::Error) { registry.add(File.join(@bundles, "nope")) }
   end
 
-  test "path honours --home over $OKF_HOME and the ~/.okf default" do
+  test "path honours an explicit home: over $OKF_HOME and the ~/.okf default" do
     assert_equal File.join(File.expand_path(@home), "registry.json"), OKF::Registry.path(home: @home)
   end
 

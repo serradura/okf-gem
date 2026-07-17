@@ -6,20 +6,26 @@ module OKF
   # A persistent, ordered registry of bundle references — the kernel behind the
   # multi-bundle server. It is a plain JSON file (no database) under $OKF_HOME
   # (default ~/.okf), so `okf registry set`/`del` and a later bare `okf server`
-  # share one on-disk list. Insertion order is preserved; the server opens the
-  # explicitly chosen default (falling back to the first entry). Part of the
-  # shell — it reads and writes a file.
+  # share one on-disk list. Part of the shell — it reads and writes a file.
   #
   #   registry = OKF::Registry.load
   #   registry.add("docs")               # persists, returns the Entry
-  #   registry.default = "docs"           # which bundle a bare `okf server` opens
-  #   registry.rename("docs", "handbook") # new slug, same path; the default follows
-  #   registry.default                    # => the chosen Entry (first when unset)
+  #   registry.default = "docs"           # moves docs to the front
+  #   registry.rename("docs", "handbook") # new slug, same path
+  #   registry.default                    # => the first Entry
   #   registry.listing                    # => [{ slug:, title:, path:, default: }]
   #
-  # On disk: { "default" => slug (optional), "bundles" => [ { "slug" => …,
-  # "path" => absolute dir, "title" => label } ] }. A bare array (the original
-  # shape) still reads — it simply carries no default.
+  # **The first entry is the default** — the bundle a bare `okf server` opens at
+  # `/`. That is position, not a stored slug: a slug would be a foreign key into
+  # this same list, and every operation would owe it referential integrity —
+  # carry it through a rename, re-point it after an add --as, clear it on a
+  # remove, and survive it dangling. Order is state the registry already keeps,
+  # so `default=` just moves the entry to the front and there is nothing left to
+  # maintain or to dangle.
+  #
+  # On disk: { "bundles" => [ { "slug" => …, "path" => absolute dir,
+  # "title" => label } ] }, the first row being the default. A bare array (the
+  # original shape) still reads.
   class Registry
     # One registered bundle: a unique +slug+, the absolute +path+ on disk, and a
     # human-readable +title+ ("parent/dir").
@@ -28,11 +34,19 @@ module OKF
     HOME_ENV = "OKF_HOME"
     DEFAULT_HOME = "~/.okf"
 
+    # Slugs the ref grammar has already spoken for. `@all` means every registered
+    # bundle, so a bundle slugged "all" could never be named — reserve it here,
+    # where both slug paths pass, rather than let one register and then be
+    # unreachable.
+    RESERVED_SLUGS = %w[all].freeze
+
     class << self
       # The registry file: $OKF_HOME/registry.json, $OKF_HOME defaulting to ~/.okf.
-      # +home+ overrides the base directory (the CLI's --home flag). An empty
-      # +home+ or env var counts as unset — expand_path("") would silently plant
-      # the registry in the current directory.
+      # The env var is the only lever the CLI offers; +home+ overrides it for an
+      # embedding app (and the tests), which should not have to mutate a
+      # process-global to say which registry it means. An empty +home+ or env var
+      # counts as unset — expand_path("") would silently plant the registry in
+      # the current directory.
       def path(home: nil)
         env = ENV.fetch(HOME_ENV, nil)
         home = nil if home.nil? || home.to_s.empty?
@@ -72,7 +86,11 @@ module OKF
       end
 
       # +base+ slugified, then suffixed (-2, -3, …) until it avoids every slug in
-      # +taken+.
+      # +taken+. Reserving is the caller's business, not this helper's: the
+      # ephemeral hub mints through here too, and it has no registry and no
+      # @refs, so a name reserved for the ref grammar would suffix it to /b/all-2/
+      # against a /b/all/ that does not exist. #unique_slug adds the reserved
+      # names because the registry is where they mean something.
       def dedupe(base, taken)
         slug = slugify(base)
         return slug unless taken.include?(slug)
@@ -90,7 +108,6 @@ module OKF
     def initialize(path)
       @path = path
       @entries = []
-      @default_slug = nil
       read
     end
 
@@ -114,41 +131,59 @@ module OKF
       @entries.find { |entry| entry.slug == slug }
     end
 
-    # The default bundle a bare `okf server` selects — the explicitly chosen one
-    # (default=), falling back to the first registered when unset or when the
-    # chosen slug no longer exists.
+    # The default bundle a bare `okf server` selects: the first entry still on
+    # disk. Position decides it, but a position the hub cannot serve decides
+    # nothing — it drops a vanished directory rather than serving a hole, so the
+    # default has to skip the same ones or `registry list` would star a bundle
+    # `/` never opens. Falling back to the first entry when *every* one has
+    # vanished keeps a bare `@` failing with "points to <path>, which is not a
+    # directory" instead of the much worse "not a registered bundle". nil only
+    # when nothing is registered.
     def default
-      get(@default_slug) || @entries.first
+      @entries.find { |entry| File.directory?(entry.path) } || @entries.first
     end
 
-    # Choose which bundle `/` opens. Persists; raises on an unknown slug. The
-    # ask is normalized the way registration normalized it, so the name the user
-    # typed at --as is the name that resolves here.
+    # Choose which bundle `/` opens, by moving that entry to the front. Persists;
+    # raises on an unknown slug. The ask is normalized the way registration
+    # normalized it, so the name the user typed at --as is the name that resolves
+    # here.
+    #
+    # A directory that is gone is refused, exactly as #add refuses to register
+    # one: both are explicit asks, and #default skips a vanished entry, so
+    # allowing the move would answer `default bundle → <some other slug>` to
+    # someone who named this one.
     def default=(slug)
       entry = get(self.class.normalize(slug))
       raise OKF::Error, "no such bundle: #{slug}" unless entry
+      unless File.directory?(entry.path)
+        raise OKF::Error, "cannot default to #{entry.slug}: #{entry.path} is not a directory " \
+                          "(okf registry del #{entry.slug}, or restore it)"
+      end
 
-      @default_slug = entry.slug
+      @entries.delete(entry)
+      @entries.unshift(entry)
       write
     end
 
     # Give the bundle at +old_slug+ a new slug (its mount path and switcher name).
     # The new name is slugified; a collision with another entry raises rather than
-    # silently suffixing — a rename is explicit. The default follows the rename.
+    # silently suffixing — a rename is explicit. Position is untouched, so a
+    # renamed default stays the default with no bookkeeping.
     def rename(old_slug, new_slug)
       entry = get(self.class.normalize(old_slug))
       raise OKF::Error, "no such bundle: #{old_slug}" unless entry
 
       slug = explicit_slug(new_slug, entry)
-      @default_slug = slug if @default_slug == entry.slug
       entry.slug = slug
       write
       entry
     end
 
     # One row per bundle for the CLI list: +dir+ is the on-disk directory, +mount+
-    # the server path, +default+ the *effective* default (first when none is set),
-    # +missing+ true when the registered directory no longer exists on disk.
+    # the server path, +default+ true for the first row, +missing+ true when the
+    # registered directory no longer exists on disk. +default+ stays in the row
+    # even though it is now derivable from position — a consumer reading the JSON
+    # should not have to know the rule to find the bundle `/` opens.
     def listing
       chosen = default
       @entries.map do |entry|
@@ -161,7 +196,7 @@ module OKF
     # path refreshes its title in place (and its slug when +as+ is given). A
     # basename-derived slug is deduped with a suffix; an explicit +as+ raises on
     # collision instead — the same "explicit is explicit" rule as #rename.
-    # +default: true+ also makes it the default. Persists, then returns the entry.
+    # +default: true+ moves it to the front. Persists, then returns the entry.
     def add(dir, as: nil, default: false)
       root = self.class.expand(dir.to_s)
       raise OKF::Error, "not a directory: #{dir}" unless File.directory?(root)
@@ -171,25 +206,24 @@ module OKF
       title = Bundle::Folder.label(root)
       entry = @entries.find { |candidate| candidate.path == root }
       if entry
-        was = entry.slug
         entry.title = title
-        if as
-          entry.slug = explicit_slug(as, entry)
-          @default_slug = entry.slug if @default_slug == was
-        end
+        entry.slug = explicit_slug(as, entry) if as
       else
         slug = as ? explicit_slug(as, nil) : unique_slug(File.basename(root), nil)
         entry = Entry.new(slug, root, title)
         @entries << entry
       end
-      @default_slug = entry.slug if default
+      if default
+        @entries.delete(entry)
+        @entries.unshift(entry)
+      end
       write
       entry
     end
 
     # Remove the entry named by +slug+ (or whose path matches). Returns the removed
-    # entry, or nil when nothing matched. Removing the default clears the choice —
-    # the first remaining bundle takes over. Persists on change.
+    # entry, or nil when nothing matched. Removing the default needs no cleanup —
+    # the next entry is first, and so is the default. Persists on change.
     def remove(slug)
       # Slug-or-dir, so the normalized reading comes *last*: "./docs" must mean
       # the directory while one is registered under that path, and only fall
@@ -200,17 +234,20 @@ module OKF
       return nil unless target
 
       @entries.delete(target)
-      @default_slug = nil if @default_slug == target.slug
       write
       target
     end
 
     private
 
-    # A basename-derived slug: silently deduped with a numeric suffix.
+    # A basename-derived slug: silently deduped with a numeric suffix, around the
+    # reserved names as well as the taken ones — so a directory named all/
+    # registers as "all-2". This is the minting path, where the gem invents a name
+    # and a suffix is expected; #explicit_slug refuses instead, because there the
+    # name is the user's.
     def unique_slug(base, skip)
       taken = @entries.reject { |entry| entry.equal?(skip) }.map(&:slug)
-      self.class.dedupe(base, taken)
+      self.class.dedupe(base, taken + RESERVED_SLUGS)
     end
 
     # An explicitly requested slug (--as, rename): normalized, and a collision
@@ -221,6 +258,13 @@ module OKF
     def explicit_slug(base, skip)
       slug = self.class.normalize(base)
       raise OKF::Error, "not a usable slug: #{base} (letters and digits, please)" if slug.empty?
+
+      # Reserved names are refused, never suffixed: substituting "all-2" for the
+      # "all" they asked for is exactly the name-they-did-not-choose the rule
+      # below forbids.
+      if RESERVED_SLUGS.include?(slug)
+        raise OKF::Error, "not a usable slug: #{slug} is reserved (@#{slug} names every registered bundle)"
+      end
 
       taken = @entries.reject { |entry| entry.equal?(skip) }.map(&:slug)
       # Refusing is the "never substitute a name you chose" rule, but a refusal
@@ -236,8 +280,8 @@ module OKF
 
       data = JSON.parse(File.read(@path, encoding: "UTF-8"))
       rows = data.is_a?(Hash) ? Array(data["bundles"]) : Array(data) # bare array: the original shape
-      @default_slug = data["default"] if data.is_a?(Hash) && data["default"].is_a?(String)
       @entries = rows.map { |row| entry_from(row) }
+      mint_around_reserved
     rescue JSON::ParserError => e
       malformed("#{e.message} (fix or delete the file)")
     rescue SystemCallError => e
@@ -255,6 +299,29 @@ module OKF
       Entry.new(row["slug"], row["path"], row["title"] || File.basename(row["path"]))
     end
 
+    # A reserved slug reaches the file two ways nothing can take back: written by
+    # a release from before the name was reserved (a directory named all/ slugged
+    # exactly that, and every version until now allowed it), or typed into the
+    # file the format invites you to edit. Neither is grounds to reject the
+    # registry. A name the ref grammar has taken makes *one entry* unnameable;
+    # refusing the file makes every entry unreachable, and takes `del` and
+    # `rename` — the two verbs that could fix it — down on the same read, leaving
+    # hand-editing JSON as the only way out. That is a worse bundle of problems
+    # than the one it set out to prevent.
+    #
+    # So the read mints around it, exactly as #unique_slug does when registering
+    # a directory named all/: the entry keeps its bundle and answers to "all-2",
+    # and the next write persists the name. Minting is right here for the same
+    # reason it is right there — the gem is naming something the user did not
+    # name, because the name they had cannot be used.
+    def mint_around_reserved
+      @entries.each do |entry|
+        next unless RESERVED_SLUGS.include?(self.class.normalize(entry.slug))
+
+        entry.slug = unique_slug(entry.slug, entry)
+      end
+    end
+
     def malformed(detail)
       raise OKF::Error, "malformed registry at #{@path}: #{detail}"
     end
@@ -265,9 +332,7 @@ module OKF
     def write
       FileUtils.mkdir_p(File.dirname(@path))
       rows = @entries.map { |entry| { "slug" => entry.slug, "path" => entry.path, "title" => entry.title } }
-      payload = {}
-      payload["default"] = @default_slug if @default_slug
-      payload["bundles"] = rows
+      payload = { "bundles" => rows }
       tmp = "#{@path}.tmp-#{Process.pid}"
       begin
         File.write(tmp, JSON.pretty_generate(payload) + "\n")
