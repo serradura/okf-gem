@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-17T14:00:00Z
+timestamp: 2026-07-17T17:00:00Z
 ---
 
 # Overview
@@ -65,18 +65,27 @@ The hub reads its bundles **at boot**. Registering or editing one is not picked 
 by a running server — restart it. That is the honest tradeoff for a hub that never
 re-scans disk per request.
 
-# Switching bundles is a server-only affordance
+# One palette, every mode
 
-Under a hub, each `App` is built carrying the *other* bundles as siblings, and the
-page grows a command palette (`Cmd/Ctrl-K`, or the rail button) to filter and open
-one — `Cmd/Ctrl-Enter` opens it in a new tab, and a count badge advertises the
-palette until it has been opened once.
+`Cmd/Ctrl-K` (or the rail button) opens a command palette in **every** mode —
+hub, single bundle, static render. It began as the hub's bundle switcher, gated
+on the hub's presence, which left the two modes most people meet first with no
+palette at all; now the palette is universal and *bundles* are the group that
+comes and goes. Under a hub, each `App` is built carrying the *other* bundles as
+siblings: bundles lead the list and own the empty box, `Cmd/Ctrl-Enter` opens
+one in a new tab, and a count badge advertises the palette until it has been
+opened once. Views ride underneath, each carrying the rail's own icon and label
+— read from the rail, so the two cannot drift — and where there is no hub, views
+become the whole list. What never appears is a dead end: a standalone page
+injects an empty sibling list, so the palette offers a bundle only where its
+host can answer with one — the same one-template-two-modes discipline `EMBED`
+follows.
 
-The switcher exists only where switching is *possible*. A single bundle and a
-static `okf render` file inject an empty sibling list, so the affordance never
-appears where there is nowhere to go — the same
-one-template-two-modes discipline `EMBED` follows: the page adapts to what its
-host can answer, rather than offering a control that would dead-end.
+The keyboard reaches the rest of the page the same way: `/` focuses the current
+view's search where it has one, and `?` answers with a sheet of every binding —
+reachable from a rail button too, because a shortcut list you can only open with
+a shortcut helps whoever needs it least. The sheet is written against the key
+handler it documents, so it cannot drift from what the keys do.
 
 # Links navigate in-app; the graph has a second mode
 
