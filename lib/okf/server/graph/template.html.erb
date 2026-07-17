@@ -641,7 +641,12 @@ const types=Object.keys(TYPES).sort();
 const color=Object.fromEntries(types.map((t,i)=>[t,PALETTE[i%PALETTE.length]]));
 const deg=id=>(outL[id]||[]).length+(inL[id]||[]).length;
 const szOf=id=>Math.max(MIN,Math.min(MAX,MIN+deg(id)*4));
-const esc=s=>(s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+// Quotes included, because this escape feeds attributes as well as text:
+// `href="${esc(...)}"` breaks out of its own quoting the moment one survives.
+// The Ruby half of the page escapes the same set (Rack::Utils.escape_html), and
+// an escape whose safety depends on where the caller happens to interpolate it
+// is the shape of the XSS this page's trust boundary exists to refuse.
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cvar=n=>getComputedStyle(root).getPropertyValue(n).trim();
 const isDark=()=>root.getAttribute('data-theme')==='dark';
 const reduce=()=>matchMedia('(prefers-reduced-motion:reduce)').matches;
