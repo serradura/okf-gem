@@ -122,6 +122,10 @@
  #btn-controls{display:none;flex:none}
  #btn-controls[aria-expanded=true]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
  #search-wrap{display:flex;flex:1}
+ /* Stats is the one view that does not filter, so it hides the box rather than
+    offering a dead one. Mirrors SEARCH_PH in the script — a view listed there
+    shows it — and "index" needs no rule of its own: it is the files view on
+    another tab, and filters as files. */
  #app[data-view=stats] #search-wrap{visibility:hidden}
  #btn-theme .sun{display:none} :root[data-theme=dark] #btn-theme .sun{display:block} :root[data-theme=dark] #btn-theme .moon{display:none}
  #btn-full .compress{display:none} #btn-full[aria-pressed=true] .compress{display:block} #btn-full[aria-pressed=true] .expand{display:none}
@@ -275,6 +279,21 @@
  #sw-list a.cur:hover{background:none}
  #sw-list a.none{color:var(--muted);cursor:default;font-size:13px}
  .sw-def{margin-left:7px;padding:1px 7px;border-radius:99px;background:var(--line-2);color:var(--muted);font-size:11px;vertical-align:1px}
+
+ /* ── the ? sheet — same overlay shape as the palette, one row per binding ── */
+ #kb{position:fixed;inset:0;z-index:91;background:rgba(0,0,0,.34);display:flex;align-items:flex-start;justify-content:center;padding-top:14vh}
+ #kb[hidden]{display:none}
+ #kb-box{width:min(420px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px 16px}
+ #kb-head{display:flex;align-items:center;margin-bottom:12px}
+ #kb-head h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.02em}
+ #kb-head .btn{margin-left:auto;width:28px;height:28px}
+ /* the key column sizes to the widest chord, so every description starts on one
+    line and the sheet reads as a table without drawing one */
+ #kb-list{margin:0;display:grid;grid-template-columns:auto 1fr;gap:9px 14px;align-items:center}
+ #kb-list dt{justify-self:start}
+ #kb-list dd{margin:0;font-size:13px;color:var(--muted)}
+ #kb-list kbd{display:inline-block;min-width:22px;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+  color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:2px 6px}
  .sw-hint{margin:9px 2px 2px;font-size:11.5px;color:var(--faint)}
  /* ── bundle-count badge (hub only) ── */
  #btn-switch{position:relative}
@@ -488,6 +507,8 @@
    <button class="btn" id="btn-full" type="button" aria-label="Toggle full screen" aria-pressed="false">
     <svg class="expand" viewBox="0 0 24 24"><path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4"/></svg>
     <svg class="compress" viewBox="0 0 24 24"><path d="M4 8h4V4M20 8h-4V4M4 16h4v4M20 16h-4v4"/></svg></button>
+   <button class="btn" id="btn-help" type="button" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.2 9.4a2.9 2.9 0 0 1 5.6 1c0 1.9-2.8 2.3-2.8 3.9"/><circle cx="12" cy="17.3" r=".95" fill="currentColor" stroke="none"/></svg></button>
   </div>
  </nav>
 
@@ -652,6 +673,14 @@
   <input id="sw-input" class="field" placeholder="switch bundle…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sw-list" aria-label="Switch bundle">
   <ul id="sw-list" role="listbox"></ul>
   <p class="sw-hint" id="sw-hint">↑↓ move · ⏎ open · ⌘/Ctrl-⏎ new tab · Esc close</p>
+ </div>
+</div>
+
+<div id="kb" hidden role="dialog" aria-modal="true" aria-labelledby="kb-h">
+ <div id="kb-box">
+  <div id="kb-head"><h3 id="kb-h">Keyboard</h3>
+   <button class="btn" id="kb-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <dl id="kb-list"></dl>
  </div>
 </div>
 
@@ -1141,11 +1170,16 @@ document.getElementById('btn-fit').onclick=fitGraph;
 /* ── view switching ── */
 let view='graph';
 const inited={};
+/* Which views have a search, and what it is called there — one table, because
+   three things need the same answer: the placeholder, whether `/` has anywhere
+   to go, and (mirrored in CSS) whether the box is shown at all. Stats is the
+   only view absent here: it reads, it does not filter. */
+const SEARCH_PH={graph:'search concepts…',catalog:'search concepts…',files:'filter files…',tags:'search tags…'};
 function goToGraph(id){setView('graph');requestAnimationFrame(()=>select(id));}
 function setView(v){if(v===view)return;view=v;document.getElementById('app').setAttribute('data-view',v);
  railActive();ctlBadge();
  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
- const ph={graph:'search concepts…',catalog:'search concepts…',files:'filter files…',tags:'search tags…'}[v];
+ const ph=SEARCH_PH[v];
  if(ph!==undefined){searchInput.placeholder=ph;searchInput.value=q[v]||'';}
  if(v==='graph')requestAnimationFrame(()=>cy.resize());
  if(v==='catalog'&&!inited.catalog)initCatalog();
@@ -1154,7 +1188,18 @@ function setView(v){if(v===view)return;view=v;document.getElementById('app').set
  if(v==='stats'&&!inited.stats)initStats();}
 /* The Files view answers to two rail items: Files when the Files tab is up,
    Index when the Indexes tab is — the Index rail item is a shortcut into it. */
-function railActive(){const v=view==='files'&&typeof ftab!=='undefined'&&ftab==='indexes'?'index':view;
+/* Which rail item the page is standing on. "index" is not a view — there is no
+   #view-index — but the files view showing its Indexes tab, so the answer is a
+   question of view *and* tab. Everything that has to name the current place
+   asks here: the rail's own highlight, and the palette's `current` badge. */
+function activeRail(){return view==='files'&&typeof ftab!=='undefined'&&ftab==='indexes'?'index':view;}
+/* And everything that has to *go* somewhere clicks the rail item rather than
+   calling setView: Index and Files are one view differing by tab, so setView
+   alone lands on whichever tab was last open — and for "index" it lands on a
+   view that does not exist. The rail button already gets this right; this is
+   how the keyboard and the palette borrow it instead of drifting from it. */
+function goRail(v){const b=document.querySelector('.rail-item[data-view="'+v+'"]');if(b)b.click();}
+function railActive(){const v=activeRail();
  document.querySelectorAll('.rail-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));}
 function goIndexes(){if(view!=='files')setView('files');setFtab('indexes');railActive();}
 document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>{
@@ -1471,7 +1516,7 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
    h+=vs.map((x,i)=>opt(bs.length+i,{
     cls:HUB?' sw-view':'',
     attrs:`data-view="${esc(x.v)}"`,
-    html:`<span class="sw-ico">${x.icon}</span><span>${esc(x.label)}${x.v===view?'<span class="sw-def">current</span>':''}</span>`})).join('');
+    html:`<span class="sw-ico">${x.icon}</span><span>${esc(x.label)}${x.v===activeRail()?'<span class="sw-def">current</span>':''}</span>`})).join('');
   }
   if(!h)h='<a class="none"><span>no matches</span></a>';
   list.innerHTML=h;mark();}
@@ -1489,7 +1534,7 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
     bundle again in a second tab is not what ⌘⏎ was asked for. A bundle is a real
     navigation and honours it. */
  function go(a,newTab){if(!a)return;
-  const v=a.dataset.view;if(v){setView(v);close();return;}
+  const v=a.dataset.view;if(v){goRail(v);close();return;}
   const p=a.dataset.path;if(!p)return;const t=target(p);
   if(newTab){window.open(t,'_blank');close();}else{location.href=t;}}
  input.addEventListener('input',()=>{active=0;render(input.value);});
@@ -1592,14 +1637,45 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
 })();
 
 /* ── keyboard ── */
-const VIEW_KEYS={'1':'graph','3':'files','4':'catalog','5':'tags','6':'stats'};
+/* 2 is no longer a special case: every one of these goes through the rail, so
+   `3` reaches the Files tab from the Indexes tab — it used to call setView
+   ('files') while already on it, early-return, and do nothing at all. */
+const VIEW_KEYS={'1':'graph','2':'index','3':'files','4':'catalog','5':'tags','6':'stats'};
 const swModal=document.getElementById('sw');
+/* The ? sheet reads this, and it is written directly against the handler below
+   because the two have to move together: a shortcut list that has drifted from
+   the keys is worse than no list, since it is believed. Anything bound down
+   there earns a line up here. */
+const KEYS=[
+ [ '1 – 6', 'switch view — graph, index, files, catalog, tags, stats' ],
+ [ '/', 'search the current view (where it has one)' ],
+ [ '\\', 'show or hide the inspector — graph' ],
+ [ '0', 'fit the graph to the screen — graph' ],
+ [ 'f', 'fullscreen' ],
+ [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K', HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
+ [ '?', 'this list' ],
+ [ 'Esc', 'close whatever is open' ]
+];
+const kb=document.getElementById('kb');
+let kbLast=null;
+function kbOpen(){document.getElementById('kb-list').innerHTML=KEYS.map(r=>`<dt><kbd>${esc(r[0])}</kbd></dt><dd>${esc(r[1])}</dd>`).join('');
+ kbLast=document.activeElement;kb.hidden=false;document.getElementById('kb-x').focus();}
+function kbClose(){kb.hidden=true;if(kbLast&&kbLast.focus)kbLast.focus();}
+document.getElementById('kb-x').onclick=kbClose;
+/* the rail's ? is the only way in that does not require already knowing the key
+   — a shortcut sheet reachable only by shortcut helps whoever needs it least */
+document.getElementById('btn-help').onclick=()=>{kb.hidden?kbOpen():kbClose();};
+kb.addEventListener('mousedown',e=>{if(e.target===kb)kbClose();});
 addEventListener('keydown',e=>{if(!dgv.hidden){if(e.key==='Escape')closeDiagram();return;}
  if(swModal&&!swModal.hidden)return; /* the bundle switcher is modal — no shortcuts leak behind it */
+ /* modal too, and ? closes what ? opened */
+ if(!kb.hidden){if(e.key==='Escape'||e.key==='?'){e.preventDefault();kbClose();}return;}
  if(e.target.matches('input,select,textarea'))return;
- if(e.key==='2'){goIndexes();}
- else if(VIEW_KEYS[e.key]){setView(VIEW_KEYS[e.key]);}
- else if(e.key==='/'){e.preventDefault();searchInput.focus();}
+ if(VIEW_KEYS[e.key]){goRail(VIEW_KEYS[e.key]);}
+ /* only where there is something to focus: stats hides the box, and a key that
+    silently focuses nothing reads as a broken shortcut */
+ else if(e.key==='/'&&SEARCH_PH[view]){e.preventDefault();searchInput.focus();}
+ else if(e.key==='?'){e.preventDefault();kbOpen();}
  else if(e.key==='\\'&&view==='graph'){setSide(gbody.getAttribute('data-side')==='hidden'?'default':'hidden');}
  else if(e.key==='0'&&view==='graph'){fitGraph();}
  else if(e.key==='f'){btnFull.click();}});
