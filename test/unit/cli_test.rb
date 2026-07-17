@@ -6,14 +6,20 @@ require "okf/cli"
 require "stringio"
 
 class OKF::CLITest < OKF::TestCase
+  # $OKF_HOME is the CLI's only lever on the registry, so it is pinned for every
+  # test, not just the registry ones: a verb that reaches the registry must never
+  # be one missed stub away from reading or writing the real ~/.okf.
   setup do
     @tmpdir = Dir.mktmpdir("okf-cli-test")
     @home = Dir.mktmpdir("okf-cli-home")
+    @okf_home_was = ENV.fetch("OKF_HOME", nil)
+    ENV["OKF_HOME"] = @home
     @out = StringIO.new
     @err = StringIO.new
   end
 
   teardown do
+    @okf_home_was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = @okf_home_was
     FileUtils.rm_rf(@tmpdir)
     FileUtils.rm_rf(@home)
   end
@@ -104,7 +110,7 @@ class OKF::CLITest < OKF::TestCase
     write("bad.md", "no frontmatter here\n")
 
     assert_equal 0, invoke("render", @tmpdir)
-    assert_match(/skipped 1 file/, @err.string)
+    assert_match(/skipped 1 unusable file/, @err.string)
     assert_includes @out.string, "<!doctype html"
   end
 
@@ -129,7 +135,7 @@ class OKF::CLITest < OKF::TestCase
 
     assert_equal 0, invoke("graph", @tmpdir)
     assert_match(/1 concept/, @out.string)
-    assert_match(/skipped 1 file/, @err.string)
+    assert_match(/skipped 1 unusable file/, @err.string)
   end
 
   test "graph --json prints nodes and edges" do
@@ -407,7 +413,7 @@ class OKF::CLITest < OKF::TestCase
     write("bad.md", "no frontmatter here\n")
 
     assert_equal 0, invoke("index", @tmpdir)
-    assert_match(/skipped 1 file/, @err.string)
+    assert_match(/skipped 1 unusable file/, @err.string)
   end
 
   test "index rejects a missing directory (exit 2)" do
@@ -581,7 +587,7 @@ class OKF::CLITest < OKF::TestCase
   test "registry set adds a bundle to the registry and reports its slug" do
     write("one/a.md", concept)
 
-    assert_equal 0, invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    assert_equal 0, invoke("registry", "set", File.join(@tmpdir, "one"))
     assert_match(/registered one/, @out.string)
     assert_equal [ "one" ], OKF::Registry.load(home: @home).slugs
   end
@@ -589,22 +595,22 @@ class OKF::CLITest < OKF::TestCase
   test "registry set --as sets the slug; a missing dir is a usage error (exit 2)" do
     write("one/a.md", concept)
 
-    assert_equal 0, invoke("registry", "set", File.join(@tmpdir, "one"), "--as", "uno", "--home", @home)
+    assert_equal 0, invoke("registry", "set", File.join(@tmpdir, "one"), "--as", "uno")
     assert_equal [ "uno" ], OKF::Registry.load(home: @home).slugs
 
-    assert_equal 2, invoke("registry", "set", File.join(@tmpdir, "ghost"), "--home", @home)
+    assert_equal 2, invoke("registry", "set", File.join(@tmpdir, "ghost"))
   end
 
   test "registry lists registered bundles, and --json emits them with mount paths" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
 
     @out = StringIO.new
-    assert_equal 0, invoke("registry", "--home", @home)
+    assert_equal 0, invoke("registry")
     assert_match(/^\* one\s/, @out.string, "the sole bundle is the default, starred")
 
     @out = StringIO.new
-    assert_equal 0, invoke("registry", "--json", "--home", @home)
+    assert_equal 0, invoke("registry", "--json")
     payload = JSON.parse(@out.string)
     assert_equal File.join(@home, "registry.json"), payload["registry"], "the envelope names the file it read"
     assert_equal 1, payload["count"]
@@ -618,23 +624,23 @@ class OKF::CLITest < OKF::TestCase
 
   test "registry list is the explicit spelling of the bare listing" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
 
     @out = StringIO.new
-    assert_equal 0, invoke("registry", "list", "--home", @home)
+    assert_equal 0, invoke("registry", "list")
     assert_match(/^\* one\s/, @out.string)
 
     @out = StringIO.new
-    assert_equal 0, invoke("registry", "list", "--json", "--home", @home)
+    assert_equal 0, invoke("registry", "list", "--json")
     assert_equal [ "one" ], JSON.parse(@out.string)["bundles"].map { |row| row["slug"] }
   end
 
   test "registry list --json keeps the object envelope every other --json view uses" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
     @out = StringIO.new
 
-    assert_equal 0, invoke("registry", "list", "--json", "--home", @home)
+    assert_equal 0, invoke("registry", "list", "--json")
     payload = JSON.parse(@out.string)
     assert_kind_of Hash, payload, "a bare array would break the CLI's one JSON shape"
     assert_equal %w[bundles count registry], payload.keys.sort
@@ -655,12 +661,12 @@ class OKF::CLITest < OKF::TestCase
   test "registry set keys on the path: a known dir is updated in place, not duplicated" do
     write("one/a.md", concept)
     dir = File.join(@tmpdir, "one")
-    invoke("registry", "set", dir, "--home", @home)
+    invoke("registry", "set", dir)
 
     # Re-setting the same path renames it rather than adding a second entry —
     # this is what lets `set` stand in for a rename without a slug positional.
     @out = StringIO.new
-    assert_equal 0, invoke("registry", "set", dir, "--as", "uno", "--home", @home)
+    assert_equal 0, invoke("registry", "set", dir, "--as", "uno")
     reg = OKF::Registry.load(home: @home)
     assert_equal [ "uno" ], reg.slugs
     assert_equal 1, reg.size
@@ -668,7 +674,7 @@ class OKF::CLITest < OKF::TestCase
   end
 
   test "an unknown registry subcommand is a usage error, not a silent listing" do
-    assert_equal 2, invoke("registry", "remove", "docs", "--home", @home)
+    assert_equal 2, invoke("registry", "remove", "docs")
     assert_match(/unknown registry subcommand 'remove'/, @err.string)
     assert_match(/expected: set, del, list, default, rename/, @err.string)
   end
@@ -677,7 +683,7 @@ class OKF::CLITest < OKF::TestCase
     write("one/a.md", concept)
     write("two/a.md", concept)
 
-    assert_equal 2, invoke("registry", "set", File.join(@tmpdir, "one"), File.join(@tmpdir, "two"), "--home", @home)
+    assert_equal 2, invoke("registry", "set", File.join(@tmpdir, "one"), File.join(@tmpdir, "two"))
     assert_match(/unexpected argument/, @err.string)
     assert_equal 0, OKF::Registry.load(home: @home).size, "nothing was half-registered"
   end
@@ -688,7 +694,7 @@ class OKF::CLITest < OKF::TestCase
 
     [ %w[registry], %w[registry del x], %w[registry default x], %w[registry rename a b], %w[server] ].each do |argv|
       @err = StringIO.new
-      assert_equal 2, invoke(*argv, "--home", @home), "#{argv.join(" ")} exit code"
+      assert_equal 2, invoke(*argv), "#{argv.join(" ")} exit code"
       assert_match(/error: malformed registry/, @err.string, argv.join(" "))
     end
   end
@@ -696,17 +702,17 @@ class OKF::CLITest < OKF::TestCase
   test "a registered directory that vanished is flagged in the list and skipped by the server" do
     write("one/a.md", concept)
     write("two/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--default", "--home", @home)
-    invoke("registry", "set", File.join(@tmpdir, "two"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"), "--default")
+    invoke("registry", "set", File.join(@tmpdir, "two"))
     FileUtils.rm_rf(File.join(@tmpdir, "one"))
 
     @out = StringIO.new
-    invoke("registry", "--home", @home)
+    invoke("registry")
     assert_match(/one.*\(missing\)/, @out.string)
 
     captured = []
     cli = OKF::CLI.new(out: @out, err: @err, runner: ->(app, _host, _port) { captured << app })
-    assert_equal 0, cli.run([ "server", "--home", @home ])
+    assert_equal 0, cli.run([ "server" ])
     assert_match(/note: skipping one/, @err.string)
     status, headers, = captured.first.call("REQUEST_METHOD" => "GET", "PATH_INFO" => "/", "QUERY_STRING" => "", "rack.input" => StringIO.new(""))
     assert_equal 302, status
@@ -716,70 +722,70 @@ class OKF::CLITest < OKF::TestCase
   test "registry default switches the starred bundle; an unknown slug is a usage error" do
     write("one/a.md", concept)
     write("two/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
-    invoke("registry", "set", File.join(@tmpdir, "two"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
+    invoke("registry", "set", File.join(@tmpdir, "two"))
 
-    assert_equal 0, invoke("registry", "default", "two", "--home", @home)
+    assert_equal 0, invoke("registry", "default", "two")
     assert_match(/default bundle → two/, @out.string)
 
     @out = StringIO.new
-    invoke("registry", "--home", @home)
+    invoke("registry")
     assert_match(/^\* two\s/, @out.string)
     assert_match(/^ {2}one\s/, @out.string)
 
-    assert_equal 2, invoke("registry", "default", "ghost", "--home", @home)
+    assert_equal 2, invoke("registry", "default", "ghost")
     assert_match(/no such bundle: ghost/, @err.string)
   end
 
   test "registry set --default takes the default from the incumbent" do
     write("one/a.md", concept)
     write("two/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
 
-    assert_equal 0, invoke("registry", "set", File.join(@tmpdir, "two"), "--default", "--home", @home)
+    assert_equal 0, invoke("registry", "set", File.join(@tmpdir, "two"), "--default")
     assert_equal "two", OKF::Registry.load(home: @home).default.slug
   end
 
   test "registry rename changes the slug; unknown and missing args are usage errors" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
 
-    assert_equal 0, invoke("registry", "rename", "one", "uno", "--home", @home)
+    assert_equal 0, invoke("registry", "rename", "one", "uno")
     assert_match(/renamed one → uno/, @out.string)
     assert_equal [ "uno" ], OKF::Registry.load(home: @home).slugs
 
-    assert_equal 2, invoke("registry", "rename", "ghost", "x", "--home", @home)
-    assert_equal 2, invoke("registry", "rename", "uno", "--home", @home)
+    assert_equal 2, invoke("registry", "rename", "ghost", "x")
+    assert_equal 2, invoke("registry", "rename", "uno")
   end
 
   test "a bare server honours the registry's chosen default at /" do
     write("one/a.md", concept)
     write("two/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
-    invoke("registry", "set", File.join(@tmpdir, "two"), "--home", @home)
-    invoke("registry", "default", "two", "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
+    invoke("registry", "set", File.join(@tmpdir, "two"))
+    invoke("registry", "default", "two")
     captured = []
     cli = OKF::CLI.new(out: @out, err: @err, runner: ->(app, _host, _port) { captured << app })
 
-    assert_equal 0, cli.run([ "server", "--home", @home ])
+    assert_equal 0, cli.run([ "server" ])
     status, headers, = captured.first.call("REQUEST_METHOD" => "GET", "PATH_INFO" => "/", "QUERY_STRING" => "", "rack.input" => StringIO.new(""))
     assert_equal 302, status
     assert_equal "/b/two/", headers["location"]
   end
 
   test "registry with nothing registered says so" do
-    assert_equal 0, invoke("registry", "--home", @home)
+    assert_equal 0, invoke("registry")
     assert_match(/no bundles registered/, @out.string)
   end
 
   test "registry del removes a bundle; an unknown slug is a usage error (exit 2)" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
 
-    assert_equal 0, invoke("registry", "del", "one", "--home", @home)
+    assert_equal 0, invoke("registry", "del", "one")
     assert_empty OKF::Registry.load(home: @home).slugs
 
-    assert_equal 2, invoke("registry", "del", "ghost", "--home", @home)
+    assert_equal 2, invoke("registry", "del", "ghost")
     assert_match(/no such bundle: ghost/, @err.string)
   end
 
@@ -801,9 +807,8 @@ class OKF::CLITest < OKF::TestCase
     write("two/a.md", concept)
     cli = OKF::CLI.new(out: @out, err: @err, runner: ->(*) {})
 
-    cli.run([ "server", File.join(@tmpdir, "one"), File.join(@tmpdir, "two"), "-t", "T", "--home", @home ])
+    cli.run([ "server", File.join(@tmpdir, "one"), File.join(@tmpdir, "two"), "-t", "T" ])
     assert_match(/note: --title\/--link apply to a single-bundle server/, @err.string)
-    assert_match(/note: --home applies to a bundle-less run/, @err.string)
   end
 
   test "the same directory passed twice mounts once" do
@@ -819,80 +824,70 @@ class OKF::CLITest < OKF::TestCase
     write("one/a.md", concept)
     FileUtils.mkdir_p(File.join(@tmpdir, "empty"))
 
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
     assert_match(/\(1 concept\)/, @out.string)
 
     @out = StringIO.new
-    invoke("registry", "set", File.join(@tmpdir, "empty"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "empty"))
     assert_match(/\(0 concepts\)/, @out.string)
   end
 
   # -- @refs: any <bundle-dir> positional resolves a registered bundle by slug.
-  # Refs read the registry through $OKF_HOME, so these pin it to @home.
+  # Refs read the registry through $OKF_HOME, pinned at @home by setup.
 
   test "@slug points any verb at a registered bundle" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
 
-    with_registry_home do
-      assert_equal 0, invoke("lint", "@one")
-      assert_match(/concepts: 1/, @out.string)
-    end
+    assert_equal 0, invoke("lint", "@one")
+    assert_match(/concepts: 1/, @out.string)
   end
 
   test "bare @ resolves to the registry default" do
     write("one/a.md", concept)
     write("two/a.md", concept)
     write("two/b.md", concept("B"))
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
-    invoke("registry", "set", File.join(@tmpdir, "two"), "--default", "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
+    invoke("registry", "set", File.join(@tmpdir, "two"), "--default")
 
-    with_registry_home do
-      assert_equal 0, invoke("stats", "@")
-      assert_match(/concepts\s+2/, @out.string, "@ picks the chosen default, not the first entry")
-    end
+    assert_equal 0, invoke("stats", "@")
+    assert_match(/concepts\s+2/, @out.string, "@ picks the chosen default, not the first entry")
   end
 
   test "an unknown @ref is a usage error that points at the registry" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
 
-    with_registry_home do
-      assert_equal 2, invoke("lint", "@ghost")
-      assert_match(%r{not a registered bundle: @ghost in \S*registry\.json \(okf registry list\)}, @err.string,
-        "the error names the registry file consulted, so a $OKF_HOME mismatch self-diagnoses")
-    end
+    assert_equal 2, invoke("lint", "@ghost")
+    assert_match(%r{not a registered bundle: @ghost in \S*registry\.json \(okf registry list\)}, @err.string,
+      "the error names the registry file consulted, so a $OKF_HOME mismatch self-diagnoses")
   end
 
   test "a bundle named by @ref is identified as one in human output and JSON" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--as", "handbook", "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"), "--as", "handbook")
     dir = File.join(@tmpdir, "one")
 
     @out = StringIO.new
-    with_registry_home do
-      assert_equal 0, invoke("lint", "@handbook")
-      assert_match(/OKF lint — @handbook \(#{Regexp.escape(dir)}\)/, @out.string,
-        "the header answers in the identity the caller used")
+    assert_equal 0, invoke("lint", "@handbook")
+    assert_match(/OKF lint — @handbook \(#{Regexp.escape(dir)}\)/, @out.string,
+      "the header answers in the identity the caller used")
 
-      @out = StringIO.new
-      assert_equal 0, invoke("catalog", "@handbook", "--json")
-      payload = JSON.parse(@out.string)
-      assert_equal "handbook", payload["slug"], "slug always means a registry slug"
-      assert_equal dir, payload["bundle"], "bundle always means the directory"
-    end
+    @out = StringIO.new
+    assert_equal 0, invoke("catalog", "@handbook", "--json")
+    payload = JSON.parse(@out.string)
+    assert_equal "handbook", payload["slug"], "slug always means a registry slug"
+    assert_equal dir, payload["bundle"], "bundle always means the directory"
   end
 
   test "a bundle named by path carries no slug — a name it was never given is not invented" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--as", "handbook", "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"), "--as", "handbook")
     @out = StringIO.new
 
     # Registered, but named by path: resolving the slug would cost a registry
     # read on every plain-dir run, and the caller did not ask by that name.
-    with_registry_home do
-      assert_equal 0, invoke("catalog", File.join(@tmpdir, "one"), "--json")
-    end
+    assert_equal 0, invoke("catalog", File.join(@tmpdir, "one"), "--json")
     payload = JSON.parse(@out.string)
     refute payload.key?("slug")
     assert_equal File.join(@tmpdir, "one"), payload["bundle"]
@@ -900,43 +895,35 @@ class OKF::CLITest < OKF::TestCase
 
   test "an @ref is slugified like registration was — @One finds the bundle from dir One" do
     write("One/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "One"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "One"))
 
-    with_registry_home do
-      assert_equal 0, invoke("lint", "@One")
-    end
+    assert_equal 0, invoke("lint", "@One")
   end
 
   test "an @ref against an empty registry hints at registry set" do
-    with_registry_home do
-      assert_equal 2, invoke("validate", "@")
-      assert_match(/okf registry set/, @err.string)
-    end
+    assert_equal 2, invoke("validate", "@")
+    assert_match(/okf registry set/, @err.string)
   end
 
   test "an @ref whose registered directory is gone is a usage error, not a skip" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
     FileUtils.rm_rf(File.join(@tmpdir, "one"))
 
-    with_registry_home do
-      assert_equal 2, invoke("lint", "@one")
-      assert_match(/@one points to .*, which is not a directory \(okf registry del one/, @err.string,
-        "the error names the next move")
-    end
+    assert_equal 2, invoke("lint", "@one")
+    assert_match(/@one points to .*, which is not a directory \(okf registry del one/, @err.string,
+      "the error names the next move")
   end
 
   test "ref slugs do not leak between runs on a reused CLI instance" do
     write("one/a.md", concept)
     write("two/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--as", "uno", "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"), "--as", "uno")
     captured = []
     cli = OKF::CLI.new(out: @out, err: @err, runner: ->(app, *) { captured << app })
 
-    with_registry_home do
-      assert_equal 0, cli.run([ "lint", "@uno" ])
-      assert_equal 0, cli.run([ "server", File.join(@tmpdir, "one"), File.join(@tmpdir, "two") ])
-    end
+    assert_equal 0, cli.run([ "lint", "@uno" ])
+    assert_equal 0, cli.run([ "server", File.join(@tmpdir, "one"), File.join(@tmpdir, "two") ])
     assert_match(%r{/b/one/}, @out.string)
     refute_match(%r{/b/uno/}, @out.string, "a plain-dir server must not inherit an earlier run's ref slug")
   end
@@ -944,87 +931,78 @@ class OKF::CLITest < OKF::TestCase
   test "a registered slug owns its mount — an unregistered dir of the same name takes the suffix" do
     write("two/a.md", concept)
     write("other/two/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "two"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "two"))
     cli = OKF::CLI.new(out: @out, err: @err, runner: ->(*) {})
 
-    with_registry_home do
-      # The plain dir leads, so argv order would hand it /b/two/ — but the ref
-      # reserved that slug, and a bookmark to /b/two/ must keep meaning @two.
-      assert_equal 0, cli.run([ "server", File.join(@tmpdir, "other", "two"), "@two" ])
-    end
+    # The plain dir leads, so argv order would hand it /b/two/ — but the ref
+    # reserved that slug, and a bookmark to /b/two/ must keep meaning @two.
+    assert_equal 0, cli.run([ "server", File.join(@tmpdir, "other", "two"), "@two" ])
     refute_match(%r{/b/two/\s+other/two}, @out.string, "the unregistered dir must not take the registered slug")
     assert_match(%r{/b/two-2/\s+other/two}, @out.string, "it takes the suffix instead")
   end
 
   test "a punctuation-only @ref is unknown, not the bundle slugged 'bundle'" do
     write("gamma/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "gamma"), "--as", "bundle", "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "gamma"), "--as", "bundle")
 
-    with_registry_home do
-      assert_equal 2, invoke("search", "@***", "hi")
-      assert_match(/not a registered bundle: @\*\*\*/, @err.string)
-    end
+    assert_equal 2, invoke("search", "@***", "hi")
+    assert_match(/not a registered bundle: @\*\*\*/, @err.string)
   end
 
   test "a malformed registry is a usage error on an @ref verb, not a backtrace" do
     File.write(File.join(@home, "registry.json"), "not json at all")
 
-    with_registry_home do
-      assert_equal 2, invoke("validate", "@docs")
-      assert_match(/malformed registry at .*registry\.json/, @err.string)
-      refute_match(/note: searching for a literal/, @err.string)
-    end
+    assert_equal 2, invoke("validate", "@docs")
+    assert_match(/malformed registry at .*registry\.json/, @err.string)
+    refute_match(/note: searching for a literal/, @err.string)
   end
 
   test "a structurally incomplete registry entry is a usage error, not a TypeError" do
     File.write(File.join(@home, "registry.json"), '{"bundles":[{"slug":"a","title":"A"}]}')
 
-    with_registry_home do
-      assert_equal 2, invoke("registry", "list", "--home", @home)
-      assert_match(/every entry needs a "slug" and a "path"/, @err.string)
-    end
+    assert_equal 2, invoke("registry", "list")
+    assert_match(/every entry needs a "slug" and a "path"/, @err.string)
   end
 
   test "a registry subcommand behind a flag is a usage error, never a silent no-op" do
     write("one/a.md", concept)
 
-    assert_equal 2, invoke("registry", "--home", @home, "set", File.join(@tmpdir, "one"))
+    assert_equal 2, invoke("registry", "--json", "set", File.join(@tmpdir, "one"))
     assert_match(/put the subcommand first: okf registry set/, @err.string)
     refute File.exist?(File.join(@home, "registry.json")), "nothing was written"
   end
 
-  test "search --home points --all and refs at another registry" do
+  test "search points @all and refs at the registry $OKF_HOME names" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
     @out = StringIO.new
 
-    # No OKF_HOME here: --home alone must steer both forms.
-    assert_equal 0, invoke("search", "--all", "hi", "--home", @home)
+    assert_equal 0, invoke("search", "@all", "hi")
     assert_match(/@one/, @out.string)
 
     @out = StringIO.new
-    assert_equal 0, invoke("search", "@one", "hi", "--home", @home)
+    assert_equal 0, invoke("search", "@one", "hi")
     assert_match(/@one/, @out.string)
   end
 
-  test "registry set steers its @ref with --home — one registry read and written" do
+  test "registry set reads and writes one registry — the one $OKF_HOME names" do
     write("a-docs/x.md", concept("A"))
     write("b-docs/x.md", concept("B"))
     other = Dir.mktmpdir("okf-cli-home-b")
 
     begin
-      invoke("registry", "set", File.join(@tmpdir, "a-docs"), "--as", "docs", "--home", @home)
-      invoke("registry", "set", File.join(@tmpdir, "b-docs"), "--as", "docs", "--home", other)
+      invoke("registry", "set", File.join(@tmpdir, "a-docs"), "--as", "docs")
+      with_home(other) do
+        invoke("registry", "set", File.join(@tmpdir, "b-docs"), "--as", "docs")
 
-      # @docs must mean *this* registry's docs (the one --home names), not the
-      # ambient one's — otherwise the write plants a foreign path.
-      with_registry_home do
-        assert_equal 0, invoke("registry", "set", "@docs", "--as", "manual", "--home", other)
+        # Both registries know a "docs"; @docs must mean the one being written,
+        # never the other, or the write plants a foreign path.
+        assert_equal 0, invoke("registry", "set", "@docs", "--as", "manual")
       end
       entries = OKF::Registry.load(home: other).listing
-      assert_equal [ "manual" ], entries.map { |row| row[:slug] }, "the rename lands on the --home registry's own bundle"
-      assert_equal File.join(@tmpdir, "b-docs"), entries.first[:dir], "and never adopts the ambient registry's path"
-      assert_equal [ "docs" ], OKF::Registry.load(home: @home).slugs, "the ambient registry is untouched"
+      assert_equal [ "manual" ], entries.map { |row| row[:slug] }, "the rename lands on that registry's own bundle"
+      assert_equal File.join(@tmpdir, "b-docs"), entries.first[:dir], "and never adopts the other registry's path"
+      assert_equal [ "docs" ], OKF::Registry.load(home: @home).slugs, "the registry it was pointed away from is untouched"
     ensure
       FileUtils.rm_rf(other)
     end
@@ -1032,114 +1010,100 @@ class OKF::CLITest < OKF::TestCase
 
   test "registry del takes an @ref, and still removes an entry whose directory is gone" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
     FileUtils.rm_rf(File.join(@tmpdir, "one")) # the case you most want to delete
     @out = StringIO.new
 
-    assert_equal 0, invoke("registry", "del", "@one", "--home", @home)
+    assert_equal 0, invoke("registry", "del", "@one")
     assert_match(/removed one/, @out.string)
     assert_empty OKF::Registry.load(home: @home).slugs
   end
 
   test "registry del @ resolves the default; with nothing registered it is a usage error" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
     @out = StringIO.new
 
-    assert_equal 0, invoke("registry", "del", "@", "--home", @home)
+    assert_equal 0, invoke("registry", "del", "@")
     assert_match(/removed one/, @out.string)
 
-    assert_equal 2, invoke("registry", "del", "@", "--home", @home)
+    assert_equal 2, invoke("registry", "del", "@")
     assert_match(/no bundle is registered, so `@` names nothing/, @err.string)
   end
 
-  test "an unexpandable --home or slug is a usage error (exit 2), never a backtrace" do
+  test "an unexpandable slug is a usage error (exit 2), never a backtrace" do
     # exit 1 means "failing bundle"; a bad argument must not borrow that code.
-    assert_equal 2, invoke("registry", "list", "--home", "~nosuchuser")
-    assert_match(/cannot expand ~nosuchuser/, @err.string)
-
     # `del` only reaches the path comparison once an entry exists to compare
     # against; on an empty registry it answers "no such bundle" without ever
     # expanding.
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
     @err = StringIO.new
-    assert_equal 2, invoke("registry", "del", "~nosuchuser", "--home", @home)
+    assert_equal 2, invoke("registry", "del", "~nosuchuser")
     assert_match(/cannot expand ~nosuchuser/, @err.string)
   end
 
   test "an unexpandable $OKF_HOME is a usage error on a verb that takes an @ref" do
-    was = ENV.fetch("OKF_HOME", nil)
-    begin
-      ENV["OKF_HOME"] = "~nosuchuser"
+    with_home("~nosuchuser") do
       assert_equal 2, invoke("lint", "@docs")
       assert_match(/cannot expand ~nosuchuser/, @err.string)
-    ensure
-      was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = was
     end
   end
 
   test "registry list rejects a stray positional instead of answering the unfiltered list" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
     @out = StringIO.new
 
-    assert_equal 2, invoke("registry", "list", "one", "--home", @home)
+    assert_equal 2, invoke("registry", "list", "one")
     assert_match(/unexpected argument 'one'/, @err.string)
     assert_equal "", @out.string, "no list is printed when the ask was not understood"
   end
 
-  test "search --all notes a directory-shaped term but still searches — the cwd never decides" do
+  test "after @all every positional is a term, even one that names a directory — silently" do
     write("one/a.md", concept)
     write("lib/a.md", concept("Lib"))
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
 
-    # A term that happens to name a directory is legitimate under --all (every
-    # positional is a term): it must search, and only say what the grammar did.
-    with_registry_home do
-      assert_equal 0, invoke("search", "--all", File.join(@tmpdir, "lib"), "hi")
-      assert_match(/searches as a literal term — --all takes no directory/, @err.string)
-    end
+    # @all took slot 1, so nothing downstream can be read as a bundle. The old
+    # --all needed a note here because the flag flipped what slot 1 meant; a ref
+    # cannot flip it, so there is nothing left to warn about.
+    assert_equal 0, invoke("search", "@all", File.join(@tmpdir, "lib"), "hi")
+    refute_match(/searches as a literal term/, @err.string)
   end
 
-  test "the same --all search succeeds regardless of the directory it runs from" do
+  test "the same @all search succeeds regardless of the directory it runs from" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
     FileUtils.mkdir_p(File.join(@tmpdir, "hi")) # the term now names a cwd entry
 
-    with_registry_home do
-      Dir.chdir(@tmpdir) do
-        assert_equal 0, invoke("search", "--all", "hi"), "a cwd directory named like the term must not fail the search"
-      end
+    Dir.chdir(@tmpdir) do
+      assert_equal 0, invoke("search", "@all", "hi"), "a cwd directory named like the term must not fail the search"
     end
   end
 
   test "server with @refs mounts each bundle under its registered slug" do
     write("one/a.md", concept)
     write("two/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--as", "uno", "--home", @home)
-    invoke("registry", "set", File.join(@tmpdir, "two"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"), "--as", "uno")
+    invoke("registry", "set", File.join(@tmpdir, "two"))
     captured = []
     cli = OKF::CLI.new(out: @out, err: @err, runner: ->(app, *) { captured << app })
 
-    with_registry_home do
-      assert_equal 0, cli.run([ "server", "@uno", "@two" ])
-    end
+    assert_equal 0, cli.run([ "server", "@uno", "@two" ])
     assert_kind_of OKF::Server::Hub, booted_app(captured.first)
     assert_match(%r{/b/uno/}, @out.string, "the mount carries the registry slug, not the dir basename")
   end
 
-  # -- registry-mode search: leading @refs or --all span several bundles.
+  # -- registry-mode search: leading @refs, @all among them, span several bundles.
 
   test "search with several @refs merges the rankings and labels each row" do
     write("one/a.md", concept("Alpha"))
     write("two/a.md", concept("Beta"))
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
-    invoke("registry", "set", File.join(@tmpdir, "two"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
+    invoke("registry", "set", File.join(@tmpdir, "two"))
 
-    with_registry_home do
-      assert_equal 0, invoke("search", "@one", "@two", "hi")
-    end
+    assert_equal 0, invoke("search", "@one", "@two", "hi")
     assert_match(/Search — @one @two · hi/, @out.string)
     assert_match(/^ {2}@one +a +Alpha/, @out.string)
     assert_match(/^ {2}@two +a +Beta/, @out.string)
@@ -1148,15 +1112,13 @@ class OKF::CLITest < OKF::TestCase
   test "registry-mode search --json carries the bundles and a bundle per match" do
     write("one/a.md", concept("Alpha"))
     write("two/a.md", concept("Beta"))
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
-    invoke("registry", "set", File.join(@tmpdir, "two"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
+    invoke("registry", "set", File.join(@tmpdir, "two"))
     @out = StringIO.new
 
-    with_registry_home do
-      # Refs typed in one order, equal scores: the payload keeps the typed
-      # order, the merged ranking breaks the tie by slug — deterministically.
-      assert_equal 0, invoke("search", "@two", "@one", "hi", "--json")
-    end
+    # Refs typed in one order, equal scores: the payload keeps the typed
+    # order, the merged ranking breaks the tie by slug — deterministically.
+    assert_equal 0, invoke("search", "@two", "@one", "hi", "--json")
     payload = JSON.parse(@out.string)
     assert_equal %w[two one], payload["bundles"].map { |bundle| bundle["slug"] }
     assert_equal [ File.join(@tmpdir, "two"), File.join(@tmpdir, "one") ], payload["bundles"].map { |bundle| bundle["dir"] },
@@ -1164,23 +1126,19 @@ class OKF::CLITest < OKF::TestCase
     assert_equal %w[one two], payload["matches"].map { |row| row["slug"] }
 
     @out = StringIO.new
-    with_registry_home do
-      assert_equal 0, invoke("search", "@one", "hi", "--json")
-    end
+    assert_equal 0, invoke("search", "@one", "hi", "--json")
     single = JSON.parse(@out.string)
     assert_equal [ "one" ], single["bundles"].map { |bundle| bundle["slug"] }, "one ref still answers in registry shape"
   end
 
-  test "search --all covers every registered bundle and skips a gone one with a note" do
+  test "search @all covers every registered bundle and skips a gone one with a note" do
     write("one/a.md", concept("Alpha"))
     write("two/a.md", concept("Beta"))
     write("three/a.md", concept("Gamma"))
-    %w[one two three].each { |dir| invoke("registry", "set", File.join(@tmpdir, dir), "--home", @home) }
+    %w[one two three].each { |dir| invoke("registry", "set", File.join(@tmpdir, dir)) }
     FileUtils.rm_rf(File.join(@tmpdir, "three"))
 
-    with_registry_home do
-      assert_equal 0, invoke("search", "--all", "hi")
-    end
+    assert_equal 0, invoke("search", "@all", "hi")
     assert_match(/Alpha/, @out.string)
     assert_match(/Beta/, @out.string)
     refute_match(/Gamma/, @out.string)
@@ -1189,12 +1147,10 @@ class OKF::CLITest < OKF::TestCase
 
   test "search dedupes refs by resolved bundle — @ plus its own slug is one target" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
     @out = StringIO.new
 
-    with_registry_home do
-      assert_equal 0, invoke("search", "@", "@one", "hi", "--json")
-    end
+    assert_equal 0, invoke("search", "@", "@one", "hi", "--json")
     payload = JSON.parse(@out.string)
     assert_equal [ "one" ], payload["bundles"].map { |bundle| bundle["slug"] }
     assert_equal 1, payload["count"]
@@ -1209,42 +1165,37 @@ class OKF::CLITest < OKF::TestCase
 
   test "an eaten literal @-term gets an escape-hatch hint" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
 
-    with_registry_home do
-      assert_equal 2, invoke("search", "@one", "@babel/core")
-      assert_match(/put a non-@ term first, or use -e/, @err.string)
-    end
+    assert_equal 2, invoke("search", "@one", "@babel/core")
+    assert_match(/put a non-@ term first, or use -e/, @err.string)
   end
 
-  test "search --all with an empty registry is a usage error" do
-    with_registry_home do
-      assert_equal 2, invoke("search", "--all", "hi")
-    end
+  test "search @all with an empty registry is a usage error" do
+    assert_equal 2, invoke("search", "@all", "hi")
     assert_match(/no bundles registered/, @err.string)
   end
 
-  test "search --all rejects explicit @refs; a ref with no terms is the banner" do
+  test "search @all dedupes against a named ref; a ref with no terms is the banner" do
     write("one/a.md", concept)
-    invoke("registry", "set", File.join(@tmpdir, "one"), "--home", @home)
+    invoke("registry", "set", File.join(@tmpdir, "one"))
+    @out = StringIO.new
 
-    with_registry_home do
-      assert_equal 2, invoke("search", "--all", "@one", "hi")
-      assert_match(/drop the @refs or the flag/, @err.string)
+    assert_equal 0, invoke("search", "@all", "@one", "hi", "--json"), "all ⊇ one — a correct ask, not an error"
+    assert_equal [ "one" ], JSON.parse(@out.string)["bundles"].map { |bundle| bundle["slug"] }
 
-      @err = StringIO.new
-      assert_equal 2, invoke("search", "@one")
-      assert_match(/Usage: okf search/, @err.string)
-    end
+    @err = StringIO.new
+    assert_equal 2, invoke("search", "@one")
+    assert_match(/Usage: okf search/, @err.string)
   end
 
   test "server with no dir serves the persistent registry behind a hub" do
     write("one/a.md", concept)
-    OKF::CLI.start([ "registry", "set", File.join(@tmpdir, "one"), "--home", @home ], out: @out, err: @err)
+    OKF::CLI.start([ "registry", "set", File.join(@tmpdir, "one") ], out: @out, err: @err)
     captured = []
     cli = OKF::CLI.new(out: @out, err: @err, runner: ->(app, host, port) { captured << [ app, host, port ] })
 
-    assert_equal 0, cli.run([ "server", "--home", @home ])
+    assert_equal 0, cli.run([ "server" ])
     assert_kind_of OKF::Server::Hub, booted_app(captured.first.first)
     assert_match(/serving 1 bundle/, @out.string)
   end
@@ -1265,9 +1216,11 @@ class OKF::CLITest < OKF::TestCase
 
   # @refs resolve through $OKF_HOME; point it at the test registry for a block
   # so no test ever touches the real ~/.okf.
-  def with_registry_home
+  # Point $OKF_HOME somewhere else for the block — the CLI's only lever on which
+  # registry it reads. teardown restores the scratch one either way.
+  def with_home(dir)
     was = ENV.fetch("OKF_HOME", nil)
-    ENV["OKF_HOME"] = @home
+    ENV["OKF_HOME"] = dir
     yield
   ensure
     was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = was

@@ -76,6 +76,16 @@ module OKF
       end
     end
 
+    # "every registered bundle" as a ref, in its canonical spelling — what the
+    # messages say, and (normalized) what #all_ref? recognizes. Only `search`
+    # expands it: it is the one verb that merges across bundles, so it is the one
+    # verb for which "all" names something it can answer about. See
+    # resolve_registered for why the others refuse it outright rather than
+    # treating it as an unknown slug. Its slug half is reserved by
+    # Registry::RESERVED_SLUGS so no bundle can answer to it; a test pins the two
+    # together.
+    ALL_REF = "@all"
+
     # The row shape each list view emits, so `--fields`/`--except` can be checked
     # against a name even when the result is empty. Without it the typo guard
     # keyed off the data: `--fields bogus` was a usage error against a bundle
@@ -166,15 +176,13 @@ module OKF
     # read: exit 0 even with no matches. Deliberately not fuzzy — the consuming
     # agent is the fuzzy layer.
     def search(argv)
-      options = { json: false, regexp: false, all: false, home: nil }
+      options = { json: false, regexp: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf search <bundle-dir|@ref…> <term> [term ...] [--all] [--regexp] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
+        o.banner = "Usage: okf search <bundle-dir|@ref…|@all> <term> [term ...] [--regexp] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
         json_flags(o, options, "emit the matches as JSON")
         projection_flags(o, options)
         o.on("-e", "--regexp", "treat each term as a Ruby regular expression (case-insensitive)") { options[:regexp] = true }
         o.on("--in LIST", Array, "search only these fields (#{OKF::Bundle::Search::FIELDS.join(", ")})") { |v| options[:in] = v.map(&:downcase) }
-        o.on("--all", "search every registered bundle") { options[:all] = true }
-        o.on("--home DIR", "registry location for --all or an @ref (default $OKF_HOME or ~/.okf)") { |v| options[:home] = v }
         filter_flags(o, options, :type, :area, :tag)
       end
       begin
@@ -184,10 +192,10 @@ module OKF
         return 2
       end
 
-      # Registry mode — --all, or leading @refs — searches several bundles and
-      # labels every match; a plain dir keeps the classic single-bundle output.
-      if options[:all] || argv.first&.start_with?("@")
-        pairs = search_targets(argv, options) or return 2
+      # Registry mode — leading @refs, @all among them — searches several bundles
+      # and labels every match; a plain dir keeps the classic single-bundle output.
+      if argv.first&.start_with?("@")
+        pairs = ref_targets(argv) or return 2
         dir = nil
       else
         dir = argv.shift
@@ -195,7 +203,7 @@ module OKF
           @err.puts parser.banner
           return 2
         end
-        dir = resolve_ref(dir, home: options[:home]) or return 2
+        dir = resolve_ref(dir) or return 2
       end
 
       terms = argv
@@ -228,27 +236,12 @@ module OKF
       usage_error("invalid pattern: #{e.message}")
     end
 
-    # The registry-mode search targets, as [slug, dir] pairs. --all takes every
-    # registered bundle, skipping one whose directory is gone with a note (the
-    # same forgiveness the hub shows a stale entry); leading @refs are taken off
-    # argv and fail hard, like every explicit ask. Returns nil (after reporting)
-    # so the caller returns 2.
-    def search_targets(argv, options)
-      return ref_targets(argv, options[:home]) unless options[:all]
-
-      if argv.first&.start_with?("@")
-        @err.puts "error: --all already searches every registered bundle; drop the @refs or the flag"
-        @err.puts "note: searching for a literal @-term? put a non-@ term first, or use -e '\\@term'"
-        return nil
-      end
-      # Under --all every positional IS a term, so a first arg that happens to
-      # name a directory is legitimate ("lib", "docs", "test" from a project
-      # root). Refusing it would make the same command's fate depend on the cwd
-      # it runs in — so say what the grammar did, and search.
-      if argv.first && File.directory?(argv.first)
-        @err.puts "note: '#{argv.first}' searches as a literal term — --all takes no directory"
-      end
-      registry = load_registry(home: options[:home])
+    # Every registered bundle, as [slug, dir] pairs — what @all expands to.
+    # Asking for everything tolerates gaps: a registered directory that has since
+    # vanished is skipped with a note, the same forgiveness the hub shows a stale
+    # entry. Naming one bundle demands it, so a plain @slug still fails hard.
+    def all_targets
+      registry = load_registry
       return nil unless registry
 
       if registry.empty?
@@ -271,22 +264,48 @@ module OKF
     end
 
     # Dedupe by resolved path, not ref spelling — `@ @one` is one bundle when
-    # "one" is the default, and must be searched once.
-    def ref_targets(argv, home = nil)
+    # "one" is the default, and must be searched once. `@all @one` is the same
+    # story with a wider first ref: all ⊇ one, so the result is right and the
+    # duplicate simply drops. No error branch, because there is no wrong answer
+    # to warn about.
+    def ref_targets(argv)
       refs = []
       refs << argv.shift while argv.first&.start_with?("@")
       pairs = []
       refs.each do |ref|
-        path = resolve_registered(ref, home: home)
-        unless path
-          # Only an unknown slug is plausibly a mistyped term — a broken
-          # registry or a gone directory has nothing to do with the grammar.
-          @err.puts "note: searching for a literal @-term? put a non-@ term first, or use -e '\\@term'" if @ref_failure == :unknown
-          return nil
-        end
-        pairs << [ ref_slugs[path], path ] unless pairs.any? { |_, seen| seen == path }
+        found = all_ref?(ref) ? all_targets : ref_pair(ref)
+        return nil unless found
+
+        found.each { |slug, path| pairs << [ slug, path ] unless pairs.any? { |_, seen| seen == path } }
       end
       pairs
+    end
+
+    # Does this @ref name every registered bundle? Takes a ref, sigil and all —
+    # both callers reach it only past a start_with?("@") of their own, so a
+    # third check here would be a branch no run can take.
+    #
+    # Compared *normalized*, because the ref grammar has exactly one
+    # normalization and a ref exempt from it is a trapdoor: `@ALL` has to reach
+    # `@all` for the same reason `@One` reaches the bundle registered from dir
+    # `One`. It normalizes through Registry.normalize — the very call the slug
+    # lookup makes — rather than a second downcase that could be forgotten while
+    # the first was maintained.
+    def all_ref?(ref)
+      require "okf/registry"
+      OKF::Registry.normalize(ref[1..-1]) == ALL_REF[1..-1]
+    end
+
+    # One @ref as a single-element [[slug, dir]], or nil after reporting.
+    def ref_pair(ref)
+      path = resolve_registered(ref)
+      unless path
+        # Only an unknown slug is plausibly a mistyped term — a broken registry
+        # or a gone directory has nothing to do with the grammar.
+        @err.puts "note: searching for a literal @-term? put a non-@ term first, or use -e '\\@term'" if @ref_failure == :unknown
+        return nil
+      end
+      [ [ ref_slugs[path], path ] ]
     end
 
     # Search each bundle with the same terms and merge the rankings — scores are
@@ -358,21 +377,19 @@ module OKF
       require "okf/server/app"
       require "rack/deflater"
 
-      options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose", home: nil }
+      options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose" }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf server [DIR…] [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url] [--home DIR]"
+        o.banner = "Usage: okf server [DIR…] [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url]"
         o.on("-p", "--port PORT", Integer, "port to serve on (default #{options[:port]})") { |v| options[:port] = v }
         o.on("--bind ADDR", "address to bind (default #{options[:bind]})") { |v| options[:bind] = v }
         o.on("-t", "--title TITLE", "graph title, single bundle only (default: parent/bundle dir name)") { |v| options[:title] = v }
         o.on("-l", "--link URL", "source URL shown in the header, single bundle only") { |v| options[:link] = v }
         o.on("--layout NAME", OKF::Server::Graph::LAYOUTS, "initial layout (#{OKF::Server::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
-        o.on("--home DIR", "registry location for a bundle-less run or an @ref (default $OKF_HOME or ~/.okf)") { |v| options[:home] = v }
       end
-      dirs = positional_dirs(parser, argv, options) or return 2
+      dirs = positional_dirs(parser, argv) or return 2
 
       # A flag that will have no effect in this mode gets a note, not silence.
       @err.puts "note: --title/--link apply to a single-bundle server; ignored" if dirs.size != 1 && (options[:title] || options[:link])
-      @err.puts "note: --home applies to a bundle-less run or an @ref; ignored" if dirs.any? && options[:home] && ref_slugs.empty?
 
       # One dir keeps the historical single-bundle server at `/`; zero (the
       # persistent registry) or many (ephemeral) fan out behind a hub.
@@ -401,22 +418,22 @@ module OKF
     end
 
     # Build the multi-bundle hub and hand it to the runner. With dirs it serves
-    # those ephemerally (the first is the default); with none it serves the
-    # persistent registry, honouring its chosen default at `/`.
+    # those ephemerally; with none it serves the persistent registry. Either way
+    # the first bundle is the one `/` opens — for the registry that is its own
+    # order, and a first entry whose directory has vanished drops out here, so
+    # `/` lands on the next one that is actually there.
     def run_hub(dirs, options)
       require "okf/server/hub"
       require "okf/registry"
       if dirs.empty?
         # A malformed registry raises OKF::Error, which `server` rescues into a
         # usage error — no guarded load needed on this path.
-        reg = OKF::Registry.load(home: options[:home])
+        reg = OKF::Registry.load
         bundles = reg.map { |entry| load_registered(entry) }.compact
-        default_slug = reg.default&.slug
       else
         bundles = ephemeral_bundles(dirs)
-        default_slug = nil
       end
-      hub = OKF::Server::Hub.new(bundles, layout: options[:layout], default_slug: default_slug)
+      hub = OKF::Server::Hub.new(bundles, layout: options[:layout])
       concepts = bundles.inject(0) { |sum, bundle| sum + bundle.folder.graph(minimal: true).nodes.size }
       @out.puts "serving #{bundles.size} #{pluralize(bundles.size,
         "bundle")}, #{concepts} #{pluralize(concepts, "concept")} at http://#{options[:bind]}:#{options[:port]} (Ctrl-C to stop)"
@@ -549,10 +566,13 @@ module OKF
         # must not silently render the list and read as success).
         return usage_error("unknown registry subcommand '#{sub}' (expected: #{SUBCOMMANDS.join(", ")})") if sub && !sub.start_with?("-")
 
-        # Same rule for a subcommand hiding behind a flag: `registry --home X set
+        # Same rule for a subcommand hiding behind a flag: `registry --json set
         # dir` would otherwise list an empty registry and exit 0, having written
-        # nothing the user asked for. It cannot just be dispatched — the word may
-        # be a flag's value (`--home set`) — so the subcommand must lead.
+        # nothing the user asked for. It cannot just be dispatched from wherever
+        # it turns up — the word may be a flag's value (`registry --as set <dir>`
+        # asks for the slug "set"), and a grammar where that reading depends on
+        # which flag precedes it is a trapdoor. So the subcommand must lead, and
+        # the error says which one was found rather than guessing at the intent.
         stray = argv.find { |arg| SUBCOMMANDS.include?(arg) }
         return usage_error("put the subcommand first: okf registry #{stray} … (flags follow it)") if stray
 
@@ -565,17 +585,16 @@ module OKF
     # path already registered refreshes its title in place, and --as renames it. A
     # new path is added, slugged by directory basename unless --as says otherwise.
     def registry_set(argv)
-      options = { as: nil, home: nil, default: false }
+      options = { as: nil, default: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf registry set <bundle-dir> [--as SLUG] [--default] [--home DIR]"
+        o.banner = "Usage: okf registry set <bundle-dir> [--as SLUG] [--default]"
         o.on("--as SLUG", "slug to register under (default: directory basename)") { |v| options[:as] = v }
-        o.on("--default", "make it the bundle a bare `okf server` opens") { options[:default] = true }
-        o.on("--home DIR", "registry location (default $OKF_HOME or ~/.okf)") { |v| options[:home] = v }
+        o.on("--default", "put it first — the bundle a bare `okf server` opens") { options[:default] = true }
       end
-      dir = positional_dir(parser, argv, options) or return 2
+      dir = positional_dir(parser, argv) or return 2
       no_extras?(argv) or return 2
 
-      reg = OKF::Registry.load(home: options[:home])
+      reg = OKF::Registry.load
       # Said before the upsert: after it, an update is indistinguishable from an
       # add, and "registered" for what was a rename reads as a duplicate entry.
       known = reg.listing.any? { |row| row[:dir] == File.expand_path(dir) }
@@ -589,15 +608,13 @@ module OKF
 
     # Remove a bundle from the persistent registry by slug or by its directory.
     def registry_del(argv)
-      options = { home: nil }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf registry del <slug-or-dir|@ref> [--home DIR]"
-        o.on("--home DIR", "registry location (default $OKF_HOME or ~/.okf)") { |v| options[:home] = v }
+        o.banner = "Usage: okf registry del <slug-or-dir|@ref>"
       end
       slug = positional(parser, argv) or return 2
       no_extras?(argv) or return 2
 
-      reg = OKF::Registry.load(home: options[:home])
+      reg = OKF::Registry.load
       slug = registry_slug(slug, reg) or return 2
       removed = reg.remove(slug)
       return usage_error("no such bundle: #{slug}") unless removed
@@ -609,12 +626,11 @@ module OKF
     end
 
     def registry_list(argv)
-      options = { json: false, home: nil }
+      options = { json: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf registry list [--json] [--pretty] [--home DIR]\n       " \
+        o.banner = "Usage: okf registry list [--json] [--pretty]\n       " \
                    "okf registry set <dir> | del <slug-or-dir> | default <slug> | rename <old> <new>"
         json_flags(o, options, "emit the registry as JSON")
-        o.on("--home DIR", "registry location (default $OKF_HOME or ~/.okf)") { |v| options[:home] = v }
       end
       begin
         parser.parse!(argv)
@@ -624,7 +640,7 @@ module OKF
       end
       no_extras?(argv) or return 2
 
-      reg = OKF::Registry.load(home: options[:home])
+      reg = OKF::Registry.load
       return emit_list_json({ "registry" => reg.path }, "bundles", reg.listing.map { |row| stringify(row) }, options) if options[:json]
 
       print_registry(reg)
@@ -633,20 +649,22 @@ module OKF
       usage_error(e.message)
     end
 
-    # Choose which registered bundle a bare `okf server` opens at `/`.
+    # Choose which registered bundle a bare `okf server` opens at `/`, by moving
+    # it to the front of the registry. The listing is ordered and the JSON is
+    # meant to be hand-editable, so the move is stated rather than left to be
+    # discovered from a reordered file.
     def registry_default(argv)
-      options = { home: nil }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf registry default <slug> [--home DIR]"
-        o.on("--home DIR", "registry location (default $OKF_HOME or ~/.okf)") { |v| options[:home] = v }
+        o.banner = "Usage: okf registry default <slug>\n       " \
+                   "moves <slug> to the front — the first registered bundle is the default until you do"
       end
       slug = positional(parser, argv) or return 2
       no_extras?(argv) or return 2
 
-      reg = OKF::Registry.load(home: options[:home])
+      reg = OKF::Registry.load
       slug = registry_slug(slug, reg) or return 2
       reg.default = slug
-      @out.puts "default bundle → #{reg.default.slug}"
+      @out.puts "default bundle → #{reg.default.slug} (now first)"
       0
     rescue OKF::Error => e
       usage_error(e.message)
@@ -674,10 +692,8 @@ module OKF
 
     # Rename a registered bundle's slug — its mount path and switcher name.
     def registry_rename(argv)
-      options = { home: nil }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf registry rename <old> <new> [--home DIR]"
-        o.on("--home DIR", "registry location (default $OKF_HOME or ~/.okf)") { |v| options[:home] = v }
+        o.banner = "Usage: okf registry rename <old> <new>"
       end
       parser.parse!(argv)
       old_slug, new_slug = argv.shift(2)
@@ -687,7 +703,7 @@ module OKF
       end
       no_extras?(argv) or return 2
 
-      reg = OKF::Registry.load(home: options[:home])
+      reg = OKF::Registry.load
       # The old name may be a ref; the new one is a name being minted, never one.
       old_slug = registry_slug(old_slug, reg) or return 2
       entry = reg.rename(old_slug, new_slug)
@@ -1142,10 +1158,14 @@ module OKF
       note_skipped(folder.bundle.unparseable.size)
     end
 
+    # The bucket holds two kinds now — frontmatter that would not parse, and a
+    # file that would not open — so the note names neither and points at the verb
+    # that names both. "invalid frontmatter" was a guess the summary had no need
+    # to make: `validate` prints the file and the reason for every one of them.
     def note_skipped(count)
       return if count.nil? || count <= 0
 
-      @err.puts "note: skipped #{count} file(s) with invalid frontmatter (run `okf validate` for details)"
+      @err.puts "note: skipped #{count} unusable file(s) (run `okf validate` for details)"
     end
 
     # Turn a --stale-after value (90d, 12w, or an ISO date) into an absolute cutoff
@@ -1165,11 +1185,9 @@ module OKF
     end
 
     # Parse options, then require a single bundle positional — a directory, or an
-    # @ref into the registry. +options+ is the verb's own options hash, already
-    # filled by parse!, so a verb that offers --home steers its refs with it.
-    # Returns the bundle's directory, or nil (after reporting) so the caller
-    # returns 2.
-    def positional_dir(parser, argv, options = {})
+    # @ref into the registry. Returns the bundle's directory, or nil (after
+    # reporting) so the caller returns 2.
+    def positional_dir(parser, argv)
       parser.parse!(argv)
       dir = argv.shift
       if dir.nil?
@@ -1182,7 +1200,7 @@ module OKF
       # user never asked about — the silent-wrong-answer shape, so: exit 2.
       return nil unless no_extras?(argv)
 
-      resolve_ref(dir, home: options[:home])
+      resolve_ref(dir)
     rescue OptionParser::ParseError => e
       @err.puts e.message
       nil
@@ -1191,9 +1209,9 @@ module OKF
     # Parse options, then take zero or more bundle positionals (the multi-bundle
     # server) — directories or @refs. Returns the resolved array (possibly
     # empty), or nil (after reporting) so the caller returns 2.
-    def positional_dirs(parser, argv, options = {})
+    def positional_dirs(parser, argv)
       parser.parse!(argv)
-      dirs = argv.map { |dir| resolve_ref(dir, home: options[:home]) }
+      dirs = argv.map { |dir| resolve_ref(dir) }
       dirs.include?(nil) ? nil : dirs
     rescue OptionParser::ParseError => e
       @err.puts e.message
@@ -1206,8 +1224,8 @@ module OKF
     # stays reachable as ./@name), and the registry loads only when a ref
     # appears, so plain-dir invocations never pay for it. Returns the bundle's
     # directory, or nil after reporting.
-    def resolve_ref(arg, home: nil)
-      return resolve_registered(arg, home: home) if arg.start_with?("@")
+    def resolve_ref(arg)
+      return resolve_registered(arg) if arg.start_with?("@")
 
       unless File.directory?(arg)
         @err.puts "error: #{arg} is not a directory"
@@ -1220,25 +1238,37 @@ module OKF
     # instead of an OKF::Error escaping through whatever verb took an @ref —
     # only `server` and the `registry` verbs rescue one. Returns nil after
     # reporting, so every caller returns 2.
-    def load_registry(home: nil)
+    def load_registry
       require "okf/registry"
-      OKF::Registry.load(home: home)
+      OKF::Registry.load
     rescue OKF::Error => e
       @err.puts "error: #{e.message}"
       nil
     end
 
-    # Resolve one @ref through the registry: +home+ where the verb offers
-    # --home, else $OKF_HOME (default ~/.okf). The slug part is normalized
+    # Resolve one @ref through the registry under $OKF_HOME (default ~/.okf).
+    # The slug part is normalized
     # exactly as registration normalized it, so @One finds the bundle
     # registered from dir One — but never through #slugify's mint-a-name
     # placeholder, so "@***" is a bad ref rather than whatever is slugged
     # "bundle". An explicit ask fails hard: an unknown slug or a
     # registered-but-gone directory is a usage error naming the registry file
     # and the next move, never a silent skip.
-    def resolve_registered(ref, home: nil)
+    #
+    # @all never resolves here. `search` expands it before this point; every
+    # other verb takes exactly one bundle, so letting it through would mean
+    # @all lints when one bundle is registered and exits 2 when two are —
+    # behavior that varies with the size of the registry, which is the
+    # silent-wrong-answer shape the second-bundle rule exists to stop. Say what
+    # @all is instead of calling it a bundle nobody registered ("all" cannot be
+    # registered — Registry::RESERVED_SLUGS sees to that).
+    def resolve_registered(ref)
       @ref_failure = :registry
-      registry = load_registry(home: home)
+      if all_ref?(ref)
+        @err.puts "error: #{ALL_REF} is only supported by `okf search` (it names every registered bundle)"
+        return nil
+      end
+      registry = load_registry
       return nil unless registry
 
       asked = ref[1..-1]
@@ -1596,16 +1626,16 @@ module OKF
           server    [DIR…] [-p PORT] [--bind ADDR] [...]    serve one bundle, or many behind a hub
           render    <dir> [-o FILE] [--layout NAME] [...]   write a static, self-contained HTML graph
 
-          registry  list [--json] [--home DIR]              list registered bundles (* marks the default)
+          registry  list [--json]                           list registered bundles (* marks the default)
           registry  set <dir> [--as SLUG] [--default]       add or update a bundle (a bare `server` serves them)
-          registry  del <slug-or-dir|@ref> [--home DIR]     remove a bundle from the registry
-          registry  default <slug> | rename <old> <new>     set the default bundle / rename a slug
+          registry  del <slug-or-dir|@ref>                  remove a bundle from the registry
+          registry  default <slug> | rename <old> <new>     move a bundle to the front (the default) / rename it
 
           lint      <dir> [--json] [--fail-on warn] [...]   report curation-quality issues
           loose     <dir> [--json]                          list files with no graph links, by folder
           validate  <dir> [--json]                          check OKF v0.1 conformance
 
-          search    <dir|@ref…> <term…> [--all] [-e] [...]  find concepts by text or regexp, ranked (--all: every bundle)
+          search    <dir|@ref…|@all> <term…> [-e] [...]     find concepts by text or regexp, ranked (@all: every bundle)
           index     <dir> [--json] [--area A] [--no-body]   the index map: dirs, their listings and rollups
           stats     <dir> [--json]                          bundle rollups (concepts, types, areas, links, tags)
           types     <dir> [--json] [filters]                list types with their concepts, by count
@@ -1616,9 +1646,10 @@ module OKF
           graph     <dir> [--json] [--minimal] [--no-body]  print the knowledge graph
 
         Every <dir> also takes @slug — a bundle registered via `okf registry set` —
-        or bare @ for the registry default. Refs read $OKF_HOME (default ~/.okf);
-        --home, where a verb offers it (registry, server, search), points elsewhere.
-        search spans bundles: several leading @refs, or --all for every registered one.
+        or bare @ for the registry default. The registry lives under $OKF_HOME
+        (default ~/.okf); set it to point every verb at another one.
+        search spans bundles: several leading @refs, or @all for every registered one
+        (@all skips a bundle whose directory is gone; a named @slug insists on it).
 
         [filters] narrow a view to matching concepts: --type TYPE, --area AREA, --tag TAG
         (each view takes the ones orthogonal to it; matching is case-insensitive).
