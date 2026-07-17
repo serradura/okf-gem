@@ -85,6 +85,16 @@ module OKF
         slug.empty? ? "bundle" : slug
       end
 
+      # Does this argument name a location rather than a slug? A separator settles
+      # it: #normalize maps one to a dash, so no slug can contain one. The reading
+      # matters because #remove takes either — and a path that matched no entry
+      # must not fall through to a *slug* lookup, where "./notes" strips to
+      # "notes" and deletes an entry pointing somewhere else entirely, reporting
+      # success. This is the line between the two readings.
+      def path_shaped?(arg)
+        arg.to_s.include?(File::SEPARATOR)
+      end
+
       # +base+ slugified, then suffixed (-2, -3, …) until it avoids every slug in
       # +taken+. Reserving is the caller's business, not this helper's: the
       # ephemeral hub mints through here too, and it has no registry and no
@@ -230,7 +240,7 @@ module OKF
       # back to naming the "docs" slug when no path matches.
       target = get(slug) ||
                @entries.find { |entry| entry.path == self.class.expand(slug.to_s) } ||
-               get(self.class.normalize(slug))
+               (self.class.path_shaped?(slug) ? nil : get(self.class.normalize(slug)))
       return nil unless target
 
       @entries.delete(target)
@@ -281,7 +291,7 @@ module OKF
       data = JSON.parse(File.read(@path, encoding: "UTF-8"))
       rows = data.is_a?(Hash) ? Array(data["bundles"]) : Array(data) # bare array: the original shape
       @entries = rows.map { |row| entry_from(row) }
-      mint_around_reserved
+      normalize_slugs
     rescue JSON::ParserError => e
       malformed("#{e.message} (fix or delete the file)")
     rescue SystemCallError => e
@@ -299,27 +309,33 @@ module OKF
       Entry.new(row["slug"], row["path"], row["title"] || File.basename(row["path"]))
     end
 
-    # A reserved slug reaches the file two ways nothing can take back: written by
-    # a release from before the name was reserved (a directory named all/ slugged
-    # exactly that, and every version until now allowed it), or typed into the
-    # file the format invites you to edit. Neither is grounds to reject the
-    # registry. A name the ref grammar has taken makes *one entry* unnameable;
-    # refusing the file makes every entry unreachable, and takes `del` and
-    # `rename` — the two verbs that could fix it — down on the same read, leaving
-    # hand-editing JSON as the only way out. That is a worse bundle of problems
-    # than the one it set out to prevent.
+    # Slugs enter this list three ways — minted from a basename, asked for with
+    # --as, and read from this file — and the first two normalize. The third did
+    # not, and that asymmetry is the whole bug: the file could hold a name the
+    # listing prints and nothing else can reach. `@my-docs` misses "My Docs", and
+    # so do #rename and #default=, which look it up through the very
+    # normalization the read skipped — so the two verbs that could fix the entry
+    # are the two that cannot see it, leaving hand-editing JSON as the only way
+    # out. Reserved names are the same story with a different cause, so they take
+    # the same cure rather than a second one.
     #
-    # So the read mints around it, exactly as #unique_slug does when registering
-    # a directory named all/: the entry keeps its bundle and answers to "all-2",
-    # and the next write persists the name. Minting is right here for the same
-    # reason it is right there — the gem is naming something the user did not
-    # name, because the name they had cannot be used.
-    def mint_around_reserved
+    # A slug registration would have produced unchanged is left exactly as it is —
+    # including one already carrying a suffix — so repairing a sick entry never
+    # renames a healthy one. Everything else is minted around the names the other
+    # entries hold, through the same call registration makes. The next write
+    # persists it.
+    def normalize_slugs
       @entries.each do |entry|
-        next unless RESERVED_SLUGS.include?(self.class.normalize(entry.slug))
+        next if usable_slug?(entry.slug)
 
         entry.slug = unique_slug(entry.slug, entry)
       end
+    end
+
+    # A stored slug that registration would have handed back untouched:
+    # normalized, non-empty, and not a name the ref grammar has taken.
+    def usable_slug?(slug)
+      !slug.empty? && slug == self.class.normalize(slug) && !RESERVED_SLUGS.include?(slug)
     end
 
     def malformed(detail)
@@ -343,6 +359,12 @@ module OKF
         FileUtils.rm_f(tmp)
         raise
       end
+    rescue SystemCallError => e
+      # #read already turns an errno into an OKF::Error, and every registry verb
+      # rescues exactly that — so letting one out of #write hands the user a
+      # backtrace under exit 1, a code the CLI spends on "non-conformant bundle".
+      # An unwritable $OKF_HOME is a usage error, and it says which file and why.
+      raise OKF::Error, "cannot write registry at #{@path}: #{e.message}"
     end
   end
 end
