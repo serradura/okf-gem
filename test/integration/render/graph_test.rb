@@ -162,14 +162,23 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, %(<section class="view active" id="view-graph">), "and the graph section is the one revealed"
     refute_includes html, "function landOnIndex(", "the index landing is gone"
     # what carries the index instead: one dismissible note, once, on every width
-    assert_includes html, %(<div id="hello" hidden role="note">), "a first-visit note rides at the bottom"
+    assert_includes html, %(<div id="hello" hidden role="note" aria-labelledby="hello-h">),
+      "a first-visit note rides at the bottom, named by its own heading"
     assert_includes html, "First time here?", "it opens by naming who it is for"
     assert_includes html, "okf-hello", "and remembers being dismissed"
+    # stacked, not a wall of prose with the action buried inside it
+    assert_includes html, %(<p class="hello-h" id="hello-h">), "the question is a heading, not a run-on sentence"
+    assert_includes html, %(<p class="hello-hint">), "and the gestures are demoted to their own line"
     # a sibling combinator, because the note sits outside #app with the other
     # fixed overlays — the descendant form matches nothing and silently never fires
     assert_includes html, "#app:not([data-view=graph]) ~ #hello{display:none}",
       "it belongs to the graph, so it never covers another view"
-    assert_includes html, "hello-go", "one tap goes straight to the index"
+    # the button says "Read the index", so it has to *open* it — switching to the
+    # view alone lands on "Pick a file on the left", which is not what was promised
+    assert_includes html, "function readIndex(", "the action is named for what it does"
+    assert_includes html, "readIndex(){setView('files');openReserved('index','index.md');}",
+      "it opens the root map, not just the panel that lists it"
+    assert_includes html, "close();readIndex();", "and the note gets out of the way on the way there"
   end
 
   test "the first-visit note speaks touch, and does not stack on the mobile note" do
@@ -179,11 +188,68 @@ class OKF::Render::GraphTest < OKF::TestCase
 
     # a phone is where a newcomer is least oriented, so the wording has to work
     # with a finger — and two stacked bottom banners would be worse than none
-    assert_includes html, "tap a concept to read it", "the graph hint is written for touch, not for a mouse"
-    assert_includes html, "pinch to zoom", "and the touch-only half carries the gestures a phone needs"
-    refute_includes html, "click a concept to read", "no mouse-only wording in the note"
+    assert_includes html, "tap any dot", "the touch wording names what a reader can actually see"
+    assert_includes html, "Pinch to zoom", "with the gestures a finger has"
+    assert_includes html, "click any dot", "and a pointer variant for a reader holding a mouse"
+    assert_includes html, "Scroll to zoom", "whose gestures are the ones a mouse has"
+    # input and chrome are independent: a touch tablet in landscape is wider than
+    # 768px but still taps, and a narrow desktop window is under it but clicks
+    assert_includes html, "@media (pointer:coarse)", "the verbs follow the input, not the window width"
+    assert_includes html, "@media (max-width:768px){ #hello .hello-menu{display:inline} }",
+      "the ☰ clause follows the width, because that is when the rail collapses"
+    assert_includes html, "#hello .hello-touch{display:none}"
+    assert_includes html, "#hello .hello-menu{display:none}"
+    # the primary action has to be reachable with a thumb
+    assert_includes html, "min-height:46px", "the button clears a touch target"
+    # the canvas hint names the same gestures, so only one of them speaks at a time
+    assert_includes html, "gh.style.visibility='hidden'", "the canvas hint stands down while the note is up"
+    assert_includes html, "if(gh)gh.style.visibility=''", "and comes back when it is dismissed"
     refute_includes html, %(<div id="mnote" hidden role="note">), "the old mobile-only note folded into this one"
     refute_includes html, "okf-mnote", "and took its storage key with it"
+  end
+
+  test "a second beat points at the menu, only where the menu is the way through" do
+    write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # on a compact layout the rail is behind ☰, so a reader who has just left the
+    # graph has no visible way to the other views — the desktop reader can see
+    # the rail and needs no telling, which is why this one is width-gated
+    assert_includes html, %(<div id="hello2" hidden role="note" aria-labelledby="hello2-h">),
+      "a second, lighter note exists"
+    assert_includes html, "function hello2(", "shown by a named action"
+    assert_includes html, "if(!matchMedia('(max-width:768px)').matches)return;",
+      "and only where the rail has actually collapsed"
+    assert_includes html, "okf-hello2", "with its own memory, so dismissing one is not dismissing both"
+    assert_includes html, "@media (min-width:769px){ #hello2{display:none} }",
+      "the stylesheet agrees, so a resize cannot strand it"
+    # it fires on leaving the graph, whichever way the reader left it
+    assert_includes html, "if(v!=='graph')hello2();", "any route off the graph triggers it, not just the note's button"
+    assert_includes html, "menuBtn.addEventListener('click',hello2Done)",
+      "opening the menu answers the note, so it stops asking"
+    # ...but only a note that is actually on screen can be answered. On a compact
+    # layout ☰ is the *only* way off the graph, so the first tap always precedes
+    # the note — marking it done there burns the flag before it is ever seen.
+    done = html[/function hello2Done\(\).*?\n\}?\n?(?=function|document)/m]
+    assert_includes done.to_s, "if(h.hidden)return;",
+      "a menu opened before the note was shown answers nothing"
+    assert_includes done.to_s, "localStorage.setItem('okf-hello2','1')", "and one that was seen is remembered"
+    # both notes are the same guide speaking, so they share a vocabulary: the
+    # three node dots, and the one button treatment that clears contrast in both
+    # themes. One selector styles both, so they cannot drift apart.
+    second = html[/<div id="hello2".*?<\/div>\n/m]
+    refute_nil second, "the second note's markup is findable"
+    assert_includes second, %(<span class="hello-dots" aria-hidden="true"><i></i><i></i><i></i></span>),
+      "the second note carries the same dots as the first"
+    assert_includes html, "#hello #hello-go,#hello2 #hello2-x{", "and one rule dresses both buttons"
+    # the dot rules are unscoped for the same reason — scoped to #hello they left
+    # the second note's markup rendering at zero size, present but invisible
+    assert_includes html, " .hello-dots{display:flex", "the dots are styled by class, not under one note's id"
+    assert_includes html, " .hello-dots i{width:9px", "so both notes draw them at the same size"
+    # per-note margin overrides are fine; a second copy of the *appearance* is not
+    refute_includes html, "#hello .hello-dots{display:flex", "no id-scoped copy of the dots to drift from"
+    assert_includes html, "Tap ☰ for the other views", "the heading says what to do, not what exists"
   end
 
   test "a concept deep link carries the view with it" do

@@ -12,6 +12,18 @@
   - **It absorbed the old mobile-only tip** rather than stacking a second banner
     under it, and it is written for a finger throughout, since a phone is where a
     first-time reader is least oriented.
+  - **The wording follows the device on two gates, not one.** What a reader does
+    follows `(pointer:coarse)` — a touch tablet in landscape is wider than 768px
+    and still taps; a narrow desktop window is narrower and still clicks. What a
+    reader can reach follows `(max-width:768px)`, because that is when the rail
+    collapses behind `☰`. Short viewports tighten; short *and* wide puts the
+    question beside the button, taking a landscape phone from half the screen to
+    under a third.
+  - **A second note points at `☰`** on compact layouts only, anchored under the
+    button it names rather than at the bottom of the screen. It fires on leaving
+    the graph by any route, so dismissing the first note does not cost it, and
+    opening `☰` answers it — but only once it is on screen, since `☰` is the only
+    way off the graph there and the first tap always comes first.
   - **Deep links are unaffected**, and `?select=`/`#hash` now switch to the graph
     before selecting, since the page can be standing elsewhere when they are read.
 - **The file tree nests.** Directories were a sorted list of full paths, which

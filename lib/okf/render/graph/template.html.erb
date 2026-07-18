@@ -308,21 +308,91 @@
  #btn-menu .menudot[hidden]{display:none}
  #nav-bk{position:fixed;inset:0;z-index:74;background:rgba(0,0,0,.35)}
  #nav-bk[hidden]{display:none}
- /* the first-visit note. It rides at the bottom of the graph on every width —
-    centred and capped on a desktop, edge to edge on a phone — and it belongs to
-    the graph, so switching views never leaves it floating over a reader. */
- #hello{position:fixed;left:12px;right:12px;bottom:12px;z-index:72;display:flex;gap:10px;align-items:center;justify-content:space-between;
-  background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;font-size:13px;color:var(--ink)}
- @media (min-width:769px){ #hello{left:50%;right:auto;transform:translateX(-50%);max-width:min(760px,calc(100vw - 120px))} }
+ /* the second beat: where the rail is folded behind ☰, a reader who has just
+    left the graph cannot see where the other views went. It sits *under the
+    button it is about*, with a caret pointing at it — a bottom sheet naming a
+    top-left control asks the reader to do the mapping. Lighter than the first
+    note in every way, because it is a nudge and not a decision. */
+ #hello2{position:fixed;top:56px;left:10px;z-index:73;max-width:250px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  padding:12px 13px 11px;color:var(--ink)}
+ #hello2[hidden]{display:none}
+ @media (min-width:769px){ #hello2{display:none} }
+ #hello2::before{content:"";position:absolute;top:-6px;left:16px;width:10px;height:10px;
+  background:var(--panel);border-left:1px solid var(--line);border-top:1px solid var(--line);transform:rotate(45deg)}
+ #hello2 .hello-dots{margin-bottom:9px}
+ #hello2 .hello2-h{margin:0 0 5px;font-size:15px;font-weight:650;line-height:1.3}
+ #hello2 .hello2-b{margin:0 0 11px;font-size:13px;line-height:1.45;color:var(--muted)}
+ #hello2 #hello2-x{min-height:40px;font-size:14px}
+ /* the first-visit note. One card at the bottom of the graph, stacked so each
+    part does one job: the question, then the action, then the gestures. It was
+    a single 13px paragraph with the action buried mid-sentence, which is the
+    one layout that fails hardest on the screen it matters most on. */
+ #hello{position:fixed;left:12px;right:12px;bottom:12px;z-index:72;
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+  padding:18px 18px 16px;color:var(--ink)}
+ @media (min-width:769px){ #hello{left:50%;right:auto;transform:translateX(-50%);width:380px} }
  #hello[hidden]{display:none}
  /* a *sibling* combinator, not a descendant one: the note lives outside #app,
     next to the other fixed overlays, so `#app … #hello` matches nothing */
  #app:not([data-view=graph]) ~ #hello{display:none}
- #hello .hello-acts{flex:none;display:flex;gap:6px;align-items:center}
- #hello .btn{flex:none;height:28px;font-size:13px}
- #hello .btn#hello-x{width:28px}
- #hello .hello-m{display:none}
- @media (max-width:768px){ #hello .hello-m{display:inline} }
+ /* the page's own vocabulary: the hint says "any dot", and these are what it
+    means — the graph's real node colours, at something like their real size */
+ .hello-dots{display:flex;gap:5px;margin-bottom:11px}
+ .hello-dots i{width:9px;height:9px;border-radius:50%}
+ .hello-dots i:nth-child(1){background:#6E56CF}
+ .hello-dots i:nth-child(2){background:#D97757}
+ .hello-dots i:nth-child(3){background:#22C55E}
+ #hello .hello-h{margin:0 0 13px;font-size:17px;font-weight:650;letter-spacing:-.01em;line-height:1.25}
+ /* One rule dresses both notes' buttons — they are the same guide speaking, and
+    a shared selector is what keeps them from drifting apart later. Ink-on-bg
+    rather than the accent: it is the only pairing that clears 4.5:1 in both
+    themes, and it leaves the dots as the one piece of colour in either card. */
+ #hello #hello-go,#hello2 #hello2-x{display:block;width:100%;min-height:46px;border:0;border-radius:11px;
+  background:var(--ink);color:var(--bg);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer}
+ #hello #hello-go:hover,#hello2 #hello2-x:hover{opacity:.88}
+ #hello .hello-hint{margin:13px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted)}
+ #hello #hello-x{position:absolute;top:11px;right:11px;width:34px;height:34px;font-size:13px}
+ /* Two independent questions, so two independent gates — width answers neither
+    on its own. What the reader *does* follows the pointer: a touch tablet in
+    landscape is wider than 768px and still taps, a narrow desktop window is
+    narrower and still clicks. What the reader can *reach* follows the width:
+    ☰ exists only once the rail collapses, so promising it anywhere else is a
+    lie. A pointer-less environment matches nothing and keeps the click wording,
+    which is the safe default. */
+ #hello .hello-touch{display:none}
+ @media (pointer:coarse){ #hello .hello-touch{display:inline} #hello .hello-point{display:none} }
+ #hello .hello-menu{display:none}
+ @media (max-width:768px){ #hello .hello-menu{display:inline} }
+ /* a landscape phone has width to spare and no height at all, where the stacked
+    card takes half the screen — same words, tighter setting */
+ @media (max-height:480px){
+  #hello{padding:13px 15px 12px;border-radius:14px}
+  #hello .hello-dots{margin-bottom:8px}
+  #hello .hello-h{font-size:15.5px;margin-bottom:10px}
+  #hello #hello-go{min-height:42px;font-size:14.5px}
+  #hello .hello-hint{margin-top:9px;font-size:12.5px}
+ }
+ /* and once it is short *and* wide, the stack itself is the problem: the
+    question and the action sit on one row and spend the width instead of the
+    height. Scoped to ≥769px so it stays inside the centred regime above —
+    below that the card is edge-to-edge with no transform to conflict with. */
+ @media (max-height:480px) and (min-width:769px){
+  #hello{display:grid;grid-template-columns:1fr auto;column-gap:18px;align-items:center;
+   width:min(640px,calc(100vw - 24px))}
+  #hello .hello-dots{grid-column:1/-1}
+  #hello .hello-h{grid-column:1;grid-row:2;margin:0}
+  #hello #hello-go{grid-column:2;grid-row:2;width:auto;padding:0 22px}
+  #hello .hello-hint{grid-column:1/-1;margin-top:10px}
+ }
+ @media (prefers-reduced-motion:no-preference){
+  #hello:not([hidden]){animation:hello-in .22s ease-out both}
+  @keyframes hello-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @media (min-width:769px){
+   #hello:not([hidden]){animation-name:hello-in-c}
+   @keyframes hello-in-c{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+  }
+ }
 
  /* ── catalog ── */
  .pad{padding:22px 24px;overflow:auto;flex:1}
@@ -707,12 +777,22 @@
 </div>
 
 <div id="nav-bk" hidden></div>
-<div id="hello" hidden role="note">
- <span class="hello-t"><b>First time here?</b> This is the whole bundle as a constellation — tap a concept to read it<span class="hello-m">, pinch to zoom, ☰ for views</span>. Or start with the index.</span>
- <span class="hello-acts">
-  <button class="btn text" id="hello-go" type="button">Read the index</button>
-  <button class="btn" id="hello-x" type="button" aria-label="Dismiss">✕</button>
- </span>
+<div id="hello2" hidden role="note" aria-labelledby="hello2-h">
+ <span class="hello-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+ <p class="hello2-h" id="hello2-h">Tap ☰ for the other views</p>
+ <p class="hello2-b">Graph, Files, Catalog, Tags and Stats.</p>
+ <button id="hello2-x" type="button">Got it</button>
+</div>
+<div id="hello" hidden role="note" aria-labelledby="hello-h">
+ <button class="btn" id="hello-x" type="button" aria-label="Dismiss">✕</button>
+ <span class="hello-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+ <p class="hello-h" id="hello-h">First time here?</p>
+ <button id="hello-go" type="button">Read the index</button>
+ <p class="hello-hint">
+  <span class="hello-point">Or click any dot to read that concept. Scroll to zoom, drag to pan.</span>
+  <span class="hello-touch">Or tap any dot to read that concept. Pinch to zoom, drag to pan.</span>
+  <span class="hello-menu"> ☰ opens the other views.</span>
+ </p>
 </div>
 
 <script>
@@ -1236,6 +1316,7 @@ function setView(v){if(v===view)return;view=v;document.getElementById('app').set
  const ph=SEARCH_PH[v];
  if(ph!==undefined){searchInput.placeholder=ph;searchInput.value=q[v]||'';}
  if(v==='graph')requestAnimationFrame(()=>cy.resize());
+ if(v!=='graph')hello2();
  if(v==='catalog'&&!inited.catalog)initCatalog();
  if(v==='files'&&!inited.files)initFiles();
  if(v==='tags'&&!inited.tags)initTags();
@@ -1256,6 +1337,29 @@ function goRail(v){const b=document.querySelector('.rail-item[data-view="'+v+'"]
 function railActive(){const v=activeRail();
  document.querySelectorAll('.rail-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));}
 function goIndexes(){if(view!=='files')setView('files');setFtab('indexes');railActive();}
+/* goIndexes opens the *panel* that lists the indexes; this opens the index. The
+   rail item wants the former — a reader who clicks Index is choosing where to
+   browse — but anything promising to read the index owes the reader the file,
+   not a list with "Pick a file on the left" beside it. openReserved switches
+   the tab on its way, so the panel comes along for free. */
+function readIndex(){setView('files');openReserved('index','index.md');}
+/* The second beat, and only where it is true: above 768px the rail is on screen
+   and needs no introduction. It fires on *leaving the graph* rather than off the
+   first note's button, so the reader who dismissed that note and found their own
+   way still gets told where the views went. Opening the menu answers it — the
+   reader has demonstrably found ☰, so the note stops asking. */
+function hello2Done(){const h=document.getElementById('hello2');
+ /* only a note on screen can be answered. ☰ is the *only* way off the graph on
+    a compact layout, so the first tap always comes before the note — marking it
+    done there would burn the flag on a hint the reader never saw. */
+ if(h.hidden)return;
+ h.hidden=true;try{localStorage.setItem('okf-hello2','1');}catch(err){}}
+function hello2(){try{
+ if(localStorage.getItem('okf-hello2'))return;
+ if(!matchMedia('(max-width:768px)').matches)return;
+ document.getElementById('hello2').hidden=false;
+}catch(err){}}
+document.getElementById('hello2-x').addEventListener('click',hello2Done);
 document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>{
  if(b.dataset.view==='index')return goIndexes();
  if(b.dataset.view==='files'&&typeof ftab!=='undefined'&&ftab!=='files'){if(view!=='files')setView('files');setFtab('files');railActive();return;}
@@ -1745,6 +1849,7 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
  const bf=document.getElementById('btn-filters');
  if(bf)bf.addEventListener('click',()=>ctlSet(false));
  menuBtn.addEventListener('click',()=>navSet(!app.classList.contains('nav-open')));
+ menuBtn.addEventListener('click',hello2Done);
  bk.addEventListener('mousedown',()=>navSet(false));
  document.getElementById('rail').addEventListener('click',e=>{if(e.target.closest('.rail-item,.btn')){navSet(false);ctlSet(false);}});
  /* the initial layout runs before the viewport settles (fonts, window chrome,
@@ -1843,9 +1948,12 @@ if(QS&&byId[QS])goToGraph(QS);else fromHash();
    least oriented and where "click" means nothing. */
 try{if(!localStorage.getItem('okf-hello')){
  const h=document.getElementById('hello');h.hidden=false;
- const close=()=>{h.hidden=true;try{localStorage.setItem('okf-hello','1');}catch(err){}};
+ /* the canvas hint says the same three gestures the note just said, so it
+    stands down while the note is up rather than repeating it alongside */
+ const gh=document.querySelector('.ghint');if(gh)gh.style.visibility='hidden';
+ const close=()=>{h.hidden=true;if(gh)gh.style.visibility='';try{localStorage.setItem('okf-hello','1');}catch(err){}};
  document.getElementById('hello-x').addEventListener('click',close);
- document.getElementById('hello-go').addEventListener('click',()=>{close();goIndexes();});
+ document.getElementById('hello-go').addEventListener('click',()=>{close();readIndex();});
 }}catch(err){}
 
 /* ── a small hello for the curious ── */

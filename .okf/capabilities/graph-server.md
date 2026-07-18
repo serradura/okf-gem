@@ -161,12 +161,47 @@ landing costs all of them.
 
 The note belongs to the graph (`#app:not([data-view=graph]) ~ #hello`, a
 **sibling** combinator, because it sits outside `#app` with the other fixed
-overlays) so it never floats over a reader, and it absorbed the old
-mobile-only tip rather than stacking a second banner beneath it — the phone
-wording it carried (pinch to zoom, `☰` for views) survives as the touch-only
-half of the same sentence. Everything is written for a finger: a first-time
-reader on a phone is the least oriented person the page ever serves, and
-"click" means nothing to them.
+overlays) so it never floats over a reader, and it absorbed the old mobile-only
+tip rather than stacking a second banner beneath it.
+
+## The wording follows the device on two gates, not one
+
+Width answers neither question on its own. What a reader **does** follows
+`(pointer:coarse)` — a touch tablet in landscape is wider than 768px and still
+taps; a narrow desktop window is narrower and still clicks. What a reader can
+**reach** follows `(max-width:768px)` — `☰` exists only once the rail collapses,
+so promising it at any other width is a lie. A pointer-less environment matches
+neither and keeps the click wording, which is the safe default. `(max-height:480px)`
+tightens the setting, and short *and* wide puts the question beside the button so
+the card spends width instead of height — a landscape phone went from half the
+screen to under a third.
+
+## A second beat, where the menu is the only way through
+
+On a compact layout the rail is folded behind `☰`, so a reader who has just left
+the graph cannot see where the other views went. A second, lighter note says so
+— anchored **under the button it is about**, with a caret pointing at it, because
+a bottom sheet naming a top-left control asks the reader to do the mapping.
+
+It fires on *leaving the graph* by any route rather than off the first note's
+button, so the reader who dismissed that note and found their own way still gets
+told. Opening `☰` answers it — but only when the note is actually on screen: `☰`
+is the only way off the graph there, so the first tap always *precedes* the note,
+and marking it done then would burn the flag on a hint nobody saw. It carries its
+own `localStorage` key, so dismissing one is not dismissing both.
+
+Both notes are the same guide speaking, and share a vocabulary by sharing
+selectors rather than by resembling each other: one rule draws the three node
+dots, one dresses both buttons. Ink-on-background rather than the accent is the
+only pairing that clears 4.5:1 in **both** themes, which leaves the dots as the
+one piece of colour in either card. Everything is written for a finger: a
+first-time reader on a phone is the least oriented person the page ever serves,
+and "click" means nothing to them.
+
+**Read the index** opens the index. That reads as tautology and was a bug: it
+called the action that opens the *panel listing* the indexes, which lands on
+"Pick a file on the left" — a button that names a destination owes the reader
+the destination, not the drawer it lives in.
 
 Deep links are unaffected, and `?select=`/`#hash` now name a view as well as a
 node — selecting into a graph nobody is looking at is a silent no-op, and
