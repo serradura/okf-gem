@@ -6,12 +6,12 @@
   visible only inside file-tree mode, where a folder node stood in for a
   directory's `index.md`. **Show indexes** makes it a layer: each map is a tile
   edged to the concepts it lists and the maps below it, dressed by the same
-  selector as file-tree mode's folder node for everything structural — square,
-  small type, never a concept's circle — and parting from it on colour: the file
-  tree draws structure and stays grey, the index layer draws the authored map and
-  takes the accent. Authorship then shows as form: solid where an author wrote a
-  map, hollow and dashed where the bundle only implies one, so the toggle reads as
-  curation as much as navigation.
+  selector as file-tree mode's folder node, because the two are the same thing
+  twice over — clicking either opens that directory's `index.md`. Both are accent
+  squares with dashed edges into them, so colour separates *kinds* rather than
+  modes: a directory is not a concept and no longer reads as one. Authorship shows
+  as form — solid where an author wrote a map, hollow and dashed where the bundle
+  only implies one — so the toggle reads as curation as much as navigation.
   - **Moving between the modes lands in one click.** Tearing the layer down ran
     its own layout while file-tree mode ran `breadthfirst` a beat later, two
     layouts racing the same canvas; and because the layer is fetched, a promise

@@ -855,15 +855,14 @@ function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('-
   {selector:'edge',style:{'width':1.2,'line-color':edge,'target-arrow-color':edge,'target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.8}},
   {selector:'.dim',style:{'opacity':.1}},
   {selector:'.hl',style:{'border-width':3,'border-color':cvar('--accent')}},
-  /* One selector for the shape, so a folder and a map are recognisably the same
-     kind of thing — square, small type, never a concept's circle. Colour is where
-     they part: file-tree mode draws the *structure* and stays grey, while the
-     index layer draws the *authored* §6 map and takes the accent, because there
-     it is the subject rather than the scaffolding. */
-  {selector:'node.dir,node.ix',style:{'shape':'round-rectangle','background-color':cvar('--faint'),'background-opacity':.85,
-   'font-size':9.5,'font-weight':600,'color':cvar('--muted')}},
-  {selector:'node.ix',style:{'background-color':cvar('--accent'),'background-opacity':.9,'color':cvar('--ink'),'font-weight':700}},
-  {selector:'edge.tree',style:{'width':1.1,'opacity':.7,'target-arrow-shape':'none'}},
+  /* A folder node and a map node are the same thing twice over — clicking
+     either opens that directory's index — so they converge on one look instead
+     of parting by mode: an accent square, never a concept's circle, with the
+     edges into it dashed. Colour separates *kinds* here, not modes; a directory
+     is not a concept and should not read as one. */
+  {selector:'node.dir,node.ix',style:{'shape':'round-rectangle','background-color':cvar('--accent'),'background-opacity':.9,
+   'font-size':9.5,'font-weight':700,'color':cvar('--ink')}},
+  {selector:'edge.tree',style:{'width':1.1,'opacity':.7,'line-style':'dashed','target-arrow-shape':'none'}},
   /* what separates the two maps is authorship, not hue: a directory the bundle
      only implies is hollow and dashed, which is the same "not really there"
      the dashed edges say. */
@@ -1264,7 +1263,7 @@ function setTree(on){if(on===treeMode)return;if(on&&clustered)setClustered(false
   NODES.forEach(n=>{const parts=n.id.split('/');for(let i=1;i<parts.length;i++)dirs.add(parts.slice(0,i).join('/'));});
   cy.batch(()=>{
    cy.add([...dirs].map(d=>({group:'nodes',classes:'dir',
-    data:{id:DIR+d,title:d?d.split('/').pop()+'/':'/',c:cvar('--faint'),sz:d?20:28}})));
+    data:{id:DIR+d,title:d?d.split('/').pop()+'/':'/',c:cvar('--accent'),sz:d?20:28}})));
    [...dirs].forEach(d=>{if(!d)return;const p=d.split('/').slice(0,-1).join('/');
     cy.add({group:'edges',classes:'tree',data:{id:'tree::'+d,source:DIR+p,target:DIR+d}});});
    NODES.forEach(n=>{const p=n.id.split('/').slice(0,-1).join('/');

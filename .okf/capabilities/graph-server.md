@@ -125,12 +125,14 @@ edges — the acyclic layered tree of the files, next to the emergent link graph
 Beside it, **show indexes** draws the §6 map as a layer of its own, under
 *whatever* layout is running rather than only inside the tree. Each `index.md`
 becomes a tile edged to the concepts it lists and to the maps beneath it. It
-shares a *selector* with file-tree mode's folder node for everything structural —
-square, small type, never a concept's circle — and parts from it on colour: the
-file tree draws structure and stays grey, while the index layer draws the
-authored §6 map and takes the accent, because there the map is the subject rather
-than the scaffolding. Authorship then shows as form: solid where an author wrote
-a map, hollow and dashed where the bundle only implies one. That makes the toggle a curation read as
+shares one *selector* with file-tree mode's folder node, because the two are the
+same thing twice over — clicking either opens that directory's `index.md` — so
+they converge on one look rather than parting by mode: an accent square with
+dashed edges into it, never a concept's circle. Colour separates **kinds** here
+rather than modes, which is what it should have been doing all along: a directory
+is not a concept and should not read as one. Authorship then shows as form —
+solid where an author wrote a map, hollow and dashed where the bundle only
+implies one. That makes the toggle a curation read as
 much as a navigation one, since a field of outlines is a directory that never got
 a map. File-tree mode
 already draws folders, so it disables the toggle rather than doubling it.

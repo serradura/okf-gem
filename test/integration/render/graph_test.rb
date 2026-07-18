@@ -128,11 +128,13 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "classes:'ixe'", "with edges of their own, so the link graph stays untouched"
     # file-tree mode's folder and the index layer's map are the same thing seen
     # twice, so one selector dresses both and they cannot drift apart
-    assert_includes html, "{selector:'node.dir,node.ix',style:{'shape':'round-rectangle','background-color':cvar('--faint')",
+    assert_includes html, "{selector:'node.dir,node.ix',style:{'shape':'round-rectangle','background-color':cvar('--accent')",
       "a directory looks the same whichever mode drew it"
-    assert_includes html, "{selector:'node.ix',style:{'background-color':cvar('--accent')",
-      "but the authored layer takes the accent — there the map is the subject, not the scaffolding"
-    assert_includes html, "'border-style':'dashed'", "and an implied directory is hollow and dashed"
+    refute_includes html, "{selector:'node.ix',style:{'background-color':cvar('--accent')",
+      "with no per-mode override left to drift from it"
+    assert_includes html, "{selector:'edge.tree',style:{'width':1.1,'opacity':.7,'line-style':'dashed'",
+      "and an edge into a directory is dashed in both"
+    assert_includes html, "'border-style':'dashed'", "an implied directory is hollow and dashed"
   end
 
   test "index nodes are drawn, never modelled" do
