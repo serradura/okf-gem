@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-18T10:00:00Z
+timestamp: 2026-07-18T16:00:00Z
 ---
 
 # Overview
@@ -20,9 +20,9 @@ it without opening a socket.
 # The page stays self-contained
 
 One ERB template, inline CSS and JS, no build step and no bundler. The only
-external assets are Cytoscape, marked, and DOMPurify from a CDN — plus Mermaid
-and Panzoom, lazy-loaded only when a concept body actually contains a diagram
-and when one is opened; everything else is inlined. A rendered Mermaid diagram
+external assets are Cytoscape, marked, and DOMPurify from a CDN — plus Mermaid,
+Panzoom, and MiniSearch, lazy-loaded on first use (a concept body's diagram
+opened, the search box focused); everything else is inlined. A rendered Mermaid diagram
 is **click-to-inspect**: a click, tap, or Enter re-renders it from source into a
 fullscreen viewer — drag pans, wheel or pinch zooms, double-click resets, Esc
 closes — so a wide flowchart is never stuck at panel width.
@@ -86,6 +86,25 @@ view's search where it has one, and `?` answers with a sheet of every binding �
 reachable from a rail button too, because a shortcut list you can only open with
 a shortcut helps whoever needs it least. The sheet is written against the key
 handler it documents, so it cannot drift from what the keys do.
+
+# The search box is full-text, and client-side
+
+The one search box is backed by a full-text index —
+[MiniSearch](https://github.com/lucaong/minisearch), lazy-loaded on first focus
+and pinned to the same `7.2.0` the Ruby `minisearch` port tracks, so a
+Ruby-built index and the browser's rank identically. It indexes title, id,
+type, tags and **description** in every mode, plus each concept's **body**
+wherever the page already holds it: `okf render` bakes every body in, so a static
+file searches bodies offline; the live server keeps bodies lazy, so its index
+stays metadata-only until a backend body index arrives. Matches are ranked,
+multi-term (`AND`), prefix (as-you-type) and typo-tolerant, and drive the graph,
+catalog and files views alike; the **Indexes** tab carries a second index over
+each `index.md`/`log.md` **body**, not just its filename. Until an index loads —
+or if the CDN is unreachable — each view falls back to its own substring filter,
+so the box is never dead. This is the one place the browser and the CLI's
+[`search`](search.md) deliberately diverge — the CLI stays deterministic
+substring, the browser is fuzzy — and the shared MiniSearch build is what will
+close that gap when the backend adopts it.
 
 # Links navigate in-app; the graph has a second mode
 

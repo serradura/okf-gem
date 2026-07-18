@@ -702,6 +702,16 @@ const SIBLINGS=<%= siblings_json %>, SELF_SLUG=<%= self_slug_json %>, HUB_PATH=<
    getter resolves from it instead (the /node/meta fragment derived from the
    catalog), so one file needs no server and the endpoint consts above go inert. */
 const EMBED=<%= embed_json %>;
+/* Full-text search state (MiniSearch, lazy — built on first search). One ranked
+   index behind the search box for the graph, catalog and files views. It indexes
+   title/id/type/tags/description in every mode, plus each concept body wherever
+   the page already holds it: `okf render` bakes every body in, so a static file
+   searches bodies offline; the live server keeps bodies lazy, so its index stays
+   metadata-only until a backend body index arrives. Same 7.2.0 build and config
+   as the Ruby port, so a Ruby-built index and this one rank identically. */
+const FT_FIELDS=['title','id','type','tags','description'].concat(EMBED?['body']:[]);
+let _MiniSearch=null,ftIndex=null,ftBuilding=null;
+const descOf={};
 const MIN=<%= OKF::Render::Graph::MIN_SIZE %>, MAX=<%= OKF::Render::Graph::MAX_SIZE %>;
 const PALETTE=["#6E56CF","#D97757","#22C55E","#3B82F6","#EAB308","#EC4899","#14B8A6","#F97316","#A855F7","#0EA5E9","#84CC16","#EF4444","#64748B"];
 const root=document.documentElement;
@@ -977,10 +987,11 @@ cy.on('tap',e=>{if(e.target===cy)cy.elements().removeClass('dim hl');});
 const hiddenTypes=new Set(), activeTags=new Set(), activeAreas=new Set();
 const searchInput=document.getElementById('search');
 const q={graph:'',catalog:'',files:'',tags:''};
-function applyGraphFilter(){const s=q.graph.toLowerCase();
+function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.graph);
  cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir'))return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
-  const hay=(n.data('title')+' '+t+' '+nt.join(' ')).toLowerCase();
-  const m=(!s||hay.includes(s))&&!hiddenTypes.has(t)&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
+  const hay=(n.data('title')+' '+t+' '+nt.join(' ')+' '+(descOf[id]||'')).toLowerCase();
+  const txt=ids?ids.has(id):(!s||hay.includes(s));
+  const m=txt&&!hiddenTypes.has(t)&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
   n.style('display',m?'element':'none');});
  relaxZoom();}
 function fbadge(){const c=hiddenTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
@@ -1210,13 +1221,49 @@ document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>{
  if(b.dataset.view==='index')return goIndexes();
  if(b.dataset.view==='files'&&typeof ftab!=='undefined'&&ftab!=='files'){if(view!=='files')setView('files');setFtab('files');railActive();return;}
  setView(b.dataset.view);});
-searchInput.oninput=()=>{q[view]=searchInput.value;
- if(view==='graph')applyGraphFilter();else if(view==='catalog')renderCatalog();else if(view==='tags')renderCloud();
- else if(view==='files')refreshTree();};
+/* ── full-text search (MiniSearch, lazy) ──
+   loadScript-loads the pinned build on first focus, then builds one index over
+   FT_FIELDS. combineWith:'AND' + prefix keeps as-you-type search intuitive;
+   fuzzy:0.2 tolerates typos; the boosts mirror the Ruby port's field weights
+   (title>id>tags>type=description>body). Until it is ready — or if the CDN is
+   unreachable — ftMatch returns null and each view keeps its substring filter,
+   so the box is never dead. */
+function loadMiniSearch(){return _MiniSearch||(_MiniSearch=loadScript('https://cdn.jsdelivr.net/npm/minisearch@7.2.0/dist/umd/index.js').then(()=>window.MiniSearch));}
+function buildFtIndex(){return ftIndex?Promise.resolve(ftIndex):(ftBuilding||(ftBuilding=Promise.all([loadMiniSearch(),getCatalog()]).then(([MiniSearch,list])=>{
+ const idx=new MiniSearch({idField:'id',fields:FT_FIELDS,storeFields:['id'],
+  extractField:(doc,f)=>f==='tags'?(doc.tags||[]).join(' '):f==='body'?((EMBED&&EMBED.bodies[doc.id])||''):(doc[f]==null?'':String(doc[f])),
+  searchOptions:{prefix:true,fuzzy:0.2,combineWith:'AND',boost:{title:5,id:4,tags:3,type:2,description:2,body:1}}});
+ idx.addAll(list);ftIndex=idx;
+ if((view==='graph'||view==='catalog'||view==='files')&&(q[view]||'').trim())applySearch();
+ return idx;}).catch(()=>{ftBuilding=null;return null;})));}
+/* The ranked set of ids a query matches, or null → the caller keeps its own
+   substring filter (index not ready, or an empty query that shows everything). */
+function ftMatch(text){const t=(text||'').trim();if(!ftIndex||!t)return null;return new Set(ftIndex.search(t).map(r=>r.id));}
+/* The Indexes tab lists the authored reserved files (log.md + each index.md).
+   Those are not concepts, so they ride in a second small index keyed by path,
+   over each file's path and its body/content — same engine, so the Indexes tab
+   searches full text just like the concept views instead of matching only the
+   filename. Built lazily on the first search while that tab is open. */
+let ftResIndex=null,ftResBuilding=null;
+function buildFtResIndex(){return ftResIndex?Promise.resolve(ftResIndex):(ftResBuilding||(ftResBuilding=Promise.all([loadMiniSearch(),getIndex(),getLogs()]).then(([MiniSearch,dirs,logs])=>{
+ const docs=[];
+ logs.forEach(l=>docs.push({id:'log:'+l.path,path:l.path,text:l.path+' '+(l.content||'')}));
+ dirs.forEach(d=>{if(d.present)docs.push({id:'idx:'+d.index_path,path:d.index_path,text:d.index_path+' '+(d.body||'')});});
+ const idx=new MiniSearch({idField:'id',fields:['path','text'],storeFields:['path'],searchOptions:{prefix:true,fuzzy:0.2,combineWith:'AND',boost:{path:3,text:1}}});
+ idx.addAll(docs);ftResIndex=idx;
+ if(view==='files'&&ftab==='indexes'&&(q.files||'').trim())refreshTree();
+ return idx;}).catch(()=>{ftResBuilding=null;return null;})));}
+function ftResMatch(text){const t=(text||'').trim();if(!ftResIndex||!t)return null;return new Set(ftResIndex.search(t).map(r=>r.path));}
+function applySearch(){if(view==='graph')applyGraphFilter();else if(view==='catalog')renderCatalog();else if(view==='tags')renderCloud();else if(view==='files')refreshTree();}
+searchInput.oninput=()=>{q[view]=searchInput.value;buildFtIndex();applySearch();};
+searchInput.onfocus=()=>{buildFtIndex();};
 
 /* ── catalog ── */
 let CATALOG=null;
-function getCatalog(){return CATALOG||(CATALOG=EMBED?Promise.resolve(EMBED.catalog):fetch(CATALOG_ENDPOINT).then(r=>r.json()).then(d=>d.concepts));}
+/* Resolves the rich per-concept rows once (inlined under EMBED, fetched live
+   otherwise) and fills descOf on the way, so even the pre-index substring
+   fallback can match a graph node by its leaf description. */
+function getCatalog(){return CATALOG||(CATALOG=(EMBED?Promise.resolve(EMBED.catalog):fetch(CATALOG_ENDPOINT).then(r=>r.json()).then(d=>d.concepts)).then(list=>{list.forEach(c=>{descOf[c.id]=c.description||'';});return list;}));}
 const catActiveTypes=new Set(), catActiveAreas=new Set(), catActiveTags=new Set();
 const catByCount=types.slice().sort((a,b)=>(TYPES[b]||[]).length-(TYPES[a]||[]).length);
 const catChip=t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} <span class="c">${(TYPES[t]||[]).length}</span></span>`;
@@ -1246,10 +1293,11 @@ function initCatalog(){inited.catalog=true;
  document.getElementById('cat-filters-reset').onclick=()=>{catActiveTypes.clear();catActiveAreas.clear();catActiveTags.clear();renderCatFilters();renderCatalog();};
  document.getElementById('cat-filter-search').oninput=renderCatFilters;
  getCatalog().then(renderCatalog);}
-function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.catalog||'').toLowerCase();
+function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.catalog||'').toLowerCase();const ids=ftMatch(q.catalog);
  const rows=list.filter(c=>{if(catActiveTypes.size&&!catActiveTypes.has(c.type))return false;
   if(catActiveAreas.size&&!catActiveAreas.has(areaOf(c.id)))return false;
   if(catActiveTags.size&&!c.tags.some(t=>catActiveTags.has(t)))return false;
+  if(ids)return ids.has(c.id);
   if(s){const hay=(c.title+' '+c.description+' '+c.type+' '+c.tags.join(' ')+' '+c.id).toLowerCase();if(!hay.includes(s))return false;}return true;});
  document.getElementById('cat-cnt').textContent=rows.length+' of '+list.length+' concepts';
  const g=document.getElementById('cat-grid');
@@ -1280,9 +1328,11 @@ function dirOfPath(p){return p.indexOf('/')<0?'.':p.split('/').slice(0,-1).join(
 function renderTree(list){const s=(q.files||'').toLowerCase();
  const el=document.getElementById('ftree-list');
  if(ftab==='indexes'){
+  if((q.files||'').trim())buildFtResIndex();
+  const rset=ftResMatch(q.files);
   const reserved=[];
-  (LOGPATHS||[]).forEach(p=>{if(!s||p.toLowerCase().includes(s))reserved.push({kind:'log',path:p});});
-  (IXDIRS||[]).forEach(d=>{if(d.present&&(!s||d.index_path.toLowerCase().includes(s)))reserved.push({kind:'index',path:d.index_path});});
+  (LOGPATHS||[]).forEach(p=>{if(rset?rset.has(p):(!s||p.toLowerCase().includes(s)))reserved.push({kind:'log',path:p});});
+  (IXDIRS||[]).forEach(d=>{if(d.present&&(rset?rset.has(d.index_path):(!s||d.index_path.toLowerCase().includes(s))))reserved.push({kind:'index',path:d.index_path});});
   const rank=r=>[ r.kind==='log'?0:1, r.path.indexOf('/')<0?0:1, r.path ];
   reserved.sort((a,b)=>{const x=rank(a),y=rank(b);return (x[0]-y[0])||(x[1]-y[1])||(x[2]<y[2]?-1:1);});
   if(!reserved.length){el.innerHTML='<p class="empty" style="padding:14px">No index.md or log.md files'+(s?' match.':' yet.')+'</p>';return;}
@@ -1291,8 +1341,8 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
    return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}" title="${esc(r.path)}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg><span class="rn">${esc(r.path)}</span><span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');
   el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));
   return;}
- const ft=fileTypeCombo.get(), fg=fileTagCombo.get();
- const rows=list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s)));
+ const ft=fileTypeCombo.get(), fg=fileTagCombo.get();const ids=ftMatch(q.files);
+ const rows=list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(ids?ids.has(c.id):(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s))));
  const groups={};rows.forEach(c=>{(groups[c.dir]=groups[c.dir]||[]).push(c);});
  const dirs=Object.keys(groups).sort();
  if(!dirs.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}

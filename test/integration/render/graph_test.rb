@@ -100,6 +100,20 @@ class OKF::Render::GraphTest < OKF::TestCase
     refute_includes html, "</script><script>alert(1)", "the raw breakout never reaches the page"
   end
 
+  test "empowers the search box with a MiniSearch full-text index over descriptions and bodies" do
+    write("a.md", "---\ntype: Note\ntitle: A\ndescription: the alpha note\n---\n\nx\n")
+
+    html = render
+
+    assert_includes html, "minisearch@7.2.0/dist/umd/index.js",
+      "loads the version-pinned MiniSearch build — bit-for-bit with the Ruby port"
+    assert_includes html, "new MiniSearch(", "builds a client-side full-text index"
+    assert_match(/FT_FIELDS=\[ ?'title','id','type','tags','description'/, html,
+      "descriptions are indexed, so a graph node is findable by its leaf description")
+    assert_includes html, "EMBED?[ 'body' ]".delete(" "),
+      "concept bodies join the index wherever the page holds them (the static bake)"
+  end
+
   test ".static renders a whole bundle from a folder — bundle baked in, meta derived from the catalog" do
     write("tables/orders.md", "---\ntype: Table\ntitle: Orders\ndescription: the orders table\n---\n\nThe orders body.\n")
     write("notes/n.md", %(---\ntype: Note\ntitle: N\ndescription: "a <b>bold</b> claim"\n---\n\nPinned body.\n))

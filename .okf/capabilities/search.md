@@ -4,7 +4,7 @@ title: Ranked text search (search)
 description: Deterministic ranked retrieval over concept metadata and bodies — the browser page's search brought to the CLI, extended to bodies.
 resource: lib/okf/bundle/search.rb
 tags: [read, cli, json, registry]
-timestamp: 2026-07-17T13:00:00Z
+timestamp: 2026-07-18T16:00:00Z
 ---
 
 # Overview
@@ -94,6 +94,14 @@ No stemming, no typo distance, no synonyms. The consuming agent is the fuzzy
 layer: synonyms and vocabulary drift are judgment over the index map, not string
 distance. Determinism is what keeps a result explainable — each row says exactly
 which fields hit.
+
+That holds for the CLI. The [browser page](graph-server.md) has since moved its
+search box onto a MiniSearch full-text index — ranked, prefix, typo-tolerant —
+so the two answer differently on purpose: a human scanning a graph wants the
+near miss, an agent citing a row wants the exact field that hit. The divergence
+is a waypoint rather than the destination — the browser is pinned to the same
+`7.2.0` build the Ruby `minisearch` port tracks, so adopting that port here is
+what would let one engine serve both without giving up an explainable row.
 
 # The retrieval eval keeps the economics honest
 

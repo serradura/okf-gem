@@ -4,7 +4,7 @@ title: Static render (render)
 description: One self-contained HTML file with the whole graph baked in — the same page `okf server` serves, written to disk so it hosts where nothing runs (`okf render`).
 resource: lib/okf/render/graph.rb
 tags: [server, graph]
-timestamp: 2026-07-18T10:00:00Z
+timestamp: 2026-07-18T16:00:00Z
 ---
 
 # Overview
@@ -52,7 +52,10 @@ preview card, since a static file cannot be told them later. The price is weight
 every body is inlined, where a live [`okf server`](graph-server.md) ships a minimal
 graph and pulls bodies on demand — so the server stays the choice for a bundle too
 large to ship whole, and the static file carries no compression of its own
-(whatever host serves it compresses instead).
+(whatever host serves it compresses instead). That weight buys something back:
+because every body is already in the page, the static file's
+[full-text search](graph-server.md) reaches **bodies** offline, where the live
+server — bodies still lazy — can only index their metadata.
 
 # Citations
 

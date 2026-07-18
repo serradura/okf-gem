@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- The graph page's search box grows a full-text index. One MiniSearch index —
+  lazy-loaded from the CDN on first search, pinned to the `7.2.0` the Ruby
+  MiniSearch port tracks so a Ruby-built index and the browser's rank
+  identically — now backs the graph, catalog and files views: ranked, multi-term
+  (`AND`), prefix (as-you-type) and typo-tolerant, over title, id, type, tags and
+  **description** — plus each concept's **body** wherever the page already holds
+  it (`okf render` bakes every body in, so a static file searches bodies offline;
+  the live server keeps bodies lazy, so its index stays metadata-only until a
+  backend body index arrives). The graph could not be searched by a leaf's
+  description before; now it can. The Files view's **Indexes** tab gets its own
+  full-text index too, over each `index.md`/`log.md`'s body — not just its
+  filename. Until an index loads — or if the CDN is unreachable — each view falls
+  back to its own substring filter, so the box is never dead.
 - A title-less concept now wears one name in every view. `catalog` and the §6
   index listing fell back a concept with no `title` to its full id — `area/thing`
   — while the graph node fell back blank-aware to the basename — `thing` — so the

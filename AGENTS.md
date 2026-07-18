@@ -76,7 +76,9 @@ you touch what `require "okf"` pulls in.
    2 usage error.
 5. **The server page stays self-contained**: one ERB template, inline CSS/JS,
    only Cytoscape, marked, and DOMPurify from a CDN at boot (Mermaid, Panzoom,
-   and the extra layout engines lazy-load from the same CDN on first use),
+   MiniSearch, and the extra layout engines lazy-load from the same CDN on first
+   use — MiniSearch on the first search, pinned to the same `7.2.0` the Ruby port
+   tracks so a Ruby-built index and the browser's rank identically),
    bodies pulled on demand with `fetch()`. No htmx, no bundler, no build step. Two XSS defenses hold the
    line: inlined data goes through `json_for_script` (escapes `<` so it cannot
    break out of its `<script>`), and every fetched body is run through
