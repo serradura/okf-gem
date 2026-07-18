@@ -2,9 +2,9 @@
 type: Capability
 title: Static render (render)
 description: One self-contained HTML file with the whole graph baked in — the same page `okf server` serves, written to disk so it hosts where nothing runs (`okf render`).
-resource: lib/okf/server/app.rb
+resource: lib/okf/render/graph.rb
 tags: [server, graph]
-timestamp: 2026-07-17T14:00:00Z
+timestamp: 2026-07-18T10:00:00Z
 ---
 
 # Overview
@@ -19,7 +19,10 @@ running behind it.
 # One template, two modes
 
 There is no second renderer to keep in sync with the server, because there is no
-second renderer. Every data read the page makes — a body, a description, the
+second renderer. One `OKF::Render::Graph` — the view paired with the pure
+[graph model](../model/graph.md) — draws the page for both modes, and `okf render`
+bakes the bundle in through its `.static`/`.payload`. Every data read the page
+makes — a body, a description, the
 catalog, the §6 map, the §7 logs — flows through a small set of getter functions,
 and an injected `EMBED` constant chooses their source: `null` when served, so the
 getters `fetch()` the live endpoints; the whole payload when rendered, so they
@@ -54,4 +57,4 @@ large to ship whole, and the static file carries no compression of its own
 # Citations
 
 [1] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the `render` verb: stdout vs `-o FILE`, `--layout`/`-t`/`-l`, and the exit-2 on an unwritable path.
-[2] [lib/okf/server/app.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/app.rb) — `render_static`, which bakes the bundle into the template's `EMBED` payload.
+[2] [lib/okf/render/graph.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/render/graph.rb) — `OKF::Render::Graph.static` and `.payload`, which bake the bundle into the template's `EMBED` payload.

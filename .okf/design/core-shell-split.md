@@ -4,7 +4,7 @@ title: The core/shell split
 description: A pure functional core that never touches disk or stdio, and a thin shell that owns all I/O — enforced by a test.
 resource: test/unit/boundary_test.rb
 tags: [architecture, pure, testing, diagram]
-timestamp: 2026-07-17T04:00:00Z
+timestamp: 2026-07-18T10:00:00Z
 ---
 
 # Overview
@@ -16,6 +16,7 @@ the [search](../capabilities/search.md),
 the [format layer](../format/) — logic that returns data and does no I/O. The
 **shell** owns everything that touches the world: the on-disk handles
 (`Concept::File`, `Bundle::{Reader,Writer,Folder}`), the
+[renderer](../capabilities/render.md) that draws the page, the
 [server](../capabilities/graph-server.md) and its hub, the
 [registry](../registry.md), and the [CLI](../cli.md).
 
@@ -23,6 +24,7 @@ the [format layer](../format/) — logic that returns data and does no I/O. The
 flowchart TB
   subgraph shell ["Shell — the only layer that does I/O"]
     CLI["CLI"]
+    Render["Render::Graph"]
     Server["Server::App · Hub"]
     Registry["Registry"]
     RW["Reader · Writer · Folder"]

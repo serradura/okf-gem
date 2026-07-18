@@ -2,9 +2,9 @@
 type: Constraint
 title: The server trust boundary
 description: The page sanitizes each concept body before rendering and escapes inlined data, so both XSS paths into the page are closed — served live or rendered static.
-resource: lib/okf/server/graph/template.html.erb
+resource: lib/okf/render/graph/template.html.erb
 tags: [security, server, xss]
-timestamp: 2026-07-17T14:00:00Z
+timestamp: 2026-07-18T10:00:00Z
 ---
 
 # Overview
@@ -47,4 +47,4 @@ document from a source you do not know.
 # Citations
 
 [1] [README.md — Server trust boundary](https://github.com/serradura/okf-gem/blob/main/README.md) — the two-defense summary.
-[2] [lib/okf/server/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/graph/template.html.erb) — `json_for_script` and the `DOMPurify.sanitize(marked.parse(...))` render.
+[2] [lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/lib/okf/render/graph/template.html.erb) — the inlined `EMBED` and the `DOMPurify.sanitize(marked.parse(...))` render; `json_for_script` (its `<`-escape) is the method in the sibling `render/graph.rb`.
