@@ -147,41 +147,54 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "foldAllBtn.onclick", "the fold-all control is wired"
   end
 
-  test "the page lands on the bundle's own index, not on a field of dots" do
+  test "the page opens on the graph, and a first visit is told the index exists" do
     write("index.md", "---\nokf_version: \"0.1\"\ntitle: Handbook\n---\n\n# Handbook\n")
     write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 
     html = render
 
-    # a newcomer's first screen is the readme the bundle already has, because a
-    # graph of unlabelled dots explains nothing about where to start
-    assert_includes html, %(<div id="app" data-view="files">), "the page boots on the files view"
-    assert_includes html, "let view='files';", "and the client state agrees with the markup"
-    assert_includes html, %(<button class="rail-item active" data-view="index">), "the rail stands on Index at boot"
-    refute_includes html, %(<button class="rail-item active" data-view="graph">), "Graph is no longer where the page opens"
-    # setView never runs at boot (the view is already the one it would set), so
-    # the markup itself has to reveal the section — data-view alone leaves the
-    # landing rendering into a display:none pane
-    assert_includes html, %(<section class="view active" id="view-files">), "the files section is the one revealed"
-    assert_includes html, %(<section class="view" id="view-graph">), "and the graph section starts hidden"
-    assert_includes html, "function landOnIndex(", "the landing is a named action, not scattered boot lines"
-    assert_includes html, "openReserved('index','index.md')", "what it opens is the root map"
-    assert_includes html, "if(!DEEP)landOnIndex();", "a deep link still wins over the landing"
-    # everything setView would have synced has to be synced by hand at boot now
-    assert_includes html, "searchInput.placeholder=SEARCH_PH[view];",
-      "the search box boots with the current view's placeholder, from the one table that owns it"
+    # the graph is the first impression and stays that way; landing on the index
+    # instead only read well on a wide window, and cost every visitor the view
+    # that makes the bundle legible at a glance
+    assert_includes html, %(<div id="app" data-view="graph">), "the page boots on the graph"
+    assert_includes html, "let view='graph';"
+    assert_includes html, %(<button class="rail-item active" data-view="graph">), "the rail stands on Graph"
+    assert_includes html, %(<section class="view active" id="view-graph">), "and the graph section is the one revealed"
+    refute_includes html, "function landOnIndex(", "the index landing is gone"
+    # what carries the index instead: one dismissible note, once, on every width
+    assert_includes html, %(<div id="hello" hidden role="note">), "a first-visit note rides at the bottom"
+    assert_includes html, "First time here?", "it opens by naming who it is for"
+    assert_includes html, "okf-hello", "and remembers being dismissed"
+    # a sibling combinator, because the note sits outside #app with the other
+    # fixed overlays — the descendant form matches nothing and silently never fires
+    assert_includes html, "#app:not([data-view=graph]) ~ #hello{display:none}",
+      "it belongs to the graph, so it never covers another view"
+    assert_includes html, "hello-go", "one tap goes straight to the index"
   end
 
-  test "a concept deep link opens the graph even though the page no longer boots there" do
+  test "the first-visit note speaks touch, and does not stack on the mobile note" do
     write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 
     html = render
 
-    # ?select= and #hash name a *node*, so they have to carry the view with them
-    # now that the page can be standing somewhere else when they are read
+    # a phone is where a newcomer is least oriented, so the wording has to work
+    # with a finger — and two stacked bottom banners would be worse than none
+    assert_includes html, "tap a concept to read it", "the graph hint is written for touch, not for a mouse"
+    assert_includes html, "pinch to zoom", "and the touch-only half carries the gestures a phone needs"
+    refute_includes html, "click a concept to read", "no mouse-only wording in the note"
+    refute_includes html, %(<div id="mnote" hidden role="note">), "the old mobile-only note folded into this one"
+    refute_includes html, "okf-mnote", "and took its storage key with it"
+  end
+
+  test "a concept deep link carries the view with it" do
+    write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # ?select= and #hash name a *node*, so they say which view to name it in
+    # rather than trusting whichever one the page happens to be standing on
     assert_includes html, "if(QS&&byId[QS])goToGraph(QS);", "?select= switches to the graph before selecting"
     assert_includes html, "if(h&&byId[h])goToGraph(h);", "so does a #hash"
-    assert_includes html, "if(v==='graph'&&!shown.graph)", "the graph fits itself the first time it is revealed"
   end
 
   test "the file tree nests directories instead of listing full paths flat" do
@@ -214,6 +227,21 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "collapsedDirs.delete('.')", "collapse-all leaves the root open"
     assert_includes html, "collapsedDirs.clear()", "expand-all reopens everything, including a root closed by hand"
     refute_includes html, "d.forEach(x=>collapsedDirs.delete(x))", "the old all-inclusive fold is gone"
+  end
+
+  test "the reader's graph button says what it will open" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # on the root index it opens the whole bundle, on a nested one just that
+    # folder — and saying so is the invitation a first-time reader needs, put
+    # where their eye already is instead of in a banner they have to dismiss
+    assert_includes html, "function fpGraph(", "one place relabels and rewires the button"
+    assert_includes html, "'Explore the knowledge graph'", "the root index opens the whole graph"
+    assert_includes html, "'Open '+d+'/ in graph'", "a nested index names its own folder"
+    assert_includes html, "fpGraph('Open in graph',()=>goToGraph(id));",
+      "a concept resets the label, so a stale one never outlives the index that set it"
   end
 
   test ".static renders a whole bundle from a folder — bundle baked in, meta derived from the catalog" do

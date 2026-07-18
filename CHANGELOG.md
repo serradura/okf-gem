@@ -2,18 +2,18 @@
 
 ## [Unreleased]
 
-- **The graph page opens on the bundle's index instead of the graph.** A reader
-  meeting a bundle for the first time landed on unlabelled dots with no way in,
-  while the `index.md` an author wrote to be read first was reachable only by
-  finding the Indexes tab and clicking a row. The page now boots on the files
-  view with the root map open in the reader, rail on Index, graph one click away.
-  - **Deep links still win**, all three of them: `?view=` named a place,
-    `?select=` and `#hash` named a node. The two that name a node now switch to
-    the graph before selecting, since the page can be standing elsewhere when
-    they are read.
-  - **The graph refits the first time it is shown** — its boot layout ran against
-    a zero-sized canvas — and only resizes on later switches, so a reader's own
-    pan and zoom survive a view hop.
+- **A first-visit note tells a newcomer the index exists.** The `index.md` an
+  author wrote to be read first was reachable only by finding the Indexes tab and
+  clicking a row, so a reader meeting a bundle for the first time met unlabelled
+  dots with no way in. The page still opens on the graph — it is what makes a
+  bundle legible at a glance, at every width — and a dismissible note at the
+  bottom now says what the picture is, how to touch it, and where the index is.
+  **Read the index** goes straight there; the dismissal is remembered.
+  - **It absorbed the old mobile-only tip** rather than stacking a second banner
+    under it, and it is written for a finger throughout, since a phone is where a
+    first-time reader is least oriented.
+  - **Deep links are unaffected**, and `?select=`/`#hash` now switch to the graph
+    before selecting, since the page can be standing elsewhere when they are read.
 - **The file tree nests.** Directories were a sorted list of full paths, which
   made `core` and `core/configurations` read as two unrelated folders and left
   the shape of a bundle invisible. Each row is now one path segment indented by

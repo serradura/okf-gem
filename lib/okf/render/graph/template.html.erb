@@ -308,10 +308,21 @@
  #btn-menu .menudot[hidden]{display:none}
  #nav-bk{position:fixed;inset:0;z-index:74;background:rgba(0,0,0,.35)}
  #nav-bk[hidden]{display:none}
- #mnote{position:fixed;left:12px;right:12px;bottom:12px;z-index:72;display:flex;gap:10px;align-items:center;justify-content:space-between;
+ /* the first-visit note. It rides at the bottom of the graph on every width —
+    centred and capped on a desktop, edge to edge on a phone — and it belongs to
+    the graph, so switching views never leaves it floating over a reader. */
+ #hello{position:fixed;left:12px;right:12px;bottom:12px;z-index:72;display:flex;gap:10px;align-items:center;justify-content:space-between;
   background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;font-size:13px;color:var(--ink)}
- #mnote[hidden]{display:none}
- #mnote .btn{flex:none;width:28px;height:28px;font-size:13px}
+ @media (min-width:769px){ #hello{left:50%;right:auto;transform:translateX(-50%);max-width:min(760px,calc(100vw - 120px))} }
+ #hello[hidden]{display:none}
+ /* a *sibling* combinator, not a descendant one: the note lives outside #app,
+    next to the other fixed overlays, so `#app … #hello` matches nothing */
+ #app:not([data-view=graph]) ~ #hello{display:none}
+ #hello .hello-acts{flex:none;display:flex;gap:6px;align-items:center}
+ #hello .btn{flex:none;height:28px;font-size:13px}
+ #hello .btn#hello-x{width:28px}
+ #hello .hello-m{display:none}
+ @media (max-width:768px){ #hello .hello-m{display:inline} }
 
  /* ── catalog ── */
  .pad{padding:22px 24px;overflow:auto;flex:1}
@@ -494,13 +505,13 @@
  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style></head>
 <body>
-<div id="app" data-view="files">
+<div id="app" data-view="graph">
  <nav id="rail" aria-label="Views">
   <span class="rail-brand" title="<%= escaped_name %> — <%= @graph.nodes.length %> concepts · <%= @graph.edges.length %> links">
    <svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#1a1a1a"/><polygon points="38,44 62,44 50,82" fill="#7a0a1e"/><polygon points="18,44 38,44 50,82" fill="#a8112c"/><polygon points="62,44 82,44 50,82" fill="#a8112c"/><polygon points="35,28 18,44 38,44" fill="#dc1e3c"/><polygon points="65,28 82,44 62,44" fill="#dc1e3c"/><polygon points="35,28 65,28 62,44 38,44" fill="#f43f5e"/><polygon points="36,29 49,29 42,42" fill="#fff" opacity=".38"/><polygon points="35,28 65,28 82,44 50,82 18,44" fill="none" stroke="#ff6b7f" stroke-width="2" stroke-linejoin="round"/></svg>
   </span>
-  <button class="rail-item" data-view="graph"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M7.5 16 8.2 8.3M10.9 16.4 16.3 10.5"/></svg></span><span class="ri-lbl">Graph</span></button>
-  <button class="rail-item active" data-view="index"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></span><span class="ri-lbl">Index</span></button>
+  <button class="rail-item active" data-view="graph"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M7.5 16 8.2 8.3M10.9 16.4 16.3 10.5"/></svg></span><span class="ri-lbl">Graph</span></button>
+  <button class="rail-item" data-view="index"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></span><span class="ri-lbl">Index</span></button>
   <button class="rail-item" data-view="files"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span><span class="ri-lbl">Files</span></button>
   <button class="rail-item" data-view="catalog"><span class="ri-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="14.5" width="7.5" height="5.5" rx="1.6"/><rect x="13.5" y="14.5" width="7.5" height="5.5" rx="1.6"/></svg></span><span class="ri-lbl">Catalog</span></button>
   <button class="rail-item" data-view="tags"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 4.5h6.8L20 13.7l-6.3 6.3L4.5 10.8V4.5Z"/><circle cx="8.4" cy="8.4" r="1.4" fill="currentColor" stroke="none"/></svg></span><span class="ri-lbl">Tags</span></button>
@@ -559,7 +570,7 @@
 
   <div id="views">
    <!-- GRAPH -->
-   <section class="view" id="view-graph">
+   <section class="view active" id="view-graph">
     <div class="graph-body" data-side="hidden">
      <div id="stage">
       <div id="cy"></div>
@@ -612,7 +623,7 @@
    </section>
 
    <!-- FILES -->
-   <section class="view active" id="view-files">
+   <section class="view" id="view-files">
     <div class="files-grid">
      <div class="ftree">
       <div class="ftabs" role="tablist" aria-label="File kinds">
@@ -696,9 +707,12 @@
 </div>
 
 <div id="nav-bk" hidden></div>
-<div id="mnote" hidden role="note">
- <span>Best experienced on a desktop — tap ☰ for views, pinch to zoom, tap a concept to read it.</span>
- <button class="btn" id="mnote-x" type="button" aria-label="Dismiss">✕</button>
+<div id="hello" hidden role="note">
+ <span class="hello-t"><b>First time here?</b> This is the whole bundle as a constellation — tap a concept to read it<span class="hello-m">, pinch to zoom, ☰ for views</span>. Or start with the index.</span>
+ <span class="hello-acts">
+  <button class="btn text" id="hello-go" type="button">Read the index</button>
+  <button class="btn" id="hello-x" type="button" aria-label="Dismiss">✕</button>
+ </span>
 </div>
 
 <script>
@@ -1208,28 +1222,20 @@ function fitGraph(){relaxZoom();const bb=fitBox();if(!bb)return;
 document.getElementById('btn-fit').onclick=fitGraph;
 
 /* ── view switching ── */
-let view='files';
-const inited={},shown={};
+let view='graph';
+const inited={};
 /* Which views have a search, and what it is called there — one table, because
    three things need the same answer: the placeholder, whether `/` has anywhere
    to go, and (mirrored in CSS) whether the box is shown at all. Stats is the
    only view absent here: it reads, it does not filter. */
 const SEARCH_PH={graph:'search concepts…',catalog:'search concepts…',files:'filter files…',tags:'search tags…'};
-/* setView owns this everywhere else, but it never runs at boot — the view is
-   already the one it would set — so the markup's placeholder would outlive the
-   landing and promise a concept search over what is really a file filter. */
-searchInput.placeholder=SEARCH_PH[view];
 function goToGraph(id){setView('graph');requestAnimationFrame(()=>select(id));}
 function setView(v){if(v===view)return;view=v;document.getElementById('app').setAttribute('data-view',v);
  railActive();ctlBadge();
  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
  const ph=SEARCH_PH[v];
  if(ph!==undefined){searchInput.placeholder=ph;searchInput.value=q[v]||'';}
- /* The page no longer boots on the graph, so the boot layout ran against a
-    zero-sized canvas and its fit meant nothing. The first reveal refits; every
-    later one only resizes, so a reader's own pan and zoom survive a view hop. */
- if(v==='graph'&&!shown.graph)requestAnimationFrame(()=>{shown.graph=true;cy.resize();fitGraph();});
- else if(v==='graph')requestAnimationFrame(()=>cy.resize());
+ if(v==='graph')requestAnimationFrame(()=>cy.resize());
  if(v==='catalog'&&!inited.catalog)initCatalog();
  if(v==='files'&&!inited.files)initFiles();
  if(v==='tags'&&!inited.tags)initTags();
@@ -1466,6 +1472,11 @@ function makeCombo(name,allLabel,items,onChange){
 const refreshTree=()=>{ctlBadge();return Promise.all([ getCatalog(),getIndex(),getLogs() ]).then(([ list,dirs,logs ])=>{IXDIRS=dirs;LOGPATHS=logs.map(l=>l.path);renderTree(list);});};
 const fileTypeCombo=makeCombo('file-type','All types',()=>catByCount.map(t=>({v:t,n:(TYPES[t]||[]).length,c:color[t]})),refreshTree);
 const fileTagCombo=makeCombo('file-tag','All tags',()=>tagsByCount.map(t=>({v:t,n:(TAGS[t]||[]).length})),refreshTree);
+/* The reader's graph button, relabelled for whatever it is about to open. Both
+   callers go through here so a label can never outlive the file that set it. */
+function fpGraph(label,go){const fg=document.getElementById('fp-graph');
+ fg.hidden=false;fg.onclick=go;fg.querySelector('.fpg-lbl').textContent=label;
+ fg.setAttribute('aria-label',label);fg.title=label;}
 function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
  setFtab('files');
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
@@ -1473,8 +1484,7 @@ function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byI
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-type').innerHTML=`<span class="dot" style="background:${cc}"></span>${esc(ty)}`;
  document.getElementById('fp-title').textContent=c.title||(byId[id]||{}).title||id;
- document.getElementById('fp-graph').hidden=false;
- document.getElementById('fp-graph').onclick=()=>goToGraph(id);
+ fpGraph('Open in graph',()=>goToGraph(id));
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  getNodeBody(id).then(txt=>{
   const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);}).catch(()=>{body.innerHTML='<p class="empty">could not load this file</p>';});}
@@ -1485,8 +1495,12 @@ function openReserved(kind,path){fileSel=path;
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.path===path));
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-title').textContent=path;
- const fg=document.getElementById('fp-graph');
- fg.hidden=false;fg.onclick=()=>openInTree(dirOfPath(path));
+ /* On the root index this opens the whole bundle; on a nested one, just that
+    folder. Naming which is also the standing invitation into the graph — the
+    landing hands a newcomer the index, and this is how the graph introduces
+    itself from there, in the place the reader is already looking. */
+ const d=dirOfPath(path);
+ fpGraph(kind==='index'?(d==='.'?'Explore the knowledge graph':'Open '+d+'/ in graph'):'Open in graph',()=>openInTree(d));
  const type=document.getElementById('fp-type');
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  const done=txt=>{const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);};
@@ -1733,11 +1747,6 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
  menuBtn.addEventListener('click',()=>navSet(!app.classList.contains('nav-open')));
  bk.addEventListener('mousedown',()=>navSet(false));
  document.getElementById('rail').addEventListener('click',e=>{if(e.target.closest('.rail-item,.btn')){navSet(false);ctlSet(false);}});
- let small=false;try{small=matchMedia('(max-width:768px)').matches;}catch(err){}
- if(small){try{
-  if(!localStorage.getItem('okf-mnote')){const n=document.getElementById('mnote');n.hidden=false;
-   document.getElementById('mnote-x').addEventListener('click',()=>{n.hidden=true;try{localStorage.setItem('okf-mnote','1');}catch(err){}});}
- }catch(err){}}
  /* the initial layout runs before the viewport settles (fonts, window chrome,
     a phone's address bar), which can leave the graph tiny — on any screen. Fit
     once after load (past the canvas ResizeObserver's 240ms debounce) and again
@@ -1824,17 +1833,20 @@ function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1))
 addEventListener('hashchange',fromHash);
 if(QS&&byId[QS])goToGraph(QS);else fromHash();
 
-/* ── landing ──
-   The page opens on the bundle's own index — the one page an author wrote to be
-   read first — rather than on the graph, where a newcomer meets unlabelled dots
-   and no way in. Any deep link wins over it, because ?view= named a place and
-   ?select=/#hash named a node: all three were asked for, the landing is only
-   what happens when nothing was. Marking files inited (rather than calling
-   initFiles) leaves the one render to setFtab, which openReserved already
-   triggers on its way to the Indexes tab. */
-const DEEP=QV||QS||(location.hash||'').slice(1);
-function landOnIndex(){inited.files=true;openReserved('index','index.md');}
-if(!DEEP)landOnIndex();
+/* ── first visit ──
+   The graph is the first impression and stays that way. What it cannot say on
+   its own is that the bundle has an index — the one page an author wrote to be
+   read first — so a note says it once, and never again. Landing on the index
+   instead was the other way to solve this; it only read well on a wide window,
+   and cost every visitor the view that makes a bundle legible at a glance.
+   The wording is written for a finger, because a phone is where a newcomer is
+   least oriented and where "click" means nothing. */
+try{if(!localStorage.getItem('okf-hello')){
+ const h=document.getElementById('hello');h.hidden=false;
+ const close=()=>{h.hidden=true;try{localStorage.setItem('okf-hello','1');}catch(err){}};
+ document.getElementById('hello-x').addEventListener('click',close);
+ document.getElementById('hello-go').addEventListener('click',()=>{close();goIndexes();});
+}}catch(err){}
 
 /* ── a small hello for the curious ── */
 try{console.log('%cokf%c — knowledge as code. '+NODES.length+' concepts, one graph.','color:#e21e1e;font-weight:700;font-size:15px','color:inherit');}catch(e){}

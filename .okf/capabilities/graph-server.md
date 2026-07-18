@@ -142,25 +142,35 @@ class, which is why rotation is a re-evaluation rather than a one-way door: the
 same tablet crosses back over `769px` in landscape and gets the desktop layout,
 and `orientationchange` refits the graph to its new box.
 
-# The page opens on the bundle's index, not on the graph
+# The graph opens the page, and a note says the index is there
 
-A bundle read as documentation has to answer "where do I start?" before it
-answers anything else, and a field of unlabelled dots does not. The page boots on
-the **files view with the root `index.md` already open in the reader** — the one
-page an author wrote to be read first — with the graph one rail click away. The
-rail stands on Index to match, and the markup ships that state (`data-view`, the
-`active` rail item, *and* the `active` section) because `setView` never runs at
-boot: the view is already the one it would set, so a landing that only flipped
-`data-view` would render into a `display:none` pane.
+A bundle read as documentation has to answer "where do I start?", and a field of
+unlabelled dots does not say it on its own. The page still **opens on the graph**
+— that constellation is what makes a bundle legible at a glance, and it is the
+one view that reads well at every width. What the graph cannot say is that the
+bundle has an index, so a **dismissible note at the bottom says it once**: what
+the picture is, how to touch it, and that the index exists. **Read the index**
+takes the reader straight there; `✕` and the button both remember the dismissal
+in `localStorage`, so a returning visitor never sees it again.
 
-Any deep link wins over the landing, because all three were asked for
-explicitly: `?view=` named a place, `?select=` and `#hash` named a node. The two
-that name a node now carry the view with them — selecting into a graph nobody is
-looking at is a silent no-op — and because `setView` returns early when the view
-is already current, that costs a page already on the graph nothing. The graph
-also refits the **first** time it is revealed: its boot layout ran against a
-zero-sized canvas, so that fit meant nothing; every later switch only resizes, so
-a reader's own pan and zoom survive a view hop.
+Landing on the index instead was tried and reverted. It read well on a wide
+window and badly everywhere else: a phone got a wall of prose where the
+constellation should have been, and every visitor — first or five-hundredth —
+paid for an introduction only the first one needed. A note costs one visit; a
+landing costs all of them.
+
+The note belongs to the graph (`#app:not([data-view=graph]) ~ #hello`, a
+**sibling** combinator, because it sits outside `#app` with the other fixed
+overlays) so it never floats over a reader, and it absorbed the old
+mobile-only tip rather than stacking a second banner beneath it — the phone
+wording it carried (pinch to zoom, `☰` for views) survives as the touch-only
+half of the same sentence. Everything is written for a finger: a first-time
+reader on a phone is the least oriented person the page ever serves, and
+"click" means nothing to them.
+
+Deep links are unaffected, and `?select=`/`#hash` now name a view as well as a
+node — selecting into a graph nobody is looking at is a silent no-op, and
+`setView` returning early when the view is already current makes that free.
 
 # The browser shows the authored layer, not just derived views
 
