@@ -1281,7 +1281,8 @@ module OKF
       return resolve_registered(arg) if arg.start_with?("@")
 
       unless File.directory?(arg)
-        @err.puts "error: #{arg} is not a directory"
+        @err.puts "error: #{arg} is not a directory or a registry ref " \
+                  "(@slug names a registered bundle, @ the default; okf registry list)"
         return nil
       end
       arg

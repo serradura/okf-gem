@@ -182,12 +182,14 @@ class CLIRegistrySetTest < CLIIntegrationCase
   test "a missing path and a non-directory are usage errors (exit 2), reported not raised" do
     ghost = okf("registry", "set", File.join(BUNDLES, "does-not-exist"))
     assert_equal 2, ghost.status
-    assert_match(/^error: #{Regexp.escape(File.join(BUNDLES, "does-not-exist"))} is not a directory$/, ghost.err)
+    # set takes <dir|@slug>, so the shared not-a-directory error names the ref
+    # grammar here too — accurate, since a slug is a legal set target.
+    assert_match(/^error: #{Regexp.escape(File.join(BUNDLES, "does-not-exist"))} is not a directory or a registry ref/, ghost.err)
     refute_match(/\.rb:\d+/, ghost.err, "a bad path argument is a message, never a backtrace")
 
     file = okf("registry", "set", File.join(fixture("minimal"), "note.md"))
     assert_equal 2, file.status
-    assert_match(/is not a directory$/, file.err, "a file is not a bundle")
+    assert_match(/is not a directory or a registry ref/, file.err, "a file is not a bundle")
 
     refute_path_exists File.join(@home, "registry.json"), "a failed set writes no registry at all"
   end

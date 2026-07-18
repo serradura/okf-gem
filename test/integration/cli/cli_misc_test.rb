@@ -16,11 +16,17 @@ class CLIMiscTest < CLIIntegrationCase
     assert_empty result.out
   end
 
-  test "a missing directory is a usage error on stderr (exit 2)" do
-    result = okf("validate", File.join(BUNDLES, "does-not-exist"))
+  test "a missing directory is a usage error that names the ref grammar (exit 2)" do
+    missing = File.join(BUNDLES, "does-not-exist")
+    result = okf("validate", missing)
 
     assert_equal 2, result.status
-    assert_match(/is not a directory/, result.err)
+    # The error is the natural teaching moment for @slug addressing: it must name
+    # the target grammar (path | @slug | @) and point at the registry, not just
+    # say "not a directory" — the friction that cost a consume session ~2.5k tokens.
+    assert_match(/#{Regexp.escape(missing)} is not a directory or a registry ref/, result.err)
+    assert_match(/@slug names a registered bundle/, result.err)
+    assert_match(/okf registry list/, result.err)
   end
 
   test "an unknown flag is a usage error on stderr (exit 2)" do
