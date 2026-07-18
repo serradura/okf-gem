@@ -15,6 +15,14 @@
   full-text index too, over each `index.md`/`log.md`'s body — not just its
   filename. Until an index loads — or if the CDN is unreachable — each view falls
   back to its own substring filter, so the box is never dead.
+- Clustering no longer leaves phantom empty boxes. When a filter or a search hid
+  every concept in an area, the cluster's labelled box lingered as an empty
+  rectangle; the box now hides when no child survives and returns when one does —
+  the same rule the fit already used to leave stale boxes out of view, now
+  applied to what is drawn.
+- `Esc` clears the graph selection. A dense graph leaves almost no empty canvas
+  to click for deselecting; `Esc` now drops the highlight (and lets the URL hash
+  forget the node) the same way tapping empty canvas does.
 - A title-less concept now wears one name in every view. `catalog` and the §6
   index listing fell back a concept with no `title` to its full id — `area/thing`
   — while the graph node fell back blank-aware to the basename — `thing` — so the

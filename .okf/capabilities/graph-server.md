@@ -120,6 +120,13 @@ edges — the acyclic layered tree of the files, next to the emergent link graph
 The inspector and files panes are drag-resizable (persisted; double-click resets),
 and the inspector boots hidden on every screen until the first node tap.
 
+A filter or search that empties an area hides that area's **box** too, rather
+than stranding a labelled empty rectangle: the filter recomputes each compound
+parent from its surviving children, and clustering re-applies the active filter
+before the layout tiles the boxes, so the two orders — filter-then-cluster and
+cluster-then-filter — agree. Selection clears with `Esc` as well as a tap on
+empty canvas, because a dense graph leaves almost no empty canvas to hit.
+
 # One page, from a phone to a desktop
 
 At `≤768px` — phones and portrait tablets — the topbar tools fold into a `⚙`

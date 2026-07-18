@@ -981,7 +981,11 @@ cy.on('tap','node',e=>{const t=e.target;
  if(t.hasClass('dir'))return showDir(t.id().slice(DIR.length)||'.');
  if(t.isParent()){const a=t.id().indexOf('area::')===0?t.id().slice(6):null;return showDir(a&&a!=='(root)'?a:'.');}
  select(t.id());});
-cy.on('tap',e=>{if(e.target===cy)cy.elements().removeClass('dim hl');});
+/* Clear the focus: drop the dim/highlight and let the hash forget the node, so a
+   reload does not reselect it. Tapping empty canvas does this — but a dense graph
+   leaves almost no empty canvas to hit, so Esc is bound to it too (keydown). */
+function deselect(){cy.elements().removeClass('dim hl');try{if(location.hash)history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
+cy.on('tap',e=>{if(e.target===cy)deselect();});
 
 /* ── graph filters (slide-over) ── */
 const hiddenTypes=new Set(), activeTags=new Set(), activeAreas=new Set();
@@ -993,6 +997,11 @@ function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.gr
   const txt=ids?ids.has(id):(!s||hay.includes(s));
   const m=txt&&!hiddenTypes.has(t)&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
   n.style('display',m?'element':'none');});
+ /* Cluster mode draws an area box around each group's concepts. When a filter
+    hides every concept in a group, hide the now-empty box too (and bring it back
+    when one survives) — the same rule fitBox already uses to leave stale boxes
+    out of the fit, now applied to what is drawn. */
+ cy.nodes(':parent').forEach(p=>p.style('display',p.children().some(c=>c.style('display')!=='none')?'element':'none'));
  relaxZoom();}
 function fbadge(){const c=hiddenTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;ctlBadge();syncFacets();}
@@ -1105,6 +1114,11 @@ function setClustered(on){if(on===clustered)return;if(on&&treeMode)setTree(false
  if(on){const as=[...new Set(NODES.map(n=>areaOf(n.id)))];
   cy.add(as.map(a=>({group:'nodes',data:{id:'area::'+a,label:a}})));
   cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length)e.move({parent:'area::'+areaOf(n.id)});}));
+  /* A box is made for every area; if a search or filter was already narrowing
+     the graph, the areas it emptied would cluster as phantom boxes. Re-apply the
+     filter now — before the layout tiles them — so empty areas never get drawn.
+     (Filtering while already clustered runs applyGraphFilter on its own.) */
+  applyGraphFilter();
   clusterLayout();
  }else{
   cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length&&e.isChild())e.move({parent:null});}));
@@ -1708,7 +1722,7 @@ const KEYS=[
  [ 'f', 'fullscreen' ],
  [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K', HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
  [ '?', 'this list' ],
- [ 'Esc', 'close whatever is open' ]
+ [ 'Esc', 'close what is open, or clear the graph selection' ]
 ];
 const kb=document.getElementById('kb');
 let kbLast=null;
@@ -1732,6 +1746,7 @@ addEventListener('keydown',e=>{if(!dgv.hidden){if(e.key==='Escape')closeDiagram(
  else if(e.key==='?'){e.preventDefault();kbOpen();}
  else if(e.key==='\\'&&view==='graph'){setSide(gbody.getAttribute('data-side')==='hidden'?'default':'hidden');}
  else if(e.key==='0'&&view==='graph'){fitGraph();}
+ else if(e.key==='Escape'&&view==='graph'){deselect();}
  else if(e.key==='f'){btnFull.click();}});
 
 /* ── deep links ── */

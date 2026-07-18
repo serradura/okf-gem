@@ -114,6 +114,20 @@ class OKF::Render::GraphTest < OKF::TestCase
       "concept bodies join the index wherever the page holds them (the static bake)"
   end
 
+  test "hides a cluster box once a filter empties it, and binds Esc to deselect" do
+    write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # an area box whose children are all filtered out drops out of the drawing,
+    # not just out of the fit — so a search never leaves phantom empty boxes
+    assert_includes html, "cy.nodes(':parent').forEach(p=>p.style('display'",
+      "the graph filter recomputes each compound parent's visibility from its children"
+    # a dense graph has no empty canvas to click, so Esc clears the selection
+    assert_includes html, "function deselect(", "deselect is a named, reusable action"
+    assert_includes html, "e.key==='Escape'&&view==='graph'", "Esc clears the graph selection"
+  end
+
   test ".static renders a whole bundle from a folder — bundle baked in, meta derived from the catalog" do
     write("tables/orders.md", "---\ntype: Table\ntitle: Orders\ndescription: the orders table\n---\n\nThe orders body.\n")
     write("notes/n.md", %(---\ntype: Note\ntitle: N\ndescription: "a <b>bold</b> claim"\n---\n\nPinned body.\n))
