@@ -6,14 +6,13 @@ reimplemented in this skill. They run the deterministic `okf` executable shipped
 the companion gem — the single source of truth for OKF mechanics. Your job is to
 invoke it correctly and interpret the result, not to reason out conformance by hand.
 
-## Presence guard
+## When it isn't installed
 
-Check the tool exists before relying on it. If it is missing, the gem is not
-installed — say so and stop; never fabricate a result:
-
-```bash
-command -v okf >/dev/null || echo "okf CLI not found — install it: 'gem install okf' (or from a checkout: 'cd gem && bundle exec rake install')"
-```
+Don't probe for the tool before using it — just run the verb. A shell `okf:
+command not found` is the only thing that means the gem isn't installed: say so
+and stop (`gem install okf`, or from a checkout `cd gem && bundle exec rake
+install`); never fabricate a result. Any line that starts `error:` is the CLI
+*answering* — a bundle or usage result to read, not a missing toolchain.
 
 ## Invocation
 

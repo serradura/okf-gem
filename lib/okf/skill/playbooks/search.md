@@ -6,9 +6,13 @@ can query cheaply is dead weight. The discipline is progressive disclosure
 (spec §6): every step pays a few hundred bytes to decide what the next step
 reads, and full bodies are read last, and only the winners.
 
-1. **Guard once**: `command -v okf`. Missing → [doctor](doctor.md). No CLI at
-   all → read the root `index.md`, then each relevant area's `index.md`, by hand.
-2. **Ingest the map and decide where to look.** `okf index <dir> --no-body` is
+1. **Just run it — no presence probe.** Point the finder at a path or an `@slug`
+   (a registered bundle; bare `@` = the default). Only a shell `okf: command not
+   found` means install (→ [doctor](doctor.md)); with no CLI possible at all, read
+   the root `index.md` then each relevant area's `index.md` by hand. No bundle in
+   the cwd? `okf registry list` names the registered ones — address them by
+   `@slug`, don't hunt sibling directories.
+2. **Ingest the map and decide where to look.** `okf index <dir|@slug> --no-body` is
    the skeleton: every directory with its concept count, types, tags, children.
    *You* do the semantic matching here — the question names a meaning, the map
    names areas; connect them by judgment, not string equality. When an area
