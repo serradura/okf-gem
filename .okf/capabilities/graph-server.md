@@ -142,15 +142,46 @@ class, which is why rotation is a re-evaluation rather than a one-way door: the
 same tablet crosses back over `769px` in landscape and gets the desktop layout,
 and `orientationchange` refits the graph to its new box.
 
+# The page opens on the bundle's index, not on the graph
+
+A bundle read as documentation has to answer "where do I start?" before it
+answers anything else, and a field of unlabelled dots does not. The page boots on
+the **files view with the root `index.md` already open in the reader** — the one
+page an author wrote to be read first — with the graph one rail click away. The
+rail stands on Index to match, and the markup ships that state (`data-view`, the
+`active` rail item, *and* the `active` section) because `setView` never runs at
+boot: the view is already the one it would set, so a landing that only flipped
+`data-view` would render into a `display:none` pane.
+
+Any deep link wins over the landing, because all three were asked for
+explicitly: `?view=` named a place, `?select=` and `#hash` named a node. The two
+that name a node now carry the view with them — selecting into a graph nobody is
+looking at is a silent no-op — and because `setView` returns early when the view
+is already current, that costs a page already on the graph nothing. The graph
+also refits the **first** time it is revealed: its boot layout ran against a
+zero-sized canvas, so that fit meant nothing; every later switch only resizes, so
+a reader's own pan and zoom survive a view hop.
+
 # The browser shows the authored layer, not just derived views
 
 The graph, catalog, files, tags, and stats panels are all *derived* from the
 model; the one layer humans actually write — the §6 index map and the
 [§7 log](../format/okf-format.md) — now renders in the browser too. The tree
-column carries two tabs: **Files** groups each directory's concepts (foldable —
-whether or not a search is narrowing them, with a fold/unfold-all control in the
-tab header; a collapsed group still shows its header, so it never hides a match),
-and **Indexes** lays the authored layer flat — the log first as the chronological
+column carries two tabs: **Files** is a real explorer — directories *nest*, one
+row per path segment indented by depth, so `core/configurations` sits inside
+`core` instead of standing beside it as a sorted full path did, and closing a
+folder takes its whole subtree with it (foldable whether or not a search is
+narrowing them, with a fold/unfold-all control in the tab header; a collapsed
+group still shows its header, so it never hides a match, and a folder that holds
+nothing but folders still renders, or the chain to its children would break).
+The fold controls read every folder in the tree rather than the ones on screen,
+and they treat the root as not theirs to fold: "collapse all" folds everything
+*inside* it and leaves the root open, because folding the root too answers the
+click with a lone `(root)` row and hides the top-level folders — the one thing a
+reader wants left standing after collapsing everything. Unfolding clears the
+whole set, root included, so a root closed by hand is still reversible from
+there.
+**Indexes** lays the authored layer flat — the log first as the chronological
 index, then every `index.md`, root before nested. Folder nodes in file-tree mode and area boxes in cluster mode are
 clickable: the inspector opens that directory's map, the authored `index.md` or a
 synthesized listing badged as such when none exists; **Open in graph** on a

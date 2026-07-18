@@ -147,6 +147,75 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "foldAllBtn.onclick", "the fold-all control is wired"
   end
 
+  test "the page lands on the bundle's own index, not on a field of dots" do
+    write("index.md", "---\nokf_version: \"0.1\"\ntitle: Handbook\n---\n\n# Handbook\n")
+    write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # a newcomer's first screen is the readme the bundle already has, because a
+    # graph of unlabelled dots explains nothing about where to start
+    assert_includes html, %(<div id="app" data-view="files">), "the page boots on the files view"
+    assert_includes html, "let view='files';", "and the client state agrees with the markup"
+    assert_includes html, %(<button class="rail-item active" data-view="index">), "the rail stands on Index at boot"
+    refute_includes html, %(<button class="rail-item active" data-view="graph">), "Graph is no longer where the page opens"
+    # setView never runs at boot (the view is already the one it would set), so
+    # the markup itself has to reveal the section — data-view alone leaves the
+    # landing rendering into a display:none pane
+    assert_includes html, %(<section class="view active" id="view-files">), "the files section is the one revealed"
+    assert_includes html, %(<section class="view" id="view-graph">), "and the graph section starts hidden"
+    assert_includes html, "function landOnIndex(", "the landing is a named action, not scattered boot lines"
+    assert_includes html, "openReserved('index','index.md')", "what it opens is the root map"
+    assert_includes html, "if(!DEEP)landOnIndex();", "a deep link still wins over the landing"
+    # everything setView would have synced has to be synced by hand at boot now
+    assert_includes html, "searchInput.placeholder=SEARCH_PH[view];",
+      "the search box boots with the current view's placeholder, from the one table that owns it"
+  end
+
+  test "a concept deep link opens the graph even though the page no longer boots there" do
+    write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # ?select= and #hash name a *node*, so they have to carry the view with them
+    # now that the page can be standing somewhere else when they are read
+    assert_includes html, "if(QS&&byId[QS])goToGraph(QS);", "?select= switches to the graph before selecting"
+    assert_includes html, "if(h&&byId[h])goToGraph(h);", "so does a #hash"
+    assert_includes html, "if(v==='graph'&&!shown.graph)", "the graph fits itself the first time it is revealed"
+  end
+
+  test "the file tree nests directories instead of listing full paths flat" do
+    write("core/configurations/deep.md", "---\ntype: Note\ntitle: Deep\n---\n\nx\n")
+    write("core/mid.md", "---\ntype: Note\ntitle: Mid\n---\n\nx\n")
+    write("top.md", "---\ntype: Note\ntitle: Top\n---\n\nx\n")
+
+    html = render
+
+    # `core` and `core/configurations` were siblings in a sorted flat list, which
+    # reads as two unrelated folders rather than a parent and its child
+    assert_includes html, "function subtree(", "the tree renders recursively from path segments"
+    refute_includes html, "const dirs=Object.keys(groups).sort();", "the flat full-path grouping is gone"
+    assert_includes html, "style=\"--d:", "each row carries its depth, so the tree indents"
+    assert_includes html, "const closed=collapsedDirs.has(dir);", "folders still honor their collapsed state"
+    assert_includes html, "calc(8px + var(--d,0)", "and the depth reaches the stylesheet as indentation"
+    # a folder holding only folders still has to appear, or the chain breaks
+    assert_includes html, "function dirParents(", "every ancestor joins the tree even when it holds no files"
+  end
+
+  test "collapse-all folds into the root, not over it" do
+    write("core/configurations/deep.md", "---\ntype: Note\ntitle: Deep\n---\n\nx\n")
+    write("cli/render.md", "---\ntype: Note\ntitle: Render\n---\n\nx\n")
+
+    html = render
+
+    # folding the root too answers "collapse all" with a lone (root) row, hiding
+    # the top-level folders — the one thing the control exists to reveal
+    assert_includes html, "function foldable(", "the root is not among the folders the control folds"
+    assert_includes html, "collapsedDirs.delete('.')", "collapse-all leaves the root open"
+    assert_includes html, "collapsedDirs.clear()", "expand-all reopens everything, including a root closed by hand"
+    refute_includes html, "d.forEach(x=>collapsedDirs.delete(x))", "the old all-inclusive fold is gone"
+  end
+
   test ".static renders a whole bundle from a folder — bundle baked in, meta derived from the catalog" do
     write("tables/orders.md", "---\ntype: Table\ntitle: Orders\ndescription: the orders table\n---\n\nThe orders body.\n")
     write("notes/n.md", %(---\ntype: Note\ntitle: N\ndescription: "a <b>bold</b> claim"\n---\n\nPinned body.\n))

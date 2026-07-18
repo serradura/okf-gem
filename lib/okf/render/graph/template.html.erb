@@ -341,8 +341,11 @@
  #ftree-resizer::after{content:"";position:absolute;right:3px;top:0;bottom:0;width:2px;background:var(--accent);opacity:0;transition:opacity .15s}
  #ftree-resizer:hover::after,#ftree-resizer.dragging::after{opacity:.7}
  .ftree-list{overflow:auto;flex:1;padding:8px}
+ /* --d is the row's depth in the tree, set inline by the renderer; the Indexes
+    tab sets none and falls back to 0, which is the flat list it wants. */
  .ffolder{display:flex;align-items:center;gap:6px;width:100%;text-align:left;border:0;background:none;cursor:pointer;font-family:inherit;
-  font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);padding:12px 8px 5px;font-weight:600}
+  font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);font-weight:600;
+  padding:12px 8px 5px calc(8px + var(--d,0)*13px)}
  .ffolder:hover{color:var(--muted)}
  .ffolder .chev{width:11px;height:11px;flex:none;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
  .ffolder.closed .chev{transform:rotate(-90deg)}
@@ -372,7 +375,8 @@
     edge instead. overflow:hidden takes that minimum to zero, which is what lets
     the name give way and the badge stay put. */
  .file .fn .rn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
- .file{display:block;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:7px 9px;cursor:pointer;font-family:inherit;color:var(--ink)}
+ .file{display:block;width:100%;text-align:left;border:0;background:none;border-radius:8px;cursor:pointer;font-family:inherit;color:var(--ink);
+  padding:7px 9px 7px calc(8px + var(--d,0)*13px)}
  .file:hover{background:var(--panel-2)} .file.sel{background:var(--accent-soft)}
  .file .fn{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px}
  .file .fn .dot{width:7px;height:7px;border-radius:50%;flex:none}
@@ -490,13 +494,13 @@
  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style></head>
 <body>
-<div id="app" data-view="graph">
+<div id="app" data-view="files">
  <nav id="rail" aria-label="Views">
   <span class="rail-brand" title="<%= escaped_name %> — <%= @graph.nodes.length %> concepts · <%= @graph.edges.length %> links">
    <svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#1a1a1a"/><polygon points="38,44 62,44 50,82" fill="#7a0a1e"/><polygon points="18,44 38,44 50,82" fill="#a8112c"/><polygon points="62,44 82,44 50,82" fill="#a8112c"/><polygon points="35,28 18,44 38,44" fill="#dc1e3c"/><polygon points="65,28 82,44 62,44" fill="#dc1e3c"/><polygon points="35,28 65,28 62,44 38,44" fill="#f43f5e"/><polygon points="36,29 49,29 42,42" fill="#fff" opacity=".38"/><polygon points="35,28 65,28 82,44 50,82 18,44" fill="none" stroke="#ff6b7f" stroke-width="2" stroke-linejoin="round"/></svg>
   </span>
-  <button class="rail-item active" data-view="graph"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M7.5 16 8.2 8.3M10.9 16.4 16.3 10.5"/></svg></span><span class="ri-lbl">Graph</span></button>
-  <button class="rail-item" data-view="index"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></span><span class="ri-lbl">Index</span></button>
+  <button class="rail-item" data-view="graph"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M7.5 16 8.2 8.3M10.9 16.4 16.3 10.5"/></svg></span><span class="ri-lbl">Graph</span></button>
+  <button class="rail-item active" data-view="index"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></span><span class="ri-lbl">Index</span></button>
   <button class="rail-item" data-view="files"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span><span class="ri-lbl">Files</span></button>
   <button class="rail-item" data-view="catalog"><span class="ri-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="14.5" width="7.5" height="5.5" rx="1.6"/><rect x="13.5" y="14.5" width="7.5" height="5.5" rx="1.6"/></svg></span><span class="ri-lbl">Catalog</span></button>
   <button class="rail-item" data-view="tags"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 4.5h6.8L20 13.7l-6.3 6.3L4.5 10.8V4.5Z"/><circle cx="8.4" cy="8.4" r="1.4" fill="currentColor" stroke="none"/></svg></span><span class="ri-lbl">Tags</span></button>
@@ -555,7 +559,7 @@
 
   <div id="views">
    <!-- GRAPH -->
-   <section class="view active" id="view-graph">
+   <section class="view" id="view-graph">
     <div class="graph-body" data-side="hidden">
      <div id="stage">
       <div id="cy"></div>
@@ -608,7 +612,7 @@
    </section>
 
    <!-- FILES -->
-   <section class="view" id="view-files">
+   <section class="view active" id="view-files">
     <div class="files-grid">
      <div class="ftree">
       <div class="ftabs" role="tablist" aria-label="File kinds">
@@ -1204,20 +1208,28 @@ function fitGraph(){relaxZoom();const bb=fitBox();if(!bb)return;
 document.getElementById('btn-fit').onclick=fitGraph;
 
 /* ── view switching ── */
-let view='graph';
-const inited={};
+let view='files';
+const inited={},shown={};
 /* Which views have a search, and what it is called there — one table, because
    three things need the same answer: the placeholder, whether `/` has anywhere
    to go, and (mirrored in CSS) whether the box is shown at all. Stats is the
    only view absent here: it reads, it does not filter. */
 const SEARCH_PH={graph:'search concepts…',catalog:'search concepts…',files:'filter files…',tags:'search tags…'};
+/* setView owns this everywhere else, but it never runs at boot — the view is
+   already the one it would set — so the markup's placeholder would outlive the
+   landing and promise a concept search over what is really a file filter. */
+searchInput.placeholder=SEARCH_PH[view];
 function goToGraph(id){setView('graph');requestAnimationFrame(()=>select(id));}
 function setView(v){if(v===view)return;view=v;document.getElementById('app').setAttribute('data-view',v);
  railActive();ctlBadge();
  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
  const ph=SEARCH_PH[v];
  if(ph!==undefined){searchInput.placeholder=ph;searchInput.value=q[v]||'';}
- if(v==='graph')requestAnimationFrame(()=>cy.resize());
+ /* The page no longer boots on the graph, so the boot layout ran against a
+    zero-sized canvas and its fit meant nothing. The first reveal refits; every
+    later one only resizes, so a reader's own pan and zoom survive a view hop. */
+ if(v==='graph'&&!shown.graph)requestAnimationFrame(()=>{shown.graph=true;cy.resize();fitGraph();});
+ else if(v==='graph')requestAnimationFrame(()=>cy.resize());
  if(v==='catalog'&&!inited.catalog)initCatalog();
  if(v==='files'&&!inited.files)initFiles();
  if(v==='tags'&&!inited.tags)initTags();
@@ -1348,6 +1360,13 @@ const collapsedDirs=new Set();
 let lastFileDirs=[];
 const foldAllBtn=document.getElementById('ftree-foldall');
 function dirOfPath(p){return p.indexOf('/')<0?'.':p.split('/').slice(0,-1).join('/');}
+/* Every parent→child step on the way from a directory up to the root. The tree
+   is built from these rather than from the directory names alone, so a folder
+   holding nothing but folders still renders as their parent: `core` has to exist
+   for `core/configurations` to sit inside it, even when no file lives in `core`. */
+function dirParents(dir){const out=[];let d=dir;
+ while(d!=='.'){const p=dirOfPath(d);out.push([ p,d ]);d=p;}
+ return out;}
 function renderTree(list){const s=(q.files||'').toLowerCase();
  const el=document.getElementById('ftree-list');
  if(ftab==='indexes'){
@@ -1367,29 +1386,50 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
  const ft=fileTypeCombo.get(), fg=fileTagCombo.get();const ids=ftMatch(q.files);
  const rows=list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(ids?ids.has(c.id):(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s))));
  const groups={};rows.forEach(c=>{(groups[c.dir]=groups[c.dir]||[]).push(c);});
- const dirs=Object.keys(groups).sort();
+ /* Directories nest. A sorted list of full paths made `core` and
+    `core/configurations` siblings, which reads as two unrelated folders instead
+    of a parent and its child — and left the depth of a bundle invisible. */
+ const kids={};
+ Object.keys(groups).forEach(d=>dirParents(d).forEach(pair=>{
+  const set=kids[pair[0]]=kids[pair[0]]||[];if(set.indexOf(pair[1])<0)set.push(pair[1]);}));
+ Object.keys(kids).forEach(k=>kids[k].sort());
+ /* The fold controls read every folder in the tree, not just the ones on screen:
+    computed from the walk itself, "collapse all" stays reversible after the root
+    closes and hides the rest. */
+ const dirs=[];(function walk(d){dirs.push(d);(kids[d]||[]).forEach(walk);})('.');
  lastFileDirs=dirs;syncFoldAll();
- if(!dirs.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}
+ if(!rows.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}
  /* Collapse is honored whether or not a search is active — a search that force-
     expanded every folder left the fold clicks dead. A folder that matches still
-    shows its header, so a collapsed group is never a hidden match. */
- el.innerHTML=dirs.map(dir=>{
+    shows its header, so a collapsed group is never a hidden match. Closing a
+    folder now takes its subtree with it, because the subtree renders from inside. */
+ function subtree(dir,depth){
   const closed=collapsedDirs.has(dir);
-  const head=`<button class="ffolder${closed?' closed':''}" data-dir="${esc(dir)}"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>${dir==='.'?'(root)':esc(dir)+'/'}</button>`;
+  const name=dir==='.'?'(root)':esc(dir.split('/').pop())+'/';
+  const head=`<button class="ffolder${closed?' closed':''}" data-dir="${esc(dir)}" style="--d:${depth}"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>${name}</button>`;
   if(closed)return head;
-  return head+(groups[dir]||[]).map(c=>{const cc=color[c.type]||'#64748b';const name=c.id.split('/').pop()+'.md';
-   return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(name)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('');}).join('');
+  return head
+   +(kids[dir]||[]).map(k=>subtree(k,depth+1)).join('')
+   +(groups[dir]||[]).map(c=>{const cc=color[c.type]||'#64748b';const fname=c.id.split('/').pop()+'.md';
+     return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}" style="--d:${depth+1}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(fname)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('');}
+ el.innerHTML=subtree('.',0);
  el.querySelectorAll('.ffolder').forEach(b=>b.onclick=()=>{const d=b.dataset.dir;
   if(collapsedDirs.has(d))collapsedDirs.delete(d);else collapsedDirs.add(d);renderTree(list);});
  el.querySelectorAll('.file[data-id]').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));}
-/* Fold/unfold every visible group at once. When they are all already collapsed
-   the button expands them; otherwise it collapses them all — reading its state
-   off the folders currently in view. */
-function syncFoldAll(){const d=lastFileDirs,all=d.length>0&&d.every(x=>collapsedDirs.has(x));
+/* Fold/unfold every folder at once. When they are all already collapsed the
+   button expands them; otherwise it collapses them.
+   The root is not one of them. Folding it answers "collapse all" with a lone
+   `(root)` row and hides the top-level folders — the one thing a reader wants
+   left standing after collapsing everything — so the control folds everything
+   *inside* the root and opens the root itself. Unfolding clears the whole set,
+   root included, so a root closed by hand is still reversible from here. */
+function foldable(){return lastFileDirs.filter(d=>d!=='.');}
+function syncFoldAll(){const d=foldable(),all=d.length>0&&d.every(x=>collapsedDirs.has(x));
  foldAllBtn.classList.toggle('all-closed',all);foldAllBtn.disabled=d.length===0;
  const lbl=all?'Expand all folders':'Collapse all folders';foldAllBtn.title=lbl;foldAllBtn.setAttribute('aria-label',lbl);}
-foldAllBtn.onclick=()=>{const d=lastFileDirs;if(!d.length)return;
- if(d.every(x=>collapsedDirs.has(x)))d.forEach(x=>collapsedDirs.delete(x));else d.forEach(x=>collapsedDirs.add(x));
+foldAllBtn.onclick=()=>{const d=foldable();if(!d.length)return;
+ if(d.every(x=>collapsedDirs.has(x)))collapsedDirs.clear();
+ else{d.forEach(x=>collapsedDirs.add(x));collapsedDirs.delete('.');}
  refreshTree();};
 function setFtab(t){if(ftab===t)return;
  ftab=t;document.getElementById('app').setAttribute('data-ftab',t);
@@ -1776,9 +1816,25 @@ if(QL&&[...layoutSel.options].some(o=>o.value===QL)){layoutSel.value=QL;runLayou
 const QV=Q.get('view');
 if(QV==='index')goIndexes();
 else if(QV&&document.querySelector('.rail-item[data-view="'+CSS.escape(QV)+'"]'))setView(QV);
-function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1));if(h&&byId[h])select(h);}catch(e){}}
+/* Both of these name a *node*, so each has to carry the view with it: the page
+   can now be standing on the index when one is read, and selecting into a graph
+   nobody is looking at is a silent no-op. goToGraph on the graph is a no-op
+   itself (setView returns early), so this costs the old path nothing. */
+function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1));if(h&&byId[h])goToGraph(h);}catch(e){}}
 addEventListener('hashchange',fromHash);
-if(QS&&byId[QS])select(QS);else fromHash();
+if(QS&&byId[QS])goToGraph(QS);else fromHash();
+
+/* ── landing ──
+   The page opens on the bundle's own index — the one page an author wrote to be
+   read first — rather than on the graph, where a newcomer meets unlabelled dots
+   and no way in. Any deep link wins over it, because ?view= named a place and
+   ?select=/#hash named a node: all three were asked for, the landing is only
+   what happens when nothing was. Marking files inited (rather than calling
+   initFiles) leaves the one render to setFtab, which openReserved already
+   triggers on its way to the Indexes tab. */
+const DEEP=QV||QS||(location.hash||'').slice(1);
+function landOnIndex(){inited.files=true;openReserved('index','index.md');}
+if(!DEEP)landOnIndex();
 
 /* ── a small hello for the curious ── */
 try{console.log('%cokf%c — knowledge as code. '+NODES.length+' concepts, one graph.','color:#e21e1e;font-weight:700;font-size:15px','color:inherit');}catch(e){}

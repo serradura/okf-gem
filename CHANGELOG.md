@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+- **The graph page opens on the bundle's index instead of the graph.** A reader
+  meeting a bundle for the first time landed on unlabelled dots with no way in,
+  while the `index.md` an author wrote to be read first was reachable only by
+  finding the Indexes tab and clicking a row. The page now boots on the files
+  view with the root map open in the reader, rail on Index, graph one click away.
+  - **Deep links still win**, all three of them: `?view=` named a place,
+    `?select=` and `#hash` named a node. The two that name a node now switch to
+    the graph before selecting, since the page can be standing elsewhere when
+    they are read.
+  - **The graph refits the first time it is shown** — its boot layout ran against
+    a zero-sized canvas — and only resizes on later switches, so a reader's own
+    pan and zoom survive a view hop.
+- **The file tree nests.** Directories were a sorted list of full paths, which
+  made `core` and `core/configurations` read as two unrelated folders and left
+  the shape of a bundle invisible. Each row is now one path segment indented by
+  depth, folders before files, and collapsing a folder takes its subtree with it.
+  A directory holding nothing but directories still renders, so the chain to its
+  children never breaks.
+  - **"Collapse all" folds into the root, not over it** — everything inside the
+    root closes and the root stays open, so the click leaves the top-level
+    folders standing instead of a single `(root)` row. Unfolding clears the whole
+    set, root included, so a root closed by hand is still reversible from there.
+
 - **Search engines are adapters now.** `OKF::Bundle::Search` became a facade over
   N engines instead of one class with a `regexp ? scan : index` ternary. The
   facade keeps everything that defines a result — documents, the row and its key
