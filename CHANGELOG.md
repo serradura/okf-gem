@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+- **`okf search` runs on a full-text index.** The engine is now
+  [minifts](https://github.com/serradura/minifts) — the pure-Ruby port of the
+  same MiniSearch build the browser page loads — making it the gem's third
+  runtime dependency (still no native extension, no dependency tree of its own,
+  same Ruby 2.4 floor). The CLI and the browser are one engine now, so they rank
+  identically instead of agreeing by maintenance. What changes for callers:
+  - terms match **tokens** and the tokens they prefix (`dedup` finds
+    `deduplication`) rather than raw substrings, so a mid-word fragment
+    (`ustomer`) no longer matches — use `-e` for that;
+  - ranking is **BM25+**, with the old per-field weights riding as boost, so
+    scores are floats and orderings shift;
+  - `--fuzzy` opts into typo tolerance (edit distance `0.2 × term length`, the
+    browser's setting). Search stays exact by default;
+  - `-e`/`--regexp` still runs a linear scan — a pattern is the one query an
+    inverted index cannot answer — and pairing it with `--fuzzy` is a usage
+    error (exit `2`) rather than a silently ignored flag;
+  - rows still carry `matched`, the fields each term hit, so a result stays
+    citable rather than being a bare relevance number.
+- **Cross-bundle search ranks one corpus.** `okf search @a @b` used to rank each
+  bundle separately and interleave the lists, which was sound when scores were
+  absolute field weights and became wrong under BM25, where a term is priced by
+  how rare it is in the corpus. The searched bundles are now indexed together, so
+  the merged ranking is comparable by construction. A visible consequence: a
+  score is relative to the whole answer, so the same concept scores lower
+  searched beside other bundles than searched alone.
+- **Known cost:** the index is built per invocation, so a one-shot CLI search now
+  pays for a build it never amortizes — ~55 ms on a 23-concept bundle (against
+  ~2 ms for the old scan), ~2.2 s at 1,000 concepts. Negligible at the size real
+  bundles are today; the fix is a cached prebuilt index, not a faster build.
 - The graph page's search box grows a full-text index. One MiniSearch index —
   lazy-loaded from the CDN on first search, pinned to the `7.2.0` the Ruby
   MiniSearch port tracks so a Ruby-built index and the browser's rank

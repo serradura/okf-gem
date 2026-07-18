@@ -35,7 +35,7 @@ The package, end to end:
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/overview-dark.png">
-    <img src=".github/overview-light.png" width="760" alt="The package: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by the CLI/Lib (validate: legal OKF per section 9; lint: well-curated and fresh; search: ranked retrieval; require okf for Ruby objects) and by the Graph, in four modes: okf server (a live local server), okf render (the same page exported as one static, self-contained HTML file you can host anywhere), okf registry (every registered bundle behind one hub), and OKF::Server::App (the Rack app mounted in a Rails route). One gem, 100% local, Ruby 2.4 or newer, only rack and webrick as dependencies.">
+    <img src=".github/overview-light.png" width="760" alt="The package: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by the CLI/Lib (validate: legal OKF per section 9; lint: well-curated and fresh; search: ranked retrieval; require okf for Ruby objects) and by the Graph, in four modes: okf server (a live local server), okf render (the same page exported as one static, self-contained HTML file you can host anywhere), okf registry (every registered bundle behind one hub), and OKF::Server::App (the Rack app mounted in a Rails route). One gem, 100% local, Ruby 2.4 or newer, only rack, webrick and minifts as dependencies.">
   </picture>
 </p>
 
@@ -72,10 +72,13 @@ It is deliberately light so it runs on the Ruby your OS already ships:
 
 - works on every Ruby since 2.4, the same floor as [rack](https://github.com/rack/rack),
   its core dependency;
-- only two runtime dependencies: `rack` (the server is a mountable Rack app)
-  and `webrick` (unbundled from Ruby in 3.0);
-- no ActiveSupport, no build step, no JavaScript toolchain — the
-  [design constraints](.okf/design/) that hold this line are enforced by tests.
+- only three runtime dependencies: `rack` (the server is a mountable Rack app),
+  `webrick` (unbundled from Ruby in 3.0), and
+  [`minifts`](https://github.com/serradura/minifts) (the search engine — pure
+  Ruby, no dependencies of its own, same 2.4 floor);
+- no ActiveSupport, no native extension, no build step, no JavaScript
+  toolchain — the [design constraints](.okf/design/) that hold this line are
+  enforced by tests.
 
 That range is not aspirational: CI runs the full test suite and RuboCop on every
 one of these on each push.
@@ -247,7 +250,7 @@ instead: `irm https://docker.okfgem.com/install.ps1 | iex`.
 okf validate  <dir|@slug> [--json]                         # check OKF v0.1 conformance (§9)
 okf lint      <dir|@slug> [--json] [--fail-on warn] [...]  # report curation-quality issues
 okf loose     <dir|@slug> [--json]                         # list files with no graph links, by folder
-okf search    <dir|@slug…|@all> <term…> [-e] [...]         # ranked retrieval; @slugs or @all span bundles
+okf search    <dir|@slug…|@all> <term…> [-e|--fuzzy] [...] # ranked retrieval; @slugs or @all span bundles
 okf index     <dir|@slug> [--json] [--area A] [--no-body]  # progressive-disclosure map (§6): bodies, rollups, listings
 okf server    [DIR|@slug…] [-p PORT] [--bind ADDR] [...]   # serve one bundle, or many behind a hub (⌘K to switch)
 okf render    <dir|@slug> [-o FILE] [--layout NAME] [...]  # export the graph as one static, self-contained HTML file

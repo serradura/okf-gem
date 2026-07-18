@@ -94,7 +94,7 @@ module AcrossBundles
 
     # -- merged ranking: the load-bearing claim
 
-    test "merged ranking orders by absolute term weight, so scores compare across bundles" do
+    test "merged ranking comes from one index, so the scores compare" do
       with_registry("conformant", "rooted", "minimal") do
         data = json(okf("search", "@conformant", "@rooted", "@minimal", "the", "--json"))
         scores = data["matches"].map { |row| row["score"] }
@@ -102,15 +102,37 @@ module AcrossBundles
         assert_equal scores.sort.reverse, scores, "a merged ranking stays ordered by score"
         # The interleave is the proof: bundles alternate down the list, so the
         # order is the score's doing and not a per-bundle concatenation.
-        assert_equal %w[conformant rooted rooted minimal conformant conformant],
+        assert_equal %w[rooted rooted conformant minimal conformant conformant],
           data["matches"].map { |row| row["slug"] }
         assert_operator scores.first, :>, scores.last
       end
     end
 
+    test "the searched bundles are one corpus: a score is relative to the whole answer" do
+      with_registry("conformant", "rooted", "minimal") do
+        # BM25 prices a term by how rare it is, so the corpus is an input to every
+        # score. Searching a bundle alone and searching it in company must
+        # therefore price the same concept differently — and that difference is the
+        # observable proof the merge ranks *one* corpus instead of splicing three
+        # independent rankings, which is exactly what would make the numbers
+        # incomparable while still looking like a sorted list.
+        alone = json(okf("search", "@conformant", "the", "--json"))["matches"]
+        merged = json(okf("search", "@conformant", "@rooted", "@minimal", "the", "--json"))["matches"]
+
+        solo = alone.find { |row| row["id"] == "datasets/sales" }["score"]
+        joint = merged.find { |row| row["id"] == "datasets/sales" }["score"]
+
+        assert_operator solo, :>, joint,
+          "'the' is commoner across three bundles than in one, so the same row is worth less in company"
+      end
+    end
+
     test "ties break deterministically: score, then slug, then id" do
       with_registry("conformant", "rooted") do
-        rows = json(okf("search", "@conformant", "@rooted", "the", "--json"))["matches"]
+        # A BM25 score is a float off per-document statistics and practically never
+        # ties. The regexp path still scores by absolute field weight, so it is
+        # where equal scores actually occur — and where the rule stays observable.
+        rows = json(okf("search", "@conformant", "@rooted", "-e", "the", "--json"))["matches"]
         tied = rows.select { |row| row["score"] == 3 }.map { |row| "#{row["slug"]}/#{row["id"]}" }
 
         assert_equal 3, tied.size, "three concepts score 3 — the tie the ordering has to resolve"
@@ -335,7 +357,7 @@ module AcrossBundles
         labeled = json(okf("search", "@conformant", "@rooted", "the", "--fields", "id,slug,score"))
         assert_equal %w[slug id score], labeled["matches"].first.keys,
           "projection is a filter, not a reorder — the row keeps the envelope's key order"
-        assert_equal "conformant", labeled["matches"].first["slug"]
+        assert_equal "rooted", labeled["matches"].first["slug"]
 
         assert_equal 5, lean["count"], "projection trims the rows, never the answer"
       end
@@ -347,7 +369,7 @@ module AcrossBundles
         first = trimmed["matches"].first
         refute first.key?("snippet")
         refute first.key?("matched")
-        assert_equal "conformant", first["slug"], "--except keeps the label that resolves the row"
+        assert_equal "rooted", first["slug"], "--except keeps the label that resolves the row"
 
         clash = okf("search", "@conformant", "@rooted", "the", "--fields", "id", "--except", "score")
         assert_equal 2, clash.status
@@ -374,6 +396,23 @@ module AcrossBundles
       end
     end
 
+    test "search --fuzzy forgives a typo in every bundle, and refuses to pair with -e" do
+      with_registry("conformant", "rooted") do
+        exact = okf("search", "@conformant", "@rooted", "gatway", "custommer", "--json")
+        assert_equal 0, json(exact)["count"], "exact by default, so neither typo lands"
+
+        fuzzy = json(okf("search", "@conformant", "@rooted", "gatway", "--fuzzy", "--json"))
+        assert_equal [ "rooted" ], fuzzy["matches"].map { |row| row["slug"] }.uniq,
+          "the tolerance is applied across the merge, not just to the first bundle"
+        assert_includes fuzzy["matches"].map { |row| row["id"] }, "services/gateway"
+
+        clash = okf("search", "@conformant", "@rooted", "gatway", "--fuzzy", "-e")
+        assert_equal 2, clash.status
+        assert_match(/error: --regexp and --fuzzy are mutually exclusive/, clash.err)
+        assert_empty clash.out, "one contradictory pair sinks the run before any bundle is read"
+      end
+    end
+
     test "search --in narrows the searched fields in every bundle; an unknown field lists the real ones" do
       with_registry("conformant", "mentions") do
         scoped = json(okf("search", "@conformant", "@mentions", "payments", "--in", "tags", "--json"))
@@ -392,7 +431,7 @@ module AcrossBundles
       with_registry("conformant", "rooted", "mentions") do
         # --area is resolved inside each bundle: "(root)" means every bundle's own root.
         rooted_area = json(okf("search", "@all", "the", "--area", "root", "--json"))
-        assert_equal [ "mentions/ownership", "rooted/charter", "mentions/escalation" ],
+        assert_equal [ "rooted/charter", "mentions/ownership", "mentions/escalation" ],
           rooted_area["matches"].map { |row| "#{row["slug"]}/#{row["id"]}" },
           "each bundle contributed only its own root-area concepts"
 
@@ -401,7 +440,7 @@ module AcrossBundles
           "a type only one bundle uses narrows the merge to that bundle"
 
         tagged = json(okf("search", "@all", "the", "--tag", "shared", "--json"))
-        assert_equal %w[charter services/gateway], tagged["matches"].map { |row| row["id"] }
+        assert_equal %w[services/gateway charter], tagged["matches"].map { |row| row["id"] }
 
         none = okf("search", "@all", "the", "--tag", "nothing-carries-this", "--json")
         assert_equal 0, none.status, "a filter matching nothing is still an advisory read"

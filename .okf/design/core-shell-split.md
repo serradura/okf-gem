@@ -4,7 +4,7 @@ title: The core/shell split
 description: A pure functional core that never touches disk or stdio, and a thin shell that owns all I/O — enforced by a test.
 resource: test/unit/boundary_test.rb
 tags: [architecture, pure, testing, diagram]
-timestamp: 2026-07-18T10:00:00Z
+timestamp: 2026-07-18T19:00:00Z
 ---
 
 # Overview
@@ -47,6 +47,12 @@ flowchart TB
 reaches for `File` / `Dir` / `FileUtils` / stdio. The dependency rule is executable,
 so the boundary cannot rot silently: **put new I/O in the shell, put new logic in
 the core, pure.**
+
+"Pure" here means *no I/O*, not *no dependencies*: a core file may require a
+third-party library as long as the library is itself pure computation. `Search`
+requires [`minifts`](../design/runtime-dependencies.md) and stays in the core,
+because an in-memory index touches neither disk nor stdio. A gem that read a
+config file or logged to stderr would not get the same pass.
 
 # Why it pays off
 

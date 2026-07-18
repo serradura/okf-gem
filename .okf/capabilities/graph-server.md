@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-18T16:00:00Z
+timestamp: 2026-07-18T19:00:00Z
 ---
 
 # Overview
@@ -91,7 +91,7 @@ handler it documents, so it cannot drift from what the keys do.
 
 The one search box is backed by a full-text index —
 [MiniSearch](https://github.com/lucaong/minisearch), lazy-loaded on first focus
-and pinned to the same `7.2.0` the Ruby `minisearch` port tracks, so a
+and pinned to the same `7.2.0` the Ruby [`minifts`](search.md) port tracks, so a
 Ruby-built index and the browser's rank identically. It indexes title, id,
 type, tags and **description** in every mode, plus each concept's **body**
 wherever the page already holds it: `okf render` bakes every body in, so a static
@@ -101,10 +101,13 @@ multi-term (`AND`), prefix (as-you-type) and typo-tolerant, and drive the graph,
 catalog and files views alike; the **Indexes** tab carries a second index over
 each `index.md`/`log.md` **body**, not just its filename. Until an index loads —
 or if the CDN is unreachable — each view falls back to its own substring filter,
-so the box is never dead. This is the one place the browser and the CLI's
-[`search`](search.md) deliberately diverge — the CLI stays deterministic
-substring, the browser is fuzzy — and the shared MiniSearch build is what will
-close that gap when the backend adopts it.
+so the box is never dead. The browser and the CLI's [`search`](search.md) used to
+diverge here — the CLI a deterministic substring scan, the browser fuzzy — and
+that gap is now **closed from the other side**: the CLI runs the same engine
+through the `minifts` port, so both rank by the same BM25+ arithmetic and differ
+only in the options each passes. The browser searches as you type and forgives
+typos because a human wants the near miss; the CLI stays exact until `--fuzzy`
+because an agent citing a row wants the field that actually hit.
 
 # Links navigate in-app; the graph has a second mode
 

@@ -79,6 +79,29 @@ module ByDir
       assert_match(/unknown field\(s\): bogus \(searchable: title, id, tags, type, description, body\)/, bogus.err)
     end
 
+    test "search matches whole tokens, not substrings — a mid-word fragment finds nothing" do
+      # The index is tokenized, so a term is matched against whole words and their
+      # prefixes. "custom" still reaches Customers; "ustomer" no longer does. This
+      # is the one recall the engine swap deliberately gives up: an infix.
+      prefixed = json(okf("search", fixture("conformant"), "custom", "--json"))
+      assert_includes prefixed["matches"].map { |row| row["id"] }, "tables/customers",
+        "a prefix of a real token still matches"
+
+      infix = okf("search", fixture("conformant"), "ustomer", "--json")
+      assert_equal 0, infix.status, "still an advisory read"
+      assert_equal 0, json(infix)["count"], "a mid-token fragment is not a term"
+    end
+
+    test "search --fuzzy tolerates a typo; without it the same term finds nothing" do
+      exact = okf("search", fixture("conformant"), "custommer", "--json")
+      assert_equal 0, json(exact)["count"], "search is exact-by-default, so a typo misses"
+
+      fuzzy = okf("search", fixture("conformant"), "custommer", "--fuzzy", "--json")
+      assert_equal 0, fuzzy.status
+      assert_includes json(fuzzy)["matches"].map { |row| row["id"] }, "tables/customers",
+        "--fuzzy is the opt-in that forgives the typo"
+    end
+
     test "search composes with the shared filters, which narrow the candidates first" do
       scoped = json(okf("search", fixture("conformant"), "orders", "--area", "tables", "--json"))
       assert_equal %w[tables/customers tables/orders], scoped["matches"].map { |row| row["id"] }.sort

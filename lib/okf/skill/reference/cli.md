@@ -139,16 +139,22 @@ defect — a terminal leaf (a backlog item, a spec reference) can be loose by de
 The browser page's search brought to the CLI and extended to bodies, so "which
 concept covers X?" costs rows, not body reads. `okf search <dir> <term…>`:
 terms AND together — every term must hit at least one searched field, not
-necessarily the same one — as case-insensitive substrings, or as Ruby regular
-expressions with `--regexp`/`-e` (an invalid pattern is a usage error, exit 2).
+necessarily the same one — matched as **tokens**, whole or by prefix (`dedup`
+finds `deduplication`, but a mid-word `ustomer` finds nothing), or as Ruby
+regular expressions with `--regexp`/`-e` (an invalid pattern is a usage error,
+exit 2). `--fuzzy` forgives typos; pairing it with `-e` is a usage error, since
+a pattern is matched literally rather than by edit distance.
 `--in a,b` restricts the searched fields (title, id, tags, type, description,
 body); the shared `--type/--area/--tag` filters narrow the candidates *first*,
 so a search scoped by what `index` taught you stays surgical.
 
 **Search spans bundles.** Leading @refs pick several registered bundles
 (`okf search @handbook @notes auth`); **`@all`** is the ref that means every one.
-The per-bundle rankings merge — scores are absolute term weights, so they
-compare across bundles — and each row carries its bundle's slug. This is the
+The bundles are indexed as **one corpus** and ranked together — BM25 prices a
+term by how rare it is, so separately-ranked lists would not compare — and each
+row carries its bundle's slug. A score is therefore relative to the whole
+answer: the same concept scores lower searched beside others than searched
+alone. This is the
 cross-bundle retrieval the in-page search does not have: one question, every
 bundle you keep. <!-- rule:okf-search-all -->
 
@@ -177,12 +183,14 @@ which has no slug to give. Two sharp edges: every *leading* @-arg is taken as a 
 the CLI notes both traps on stderr — and any ref, even one, switches the JSON
 envelope (next paragraph).
 
-Rows rank by **where** they hit — title 5, id 4, tags 3, type/description 2,
-body 1, summed over matched fields — and carry one bounded context snippet from
-the strongest match that needs context (description or body). Deliberately not
-fuzzy: the consuming agent is the fuzzy layer — when terms miss, learn the
-bundle's vocabulary from `tags`/`types` and re-ask in its own words, rather
-than hammering synonyms. Advisory read: **exit 0 even with zero matches**.
+Rows rank by **BM25+**, weighted toward where they hit — title 5, id 4, tags 3,
+type/description 2, body 1, carried as per-field boost — and carry one bounded
+context snippet from the strongest match that needs context (description or
+body). Every row still names the fields that hit (`matched`), so a result stays
+citable rather than being a bare relevance number. Exact by default: the
+consuming agent is the fuzzy layer — when terms miss, learn the bundle's
+vocabulary from `tags`/`types` and re-ask in its own words, rather than
+hammering synonyms or reaching for `--fuzzy` before you have looked. Advisory read: **exit 0 even with zero matches**.
 JSON, plain-dir mode: `{ bundle, query, count, matches: [{ id, title, type,
 area, tags, matched, score, snippet }] }`. Registry mode — any leading @ref,
 `@all` among them — swaps the envelope: `{ bundles: [{ slug, dir }, …],

@@ -62,10 +62,14 @@ you touch what `require "okf"` pulls in.
    docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
      "cp -a /src /build && cd /build && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
    ```
-2. **Runtime dependencies are exactly `rack` and `webrick`.** No ActiveSupport —
-   `OKF.blank?` and `Markdown::Frontmatter.stringify_keys` exist precisely so it
-   is not needed. A new runtime dependency is a design decision, not a
-   convenience; challenge it.
+2. **Runtime dependencies are exactly `rack`, `webrick` and `minifts`.** No
+   ActiveSupport — `OKF.blank?` and `Markdown::Frontmatter.stringify_keys` exist
+   precisely so it is not needed. A new runtime dependency is a design decision,
+   not a convenience; challenge it. `minifts` (the search engine) cleared that
+   bar by being pure Ruby with **no dependencies of its own**, the same 2.4
+   floor, and no native extension — it is what defers SQLite + FTS5, and being a
+   bit-for-bit port of the browser's MiniSearch is what makes the CLI and the
+   page rank identically. A fourth gem needs an argument that strong.
 3. **YAML only through `Markdown::Frontmatter`** — `safe_load`, `Date`/`Time`
    permitted, no aliases. The Psych <3.1 positional-argument shim lives there;
    do not call `YAML.safe_load`/`YAML.load` anywhere else.

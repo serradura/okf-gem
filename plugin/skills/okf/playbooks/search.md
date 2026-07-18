@@ -21,8 +21,9 @@ reads, and full bodies are read last, and only the winners.
    <!-- rule:okf-search-map-first -->
 3. **Cut across with the finder when the question is lexical.** An exact
    symbol, an error code, a column name, a phrase — things structure won't
-   surface — go to `okf search <dir> <terms>` (terms AND together; `--regexp`
-   for patterns like `err_[a-z]+_409`). Scope it with what the map taught you:
+   surface — go to `okf search <dir> <terms>` (terms AND together, matched as
+   whole tokens or prefixes; `--regexp` for patterns like `err_[a-z]+_409`, and
+   for the mid-word fragments a token index cannot reach). Scope it with what the map taught you:
    `--area billing`, `--type Decision`, `--tag idempotency`, `--in body`.
    Matches rank by where they hit, and the snippet often *is* the answer.
    When the answer may live in another registered bundle, span them — leading
@@ -44,6 +45,7 @@ Anti-patterns, each a real token bill:
 - **Grep before map.** Grep cannot find the entry that is *missing*, and it
   returns line noise where `search` returns ranked concepts. Grep is the
   fallback when the CLI is absent, not the first move.
-- **Mechanical synonym retries.** The finder is exact by design; *you* are the
+- **Mechanical synonym retries.** The finder is exact by default; *you* are the
   fuzzy layer. When terms miss, learn the bundle's vocabulary — `okf tags
-  <dir>`, `okf types <dir>` — and re-ask in its own words.
+  <dir>`, `okf types <dir>` — and re-ask in its own words. `--fuzzy` forgives a
+  *typo*, not a wrong vocabulary, so it is the wrong reach for this.

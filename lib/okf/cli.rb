@@ -183,20 +183,22 @@ module OKF
       0
     end
 
-    # Deterministic text retrieval — the browser page's search brought to the CLI
-    # and extended to bodies. Terms after the directory are ANDed case-insensitive
-    # substrings (Ruby regexps with --regexp); rows rank by where they hit (title >
-    # id > tags > type/description > body) and carry one bounded context snippet,
-    # so "which concept covers X?" costs a few rows, not a body read. Advisory
-    # read: exit 0 even with no matches. Deliberately not fuzzy — the consuming
-    # agent is the fuzzy layer.
+    # Ranked text retrieval — the browser page's search brought to the CLI on the
+    # same engine (a MiniFTS index) and extended to bodies. Terms after the
+    # directory are ANDed tokens, matched whole or by prefix (Ruby regexps with
+    # --regexp, typo tolerance with --fuzzy); rows rank by BM25+ weighted toward
+    # where they hit (title > id > tags > type/description > body) and carry one
+    # bounded context snippet, so "which concept covers X?" costs a few rows, not
+    # a body read. Advisory read: exit 0 even with no matches. Exact by default —
+    # the consuming agent is the fuzzy layer, until it asks not to be.
     def search(argv)
-      options = { json: false, regexp: false }
+      options = { json: false, regexp: false, fuzzy: false }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf search <dir|@slug…|@all> <term> [term ...] [--regexp] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
+        o.banner = "Usage: okf search <dir|@slug…|@all> <term> [term ...] [--regexp|--fuzzy] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
         json_flags(o, options, "emit the matches as JSON")
         projection_flags(o, options)
         o.on("-e", "--regexp", "treat each term as a Ruby regular expression (case-insensitive)") { options[:regexp] = true }
+        o.on("--fuzzy", "tolerate typos (edit distance #{OKF::Bundle::Search::FUZZY_DISTANCE} × term length)") { options[:fuzzy] = true }
         o.on("--in LIST", Array, "search only these fields (#{OKF::Bundle::Search::FIELDS.join(", ")})") { |v| options[:in] = v.map(&:downcase) }
         filter_flags(o, options, :type, :area, :tag)
         help_flag(o)
@@ -237,11 +239,18 @@ module OKF
       unknown = Array(options[:in]) - OKF::Bundle::Search::FIELDS
       return usage_error("unknown field(s): #{unknown.join(", ")} (searchable: #{OKF::Bundle::Search::FIELDS.join(", ")})") unless unknown.empty?
 
+      # Two query languages, not two dials on one: a regexp is matched against raw
+      # text, --fuzzy is an edit distance over indexed tokens. Silently honouring
+      # one and dropping the other would answer a question nobody asked.
+      if options[:regexp] && options[:fuzzy]
+        return usage_error("--regexp and --fuzzy are mutually exclusive (a pattern is matched literally, not by edit distance)")
+      end
+
       return multi_search(pairs, terms, options) if pairs
 
       folder = OKF::Bundle::Folder.load(dir)
       report_skipped(folder)
-      rows = OKF::Bundle::Search.call(folder.bundle, terms, fields: options[:in], regexp: options[:regexp])
+      rows = OKF::Bundle::Search.call(folder.bundle, terms, fields: options[:in], regexp: options[:regexp], fuzzy: options[:fuzzy])
       keep = filter_ids(folder, options)
       rows = rows.select { |row| keep.include?(row[:id]) } unless keep.nil?
       return print_search_json(dir, terms, rows, options) if options[:json]
@@ -324,22 +333,28 @@ module OKF
       [ [ ref_slugs[path], path ] ]
     end
 
-    # Search each bundle with the same terms and merge the rankings — scores are
-    # absolute term weights, so they compare across bundles — every row labeled
-    # with its bundle's slug and ties broken deterministically.
+    # Search every bundle at once and merge the rankings, each row labeled with
+    # its bundle's slug. The bundles go in as *one* corpus rather than one search
+    # each: BM25 weighs a term by how rare it is, so ranking each bundle on its own
+    # statistics and then interleaving the lists would let the same match score
+    # differently for no reason a reader could see. One index, one ranking.
+    #
+    # Filters stay per-bundle — they are per-folder questions — so they apply to
+    # the merged rows by (slug, id) afterwards.
     def multi_search(pairs, terms, options)
-      rows = []
+      bundles = []
+      keeps = {}
       total = 0
       pairs.each do |slug, dir|
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)
         total += folder.bundle.concepts.size
-        found = OKF::Bundle::Search.call(folder.bundle, terms, fields: options[:in], regexp: options[:regexp])
+        bundles << [ slug, folder.bundle ]
         keep = filter_ids(folder, options)
-        found = found.select { |row| keep.include?(row[:id]) } unless keep.nil?
-        found.each { |row| rows << { slug: slug }.merge(row) }
+        keeps[slug] = keep unless keep.nil?
       end
-      rows.sort_by! { |row| [ -row[:score], row[:slug], row[:id] ] }
+      rows = OKF::Bundle::Search.across(bundles, terms, fields: options[:in], regexp: options[:regexp], fuzzy: options[:fuzzy])
+      rows = rows.select { |row| !keeps.key?(row[:slug]) || keeps[row[:slug]].include?(row[:id]) }
       return print_multi_search_json(pairs, terms, rows, options) if options[:json]
 
       print_multi_search(pairs, terms, rows, total)
@@ -1693,7 +1708,7 @@ module OKF
           loose     <dir|@slug> [--json]                          list files with no graph links, by folder
           validate  <dir|@slug> [--json]                          check OKF v0.1 conformance
 
-          search    <dir|@slug…|@all> <term…> [-e] [...]          find concepts by text or regexp, ranked (@all: every bundle)
+          search    <dir|@slug…|@all> <term…> [-e|--fuzzy] [...]  find concepts by text or regexp, ranked (@all: every bundle)
           index     <dir|@slug> [--json] [--area A] [--no-body]   the index map: dirs, their listings and rollups
           stats     <dir|@slug> [--json]                          bundle rollups (concepts, types, areas, links, tags)
           types     <dir|@slug> [--json] [filters]                list types with their concepts, by count

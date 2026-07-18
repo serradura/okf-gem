@@ -101,6 +101,24 @@ module ByRegistry
       end
     end
 
+    test "--fuzzy forgives a typo through a ref, and refuses to pair with -e" do
+      with_registry("conformant") do
+        exact = okf("search", "@conformant", "custommer", "--json")
+        assert_equal 0, json(exact)["count"], "search is exact by default, so a typo misses"
+
+        fuzzy = json(okf("search", "@conformant", "custommer", "--fuzzy", "--json"))
+        assert_includes fuzzy["matches"].map { |row| row["id"] }, "tables/customers"
+
+        # Two query languages, not two dials: a pattern is matched literally, so
+        # honouring one flag and dropping the other would answer a different
+        # question than the one that was asked.
+        clash = okf("search", "@conformant", "custommer", "--fuzzy", "-e")
+        assert_equal 2, clash.status
+        assert_match(/error: --regexp and --fuzzy are mutually exclusive/, clash.err)
+        assert_empty clash.out, "a usage error leaves stdout clean"
+      end
+    end
+
     test "--in narrows the searched fields; an unknown field lists the real ones" do
       with_registry("conformant") do
         scoped = okf("search", "@conformant", "orders", "--in", "title")
