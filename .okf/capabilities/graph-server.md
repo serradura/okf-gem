@@ -121,6 +121,22 @@ External links open in a new tab, and links that would leave the bundle are
 disabled: the page never serves a 404 from a body link. A **file-tree mode** on
 the toolbar redraws the bundle as folders-become-nodes with only folder→child
 edges — the acyclic layered tree of the files, next to the emergent link graph.
+
+Beside it, **show indexes** draws the §6 map as a layer of its own, under
+*whatever* layout is running rather than only inside the tree. Each `index.md`
+becomes a square tile edged to the concepts it lists and to the maps beneath it:
+solid accent where an author wrote one, faint and dashed where the bundle only
+implies it — which makes the toggle a curation read as much as a navigation one,
+since a field of ghosts is a directory that never got a map. File-tree mode
+already draws folders, so it disables the toggle rather than doubling it.
+
+Those nodes are **drawn, never modelled**. `index.md` is reserved — it is not a
+concept — and the page must not be the place that quietly decides otherwise, so
+they are built from `/index` straight onto the canvas and `NODES`, `/catalog` and
+the type and tag indexes never learn they exist. A type or tag filter passes them
+over for the same reason (a map has neither), but a map whose concepts are all
+filtered away leaves with them: the phantom-empty-box rule, applied deepest-first
+so a parent map survives on a surviving child.
 The inspector and files panes are drag-resizable (persisted; double-click resets),
 and the inspector boots hidden on every screen until the first node tap.
 

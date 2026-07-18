@@ -114,6 +114,37 @@ class OKF::Render::GraphTest < OKF::TestCase
       "concept bodies join the index wherever the page holds them (the static bake)"
   end
 
+  test "the graph can draw the authored index layer, in any layout" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # the §6 map was drawable only inside file-tree mode, where a folder node
+    # stood in for it; it is a layer now, and rides whatever layout is running
+    assert_includes html, %(id="btn-ix"), "a toggle sits with the other graph modes"
+    assert_includes html, "const IX='ix::';", "index nodes carry their own id space"
+    assert_includes html, "function setIxNodes(", "and their own named action"
+    assert_includes html, "getIndex().then", "built from /index — the authored layer, read where it lives"
+    assert_includes html, "classes:'ixe'", "with edges of their own, so the link graph stays untouched"
+  end
+
+  test "index nodes are drawn, never modelled" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # index.md is reserved: it is not a concept, and the page must not be the
+    # place that quietly decides otherwise. These nodes exist on the canvas only
+    nodes = JSON.parse(html[/const NODES=(\[.*?\]), EDGES=/m, 1])
+    assert_empty nodes.select { |n| n["id"].to_s.include?("index") }, "no index row enters the node payload"
+    assert_includes html, "cy.add({group:'nodes',classes:'ix'", "they are added to the canvas directly"
+    # a type or tag filter is a statement about concepts; a map answers neither
+    assert_includes html, "n.hasClass('dir')||n.hasClass('ix')", "so the filter passes them over"
+    # ...but a map with nothing left to point at is the phantom empty box again
+    assert_includes html, "function ixVisibility(", "an emptied map leaves the canvas with its concepts"
+    assert_includes html, "btnIx.disabled=on", "and file-tree mode, which already draws folders, disables the toggle"
+  end
+
   test "hides a cluster box once a filter empties it, and binds Esc to deselect" do
     write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 
@@ -359,6 +390,18 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "if(QV==='index')readIndex();", "the old deep link lands where it always meant to"
     assert_includes html, "const VIEW_KEYS={'1':'graph','2':'files','3':'catalog','4':'tags','5':'stats'};",
       "and the number keys close the gap the dropped rail item left"
+  end
+
+  test "collapsing the root hands the screen back on a compact layout" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # closing the root leaves one row above a column of nothing, and on a compact
+    # layout that column is stacked on top of the reader — so it folds away
+    assert_includes html, "function treeMin(", "the fold is a named action the tree can reach"
+    assert_includes html, "if(d==='.'&&collapsedDirs.has('.')&&matchMedia('(max-width:768px)').matches)treeMin(true);",
+      "closing the root on a phone or tablet collapses the list to its header"
   end
 
   test "collapse-all folds into the root, not over it" do

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+- **The graph can draw the index layer, under any layout.** The §6 map was
+  visible only inside file-tree mode, where a folder node stood in for a
+  directory's `index.md`. **Show indexes** makes it a layer: each map is a tile
+  edged to the concepts it lists and the maps below it — solid where an author
+  wrote one, dashed and faint where the bundle only implies it, so the toggle
+  reads as curation as much as navigation. File-tree mode disables it rather than
+  doubling the folders it already draws.
+  - **Drawn, never modelled.** `index.md` is reserved, so these nodes are built
+    from `/index` straight onto the canvas; `NODES`, `/catalog` and the type and
+    tag indexes never learn they exist. Filters pass them over — a map has no type
+    or tags — but a map whose concepts are all filtered away leaves with them.
+- **Collapsing the root folds the file list away** on phones and tablets, where
+  the list is stacked on top of the reader and closing the root otherwise left a
+  single row above a column of nothing.
 - **The Indexes tab dissolves into the file tree.** The authored layer lived on a
   second tab as a flat list of paths, which put a directory's own map somewhere
   other than the directory. `index.md` and `log.md` are rows now, at the top of

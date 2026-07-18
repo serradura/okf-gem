@@ -632,6 +632,8 @@
      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" opacity=".45"/><circle cx="9" cy="9" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1.9" fill="currentColor" stroke="none"/><circle cx="11" cy="15" r="1.9" fill="currentColor" stroke="none"/></svg></button>
     <button class="btn" id="btn-tree" type="button" aria-label="File tree" aria-pressed="false" title="File tree: folders and files, parent-to-child edges only">
      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M12 12H6v4M12 12h6v4"/></svg></button>
+    <button class="btn" id="btn-ix" type="button" aria-label="Show indexes" aria-pressed="false" title="Draw the index.md map layer alongside the concepts">
+     <svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></button>
     <button class="btn" id="btn-panel" type="button" aria-label="Toggle inspector" aria-pressed="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
    </div>
    </div>
@@ -855,6 +857,16 @@ function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('-
   {selector:'node.dir',style:{'shape':'round-rectangle','background-color':cvar('--faint'),'background-opacity':.85,
    'font-size':9.5,'font-weight':600,'color':cvar('--muted')}},
   {selector:'edge.tree',style:{'width':1.1,'opacity':.7,'target-arrow-shape':'none'}},
+  /* the authored layer reads as paper, not as another concept: a square tile,
+     the accent for a map somebody wrote, faint and dashed for one the bundle
+     only implies. Its edges are dashed too, so a glance separates "this is
+     documented here" from "these two concepts link". */
+  {selector:'node.ix',style:{'shape':'round-rectangle','background-color':cvar('--accent'),'background-opacity':.9,
+   'font-size':10,'font-weight':700,'color':cvar('--ink'),'border-width':0}},
+  {selector:'node.ix-syn',style:{'background-color':cvar('--faint'),'background-opacity':.35,
+   'border-width':1.5,'border-color':cvar('--faint'),'border-style':'dashed','color':cvar('--muted')}},
+  {selector:'edge.ixe',style:{'width':1,'opacity':.55,'line-style':'dashed','line-color':cvar('--accent'),'target-arrow-shape':'none'}},
+  {selector:'edge.ixe-syn',style:{'line-color':cvar('--faint'),'opacity':.4}},
   {selector:'edge.linkhid',style:{'display':'none'}},
   {selector:':parent',style:{'background-color':cvar('--ink'),'background-opacity':0.05,'border-width':1,'border-color':cvar('--edge'),'shape':'round-rectangle','padding':26,'label':'data(label)','color':cvar('--ink'),'font-size':13,'font-weight':600,'text-valign':'top','text-halign':'center','text-margin-y':-8,'min-zoomed-font-size':0,'text-outline-width':3,'text-outline-color':cvar('--canvas')}}
  ];}
@@ -1086,6 +1098,7 @@ function select(id){const ele=cy.getElementById(id);if(!ele.length)return;const 
  try{if(decodeURIComponent((location.hash||'').slice(1))!==id)location.hash=encodeURIComponent(id);}catch(e){}}
 cy.on('tap','node',e=>{const t=e.target;
  if(t.hasClass('dir'))return showDir(t.id().slice(DIR.length)||'.');
+ if(t.hasClass('ix'))return showDir(t.data('dir')||'.');
  if(t.isParent()){const a=t.id().indexOf('area::')===0?t.id().slice(6):null;return showDir(a&&a!=='(root)'?a:'.');}
  select(t.id());});
 /* Clear the focus: drop the dim/highlight and let the hash forget the node, so a
@@ -1099,7 +1112,7 @@ const hiddenTypes=new Set(), activeTags=new Set(), activeAreas=new Set();
 const searchInput=document.getElementById('search');
 const q={graph:'',catalog:'',files:'',tags:''};
 function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.graph);
- cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir'))return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
+ cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir')||n.hasClass('ix'))return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
   const hay=(n.data('title')+' '+t+' '+nt.join(' ')+' '+(descOf[id]||'')).toLowerCase();
   const txt=ids?ids.has(id):(!s||hay.includes(s));
   const m=txt&&!hiddenTypes.has(t)&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
@@ -1109,6 +1122,7 @@ function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.gr
     when one survives) — the same rule fitBox already uses to leave stale boxes
     out of the fit, now applied to what is drawn. */
  cy.nodes(':parent').forEach(p=>p.style('display',p.children().some(c=>c.style('display')!=='none')?'element':'none'));
+ ixVisibility();
  relaxZoom();}
 function fbadge(){const c=hiddenTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;ctlBadge();syncFacets();}
@@ -1239,6 +1253,7 @@ let treeMode=false;const btnTree=document.getElementById('btn-tree');
 const DIR='dir::';
 function setTree(on){if(on===treeMode)return;if(on&&clustered)setClustered(false);
  treeMode=on;btnTree.setAttribute('aria-pressed',String(on));layoutSel.disabled=on;btnCluster.disabled=on;
+ btnIx.disabled=on;if(on&&ixNodes)setIxNodes(false);
  if(on){
   const dirs=new Set(['']);
   NODES.forEach(n=>{const parts=n.id.split('/');for(let i=1;i<parts.length;i++)dirs.add(parts.slice(0,i).join('/'));});
@@ -1260,6 +1275,51 @@ function setTree(on){if(on===treeMode)return;if(on&&clustered)setClustered(false
   cy.batch(()=>{cy.edges('.tree').remove();cy.nodes('.dir').remove();cy.edges().removeClass('linkhid');});
   runLayout(layoutSel.value);}}
 btnTree.onclick=()=>setTree(!treeMode);
+/* ── the authored layer, drawn ──
+   The §6 map used to be visible only inside file-tree mode, where a folder node
+   stood in for a directory's index.md. It is a layer of its own now: switch it
+   on under any layout and each `index.md` becomes a node, edged to the concepts
+   it maps and to the child maps beneath it. Cluster and tree mode still work —
+   tree already draws folders, so it disables the toggle rather than doubling it.
+
+   These nodes are *drawn, never modelled*. index.md is reserved (it is not a
+   concept), and the page must not be the place that quietly decides otherwise:
+   they are built from /index straight onto the canvas, so NODES, /catalog and
+   the type and tag indexes never learn they exist. */
+const IX='ix::';
+let ixNodes=false,IXROWS=[];
+const btnIx=document.getElementById('btn-ix');
+function setIxNodes(on){if(on===ixNodes)return;ixNodes=on;btnIx.setAttribute('aria-pressed',String(on));
+ if(!on){IXROWS=[];cy.batch(()=>{cy.edges('.ixe').remove();cy.nodes('.ix').remove();});runLayout(layoutSel.value);return;}
+ getIndex().then(dirs=>{if(!ixNodes)return;IXROWS=dirs||[];
+  cy.batch(()=>{
+   IXROWS.forEach(d=>{const syn=!!d.synthesized;
+    cy.add({group:'nodes',classes:'ix'+(syn?' ix-syn':''),
+     data:{id:IX+d.dir,dir:d.dir,title:d.dir==='.'?'/':d.dir.split('/').pop()+'/',
+      c:cvar(syn?'--faint':'--accent'),sz:d.dir==='.'?30:22}});});
+   /* map → the maps below it, and map → each concept it lists. A listing entry
+      whose node is missing is skipped rather than conjuring a dangling edge. */
+   IXROWS.forEach(d=>(d.subdirs||[]).forEach(sub=>{
+    if(cy.getElementById(IX+sub).length)
+     cy.add({group:'edges',classes:'ixe',data:{id:'ixe::'+d.dir+'>'+sub,source:IX+d.dir,target:IX+sub}});}));
+   IXROWS.forEach(d=>(d.listing||[]).forEach(it=>{
+    if(cy.getElementById(it.id).length)
+     cy.add({group:'edges',classes:'ixe'+(d.synthesized?' ixe-syn':''),data:{id:'ixe::n::'+d.dir+'::'+it.id,source:IX+d.dir,target:it.id}});}));
+  });
+  applyGraphFilter();runLayout(layoutSel.value);});}
+btnIx.onclick=()=>setIxNodes(!ixNodes);
+/* A map whose concepts are all filtered away has nothing left to point at, so it
+   leaves with them — the same rule that keeps emptied area boxes off the canvas.
+   Deepest first, because a parent map survives on a surviving child. */
+function ixVisibility(){if(!ixNodes||!IXROWS.length)return;
+ const depth=d=>d==='.'?0:d.split('/').length;
+ const rows=IXROWS.slice().sort((a,b)=>depth(b.dir)-depth(a.dir));
+ const on={};
+ rows.forEach(d=>{
+  const anyConcept=(d.listing||[]).some(it=>{const n=cy.getElementById(it.id);return n.length&&n.style('display')!=='none';});
+  const anyChild=(d.subdirs||[]).some(sub=>on[sub]);
+  on[d.dir]=anyConcept||anyChild;});
+ rows.forEach(d=>{const n=cy.getElementById(IX+d.dir);if(n.length)n.style('display',on[d.dir]?'element':'none');});}
 /* A reserved file's "Open in graph": switch to the file tree, select its
    folder node, and put the directory's map in the inspector. */
 function openInTree(dir){setView('graph');setTree(true);
@@ -1466,6 +1526,14 @@ const collapsedDirs=new Set();
 let lastFileDirs=[];
 const foldAllBtn=document.getElementById('ftree-foldall');
 function dirOfPath(p){return p.indexOf('/')<0?'.':p.split('/').slice(0,-1).join('/');}
+/* Folding the files list down to its header. Lives out here because the tree
+   itself has a reason to call it: on a compact layout the list is stacked on
+   top of the reader, so a list with nothing left in it should hand the screen
+   back rather than sit there empty. */
+function treeMin(on){const g=document.querySelector('.files-grid'),b=document.getElementById('ftree-min');
+ if(!g||!b)return;g.classList.toggle('tree-min',on);
+ b.setAttribute('aria-expanded',on?'false':'true');
+ b.setAttribute('aria-label',on?'Expand file list':'Collapse file list');}
 /* Every parent→child step on the way from a directory up to the root. The tree
    is built from these rather than from the directory names alone, so a folder
    holding nothing but folders still renders as their parent: `core` has to exist
@@ -1544,7 +1612,9 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
      return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}" style="--d:${depth+1}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(fname)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('');}
  el.innerHTML=subtree('.',0);
  el.querySelectorAll('.ffolder').forEach(b=>b.onclick=()=>{const d=b.dataset.dir;
-  if(collapsedDirs.has(d))collapsedDirs.delete(d);else collapsedDirs.add(d);renderTree(list);});
+  if(collapsedDirs.has(d))collapsedDirs.delete(d);else collapsedDirs.add(d);renderTree(list);
+  /* Closing the root leaves a single row above a column of nothing. */
+  if(d==='.'&&collapsedDirs.has('.')&&matchMedia('(max-width:768px)').matches)treeMin(true);});
  el.querySelectorAll('.file[data-id]').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));
  el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));}
 /* Fold/unfold every folder at once. When they are all already collapsed the
@@ -1886,18 +1956,15 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
   addEventListener('load',()=>setTimeout(fitGraph,400));
   addEventListener('orientationchange',()=>setTimeout(fitGraph,450));
  }
- /* files view: the stacked list collapses to its tab bar — picking a file
-    hands the screen to the reader, picking a tab brings the list back */
+ /* files view: the stacked list collapses to its header — picking a file hands
+    the screen to the reader, the filter toggle brings the list back */
  const fgridEl=document.querySelector('.files-grid'),ftmin=document.getElementById('ftree-min');
  if(fgridEl&&ftmin){
-  const treeSet=o=>{fgridEl.classList.toggle('tree-min',o);
-   ftmin.setAttribute('aria-expanded',o?'false':'true');
-   ftmin.setAttribute('aria-label',o?'Expand file list':'Collapse file list');};
-  ftmin.addEventListener('click',()=>treeSet(!fgridEl.classList.contains('tree-min')));
+  ftmin.addEventListener('click',()=>treeMin(!fgridEl.classList.contains('tree-min')));
   document.getElementById('ftree-list').addEventListener('click',e=>{
-   if(e.target.closest('.file')&&matchMedia('(max-width:768px)').matches)treeSet(true);});
+   if(e.target.closest('.file')&&matchMedia('(max-width:768px)').matches)treeMin(true);});
   const ix=document.getElementById('ftree-ixonly');
-  if(ix)ix.addEventListener('click',()=>treeSet(false));
+  if(ix)ix.addEventListener('click',()=>treeMin(false));
  }
 })();
 
