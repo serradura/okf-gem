@@ -130,8 +130,9 @@ class OKF::Render::GraphTest < OKF::TestCase
     # twice, so one selector dresses both and they cannot drift apart
     assert_includes html, "{selector:'node.dir,node.ix',style:{'shape':'round-rectangle','background-color':cvar('--faint')",
       "a directory looks the same whichever mode drew it"
-    refute_includes html, "cvar(syn?'--faint':'--accent')", "authorship is not a hue — colour belongs to the concepts"
-    assert_includes html, "'border-style':'dashed'", "an implied directory is hollow and dashed instead"
+    assert_includes html, "{selector:'node.ix',style:{'background-color':cvar('--accent')",
+      "but the authored layer takes the accent — there the map is the subject, not the scaffolding"
+    assert_includes html, "'border-style':'dashed'", "and an implied directory is hollow and dashed"
   end
 
   test "index nodes are drawn, never modelled" do
@@ -149,6 +150,24 @@ class OKF::Render::GraphTest < OKF::TestCase
     # ...but a map with nothing left to point at is the phantom empty box again
     assert_includes html, "function ixVisibility(", "an emptied map leaves the canvas with its concepts"
     assert_includes html, "btnIx.disabled=on", "and file-tree mode, which already draws folders, disables the toggle"
+  end
+
+  test "switching between the graph modes lands in one move" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # tearing the index layer down ran its own layout, and file-tree mode ran
+    # breadthfirst a beat later — two layouts racing over the same canvas, so the
+    # tree landed wrong and took another click to settle
+    assert_includes html, "function setIxNodes(on,relayout){", "the teardown can be told who owns the layout"
+    assert_includes html, "if(on&&ixNodes)setIxNodes(false,false);",
+      "file-tree mode tears the layer down without laying out — it is about to do that itself"
+    # and the add is async, so a mode change mid-flight must not land afterwards
+    assert_includes html, "ixSeq=0;", "each toggle takes a ticket"
+    assert_includes html, "const seq=++ixSeq;", "stamped at the moment it is asked for"
+    assert_includes html, "if(seq!==ixSeq||!ixNodes||treeMode)return;",
+      "a stale promise, a toggle since flipped, or tree mode all cancel the add"
   end
 
   test "hides a cluster box once a filter empties it, and binds Esc to deselect" do

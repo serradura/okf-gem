@@ -855,17 +855,20 @@ function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('-
   {selector:'edge',style:{'width':1.2,'line-color':edge,'target-arrow-color':edge,'target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.8}},
   {selector:'.dim',style:{'opacity':.1}},
   {selector:'.hl',style:{'border-width':3,'border-color':cvar('--accent')}},
-  /* A directory reads the same whichever mode drew it — file-tree mode's folder
-     and the index layer's map are the same thing seen twice, so one selector
-     dresses both and they cannot drift apart. Grey and square: colour belongs to
-     the concepts, and a map is chrome around them, not another one of them. */
+  /* One selector for the shape, so a folder and a map are recognisably the same
+     kind of thing — square, small type, never a concept's circle. Colour is where
+     they part: file-tree mode draws the *structure* and stays grey, while the
+     index layer draws the *authored* §6 map and takes the accent, because there
+     it is the subject rather than the scaffolding. */
   {selector:'node.dir,node.ix',style:{'shape':'round-rectangle','background-color':cvar('--faint'),'background-opacity':.85,
    'font-size':9.5,'font-weight':600,'color':cvar('--muted')}},
+  {selector:'node.ix',style:{'background-color':cvar('--accent'),'background-opacity':.9,'color':cvar('--ink'),'font-weight':700}},
   {selector:'edge.tree',style:{'width':1.1,'opacity':.7,'target-arrow-shape':'none'}},
   /* what separates the two maps is authorship, not hue: a directory the bundle
      only implies is hollow and dashed, which is the same "not really there"
      the dashed edges say. */
-  {selector:'node.ix-syn',style:{'background-opacity':.2,
+  /* authorship still shows as form: a map nobody wrote is hollow and dashed */
+  {selector:'node.ix-syn',style:{'background-color':cvar('--faint'),'background-opacity':.2,'color':cvar('--muted'),
    'border-width':1.5,'border-color':cvar('--faint'),'border-style':'dashed'}},
   {selector:'edge.ixe',style:{'width':1,'opacity':.5,'line-style':'dashed','line-color':cvar('--edge'),'target-arrow-shape':'none'}},
   {selector:'edge.ixe-syn',style:{'opacity':.3}},
@@ -1255,7 +1258,7 @@ let treeMode=false;const btnTree=document.getElementById('btn-tree');
 const DIR='dir::';
 function setTree(on){if(on===treeMode)return;if(on&&clustered)setClustered(false);
  treeMode=on;btnTree.setAttribute('aria-pressed',String(on));layoutSel.disabled=on;btnCluster.disabled=on;
- btnIx.disabled=on;if(on&&ixNodes)setIxNodes(false);
+ btnIx.disabled=on;if(on&&ixNodes)setIxNodes(false,false);
  if(on){
   const dirs=new Set(['']);
   NODES.forEach(n=>{const parts=n.id.split('/');for(let i=1;i<parts.length;i++)dirs.add(parts.slice(0,i).join('/'));});
@@ -1289,16 +1292,23 @@ btnTree.onclick=()=>setTree(!treeMode);
    they are built from /index straight onto the canvas, so NODES, /catalog and
    the type and tag indexes never learn they exist. */
 const IX='ix::';
-let ixNodes=false,IXROWS=[];
+let ixNodes=false,IXROWS=[],ixSeq=0;
 const btnIx=document.getElementById('btn-ix');
-function setIxNodes(on){if(on===ixNodes)return;ixNodes=on;btnIx.setAttribute('aria-pressed',String(on));
- if(!on){IXROWS=[];cy.batch(()=>{cy.edges('.ixe').remove();cy.nodes('.ix').remove();});runLayout(layoutSel.value);return;}
- getIndex().then(dirs=>{if(!ixNodes)return;IXROWS=dirs||[];
+/* `relayout:false` says a caller owns the layout and is about to run its own —
+   without it the teardown's layout and file-tree mode's breadthfirst raced over
+   the same canvas, and the tree landed wrong until it was clicked again. The
+   ticket covers the other direction: the add is async, so a toggle flipped or a
+   mode entered while /index is in flight has to cancel the landing. */
+function setIxNodes(on,relayout){if(on===ixNodes)return;ixNodes=on;btnIx.setAttribute('aria-pressed',String(on));
+ const seq=++ixSeq;
+ if(!on){IXROWS=[];cy.batch(()=>{cy.edges('.ixe').remove();cy.nodes('.ix').remove();});
+  if(relayout!==false)runLayout(layoutSel.value);return;}
+ getIndex().then(dirs=>{if(seq!==ixSeq||!ixNodes||treeMode)return;IXROWS=dirs||[];
   cy.batch(()=>{
    IXROWS.forEach(d=>{const syn=!!d.synthesized;
     cy.add({group:'nodes',classes:'ix'+(syn?' ix-syn':''),
      data:{id:IX+d.dir,dir:d.dir,title:d.dir==='.'?'/':d.dir.split('/').pop()+'/',
-      c:cvar('--faint'),sz:d.dir==='.'?30:22}});});
+      c:cvar(syn?'--faint':'--accent'),sz:d.dir==='.'?30:22}});});
    /* map → the maps below it, and map → each concept it lists. A listing entry
       whose node is missing is skipped rather than conjuring a dangling edge. */
    IXROWS.forEach(d=>(d.subdirs||[]).forEach(sub=>{

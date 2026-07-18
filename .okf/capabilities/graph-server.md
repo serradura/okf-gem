@@ -124,16 +124,24 @@ edges — the acyclic layered tree of the files, next to the emergent link graph
 
 Beside it, **show indexes** draws the §6 map as a layer of its own, under
 *whatever* layout is running rather than only inside the tree. Each `index.md`
-becomes a tile edged to the concepts it lists and to the maps beneath it. It is
-dressed by the *same selector* as file-tree mode's folder node, because the two
-are the same thing seen twice and a shared rule is what keeps them from drifting:
-grey and square, since colour belongs to the concepts and a map is chrome around
-them. What separates the two kinds of map is authorship, not hue — solid where
-an author wrote one, hollow and dashed where the bundle only implies it, the same
-"not really there" its dashed edges say. That makes the toggle a curation read as
+becomes a tile edged to the concepts it lists and to the maps beneath it. It
+shares a *selector* with file-tree mode's folder node for everything structural —
+square, small type, never a concept's circle — and parts from it on colour: the
+file tree draws structure and stays grey, while the index layer draws the
+authored §6 map and takes the accent, because there the map is the subject rather
+than the scaffolding. Authorship then shows as form: solid where an author wrote
+a map, hollow and dashed where the bundle only implies one. That makes the toggle a curation read as
 much as a navigation one, since a field of outlines is a directory that never got
 a map. File-tree mode
 already draws folders, so it disables the toggle rather than doubling it.
+
+Moving between the modes is one click, which took fixing twice over. Tearing the
+layer down ran its own layout while file-tree mode ran `breadthfirst` a beat
+later — two layouts racing the same canvas, so the tree landed wrong until it was
+clicked again; a `relayout` flag now lets a caller say it owns the layout. And
+because the layer is built from a `fetch`, each toggle takes a ticket: a promise
+whose ticket is stale, whose toggle has since flipped, or that resolves inside
+file-tree mode does not land.
 
 Those nodes are **drawn, never modelled**. `index.md` is reserved — it is not a
 concept — and the page must not be the place that quietly decides otherwise, so
