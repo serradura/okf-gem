@@ -144,10 +144,11 @@ and `orientationchange` refits the graph to its new box.
 The graph, catalog, files, tags, and stats panels are all *derived* from the
 model; the one layer humans actually write — the §6 index map and the
 [§7 log](../format/okf-format.md) — now renders in the browser too. The tree
-column carries two tabs: **Files** groups each directory's concepts (foldable,
-with its `index.md` and `log.md` beside them), and **Indexes** lays the authored
-layer flat — the log first as the chronological index, then every `index.md`, root
-before nested. Folder nodes in file-tree mode and area boxes in cluster mode are
+column carries two tabs: **Files** groups each directory's concepts (foldable —
+whether or not a search is narrowing them, with a fold/unfold-all control in the
+tab header; a collapsed group still shows its header, so it never hides a match),
+and **Indexes** lays the authored layer flat — the log first as the chronological
+index, then every `index.md`, root before nested. Folder nodes in file-tree mode and area boxes in cluster mode are
 clickable: the inspector opens that directory's map, the authored `index.md` or a
 synthesized listing badged as such when none exists; **Open in graph** on a
 reserved file jumps to its folder in the tree, where a file with no node still has
@@ -215,3 +216,4 @@ does not cover.
 [1] [lib/okf/server/app.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/app.rb) — the Rack app and its routes; `GET /` renders the page through [`OKF::Render::Graph`](render.md).
 [2] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the `serve` boot seam that wraps every served app in `Rack::Deflater` (the static counterpart, [`render`](render.md), is its own capability).
 [3] [lib/okf/server/hub.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/hub.rb) — the multi-bundle dispatcher: the `/b/<slug>/` mounts, the default redirect, and the hub's own index, empty-state, and 404 pages.
+[4] [lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/lib/okf/render/graph/template.html.erb) — the page itself: the two MiniSearch indexes behind the search box, the compound-parent visibility pass that keeps emptied area boxes off the canvas, and the file tree's fold controls.

@@ -128,6 +128,25 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "e.key==='Escape'&&view==='graph'", "Esc clears the graph selection"
   end
 
+  test "the files panel searches index/log bodies, folds during search, and folds all" do
+    write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # the Indexes tab searches reserved-file bodies through its own MiniSearch index
+    assert_includes html, "function buildFtResIndex(",
+      "the Indexes tab has a full-text index over index.md/log.md bodies"
+    assert_includes html, "if(d.present)docs.push({id:'idx:'+d.index_path",
+      "index.md bodies are indexed, not just their paths"
+    # collapse must work even while a search/filter is active (was force-expanded)
+    assert_includes html, "const closed=collapsedDirs.has(dir);",
+      "folders honor their collapsed state regardless of an active search"
+    refute_includes html, "!filtering&&collapsedDirs", "the search-forces-expand override is gone"
+    # one control folds/unfolds every visible group
+    assert_includes html, %(id="ftree-foldall"), "a fold/unfold-all control exists"
+    assert_includes html, "foldAllBtn.onclick", "the fold-all control is wired"
+  end
+
   test ".static renders a whole bundle from a folder — bundle baked in, meta derived from the catalog" do
     write("tables/orders.md", "---\ntype: Table\ntitle: Orders\ndescription: the orders table\n---\n\nThe orders body.\n")
     write("notes/n.md", %(---\ntype: Note\ntitle: N\ndescription: "a <b>bold</b> claim"\n---\n\nPinned body.\n))

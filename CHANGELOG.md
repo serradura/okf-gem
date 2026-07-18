@@ -15,6 +15,11 @@
   full-text index too, over each `index.md`/`log.md`'s body — not just its
   filename. Until an index loads — or if the CDN is unreachable — each view falls
   back to its own substring filter, so the box is never dead.
+- The Files tree's folder collapse works during a search. An active search or
+  type/tag filter used to force every folder open, so fold clicks did nothing;
+  folders now honor their collapsed state always (a collapsed group still shows
+  its header, so a match is never hidden). A **fold/unfold-all** control in the
+  Files tab header collapses or expands every visible group at once.
 - Clustering no longer leaves phantom empty boxes. When a filter or a search hid
   every concept in an area, the cluster's labelled box lingered as an empty
   rectangle; the box now hides when no child survives and returns when one does —

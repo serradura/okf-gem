@@ -357,7 +357,12 @@
   padding:8px 10px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
  .ftab:hover{color:var(--ink)}
  .ftab.active{color:var(--ink);border-bottom-color:var(--accent)}
- /* the type/tag combos filter concepts; they mean nothing on the Indexes tab */
+ #ftree-foldall{width:28px;height:28px;flex:none}
+ #ftree-foldall svg{transition:transform .15s}
+ #ftree-foldall.all-closed svg{transform:rotate(180deg)}
+ /* folders live only on the Files tab; the fold-all control and the type/tag
+    combos both mean nothing on the Indexes tab */
+ #app[data-ftab=indexes] #ftree-foldall{display:none}
  #app[data-ftab=indexes] #file-controls .combo{display:none}
  .file .fn .badge-res{margin-left:auto;flex:none;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
   color:var(--faint);background:var(--line-2);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
@@ -609,6 +614,8 @@
       <div class="ftabs" role="tablist" aria-label="File kinds">
        <button class="ftab active" id="ftab-files" type="button" role="tab" aria-selected="true">Files</button>
        <button class="ftab" id="ftab-indexes" type="button" role="tab" aria-selected="false">Indexes</button>
+       <button class="btn" id="ftree-foldall" type="button" aria-label="Collapse all folders" title="Collapse all folders">
+        <svg viewBox="0 0 24 24"><path d="m7 13 5-5 5 5"/><path d="m7 19 5-5 5 5"/></svg></button>
        <button class="btn" id="ftree-min" type="button" aria-label="Collapse file list" aria-expanded="true" aria-controls="ftree-list">
         <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
       </div>
@@ -1338,6 +1345,8 @@ function initFiles(){inited.files=true;refreshTree();}
    the catalog cannot know them. */
 let IXDIRS=null,LOGPATHS=null,ftab='files';
 const collapsedDirs=new Set();
+let lastFileDirs=[];
+const foldAllBtn=document.getElementById('ftree-foldall');
 function dirOfPath(p){return p.indexOf('/')<0?'.':p.split('/').slice(0,-1).join('/');}
 function renderTree(list){const s=(q.files||'').toLowerCase();
  const el=document.getElementById('ftree-list');
@@ -1359,10 +1368,13 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
  const rows=list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(ids?ids.has(c.id):(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s))));
  const groups={};rows.forEach(c=>{(groups[c.dir]=groups[c.dir]||[]).push(c);});
  const dirs=Object.keys(groups).sort();
+ lastFileDirs=dirs;syncFoldAll();
  if(!dirs.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}
- const filtering=!!(s||ft||fg);
+ /* Collapse is honored whether or not a search is active — a search that force-
+    expanded every folder left the fold clicks dead. A folder that matches still
+    shows its header, so a collapsed group is never a hidden match. */
  el.innerHTML=dirs.map(dir=>{
-  const closed=!filtering&&collapsedDirs.has(dir);
+  const closed=collapsedDirs.has(dir);
   const head=`<button class="ffolder${closed?' closed':''}" data-dir="${esc(dir)}"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>${dir==='.'?'(root)':esc(dir)+'/'}</button>`;
   if(closed)return head;
   return head+(groups[dir]||[]).map(c=>{const cc=color[c.type]||'#64748b';const name=c.id.split('/').pop()+'.md';
@@ -1370,6 +1382,15 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
  el.querySelectorAll('.ffolder').forEach(b=>b.onclick=()=>{const d=b.dataset.dir;
   if(collapsedDirs.has(d))collapsedDirs.delete(d);else collapsedDirs.add(d);renderTree(list);});
  el.querySelectorAll('.file[data-id]').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));}
+/* Fold/unfold every visible group at once. When they are all already collapsed
+   the button expands them; otherwise it collapses them all — reading its state
+   off the folders currently in view. */
+function syncFoldAll(){const d=lastFileDirs,all=d.length>0&&d.every(x=>collapsedDirs.has(x));
+ foldAllBtn.classList.toggle('all-closed',all);foldAllBtn.disabled=d.length===0;
+ const lbl=all?'Expand all folders':'Collapse all folders';foldAllBtn.title=lbl;foldAllBtn.setAttribute('aria-label',lbl);}
+foldAllBtn.onclick=()=>{const d=lastFileDirs;if(!d.length)return;
+ if(d.every(x=>collapsedDirs.has(x)))d.forEach(x=>collapsedDirs.delete(x));else d.forEach(x=>collapsedDirs.add(x));
+ refreshTree();};
 function setFtab(t){if(ftab===t)return;
  ftab=t;document.getElementById('app').setAttribute('data-ftab',t);
  [ 'files','indexes' ].forEach(x=>{const b=document.getElementById('ftab-'+x);
