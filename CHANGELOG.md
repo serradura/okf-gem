@@ -7,6 +7,9 @@
   other than the directory. `index.md` and `log.md` are rows now, at the top of
   the folder they document, and **Indexes only** is a toggle over the same tree —
   same rows, fewer of them, structure intact. Opening a reserved file releases it.
+  Narrowed, a folder owns exactly one row, so the row stands where the folder
+  header stood — at that folder's depth, carrying the path — rather than nesting
+  a single child under a header.
   - **The rail loses its fake view.** `Index` was a rail item with no
     `#view-index` behind it — the files view showing its other tab — so
     `activeRail()` answered a question of view *and* tab. A rail item is a view

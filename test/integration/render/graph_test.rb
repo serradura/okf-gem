@@ -335,6 +335,20 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, ".fp-head[hidden]{display:none}", "an author rule has to re-assert what hidden means"
   end
 
+  test "Indexes only puts each map where its folder header was" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # narrowed to the authored layer, every folder owns exactly one row, so the
+    # header is a line of chrome per map — the row takes its place and carries
+    # the path, which is what the old flat list showed and what a reader reads
+    assert_includes html, "function flatRes(", "the toggle draws a flat list, not folders of one"
+    assert_includes html, "if(ixOnly){el.innerHTML=flatRes(", "and takes that path before any tree is built"
+    assert_includes html, "lastFileDirs=[];syncFoldAll();",
+      "with no folders on screen, the fold control has nothing to fold and says so"
+  end
+
   test "?view=index still opens the root index, now that no such view exists" do
     write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 

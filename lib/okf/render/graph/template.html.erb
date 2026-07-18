@@ -1473,6 +1473,21 @@ function dirOfPath(p){return p.indexOf('/')<0?'.':p.split('/').slice(0,-1).join(
 function dirParents(dir){const out=[];let d=dir;
  while(d!=='.'){const p=dirOfPath(d);out.push([ p,d ]);d=p;}
  return out;}
+/* One reserved row. `label` is what the reader reads: the bare filename when the
+   row sits inside the folder that owns it, the whole path when it stands in for
+   that folder. `data-path` is the real one either way. */
+function resRow(r,depth,label){
+ const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
+ return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}" title="${esc(r.path)}" style="--d:${depth}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg><span class="rn">${esc(label)}</span><span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}
+/* Narrowed to the authored layer, a folder owns exactly one row — so its header
+   is a line of chrome per map, and a reader scrolls twice as far to read half as
+   much. The row stands where the header stood, at the folder's own depth and
+   carrying the path: the flat list the tab used to show, with the nesting still
+   legible in the indent. */
+function flatRes(res){
+ const dirs=Object.keys(res).sort((a,b)=>a==='.'?-1:b==='.'?1:(a<b?-1:1));
+ return dirs.map(d=>{const depth=d==='.'?0:d.split('/').length;
+  return res[d].map(r=>resRow(r,depth,r.path)).join('');}).join('');}
 /* One tree, both layers. The authored files used to live on a second tab as a
    flat list of paths, which put a directory's own map somewhere other than the
    directory — the one place a reader looks for it. They are rows now, at the top
@@ -1492,6 +1507,10 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
   (LOGPATHS||[]).forEach(p=>{if(keep(p))(res[dirOfPath(p)]=res[dirOfPath(p)]||[]).push({kind:'log',path:p});});
   Object.keys(res).forEach(d=>{res[d].sort((a,b)=>a.kind===b.kind?0:(a.kind==='index'?-1:1));resCount+=res[d].length;});
  }
+ if(ixOnly){el.innerHTML=flatRes(res)||'<p class="empty" style="padding:14px">No index.md or log.md files'+(s?' match.':' yet.')+'</p>';
+  lastFileDirs=[];syncFoldAll();
+  el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));
+  return;}
  const groups={};rows.forEach(c=>{(groups[c.dir]=groups[c.dir]||[]).push(c);});
  /* Directories nest. A sorted list of full paths made `core` and
     `core/configurations` siblings, which reads as two unrelated folders instead
@@ -1508,10 +1527,7 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
  if(!rows.length&&!resCount){el.innerHTML='<p class="empty" style="padding:14px">'+
   (ixOnly?('No index.md or log.md files'+(s?' match.':' yet.')):'No files match.')+'</p>';return;}
  /* A directory's own map and log, above the folders and files they cover. */
- function resIn(dir,depth){return (res[dir]||[]).map(r=>{
-  const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
-  const name=r.path.split('/').pop();
-  return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}" title="${esc(r.path)}" style="--d:${depth}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg><span class="rn">${esc(name)}</span><span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');}
+ function resIn(dir,depth){return (res[dir]||[]).map(r=>resRow(r,depth,r.path.split('/').pop())).join('');}
  /* Collapse is honored whether or not a search is active — a search that force-
     expanded every folder left the fold clicks dead. A folder that matches still
     shows its header, so a collapsed group is never a hidden match. Closing a

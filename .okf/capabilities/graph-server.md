@@ -217,8 +217,13 @@ column is **one tree**. The authored files used to live on a second tab as a
 flat list of paths, which put a directory's own map somewhere other than the
 directory — the one place a reader looks for it. `index.md` and `log.md` are rows
 now, at the top of the folder they document, above its subfolders and concepts,
-and **Indexes only** is a toggle that narrows the same tree to them: same rows,
-fewer of them, the structure intact. Opening a reserved file releases the toggle,
+and **Indexes only** is a toggle that narrows the same tree to them. Narrowed,
+a folder owns exactly one row, so its header becomes a line of chrome per map —
+the row stands where the header stood instead, at that folder's depth and
+carrying the path. That is the flat list the tab used to show, with the nesting
+still legible in the indent. One row renderer serves both shapes; only the label
+differs (bare filename inside its folder, whole path when it stands in for one),
+so a click behaves identically either way. Opening a reserved file releases the toggle,
 because a reader who has arrived somewhere should not have to undo a filter to
 see where they are. The type and tag combos hide reserved files while they are
 set — a reserved file has neither, so a filter about concepts is not a statement
