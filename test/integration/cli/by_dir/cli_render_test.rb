@@ -20,6 +20,7 @@ module ByDir
       assert_match(/const EMBED=\{"catalog":/, result.out, "render mode bakes the payload in")
       refute_match(/const EMBED=null/, result.out, "EMBED=null is the server mode the page must not be in")
       assert_match(/"bodies":/, result.out)
+      refute_match(/"meta":/, result.out, "meta is derived client-side from the catalog description, not baked")
       assert_match(/Joined with \[customers\]\(\/tables\/customers\.md\) on `customer_id`\./, result.out,
         "a concept's markdown body is baked in verbatim")
       assert_match(/# Update Log/, result.out, "so is the reserved log")

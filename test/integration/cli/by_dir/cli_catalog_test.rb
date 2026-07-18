@@ -41,6 +41,21 @@ module ByDir
       assert_equal %w[sales orders], data.fetch("concepts").last.fetch("tags")
     end
 
+    # A title-less concept must wear the SAME fallback label everywhere. The graph
+    # node falls back blank-aware to File.basename(id) — "thing"; the catalog fell
+    # back (title || id) to the whole id — "area/thing" — so one concept answered to
+    # two names across two views of the same bundle. A blank `title: ""` was worse:
+    # it slipped past the nil-only `||` and cataloged as an empty label.
+    test "a title-less concept falls back to its basename, matching the graph node" do
+      concepts = json(okf("catalog", fixture("untitled"), "--json")).fetch("concepts")
+      nodes = json(okf("graph", fixture("untitled"), "--json", "--minimal")).fetch("nodes")
+      title_of = ->(rows, id) { rows.find { |row| row["id"] == id }.fetch("title") }
+
+      assert_equal "thing", title_of.call(nodes, "area/thing"), "the graph already falls back to the basename"
+      assert_equal "thing", title_of.call(concepts, "area/thing"), "the catalog must not diverge — same concept, same label"
+      assert_equal "blank", title_of.call(concepts, "area/blank"), "a blank title falls back too, never an empty label"
+    end
+
     test "--pretty implies --json and indents it" do
       result = okf("catalog", fixture("minimal"), "--pretty")
 

@@ -698,9 +698,9 @@ const CATALOG_ENDPOINT="catalog",INDEX_ENDPOINT="index",LOG_ENDPOINT="log";
    server and for `okf render`, so a single bundle or a static file offers none. */
 const SIBLINGS=<%= siblings_json %>, SELF_SLUG=<%= self_slug_json %>, HUB_PATH=<%= hub_path_json %>;
 /* null when served live (`okf server`) — the getters below fetch the endpoints
-   above. `okf render` injects a payload {catalog,index,logs,bodies,meta}, and
-   every getter resolves from it instead, so one file needs no server and the
-   endpoint consts above go inert. */
+   above. `okf render` injects a payload {catalog,index,logs,bodies}, and every
+   getter resolves from it instead (the /node/meta fragment derived from the
+   catalog), so one file needs no server and the endpoint consts above go inert. */
 const EMBED=<%= embed_json %>;
 const MIN=<%= OKF::Server::Graph::MIN_SIZE %>, MAX=<%= OKF::Server::Graph::MAX_SIZE %>;
 const PALETTE=["#6E56CF","#D97757","#22C55E","#3B82F6","#EAB308","#EC4899","#14B8A6","#F97316","#A855F7","#0EA5E9","#84CC16","#EF4444","#64748B"];
@@ -925,10 +925,14 @@ function showLog(path){LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.pa
  if(opened)requestAnimationFrame(()=>cy.resize());});}
 /* Two per-concept reads shared by the inspector and the files preview: the raw
    markdown body (rendered client-side) and the description fragment. Live they
-   hit /node and /node/meta; under EMBED they resolve from the baked payload.
+   hit /node and /node/meta; under EMBED the body resolves from the baked payload
+   and the meta fragment is derived from the baked catalog — escaped here the same
+   way /node/meta escapes it — so the description lives in exactly one place.
    Never memoized in server mode, so on-disk edits keep reflecting. */
+const EMBED_DESC=EMBED?Object.fromEntries((EMBED.catalog||[]).map(c=>[c.id,c.description||''])):null;
+const metaFragment=d=>(d==null||String(d).trim()==='')?'<span class="empty">no description</span>':esc(d);
 function getNodeBody(id){return EMBED?Promise.resolve(EMBED.bodies[id]||''):fetch(NODE_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
-function getNodeMeta(id){return EMBED?Promise.resolve(EMBED.meta[id]||''):fetch(META_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
+function getNodeMeta(id){return EMBED?Promise.resolve(metaFragment(EMBED_DESC[id])):fetch(META_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
 function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Untyped';const c=color[ty]||'#64748b';
  shownId=id;const opened=openPanel();sideBody.scrollTop=0;
  sideBody.innerHTML=`<button type="button" class="type facet" data-focus-type="${esc(ty)}" title="Show only ${esc(ty)} in the graph"><span class="dot" style="background:${c}"></span>${esc(ty)}</button>

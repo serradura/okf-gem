@@ -119,26 +119,22 @@ module OKF
       end
 
       # Everything the on-demand endpoints would serve, baked for render mode. The
-      # arrays match what each client getter extracts from the JSON envelope; the
-      # per-concept maps mirror /node (raw, unstripped body) and /node/meta (the
-      # same escaped fragment). Read from the in-memory bundle — no live disk read,
-      # since a static file is a snapshot, not a window on edits.
+      # arrays match what each client getter extracts from the JSON envelope, and
+      # `bodies` mirrors /node (the raw, unstripped body). /node/meta has no baked
+      # map: the escaped description is derived on the client from the catalog it
+      # already carries. Read from the in-memory bundle — no live disk read, since
+      # a static file is a snapshot, not a window on edits.
       def embed_payload
         {
           catalog: @folder.catalog,
           index: @folder.directory_index,
           logs: logs[:logs],
-          bodies: bodies,
-          meta: meta
+          bodies: bodies
         }
       end
 
       def bodies
         @folder.bundle.concepts.each_with_object({}) { |concept, map| map[concept.id] = concept.body.to_s }
-      end
-
-      def meta
-        @folder.bundle.concepts.each_with_object({}) { |concept, map| map[concept.id] = description_fragment(concept) }
       end
 
       def node_body(id)

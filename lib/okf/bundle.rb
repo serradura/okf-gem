@@ -111,7 +111,7 @@ module OKF
         id = concept.id
         {
           id: id,
-          title: (concept.title || id).to_s,
+          title: OKF.blank?(concept.title) ? File.basename(id) : concept.title.to_s,
           type: concept.type.to_s,
           description: concept.description.to_s,
           tags: Array(concept.tags).map(&:to_s),
@@ -159,7 +159,7 @@ module OKF
           listing: here.map do |concept|
             {
               id: concept.id,
-              title: (concept.title || concept.id).to_s,
+              title: OKF.blank?(concept.title) ? File.basename(concept.id) : concept.title.to_s,
               description: concept.description.to_s,
               type: concept.type.to_s,
               tags: Array(concept.tags).map(&:to_s)

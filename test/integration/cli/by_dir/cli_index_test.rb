@@ -58,6 +58,18 @@ module ByDir
       assert_equal %w[id title description type tags], tables["listing"].first.keys
     end
 
+    # The synthesized listing shares the catalog's title fallback: a title-less
+    # concept must list under its basename, not its full id — the label the graph
+    # node already uses. Same defect, same fix as the catalog (see cli_catalog_test).
+    test "a synthesized listing falls back a title-less concept to its basename" do
+      data = json(okf("index", fixture("untitled"), "--json"))
+      area = data["directories"].find { |dir| dir["dir"] == "area" }
+      titles = area["listing"].each_with_object({}) { |item, map| map[item["id"]] = item["title"] }
+
+      assert_equal "thing", titles.fetch("area/thing"), "the listing must not fall back to the full id 'area/thing'"
+      assert_equal "blank", titles.fetch("area/blank"), "a blank title falls back too, never an empty label"
+    end
+
     test "--pretty implies --json and indents the same payload" do
       pretty = okf("index", fixture("conformant"), "--pretty")
       compact = okf("index", fixture("conformant"), "--json")

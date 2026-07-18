@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+- A title-less concept now wears one name in every view. `catalog` and the §6
+  index listing fell back a concept with no `title` to its full id — `area/thing`
+  — while the graph node fell back blank-aware to the basename — `thing` — so the
+  same concept answered to two labels across two views of one bundle, and a
+  `title: ""` slipped past the nil-only `||` to catalog as an empty string. Both
+  now fall back the graph's way (`File.basename`, blank-aware), so the label is
+  the same wherever the concept appears.
+- `okf render` stops baking a redundant description map. The static page derived
+  its `/node/meta` fragments from a separate `meta` payload that held nothing but
+  each concept's description, HTML-escaped — data the embedded `catalog` already
+  carries raw. The page now escapes the catalog's description on the client (the
+  same escape the server applies at `/node/meta`), so the `meta` key leaves the
+  baked payload and the description lives in one place. Both XSS guards are
+  unchanged; `okf server` is untouched.
 - The bare not-a-directory error now teaches the registry grammar. A verb given
   a target that is neither a directory nor an `@ref` moved from
   `error: <arg> is not a directory` to

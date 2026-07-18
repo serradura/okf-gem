@@ -80,7 +80,7 @@ class OKF::Server::GraphTest < OKF::TestCase
 
   test "render mode bakes the payload into EMBED and keeps the sanitizer on the path" do
     write("a.md", "---\ntype: Note\ntitle: A\n---\n\nz\n")
-    payload = { catalog: [], index: [], logs: [], bodies: { "a" => "BAKEDBODYMARK" }, meta: { "a" => "d" } }
+    payload = { catalog: [], index: [], logs: [], bodies: { "a" => "BAKEDBODYMARK" } }
 
     html = render(embed: payload)
 
@@ -92,7 +92,7 @@ class OKF::Server::GraphTest < OKF::TestCase
 
   test "escaping neutralizes a </script> breakout inside an embedded body" do
     write("a.md", "---\ntype: Note\ntitle: A\n---\n\nz\n")
-    payload = { catalog: [], index: [], logs: [], bodies: { "a" => "x</script><script>alert(1)</script>" }, meta: {} }
+    payload = { catalog: [], index: [], logs: [], bodies: { "a" => "x</script><script>alert(1)</script>" } }
 
     html = render(embed: payload)
 
