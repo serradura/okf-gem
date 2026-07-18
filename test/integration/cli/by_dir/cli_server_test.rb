@@ -87,7 +87,7 @@ module ByDir
     end
 
     test "every valid --layout reaches the served page" do
-      OKF::Server::Graph::LAYOUTS.each do |layout|
+      OKF::Render::Graph::LAYOUTS.each do |layout|
         result, booted = okf_server(fixture("minimal"), "--layout", layout)
 
         assert_equal 0, result.status, layout

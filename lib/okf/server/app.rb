@@ -2,7 +2,7 @@
 
 require "rack"
 
-require "okf/server/graph"
+require "okf/render/graph"
 
 module OKF
   module Server
@@ -11,7 +11,7 @@ module OKF
     #
     #   mount OKF::Server::App.new(folder) => "/knowledge"
     #
-    # The page (OKF::Server::Graph) boots from a *minimal* graph (id + title + edges
+    # The page (OKF::Render::Graph) boots from a *minimal* graph (id + title + edges
     # + type/tag indexes) and pulls each concept's markdown body and description from
     # here on demand, so the initial payload stays small and bodies are read live
     # from disk (edits show without a restart). Part of the shell — it does I/O.
@@ -62,13 +62,6 @@ module OKF
         end
       end
 
-      # The same interactive page, but with the whole bundle baked in — bodies,
-      # catalog, index and logs — so it needs no server. This is what `okf render`
-      # writes: the fetch getters resolve from the embedded payload, not from here.
-      def render_static
-        Graph.new(graph, title: @title || @folder.name, link: @link, layout: @layout, embed: embed_payload).render
-      end
-
       # The 404 both this app and the Hub answer with, so the two cannot drift.
       def self.not_found
         [ 404, { "content-type" => "text/plain; charset=utf-8" }, [ "not found\n" ] ]
@@ -97,44 +90,18 @@ module OKF
         { directories: @folder.directory_index }
       end
 
-      # Every log.md with its content, root scope first. Content is read live
-      # from disk so a just-appended entry shows without a restart; paths come
-      # from the loaded bundle, never from the request.
+      # The §7 history the Log panel renders: every log.md with its content, root
+      # scope first, read live from disk. Built by OKF::Bundle::Folder#log_entries,
+      # shared with `okf render`'s bake so the served and baked logs cannot drift.
       def logs
-        entries = @folder.bundle.log_files.sort_by { |path| [ path == "log.md" ? 0 : 1, path ] }
-        { logs: entries.map { |path| { path: path, dir: File.dirname(path), content: log_content(path) } } }
-      end
-
-      def log_content(path)
-        File.read(File.join(@folder.root, path), encoding: "UTF-8")
-      rescue SystemCallError
-        @folder.bundle.reserved_content(path)
+        { logs: @folder.log_entries }
       end
 
       def page
-        @page ||= Graph.new(
+        @page ||= OKF::Render::Graph.new(
           graph, title: @title || @folder.name, link: @link, layout: @layout,
           siblings: @siblings, self_slug: @self_slug, hub_path: @hub_path
         ).render
-      end
-
-      # Everything the on-demand endpoints would serve, baked for render mode. The
-      # arrays match what each client getter extracts from the JSON envelope, and
-      # `bodies` mirrors /node (the raw, unstripped body). /node/meta has no baked
-      # map: the escaped description is derived on the client from the catalog it
-      # already carries. Read from the in-memory bundle — no live disk read, since
-      # a static file is a snapshot, not a window on edits.
-      def embed_payload
-        {
-          catalog: @folder.catalog,
-          index: @folder.directory_index,
-          logs: logs[:logs],
-          bodies: bodies
-        }
-      end
-
-      def bodies
-        @folder.bundle.concepts.each_with_object({}) { |concept, map| map[concept.id] = concept.body.to_s }
       end
 
       def node_body(id)

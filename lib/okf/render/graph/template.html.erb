@@ -702,7 +702,7 @@ const SIBLINGS=<%= siblings_json %>, SELF_SLUG=<%= self_slug_json %>, HUB_PATH=<
    getter resolves from it instead (the /node/meta fragment derived from the
    catalog), so one file needs no server and the endpoint consts above go inert. */
 const EMBED=<%= embed_json %>;
-const MIN=<%= OKF::Server::Graph::MIN_SIZE %>, MAX=<%= OKF::Server::Graph::MAX_SIZE %>;
+const MIN=<%= OKF::Render::Graph::MIN_SIZE %>, MAX=<%= OKF::Render::Graph::MAX_SIZE %>;
 const PALETTE=["#6E56CF","#D97757","#22C55E","#3B82F6","#EAB308","#EC4899","#14B8A6","#F97316","#A855F7","#0EA5E9","#84CC16","#EF4444","#64748B"];
 const root=document.documentElement;
 const byId=Object.fromEntries(NODES.map(n=>[n.id,n]));

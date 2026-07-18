@@ -3,10 +3,14 @@
 require "rack/utils"
 
 module OKF
-  module Server
-    # Renders an OKF::Bundle::Graph as the interactive graph page served by
-    # OKF::Server::App. The markup lives in graph/template.html.erb; #render
-    # returns the HTML string.
+  # The view layer: turns a bundle into the interactive graph page. Pairs with the
+  # pure OKF::Bundle::Graph (the data model) — Bundle builds the graph, Render
+  # draws it. A shell (reads the template, escapes with rack/utils), but knows
+  # nothing about HTTP: OKF::Server::App serves what this produces, and `okf
+  # render` writes it to a file, from the one class.
+  module Render
+    # Renders an OKF::Bundle::Graph as the interactive graph page. The markup lives
+    # in graph/template.html.erb; #render returns the HTML string.
     #
     # The page boots from a *minimal* payload — nodes carry only id + title, plus
     # compact TYPES/TAGS inverted indexes for colouring and filtering. It has two
@@ -16,9 +20,9 @@ module OKF
     #     metadata, catalog, index and log are pulled from OKF::Server::App on
     #     demand via fetch, so the initial payload stays small and bodies read
     #     live from disk (edits show without a restart). Nothing extra embedded.
-    #   render mode (embed: payload) — `okf render` bakes the whole bundle in:
-    #     the same fetch getters resolve from the injected payload instead, so
-    #     the single file needs no server (e.g. hosting on GitHub Pages).
+    #   render mode (embed: payload) — `okf render` bakes the whole bundle in via
+    #     .static below: the same fetch getters resolve from the injected payload
+    #     instead, so the single file needs no server (e.g. GitHub Pages).
     #
     # NOTE (trust boundary): the page loads Cytoscape + marked from a CDN, so it
     # needs network for those libraries even in render mode. Fetched/embedded
@@ -37,6 +41,28 @@ module OKF
       # The 6-character JSON unicode escape for `<` (backslash, u, 0, 0, 3, c),
       # built from the backslash code point so no literal escape appears here.
       LT_ESCAPE = (92.chr(Encoding::UTF_8) + "u003c").freeze
+
+      # `okf render`: the whole page as one self-contained file, the bundle baked
+      # in, so it hosts where no server answers a fetch. Takes any bundle handle
+      # (an OKF::Bundle::Folder) and returns the HTML string.
+      def self.static(folder, title: nil, link: nil, layout: "cose")
+        new(folder.graph(minimal: true), title: title || folder.name, link: link, layout: layout, embed: payload(folder)).render
+      end
+
+      # What the baked page carries in place of the endpoints a live server would
+      # answer. Every key here is data a client getter reads from EMBED instead of
+      # fetching — and each derives from the *same* folder method the matching
+      # OKF::Server::App endpoint uses, so the bake and the live server cannot
+      # drift (/node/meta is the exception: the fragment is derived on the client
+      # from the catalog's raw description, so no map is baked for it).
+      def self.payload(folder)
+        {
+          catalog: folder.catalog,
+          index: folder.directory_index,
+          logs: folder.log_entries,
+          bodies: folder.concepts.each_with_object({}) { |concept, map| map[concept.id] = concept.body.to_s }
+        }
+      end
 
       # +node_endpoint+/+meta_endpoint+ are the (mount-relative) URLs the page
       # fetches a concept's raw markdown and metadata fragment from — relative so

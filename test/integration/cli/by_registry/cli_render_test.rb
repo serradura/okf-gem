@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../cli_integration_case"
-require "okf/server/graph"
+require "okf/render/graph"
 
 # `okf render` named through the registry. The verb a ref changes least: it takes
 # a `@slug` like every other, and then never mentions it — the page is titled from
@@ -74,7 +74,7 @@ module ByRegistry
 
     test "--layout seeds the page's initial layout for a ref, for each built-in" do
       with_registry("minimal") do
-        OKF::Server::Graph::LAYOUTS.each do |layout|
+        OKF::Render::Graph::LAYOUTS.each do |layout|
           result = okf("render", "@minimal", "--layout", layout)
 
           assert_equal 0, result.status, "--layout #{layout} is valid"

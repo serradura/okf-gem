@@ -400,7 +400,7 @@ module OKF
         o.on("--bind ADDR", "address to bind (default #{options[:bind]})") { |v| options[:bind] = v }
         o.on("-t", "--title TITLE", "graph title, single bundle only (default: parent/bundle dir name)") { |v| options[:title] = v }
         o.on("-l", "--link URL", "source URL shown in the header, single bundle only") { |v| options[:link] = v }
-        o.on("--layout NAME", OKF::Server::Graph::LAYOUTS, "initial layout (#{OKF::Server::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
+        o.on("--layout NAME", OKF::Render::Graph::LAYOUTS, "initial layout (#{OKF::Render::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
         help_flag(o)
       end
       dirs = positional_dirs(parser, argv) or return 2
@@ -531,7 +531,7 @@ module OKF
     # self-contained HTML file (bodies, catalog, index, logs baked in, no server
     # needed — e.g. hosting on GitHub Pages). Prints to stdout unless -o is given.
     def render(argv)
-      require "okf/server/app"
+      require "okf/render/graph"
 
       options = { output: nil, title: nil, link: nil, layout: "cose" }
       parser = OptionParser.new do |o|
@@ -539,14 +539,14 @@ module OKF
         o.on("-o", "--output FILE", "write to FILE instead of stdout") { |v| options[:output] = v }
         o.on("-t", "--title TITLE", "graph title (default: parent/bundle dir name)") { |v| options[:title] = v }
         o.on("-l", "--link URL", "source URL shown in the header") { |v| options[:link] = v }
-        o.on("--layout NAME", OKF::Server::Graph::LAYOUTS, "initial layout (#{OKF::Server::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
+        o.on("--layout NAME", OKF::Render::Graph::LAYOUTS, "initial layout (#{OKF::Render::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
         help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
       folder = OKF::Bundle::Folder.load(dir)
       report_skipped(folder)
-      html = OKF::Server::App.new(folder, title: options[:title] || folder.name, link: options[:link], layout: options[:layout]).render_static
+      html = OKF::Render::Graph.static(folder, title: options[:title], link: options[:link], layout: options[:layout])
       if options[:output]
         # A bad -o path (a missing directory, a permission denial) is a bad
         # *argument*: exit 2 with the reason, never a backtrace and an exit code

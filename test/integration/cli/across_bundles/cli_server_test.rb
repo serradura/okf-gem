@@ -284,7 +284,7 @@ module AcrossBundles
     end
 
     test "every valid --layout reaches every page mounted behind the hub" do
-      OKF::Server::Graph::LAYOUTS.each do |layout|
+      OKF::Render::Graph::LAYOUTS.each do |layout|
         _result, booted = okf_server(fixture("minimal"), fixture("rooted"), "--layout", layout)
         hub = booted_app(booted.first)
 

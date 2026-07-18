@@ -50,6 +50,16 @@ module OKF
         @bundle.directory_index
       end
 
+      # Every log.md with its content, root scope first — read live from disk so a
+      # just-appended entry shows without a reload; the reserved snapshot is the
+      # fallback if the file has since vanished. Shared by `okf render`'s bake
+      # (OKF::Render::Graph.payload) and OKF::Server::App's /log endpoint.
+      def log_entries
+        @bundle.log_files.sort_by { |path| [ path == "log.md" ? 0 : 1, path ] }.map do |path|
+          { path: path, dir: File.dirname(path), content: log_content(path) }
+        end
+      end
+
       # Human-readable "parent/dir" name — the default HTML title.
       # The bundle's display label, "parent/dir" — path arithmetic, no disk. It
       # is a class method so a caller that only wants the label (the registry
@@ -95,6 +105,12 @@ module OKF
         @bundle.reserved
                .select { |entry| File.basename(entry.path) == basename }
                .each_with_object({}) { |entry, hash| hash[entry.path] = entry.content }
+      end
+
+      def log_content(path)
+        File.read(File.join(@root, path), encoding: "UTF-8")
+      rescue SystemCallError
+        @bundle.reserved_content(path)
       end
     end
   end

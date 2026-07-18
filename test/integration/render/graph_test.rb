@@ -5,9 +5,9 @@ require "test_helper"
 require "json"
 
 require "okf"
-require "okf/server/app"
+require "okf/render/graph"
 
-class OKF::Server::GraphTest < OKF::TestCase
+class OKF::Render::GraphTest < OKF::TestCase
   setup do
     @tmpdir = Dir.mktmpdir("okf-viz-test")
   end
@@ -100,11 +100,28 @@ class OKF::Server::GraphTest < OKF::TestCase
     refute_includes html, "</script><script>alert(1)", "the raw breakout never reaches the page"
   end
 
+  test ".static renders a whole bundle from a folder — bundle baked in, meta derived from the catalog" do
+    write("tables/orders.md", "---\ntype: Table\ntitle: Orders\ndescription: the orders table\n---\n\nThe orders body.\n")
+    write("notes/n.md", %(---\ntype: Note\ntitle: N\ndescription: "a <b>bold</b> claim"\n---\n\nPinned body.\n))
+
+    html = OKF::Render::Graph.static(OKF::Bundle::Folder.load(@tmpdir), title: "Demo")
+
+    assert_includes html, "<!doctype html"
+    assert_includes html, "const EMBED={"
+    refute_includes html, "const EMBED=null;"
+    assert_includes html, "The orders body.", "bodies the live server would fetch are baked in"
+    assert_includes html, %("bodies":)
+    assert_includes html, %("catalog":)
+    refute_includes html, %("meta":), "meta is no longer a baked key — derived on the client from the catalog"
+    assert_includes html, "a \\u003cb>bold\\u003c/b> claim", "the raw description rides in the catalog, script-escaped"
+    refute_includes html, "a &lt;b&gt;bold&lt;/b&gt; claim", "the pre-escaped fragment is not baked"
+  end
+
   private
 
   def render(**opts)
     graph = OKF::Bundle::Graph.build(OKF::Bundle::Reader.read(@tmpdir), minimal: true)
-    OKF::Server::Graph.new(graph, **opts).render
+    OKF::Render::Graph.new(graph, **opts).render
   end
 
   def write(path, content)

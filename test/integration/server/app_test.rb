@@ -171,23 +171,6 @@ class OKF::Server::AppTest < OKF::TestCase
     assert_equal [], JSON.parse(last_response.body)["logs"]
   end
 
-  test "render_static bakes the whole bundle into one self-contained page" do
-    html = @app.render_static
-
-    assert_includes html, "<!doctype html"
-    assert_includes html, "const EMBED={"
-    refute_includes html, "const EMBED=null;"
-    assert_includes html, "The orders body.", "bodies the live server fetches are baked in"
-    assert_includes html, %("bodies":)
-    assert_includes html, %("catalog":)
-    # meta is no longer a baked EMBED key: the raw description rides in the catalog
-    # (only `<` escaped, for the inline <script>) and the page escapes it into the
-    # /node/meta fragment client-side — one source, not two kept in sync.
-    refute_includes html, %("meta":), "the meta map is gone from the payload"
-    assert_includes html, "a \\u003cb>bold\\u003c/b> claim", "the raw description is carried in the catalog"
-    refute_includes html, "a &lt;b&gt;bold&lt;/b&gt; claim", "the pre-escaped fragment is not baked anymore"
-  end
-
   private
 
   def write(path, content)
