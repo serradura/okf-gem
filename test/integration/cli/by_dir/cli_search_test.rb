@@ -105,6 +105,60 @@ module ByDir
         "and so is a match row — no engine field, no capability field"
     end
 
+    test "search --engine scan restores raw-text matching, infix and all" do
+      # The capability flags cannot ask for this: raw-text matching *requires*
+      # nothing, so there is no capability to route on. Naming the engine is how
+      # a caller reaches the semantics the index gave up — the pre-swap behaviour,
+      # ranking included, chosen deliberately rather than discovered.
+      infix = okf("search", fixture("conformant"), "--engine", "scan", "ustomer", "--json")
+
+      assert_equal 0, infix.status
+      assert_includes json(infix)["matches"].map { |row| row["id"] }, "tables/customers",
+        "a mid-word fragment the token index cannot reach"
+      assert_equal 0, json(okf("search", fixture("conformant"), "ustomer", "--json"))["count"],
+        "and the default is unchanged by the flag existing"
+    end
+
+    test "search --engine scan matches literally — a term is not a pattern unless -e says so" do
+      literal = okf("search", fixture("conformant"), "--engine", "scan", "customer_id", "--json")
+
+      assert_equal 0, literal.status
+      assert_equal [ "tables/orders" ], json(literal)["matches"].map { |row| row["id"] },
+        "the whole identifier, not its parts — which is the precision the index trades away"
+    end
+
+    test "search --engine index is the default spelled out, and answers identically" do
+      named = okf("search", fixture("conformant"), "--engine", "index", "orders", "--json")
+      implied = okf("search", fixture("conformant"), "orders", "--json")
+
+      assert_equal 0, named.status
+      assert_equal json(implied)["matches"], json(named)["matches"], "naming the default cannot change the answer"
+    end
+
+    test "search --engine and a flag it cannot honour is a usage error naming both" do
+      # The whole point of refusing rather than falling back: honouring one and
+      # dropping the other would answer a question nobody asked.
+      clash = okf("search", fixture("conformant"), "--engine", "index", "-e", "ord[a-z]+s")
+
+      assert_equal 2, clash.status
+      assert_match(/error: --engine index does not support --regexp/, clash.err)
+      assert_match(/scan/, clash.err, "the error names an engine that can, so the fix is in the message")
+      assert_empty clash.out, "a usage error leaves stdout clean"
+
+      fuzzy = okf("search", fixture("conformant"), "--engine", "scan", "--fuzzy", "custommer")
+      assert_equal 2, fuzzy.status
+      assert_match(/error: --engine scan does not support --fuzzy/, fuzzy.err)
+      assert_match(/index/, fuzzy.err)
+    end
+
+    test "search --engine with a name nobody registered lists the ones that exist" do
+      bogus = okf("search", fixture("conformant"), "--engine", "fts5", "orders")
+
+      assert_equal 2, bogus.status
+      assert_match(/error: unknown search engine: fts5 \(available: index, scan\)/, bogus.err)
+      assert_empty bogus.out, "a usage error leaves stdout clean"
+    end
+
     test "search --in narrows the searched fields; an unknown field lists the real ones" do
       scoped = okf("search", fixture("conformant"), "orders", "--in", "title")
       assert_equal 0, scoped.status

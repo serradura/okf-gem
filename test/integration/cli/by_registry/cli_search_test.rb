@@ -119,6 +119,25 @@ module ByRegistry
       end
     end
 
+    test "--engine reaches the named engine through a ref, and refuses what it cannot do" do
+      with_registry("conformant") do
+        scanned = okf("search", "@conformant", "--engine", "scan", "ustomer", "--json")
+        assert_equal 0, scanned.status
+        assert_includes json(scanned)["matches"].map { |row| row["id"] }, "tables/customers",
+          "raw-text matching arrives by ref exactly as it does by path"
+        assert_equal "conformant", json(scanned)["matches"].first["slug"], "and the row still carries its bundle"
+
+        clash = okf("search", "@conformant", "--engine", "index", "-e", "ord[a-z]+s")
+        assert_equal 2, clash.status
+        assert_match(/error: --engine index does not support --regexp/, clash.err)
+
+        bogus = okf("search", "@conformant", "--engine", "fts5", "orders")
+        assert_equal 2, bogus.status
+        assert_match(/error: unknown search engine: fts5/, bogus.err)
+        assert_empty bogus.out, "a usage error leaves stdout clean"
+      end
+    end
+
     test "--fuzzy forgives a typo through a ref, and refuses to pair with -e" do
       with_registry("conformant") do
         exact = okf("search", "@conformant", "custommer", "--json")
@@ -230,7 +249,7 @@ module ByRegistry
         result = okf("search", "@conformant")
 
         assert_equal 2, result.status
-        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term> \[term \.\.\.\]/, result.err)
+        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term…>/, result.err)
         assert_empty result.out
       end
     end

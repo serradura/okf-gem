@@ -87,6 +87,36 @@ class SearchAcceptedLossesTest < SearchCase
       "if this starts passing, ranking got better and the docs claiming it saves you can be revisited — check first"
   end
 
+  test "the scan matches literally unless a pattern was actually asked for" do
+    # `--engine scan` means "match raw text", which is what the linear scan did
+    # before the index landed — and that was *substring* matching, not regexp.
+    # Compiling every term as a pattern would make `7.2.0` match `7x2y0` and turn
+    # a plain term like `a(b` into a usage error, so choosing the engine would
+    # quietly change what the terms mean.
+    raw = bundle(concept("a", body: "build 7x2y0 shipped"), concept("b", body: "pinned to 7.2.0 exactly"))
+
+    literal = Search.call(raw, [ "7.2.0" ], engines: [ Search::Scan ])
+    assert_equal [ "b" ], literal.map { |row| row[:id] }, "a dot is a dot until -e says otherwise"
+
+    pattern = Search.call(raw, [ "7.2.0" ], regexp: true, engines: [ Search::Scan ])
+    assert_equal %w[a b], pattern.map { |row| row[:id] }.sort, "-e opts into the pattern reading"
+  end
+
+  test "a metacharacter is an ordinary character to a literal scan" do
+    # `[draft]` read as a pattern is a character class — it matches any concept
+    # containing d, r, a, f or t, which is nearly all of them. Read literally it
+    # matches the one that says so.
+    tagged = bundle(concept("a", body: "status: [draft] pending review"), concept("b", body: "shipped and stable"))
+
+    rows = Search.call(tagged, [ "[draft]" ], engines: [ Search::Scan ])
+    assert_equal [ "a" ], rows.map { |row| row[:id] }, "brackets are characters, not a character class"
+
+    # And an unbalanced construct must not blow up a search nobody asked to be a
+    # pattern — that would turn an ordinary term into exit 2.
+    unbalanced = Search.call(tagged, [ "review (pending" ], engines: [ Search::Scan ])
+    assert_equal [], unbalanced, "an invalid pattern is only invalid when a pattern was requested"
+  end
+
   test "-e is a pattern language, not a literal one — the exactness has an edge" do
     # Worth pinning because the help calls -e "matched against raw text", which a
     # reader can hear as "matched literally". A dot is still any character, so the

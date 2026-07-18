@@ -22,12 +22,15 @@ reads, and full bodies are read last, and only the winners.
 3. **Cut across with the finder when the question is lexical.** An exact
    symbol, an error code, a column name, a phrase — things structure won't
    surface — go to `okf search <dir> <terms>` (terms AND together, matched as
-   whole tokens or prefixes). **Reach for `-e` when the query is exact by
-   nature**: a phrase, a dotted version (`7.2.0`), an underscored identifier
-   (`customer_id`), a mid-word fragment (`ustomer`), or a pattern
-   (`err_[a-z]+_409`). The tokenizer splits on punctuation, so those queries
-   otherwise match far more loosely than they read — and ranking does not
-   reliably float the true hit to the top. <!-- rule:okf-search-exact-identifiers -->
+   whole tokens or prefixes). **Reach for `--engine scan` when the query is exact
+   by nature**: a phrase, a dotted version (`7.2.0`), an underscored identifier
+   (`customer_id`), a mid-word fragment (`ustomer`), or anything likely written
+   in `backticks` — a code span indexes as one glued token, so the default misses
+   it entirely. Add `-e` on top for patterns (`err_[a-z]+_409`). The default
+   tokenizer splits on punctuation, so those queries otherwise match far more
+   loosely than they read, and ranking does not reliably float the true hit to the
+   top. A search that returns suspiciously few rows for an identifier is the
+   signal. <!-- rule:okf-search-exact-identifiers -->
    Scope it with what the map taught you:
    `--area billing`, `--type Decision`, `--tag idempotency`, `--in body`.
    Matches rank by where they hit, and the snippet often *is* the answer.

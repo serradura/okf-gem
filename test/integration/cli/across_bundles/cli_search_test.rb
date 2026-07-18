@@ -423,6 +423,25 @@ module AcrossBundles
       end
     end
 
+    test "search --engine names one engine for the whole merge, not one per bundle" do
+      with_registry("conformant", "mentions") do
+        merged = okf("search", "@conformant", "@mentions", "--engine", "scan", "sales", "--json")
+        assert_equal 0, merged.status
+
+        data = json(merged)
+        data["matches"].each do |row|
+          assert_equal weight_sum(row["matched"]), row["score"],
+            "every row of the merge came from the named engine, whichever bundle it came from"
+        end
+        assert_equal %w[bundles query count matches], data.keys, "naming an engine adds no key to the envelope"
+
+        clash = okf("search", "@conformant", "@mentions", "--engine", "index", "-e", "^sale")
+        assert_equal 2, clash.status
+        assert_match(/error: --engine index does not support --regexp/, clash.err)
+        assert_empty clash.out, "one impossible pairing sinks the run before any bundle is read"
+      end
+    end
+
     test "search --fuzzy forgives a typo in every bundle, and refuses to pair with -e" do
       with_registry("conformant", "rooted") do
         exact = okf("search", "@conformant", "@rooted", "gatway", "custommer", "--json")
@@ -542,12 +561,12 @@ module AcrossBundles
       with_registry("conformant", "minimal") do
         refs = okf("search", "@conformant", "@minimal")
         assert_equal 2, refs.status
-        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term> \[term \.\.\.\]/, refs.err)
+        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term…>/, refs.err)
         assert_empty refs.out, "no terms, no ranking — and no empty answer that looks like one"
 
         every = okf("search", "@all")
         assert_equal 2, every.status
-        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term> \[term \.\.\.\]/, every.err)
+        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term…>/, every.err)
         assert_empty every.out
       end
     end

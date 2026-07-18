@@ -161,10 +161,18 @@ outrank the one that actually says `7.2.0`. When the query *is* an identifier, a
 version, or a phrase, reach for `-e` first rather than reading past the noise.
 <!-- rule:okf-search-exact-identifiers -->
 
-The engine is chosen by what the query needs, never named: `-e` routes to the
-regexp scan, `--fuzzy` to the index, anything else to the index by default.
-There is no `--engine` flag and nothing is printed about the choice — `okf search
---help` is where the split is documented.
+**`--engine scan` is the whole escape hatch, and the one to reach for when
+recall matters more than ranking.** The engine is normally chosen by what the
+query needs — `-e` routes to the scan, `--fuzzy` to the index, anything else to
+the index — and nothing is printed about the choice. `--engine NAME` overrides
+that for the case the flags cannot express: raw-text matching *requires*
+nothing, so no capability selects it. Under the scan, terms are matched
+literally (add `-e` for patterns), which recovers phrases, infixes, dotted
+identifiers **and words inside `backticks`** — the last being a large silent
+loss, since a code span indexes as one glued token and technical prose is full
+of them. The cost is the coarser pre-index ranking. Naming an engine that cannot
+do what you also asked (`--engine index -e`) is a usage error naming one that
+can. <!-- rule:okf-search-exact-identifiers -->
 
 **Search spans bundles.** Leading @refs pick several registered bundles
 (`okf search @handbook @notes auth`); **`@all`** is the ref that means every one.

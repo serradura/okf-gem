@@ -131,6 +131,48 @@ class SearchRoutingTest < SearchCase
     assert_includes error.message, "no search engine"
   end
 
+  # ── naming an engine outright ──────────────────────────────────────────
+
+  test "a named engine answers even when the query requires nothing of it" do
+    assert_equal Search::Scan, Search.engine_for([], name: "scan"),
+      "naming the engine is how a caller reaches semantics the capability flags cannot ask for"
+    assert_equal Search::Index, Search.engine_for([], name: "index")
+  end
+
+  test "an engine name is matched without regard to case" do
+    assert_equal Search::Scan, Search.engine_for([], name: "SCAN")
+  end
+
+  test "a named engine that cannot do what was asked names itself and what is missing" do
+    error = assert_raises(Search::UnsupportedQuery) { Search.engine_for([ :regexp ], name: "index") }
+
+    assert_equal [ :regexp ], error.missing
+    assert_equal :index, error.engine, "the caller named this engine, so the error must name it back"
+  end
+
+  test "a name nobody registered is an UnknownEngine carrying what is available" do
+    error = assert_raises(Search::UnknownEngine) { Search.engine_for([], name: "fts5") }
+
+    assert_equal "fts5", error.name
+    assert_equal %i[index scan], error.available
+  end
+
+  test "an unavailable engine cannot be reached by name" do
+    engines = [ engine(:broken, capabilities: [], available: false) ]
+
+    error = assert_raises(Search::UnknownEngine) { Search.engine_for([], name: "broken", engines: engines) }
+
+    assert_empty error.available, "an engine whose backing store is missing is not a choice on offer"
+  end
+
+  test "the facade forwards a named engine, and the name beats the default" do
+    raw = bundle(concept("a", title: "Customers"))
+
+    assert_equal [ "a" ], Search.call(raw, [ "ustomer" ], engine: "scan").map { |row| row[:id] },
+      "--engine scan restores raw-text matching, infix and all"
+    assert_equal [], Search.call(raw, [ "ustomer" ]), "the default is unchanged by the flag existing"
+  end
+
   test "register is idempotent by id — a double require does not double the registry" do
     before = Search.engines
 

@@ -25,6 +25,27 @@
     folders standing instead of a single `(root)` row. Unfolding clears the whole
     set, root included, so a root closed by hand is still reversible from there.
 
+- **`okf search --engine NAME` picks the engine outright.** Capability flags
+  select an engine when the query *requires* something (`-e` needs `:regexp`,
+  `--fuzzy` needs `:fuzzy`), but raw-text matching requires nothing, so no flag
+  could ask for it. `--engine scan` is that ask: the pre-index behaviour, with
+  phrases, infixes, dotted identifiers and code spans all matching, at the cost
+  of BM25 ranking. Naming an engine that cannot do what was also asked is a usage
+  error that names one that can (`--engine index -e` → *try --engine scan*), and
+  an unknown name lists what is available. `--help` reads the registry, so an
+  addon's engine appears without the CLI knowing it exists.
+- **The scan matches literally unless `-e` says otherwise.** It compiled every
+  term as a regexp, which was invisible while `-e` was the only way to reach it.
+  With `--engine scan` it would have meant `7.2.0` matching `7x2y0`, `[draft]`
+  acting as a character class, and an ordinary term like `review (pending`
+  failing as an invalid pattern. Terms are now escaped unless `--regexp` is
+  given, so the engine chooses *where* to match and `-e` chooses *how*.
+- **Known recall gap, now documented and recoverable.** A backtick is Unicode
+  `Sk`, not punctuation, so MiniSearch's tokenizer never splits it off: a word
+  inside a code span indexes as `` `minifts` `` and the query `minifts` does not
+  match it. On this repo's own bundle that is 409 tokens over 1,013 occurrences —
+  `okf search .okf minifts` finds 2 concepts where `--engine scan` finds 5. The
+  scan recovers it; the default still misses it.
 - **Search engines are adapters now.** `OKF::Bundle::Search` became a facade over
   N engines instead of one class with a `regexp ? scan : index` ternary. The
   facade keeps everything that defines a result — documents, the row and its key

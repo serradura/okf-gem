@@ -17,20 +17,40 @@ module OKF
     # Pure — no disk, no stdio. The CLI's `okf search` and any embedding app
     # share it: OKF::Bundle::Search.call(bundle, [ "dedup", "key" ]).
     class Search
-      # Raised when the query needs something no available engine offers. The CLI
-      # turns it into a usage error (exit 2). Unreachable with only the built-ins
-      # — minifts is a hard dependency, so :fuzzy is always answerable — it exists
-      # for the addon case, where an engine's backing store can be missing.
+      # Raised when the query needs something the engine cannot do — either the
+      # one that was named, or any that is available. Carries structured data
+      # rather than a finished sentence, because the shell says "--regexp" where
+      # the core says ":regexp"; the CLI formats it and exits 2.
       class UnsupportedQuery < OKF::Error
-        attr_reader :missing
+        attr_reader :missing, :engine
 
-        def initialize(missing)
+        def initialize(missing, engine: nil)
           @missing = missing
-          super(if missing.empty?
-                  "no search engine is available"
-                else
-                  "no available search engine offers #{missing.map { |name| ":#{name}" }.join(", ")}"
-                end)
+          @engine = engine
+          super(build_message(missing, engine))
+        end
+
+        private
+
+        def build_message(missing, engine)
+          return "no search engine is available" if missing.empty?
+
+          offered = missing.map { |name| ":#{name}" }.join(", ")
+          engine.nil? ? "no available search engine offers #{offered}" : "engine #{engine} does not offer #{offered}"
+        end
+      end
+
+      # Raised when `--engine` names something that is not on offer. An engine
+      # registered but reporting `available? == false` is absent from the list for
+      # the same reason it is absent from routing: it cannot answer. A future
+      # addon whose native build failed will want a kinder message than this one.
+      class UnknownEngine < OKF::Error
+        attr_reader :name, :available
+
+        def initialize(name, available)
+          @name = name
+          @available = available
+          super("unknown search engine: #{name} (available: #{available.join(", ")})")
         end
       end
 
@@ -108,20 +128,42 @@ module OKF
         (@engines ||= []).dup.freeze
       end
 
-      # The router. The default engine leads, then registration order; the first
+      # The router. Naming an engine is an override, not a hint: it is how a
+      # caller reaches semantics no capability flag asks for — `--engine scan`
+      # means "match raw text", which the flags cannot express because there is
+      # nothing to *require*. A named engine that cannot do what was also asked
+      # is an error rather than a silent fallback, since falling back would answer
+      # a different question than the one that was posed.
+      #
+      # Unnamed, the default engine leads, then registration order; the first
       # available engine offering *every* required capability answers. Partition
       # rather than sort_by, because sort_by is not stable and registration order
       # is the tie-break.
-      def self.engine_for(required, engines: self.engines)
-        default, rest = engines.select(&:available?).partition { |engine| engine.id == DEFAULT_ENGINE }
+      def self.engine_for(required, engines: self.engines, name: nil)
+        available = engines.select(&:available?)
+        return named_engine(name, required, available) unless OKF.blank?(name)
+
+        default, rest = available.partition { |engine| engine.id == DEFAULT_ENGINE }
         found = (default + rest).find { |engine| (required - engine.capabilities).empty? }
         return found if found
 
         raise UnsupportedQuery, required
       end
 
-      def self.call(bundle, terms, fields: nil, regexp: false, fuzzy: false, engines: nil)
-        new([ [ nil, bundle ] ], terms, fields: fields, regexp: regexp, fuzzy: fuzzy, engines: engines).results
+      def self.named_engine(name, required, available)
+        wanted = name.to_s.downcase
+        found = available.find { |engine| engine.id.to_s == wanted }
+        raise UnknownEngine.new(name, available.map(&:id)) if found.nil?
+
+        missing = required - found.capabilities
+        raise UnsupportedQuery.new(missing, engine: found.id) unless missing.empty?
+
+        found
+      end
+      private_class_method :named_engine
+
+      def self.call(bundle, terms, fields: nil, regexp: false, fuzzy: false, engine: nil, engines: nil)
+        new([ [ nil, bundle ] ], terms, fields: fields, regexp: regexp, fuzzy: fuzzy, engine: engine, engines: engines).results
       end
 
       # Several bundles as [ slug, bundle ] pairs, ranked into one list with every
@@ -129,20 +171,21 @@ module OKF
       # term by how rare it is in the corpus, so per-bundle indexes would score the
       # same match differently depending on which bundle it came from. One index
       # makes one corpus, and the merged ranking is comparable by construction.
-      def self.across(bundles, terms, fields: nil, regexp: false, fuzzy: false, engines: nil)
-        new(bundles, terms, fields: fields, regexp: regexp, fuzzy: fuzzy, engines: engines).results
+      def self.across(bundles, terms, fields: nil, regexp: false, fuzzy: false, engine: nil, engines: nil)
+        new(bundles, terms, fields: fields, regexp: regexp, fuzzy: fuzzy, engine: engine, engines: engines).results
       end
 
       # Raises RegexpError on an invalid pattern with `regexp: true`, and
       # UnsupportedQuery when no engine can answer — the caller owns turning
       # either into a usage error. `engines:` overrides the registry, which is how
       # the "nothing qualifies" path stays reachable without an addon installed.
-      def initialize(bundles, terms, fields: nil, regexp: false, fuzzy: false, engines: nil)
+      def initialize(bundles, terms, fields: nil, regexp: false, fuzzy: false, engine: nil, engines: nil)
         @bundles = bundles
         @terms = Array(terms).reject { |term| OKF.blank?(term) }.map(&:to_s)
         @fields = fields.nil? || fields.empty? ? FIELDS : fields
         @regexp = regexp
         @fuzzy = fuzzy
+        @engine = engine
         @engines = engines
         @sources = {}
       end
@@ -168,7 +211,7 @@ module OKF
       # `-e` unambiguously means "regexp semantics", so it routes on its own and
       # says nothing about it — there is no --engine flag to reconcile with.
       def engine
-        Search.engine_for(required_capabilities, engines: @engines || Search.engines)
+        Search.engine_for(required_capabilities, engines: @engines || Search.engines, name: @engine)
       end
 
       # What the query requires, in the routable vocabulary. `:prefix` never

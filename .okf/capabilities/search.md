@@ -69,6 +69,9 @@ two are different query languages rather than two dials on one, so `-e` and
 Note the edge: `-e` is a *pattern* language, so `7.2.0` still matches `7x2y0` —
 the literal wants `-e '7\.2\.0'`.
 
+All four are recovered by `--engine scan` (raw text, literal) or `-e` (raw text,
+pattern) — see the engines section below.
+
 **Ranking does not contain the loss.** This capability previously claimed the
 true hit still ranks first, so the cost was only extra rows below the answer.
 That is false, and the pinning tests found it: BM25 normalizes by field length,
@@ -91,21 +94,57 @@ documents match, how well, and where":
 | `Search::Index` (default) | `fuzzy`, `prefix` | BM25+, corpus-relative |
 | `Search::Scan` | `regexp` | summed field weights, absolute |
 
-Selection is by **capability, not by name**: `-e` requires `:regexp`, `--fuzzy`
-requires `:fuzzy`, and a query requiring nothing gets the default. There is
-deliberately no `--engine` flag — asking for `-e` unambiguously means "regexp
-semantics", and a second way to say it would be a second thing to keep consistent.
-Routing is **silent**: no note on stderr, nothing in the header, nothing in the
+Selection happens two ways, and they answer different questions.
+
+**By capability**, when the query requires something: `-e` requires `:regexp`,
+`--fuzzy` requires `:fuzzy`, and a query requiring nothing gets the default.
+Routing is **silent** — no note on stderr, nothing in the header, nothing in the
 JSON envelope. Someone who typed `-e` does not need to be told what `-e` does on
 every run.
 
-Which makes `okf search --help` the only place the story can be told, and
-therefore load-bearing: each capability flag names its engine, and a note states
-the token/raw-text split. Drop that text and the scan is still there but nobody
-finds it. `Search.register` is the seam an addon plugs into — the second base-gem
-extension point, deliberately shaped like the linter's — and
+**By name**, with `--engine`, when the query requires nothing but the *matching
+model* matters. This is the case capability flags cannot express: raw-text
+matching requires nothing, so there is no capability to route on.
+`--engine scan` is how a caller asks for the pre-index behaviour — substring
+matching over raw text, phrase, infix, dotted identifier and code span all
+intact — accepting the coarser ranking that comes with it. A named engine that
+cannot do what was *also* asked is an error, never a silent fallback:
+
+```
+okf search . --engine index -e 'err_[a-z]+'   # error: --engine index does not
+                                              # support --regexp (try --engine scan)
+okf search . --engine fts5 auth               # error: unknown search engine: fts5
+                                              # (available: index, scan)
+```
+
+The two readings of a term stay separate from the engine that reads them: the
+scan matches **literally** by default and `-e` opts into the pattern reading, so
+`7.2.0` does not match `7x2y0` and `[draft]` is not a character class unless you
+said so. Conflating those would make choosing an engine silently change what the
+terms mean.
+
+`Search.register` is the seam an addon plugs into — the second base-gem extension
+point, deliberately shaped like the linter's — and
 [the engine contract](../design/search-engines.md) is what keeps a registered
-engine from redefining what a match is.
+engine from redefining what a match is. `--engine` reads the registry at parse
+time, so an addon appears in `okf search --help` without the CLI knowing it exists.
+
+# What the default gives up, and how to get it back
+
+The tokenizer splits on whitespace **and punctuation**, and a backtick is
+Unicode `Sk` rather than `P` — so it is never split off at all. Both facts cost
+recall in ways `--engine scan` recovers:
+
+| Query | Default (index) | `--engine scan` |
+|---|---|---|
+| `minifts` | 2 | **5** — three concepts write it only as `` `minifts` `` |
+| `json_for_script` | 1 | **3** |
+| `customer_id` | matches "the customer table has an id column" | the identifier, whole |
+
+Measured on this bundle, 2026-07-18. A word inside a code span is a token like
+`` `minifts` ``, which the query `minifts` does not match — 409 such tokens here,
+1,013 occurrences. That is the largest single reason `--engine scan` exists, and
+why the note in `okf search --help` names backticks explicitly.
 
 # The index is built per invocation, and that is the current ceiling
 

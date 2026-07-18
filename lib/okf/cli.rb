@@ -92,6 +92,12 @@ module OKF
     # together.
     ALL_REF = "@all"
 
+    # The core raises `:regexp`; a user typed `--regexp`. Translating here keeps
+    # the flag vocabulary in the shell, where it belongs, and lets the message end
+    # with the fix rather than only the complaint: an engine that *can* do what was
+    # asked is named, so the next command is obvious.
+    CAPABILITY_FLAGS = { regexp: "--regexp", fuzzy: "--fuzzy" }.freeze
+
     # The row shape each list view emits, so `--fields`/`--except` can be checked
     # against a name even when the result is empty. Without it the typo guard
     # keyed off the data: `--fields bogus` was a usage error against a bundle
@@ -192,16 +198,18 @@ module OKF
     # a body read. Advisory read: exit 0 even with no matches. Exact by default —
     # the consuming agent is the fuzzy layer, until it asks not to be.
     def search(argv)
-      options = { json: false, regexp: false, fuzzy: false }
+      options = { json: false, regexp: false, fuzzy: false, engine: nil }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf search <dir|@slug…|@all> <term> [term ...] [--regexp|--fuzzy] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
+        o.banner = "Usage: okf search <dir|@slug…|@all> <term…> [--engine NAME] [--regexp|--fuzzy] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
         search_engine_note(o)
         json_flags(o, options, "emit the matches as JSON")
         projection_flags(o, options)
-        o.on("-e", "--regexp", "treat each term as a Ruby regular expression,",
-          "matched against raw text — case-insensitive (scan engine)") { options[:regexp] = true }
+        o.on("-e", "--regexp", "read each term as a Ruby regular expression rather",
+          "than literal text — case-insensitive (scan engine)") { options[:regexp] = true }
         o.on("--fuzzy",
           "tolerate typos, edit distance #{OKF::Bundle::Search::FUZZY_DISTANCE} × term length (index engine)") { options[:fuzzy] = true }
+        o.on("--engine NAME", "match with this engine instead of the default",
+          "(#{engine_names}) — scan is raw text, pre-index behaviour") { |v| options[:engine] = v }
         o.on("--in LIST", Array, "search only these fields (#{OKF::Bundle::Search::FIELDS.join(", ")})") { |v| options[:in] = v.map(&:downcase) }
         filter_flags(o, options, :type, :area, :tag)
         help_flag(o)
@@ -253,7 +261,8 @@ module OKF
 
       folder = OKF::Bundle::Folder.load(dir)
       report_skipped(folder)
-      rows = OKF::Bundle::Search.call(folder.bundle, terms, fields: options[:in], regexp: options[:regexp], fuzzy: options[:fuzzy])
+      rows = OKF::Bundle::Search.call(folder.bundle, terms, fields: options[:in], regexp: options[:regexp],
+        fuzzy: options[:fuzzy], engine: options[:engine])
       keep = filter_ids(folder, options)
       rows = rows.select { |row| keep.include?(row[:id]) } unless keep.nil?
       return print_search_json(dir, terms, rows, options) if options[:json]
@@ -262,8 +271,10 @@ module OKF
       0
     rescue RegexpError => e
       usage_error("invalid pattern: #{e.message}")
-    rescue OKF::Bundle::Search::UnsupportedQuery => e
+    rescue OKF::Bundle::Search::UnknownEngine => e
       usage_error(e.message)
+    rescue OKF::Bundle::Search::UnsupportedQuery => e
+      usage_error(unsupported_query_message(e))
     end
 
     # Every registered bundle, as [slug, dir] pairs — what @all expands to.
@@ -358,7 +369,8 @@ module OKF
         keep = filter_ids(folder, options)
         keeps[slug] = keep unless keep.nil?
       end
-      rows = OKF::Bundle::Search.across(bundles, terms, fields: options[:in], regexp: options[:regexp], fuzzy: options[:fuzzy])
+      rows = OKF::Bundle::Search.across(bundles, terms, fields: options[:in], regexp: options[:regexp],
+        fuzzy: options[:fuzzy], engine: options[:engine])
       rows = rows.select { |row| !keeps.key?(row[:slug]) || keeps[row[:slug]].include?(row[:id]) }
       return print_multi_search_json(pairs, terms, rows, options) if options[:json]
 
@@ -1137,6 +1149,22 @@ module OKF
       end
     end
 
+    # The registered engines, read at parse time so an addon that registers one
+    # shows up in `--help` without the CLI knowing it exists.
+    def engine_names
+      OKF::Bundle::Search.engines.map(&:id).join(" | ")
+    end
+
+    def unsupported_query_message(error)
+      wanted = error.missing.map { |name| CAPABILITY_FLAGS.fetch(name, ":#{name}") }.join(", ")
+      return "no available search engine offers #{wanted}" if error.engine.nil?
+
+      able = OKF::Bundle::Search.engines.select { |engine| (error.missing - engine.capabilities).empty? }
+      message = "--engine #{error.engine} does not support #{wanted}"
+      message += " (try --engine #{able.map(&:id).join(" or ")})" unless able.empty?
+      message
+    end
+
     # The engine story, told once, in the only place there is to tell it. `search`
     # routes on what the query needs — a pattern needs the scan, --fuzzy needs the
     # index — and says nothing about it at runtime: no note on stderr, nothing in
@@ -1151,9 +1179,10 @@ module OKF
     def search_engine_note(parser)
       parser.separator ""
       parser.separator "Terms match whole tokens and the tokens they prefix, ranked by relevance — the"
-      parser.separator "index engine. -e matches raw text instead, so a phrase (\"dedup key\") and a"
-      parser.separator "dotted identifier (7.2.0, customer_id) match literally: the exactness a token"
-      parser.separator "index gives up."
+      parser.separator "index engine. --engine scan matches raw text instead, so a phrase (\"dedup key\"),"
+      parser.separator "a dotted identifier (7.2.0, customer_id) and a word inside `backticks` all match"
+      parser.separator "literally: the exactness a token index gives up, at the cost of its ranking."
+      parser.separator "Add -e to read the terms as regular expressions rather than literal text."
       parser.separator ""
     end
 
