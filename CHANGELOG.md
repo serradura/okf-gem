@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- **The Indexes tab dissolves into the file tree.** The authored layer lived on a
+  second tab as a flat list of paths, which put a directory's own map somewhere
+  other than the directory. `index.md` and `log.md` are rows now, at the top of
+  the folder they document, and **Indexes only** is a toggle over the same tree —
+  same rows, fewer of them, structure intact. Opening a reserved file releases it.
+  - **The rail loses its fake view.** `Index` was a rail item with no
+    `#view-index` behind it — the files view showing its other tab — so
+    `activeRail()` answered a question of view *and* tab. A rail item is a view
+    again, and the number keys close up (`2` is Files). `?view=index` still works,
+    resolving to the action of opening the root map.
+  - **Fixed on the way:** the reader header rendered empty — an unlabelled badge
+    and a graph button pointing nowhere — whenever no file was open, because
+    `.fp-head{display:flex}` outranks the UA sheet's `[hidden]{display:none}`.
 - **A first-visit note tells a newcomer the index exists.** The `index.md` an
   author wrote to be read first was reachable only by finding the Indexes tab and
   clicking a row, so a reader meeting a bundle for the first time met unlabelled

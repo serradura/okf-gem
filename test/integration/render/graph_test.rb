@@ -281,6 +281,72 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "function dirParents(", "every ancestor joins the tree even when it holds no files"
   end
 
+  test "the Indexes tab dissolves into the one tree" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # two rail items and two tabs for one section, differing only by which list
+    # the column drew — the authored files belong *in* the tree, in the folder
+    # they document, not on a parallel flat surface
+    refute_includes html, %(id="ftab-indexes"), "the Indexes tab is gone"
+    refute_includes html, %(id="ftab-files"), "and so is the tab it was paired with"
+    refute_includes html, "data-ftab", "the app no longer carries a tab in its state"
+    refute_includes html, "function setFtab(", "nor the function that switched it"
+    refute_includes html, %(data-view="index"), "the rail stands on one Files entry"
+    refute_includes html, "function goIndexes(", "and the fake view it needed is gone"
+    assert_includes html, "function activeRail(){return view;}", "a rail item is a view again, nothing more"
+  end
+
+  test "index.md and log.md render inside the folder they document" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # a directory's map belongs at the top of that directory, above the folders
+    # and files it maps — that is the one place a reader looks for it
+    assert_includes html, "function resIn(", "reserved rows are collected per directory"
+    assert_includes html, "+resIn(dir,depth+1)\n   +(kids[dir]||[]).map",
+      "and render above the subfolders and concepts of that directory"
+    assert_includes html, "data-res=", "each keeps its kind, so a click still knows what it opened"
+  end
+
+  test "a toggle narrows the tree to the authored layer" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # what the Indexes tab did, as a filter over the same tree rather than a
+    # second surface: same rows, fewer of them, structure intact
+    assert_includes html, %(id="ftree-ixonly"), "a toggle replaces the tab"
+    assert_includes html, %(aria-pressed="false"), "and reads as a toggle, not a link"
+    assert_includes html, "let ixOnly=false;", "with state of its own"
+    assert_includes html, "ixOnly?[]:list.filter", "pressed, the concepts drop out and the authored layer stays"
+  end
+
+  test "the reader header stays hidden until a file is open" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # the head sets `hidden` in JS, but `display:flex` outranks the UA sheet's
+    # `[hidden]{display:none}` — so it rendered empty, with a graph button that
+    # pointed at nothing, whenever no file was open
+    assert_includes html, ".fp-head[hidden]{display:none}", "an author rule has to re-assert what hidden means"
+  end
+
+  test "?view=index still opens the root index, now that no such view exists" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # the deep link shipped in 1.8.0 and is in the wild; it named a place that
+    # has since become an action, so it resolves to the action
+    assert_includes html, "if(QV==='index')readIndex();", "the old deep link lands where it always meant to"
+    assert_includes html, "const VIEW_KEYS={'1':'graph','2':'files','3':'catalog','4':'tags','5':'stats'};",
+      "and the number keys close the gap the dropped rail item left"
+  end
+
   test "collapse-all folds into the root, not over it" do
     write("core/configurations/deep.md", "---\ntype: Note\ntitle: Deep\n---\n\nx\n")
     write("cli/render.md", "---\ntype: Note\ntitle: Render\n---\n\nx\n")

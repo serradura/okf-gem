@@ -432,22 +432,20 @@
  .ffolder.closed .chev{transform:rotate(-90deg)}
  .file.res .fn{color:var(--muted)}
  .file .fn .ricon{width:12px;height:12px;flex:none;stroke:var(--faint);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
- .ftabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--line);flex:none;align-items:center}
+ .ftabs{display:flex;gap:6px;padding:9px 10px;border-bottom:1px solid var(--line);flex:none;align-items:center}
+ .ftree-name{font-size:12.5px;font-weight:600;color:var(--ink);margin-right:auto;padding-left:2px}
+ /* the filter that replaced the Indexes tab: pressed, it narrows the same tree
+    to the authored layer instead of swapping in a second, flat one */
+ #ftree-ixonly{height:28px;gap:5px;font-size:12px;color:var(--muted)}
+ #ftree-ixonly svg{width:13px;height:13px}
+ #ftree-ixonly[aria-pressed=true]{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent}
  /* mobile-only: collapses the stacked file list down to this tab bar */
  #ftree-min{display:none;width:28px;height:28px;flex:none;margin-bottom:4px}
  #ftree-min svg{transition:transform .15s}
  .files-grid.tree-min #ftree-min svg{transform:rotate(180deg)}
- .ftab{flex:1;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);
-  padding:8px 10px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
- .ftab:hover{color:var(--ink)}
- .ftab.active{color:var(--ink);border-bottom-color:var(--accent)}
  #ftree-foldall{width:28px;height:28px;flex:none}
  #ftree-foldall svg{transition:transform .15s}
  #ftree-foldall.all-closed svg{transform:rotate(180deg)}
- /* folders live only on the Files tab; the fold-all control and the type/tag
-    combos both mean nothing on the Indexes tab */
- #app[data-ftab=indexes] #ftree-foldall{display:none}
- #app[data-ftab=indexes] #file-controls .combo{display:none}
  .file .fn .badge-res{margin-left:auto;flex:none;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
   color:var(--faint);background:var(--line-2);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
  /* The name needs an element of its own: as a bare text node it was an
@@ -464,6 +462,10 @@
  .file .fd{font-size:11.5px;color:var(--faint);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .fpreview{min-width:0;overflow:auto;display:flex;flex-direction:column}
  .fp-head{display:flex;align-items:center;gap:10px;padding:14px 22px;border-bottom:1px solid var(--line);flex:none}
+ /* `display:flex` outranks the UA sheet's `[hidden]{display:none}`, so the head
+    stayed on screen with nothing in it — an empty badge and a graph button
+    pointing nowhere — every time the reader had no file open. */
+ .fp-head[hidden]{display:none}
  .fp-head .title{margin:0;font-size:16px}
  .fp-body{padding:20px 28px;overflow:auto;flex:1}
  .fp-body .body{border-top:0;padding-top:0;margin-top:0}
@@ -570,7 +572,7 @@
   #ftree-min svg{transform:rotate(90deg)}
   .files-grid.tree-min #ftree-min svg{transform:rotate(-90deg)}
   .files-grid.tree-min{grid-template-columns:auto 1fr}
-  .files-grid.tree-min .ftree-list,.files-grid.tree-min .ftab,.files-grid.tree-min #ftree-resizer{display:none}
+  .files-grid.tree-min .ftree-list,.files-grid.tree-min .ftabs,.files-grid.tree-min #ftree-resizer{display:none}
  }
  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style></head>
@@ -581,7 +583,6 @@
    <svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#1a1a1a"/><polygon points="38,44 62,44 50,82" fill="#7a0a1e"/><polygon points="18,44 38,44 50,82" fill="#a8112c"/><polygon points="62,44 82,44 50,82" fill="#a8112c"/><polygon points="35,28 18,44 38,44" fill="#dc1e3c"/><polygon points="65,28 82,44 62,44" fill="#dc1e3c"/><polygon points="35,28 65,28 62,44 38,44" fill="#f43f5e"/><polygon points="36,29 49,29 42,42" fill="#fff" opacity=".38"/><polygon points="35,28 65,28 82,44 50,82 18,44" fill="none" stroke="#ff6b7f" stroke-width="2" stroke-linejoin="round"/></svg>
   </span>
   <button class="rail-item active" data-view="graph"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M7.5 16 8.2 8.3M10.9 16.4 16.3 10.5"/></svg></span><span class="ri-lbl">Graph</span></button>
-  <button class="rail-item" data-view="index"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></span><span class="ri-lbl">Index</span></button>
   <button class="rail-item" data-view="files"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span><span class="ri-lbl">Files</span></button>
   <button class="rail-item" data-view="catalog"><span class="ri-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="14.5" width="7.5" height="5.5" rx="1.6"/><rect x="13.5" y="14.5" width="7.5" height="5.5" rx="1.6"/></svg></span><span class="ri-lbl">Catalog</span></button>
   <button class="rail-item" data-view="tags"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 4.5h6.8L20 13.7l-6.3 6.3L4.5 10.8V4.5Z"/><circle cx="8.4" cy="8.4" r="1.4" fill="currentColor" stroke="none"/></svg></span><span class="ri-lbl">Tags</span></button>
@@ -696,9 +697,10 @@
    <section class="view" id="view-files">
     <div class="files-grid">
      <div class="ftree">
-      <div class="ftabs" role="tablist" aria-label="File kinds">
-       <button class="ftab active" id="ftab-files" type="button" role="tab" aria-selected="true">Files</button>
-       <button class="ftab" id="ftab-indexes" type="button" role="tab" aria-selected="false">Indexes</button>
+      <div class="ftabs">
+       <span class="ftree-name">Files</span>
+       <button class="btn text" id="ftree-ixonly" type="button" aria-pressed="false" title="Show only index.md and log.md">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg><span>Indexes only</span></button>
        <button class="btn" id="ftree-foldall" type="button" aria-label="Collapse all folders" title="Collapse all folders">
         <svg viewBox="0 0 24 24"><path d="m7 13 5-5 5 5"/><path d="m7 19 5-5 5 5"/></svg></button>
        <button class="btn" id="ftree-min" type="button" aria-label="Collapse file list" aria-expanded="true" aria-controls="ftree-list">
@@ -1323,11 +1325,10 @@ function setView(v){if(v===view)return;view=v;document.getElementById('app').set
  if(v==='stats'&&!inited.stats)initStats();}
 /* The Files view answers to two rail items: Files when the Files tab is up,
    Index when the Indexes tab is — the Index rail item is a shortcut into it. */
-/* Which rail item the page is standing on. "index" is not a view — there is no
-   #view-index — but the files view showing its Indexes tab, so the answer is a
-   question of view *and* tab. Everything that has to name the current place
-   asks here: the rail's own highlight, and the palette's `current` badge. */
-function activeRail(){return view==='files'&&typeof ftab!=='undefined'&&ftab==='indexes'?'index':view;}
+/* Which rail item the page is standing on. It was a question of view *and*
+   tab, back when "index" was a rail item with no #view-index behind it. The
+   tab is gone and so is the pretence: a rail item is a view. */
+function activeRail(){return view;}
 /* And everything that has to *go* somewhere clicks the rail item rather than
    calling setView: Index and Files are one view differing by tab, so setView
    alone lands on whichever tab was last open — and for "index" it lands on a
@@ -1336,12 +1337,9 @@ function activeRail(){return view==='files'&&typeof ftab!=='undefined'&&ftab==='
 function goRail(v){const b=document.querySelector('.rail-item[data-view="'+v+'"]');if(b)b.click();}
 function railActive(){const v=activeRail();
  document.querySelectorAll('.rail-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));}
-function goIndexes(){if(view!=='files')setView('files');setFtab('indexes');railActive();}
-/* goIndexes opens the *panel* that lists the indexes; this opens the index. The
-   rail item wants the former — a reader who clicks Index is choosing where to
-   browse — but anything promising to read the index owes the reader the file,
-   not a list with "Pick a file on the left" beside it. openReserved switches
-   the tab on its way, so the panel comes along for free. */
+/* The root map, opened. There is no longer a view to send anyone to instead:
+   index.md is a row in the tree like any other, so "read the index" can only
+   mean the file. */
 function readIndex(){setView('files');openReserved('index','index.md');}
 /* The second beat, and only where it is true: above 768px the rail is on screen
    and needs no introduction. It fires on *leaving the graph* rather than off the
@@ -1360,10 +1358,7 @@ function hello2(){try{
  document.getElementById('hello2').hidden=false;
 }catch(err){}}
 document.getElementById('hello2-x').addEventListener('click',hello2Done);
-document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>{
- if(b.dataset.view==='index')return goIndexes();
- if(b.dataset.view==='files'&&typeof ftab!=='undefined'&&ftab!=='files'){if(view!=='files')setView('files');setFtab('files');railActive();return;}
- setView(b.dataset.view);});
+document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));
 /* ── full-text search (MiniSearch, lazy) ──
    loadScript-loads the pinned build on first focus, then builds one index over
    FT_FIELDS. combineWith:'AND' + prefix keeps as-you-type search intuitive;
@@ -1394,7 +1389,7 @@ function buildFtResIndex(){return ftResIndex?Promise.resolve(ftResIndex):(ftResB
  dirs.forEach(d=>{if(d.present)docs.push({id:'idx:'+d.index_path,path:d.index_path,text:d.index_path+' '+(d.body||'')});});
  const idx=new MiniSearch({idField:'id',fields:['path','text'],storeFields:['path'],searchOptions:{prefix:true,fuzzy:0.2,combineWith:'AND',boost:{path:3,text:1}}});
  idx.addAll(docs);ftResIndex=idx;
- if(view==='files'&&ftab==='indexes'&&(q.files||'').trim())refreshTree();
+ if(view==='files'&&(q.files||'').trim())refreshTree();
  return idx;}).catch(()=>{ftResBuilding=null;return null;})));}
 function ftResMatch(text){const t=(text||'').trim();if(!ftResIndex||!t)return null;return new Set(ftResIndex.search(t).map(r=>r.path));}
 function applySearch(){if(view==='graph')applyGraphFilter();else if(view==='catalog')renderCatalog();else if(view==='tags')renderCloud();else if(view==='files')refreshTree();}
@@ -1465,7 +1460,8 @@ function initFiles(){inited.files=true;refreshTree();}
    chronological index), then every index.md, root before nested. Reserved
    files come from the /index and /log payloads — they are not concepts, so
    the catalog cannot know them. */
-let IXDIRS=null,LOGPATHS=null,ftab='files';
+let IXDIRS=null,LOGPATHS=null;
+let ixOnly=false;
 const collapsedDirs=new Set();
 let lastFileDirs=[];
 const foldAllBtn=document.getElementById('ftree-foldall');
@@ -1477,30 +1473,31 @@ function dirOfPath(p){return p.indexOf('/')<0?'.':p.split('/').slice(0,-1).join(
 function dirParents(dir){const out=[];let d=dir;
  while(d!=='.'){const p=dirOfPath(d);out.push([ p,d ]);d=p;}
  return out;}
+/* One tree, both layers. The authored files used to live on a second tab as a
+   flat list of paths, which put a directory's own map somewhere other than the
+   directory — the one place a reader looks for it. They are rows now, at the top
+   of the folder they document. */
 function renderTree(list){const s=(q.files||'').toLowerCase();
  const el=document.getElementById('ftree-list');
- if(ftab==='indexes'){
+ const ft=fileTypeCombo.get(), fg=fileTagCombo.get();const ids=ftMatch(q.files);
+ const rows=ixOnly?[]:list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(ids?ids.has(c.id):(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s))));
+ /* Reserved files carry neither a type nor tags, so either combo filtering is
+    a statement about concepts and they step aside for it. */
+ const res={};let resCount=0;
+ if(!ft&&!fg){
   if((q.files||'').trim())buildFtResIndex();
   const rset=ftResMatch(q.files);
-  const reserved=[];
-  (LOGPATHS||[]).forEach(p=>{if(rset?rset.has(p):(!s||p.toLowerCase().includes(s)))reserved.push({kind:'log',path:p});});
-  (IXDIRS||[]).forEach(d=>{if(d.present&&(rset?rset.has(d.index_path):(!s||d.index_path.toLowerCase().includes(s))))reserved.push({kind:'index',path:d.index_path});});
-  const rank=r=>[ r.kind==='log'?0:1, r.path.indexOf('/')<0?0:1, r.path ];
-  reserved.sort((a,b)=>{const x=rank(a),y=rank(b);return (x[0]-y[0])||(x[1]-y[1])||(x[2]<y[2]?-1:1);});
-  if(!reserved.length){el.innerHTML='<p class="empty" style="padding:14px">No index.md or log.md files'+(s?' match.':' yet.')+'</p>';return;}
-  el.innerHTML=reserved.map(r=>{
-   const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
-   return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}" title="${esc(r.path)}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg><span class="rn">${esc(r.path)}</span><span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');
-  el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));
-  return;}
- const ft=fileTypeCombo.get(), fg=fileTagCombo.get();const ids=ftMatch(q.files);
- const rows=list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(ids?ids.has(c.id):(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s))));
+  const keep=p=>rset?rset.has(p):(!s||p.toLowerCase().includes(s));
+  (IXDIRS||[]).forEach(d=>{if(d.present&&keep(d.index_path))(res[d.dir]=res[d.dir]||[]).push({kind:'index',path:d.index_path});});
+  (LOGPATHS||[]).forEach(p=>{if(keep(p))(res[dirOfPath(p)]=res[dirOfPath(p)]||[]).push({kind:'log',path:p});});
+  Object.keys(res).forEach(d=>{res[d].sort((a,b)=>a.kind===b.kind?0:(a.kind==='index'?-1:1));resCount+=res[d].length;});
+ }
  const groups={};rows.forEach(c=>{(groups[c.dir]=groups[c.dir]||[]).push(c);});
  /* Directories nest. A sorted list of full paths made `core` and
     `core/configurations` siblings, which reads as two unrelated folders instead
     of a parent and its child — and left the depth of a bundle invisible. */
  const kids={};
- Object.keys(groups).forEach(d=>dirParents(d).forEach(pair=>{
+ Object.keys(groups).concat(Object.keys(res)).forEach(d=>dirParents(d).forEach(pair=>{
   const set=kids[pair[0]]=kids[pair[0]]||[];if(set.indexOf(pair[1])<0)set.push(pair[1]);}));
  Object.keys(kids).forEach(k=>kids[k].sort());
  /* The fold controls read every folder in the tree, not just the ones on screen:
@@ -1508,7 +1505,13 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
     closes and hides the rest. */
  const dirs=[];(function walk(d){dirs.push(d);(kids[d]||[]).forEach(walk);})('.');
  lastFileDirs=dirs;syncFoldAll();
- if(!rows.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}
+ if(!rows.length&&!resCount){el.innerHTML='<p class="empty" style="padding:14px">'+
+  (ixOnly?('No index.md or log.md files'+(s?' match.':' yet.')):'No files match.')+'</p>';return;}
+ /* A directory's own map and log, above the folders and files they cover. */
+ function resIn(dir,depth){return (res[dir]||[]).map(r=>{
+  const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
+  const name=r.path.split('/').pop();
+  return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}" title="${esc(r.path)}" style="--d:${depth}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg><span class="rn">${esc(name)}</span><span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');}
  /* Collapse is honored whether or not a search is active — a search that force-
     expanded every folder left the fold clicks dead. A folder that matches still
     shows its header, so a collapsed group is never a hidden match. Closing a
@@ -1519,13 +1522,15 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
   const head=`<button class="ffolder${closed?' closed':''}" data-dir="${esc(dir)}" style="--d:${depth}"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>${name}</button>`;
   if(closed)return head;
   return head
+   +resIn(dir,depth+1)
    +(kids[dir]||[]).map(k=>subtree(k,depth+1)).join('')
    +(groups[dir]||[]).map(c=>{const cc=color[c.type]||'#64748b';const fname=c.id.split('/').pop()+'.md';
      return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}" style="--d:${depth+1}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(fname)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('');}
  el.innerHTML=subtree('.',0);
  el.querySelectorAll('.ffolder').forEach(b=>b.onclick=()=>{const d=b.dataset.dir;
   if(collapsedDirs.has(d))collapsedDirs.delete(d);else collapsedDirs.add(d);renderTree(list);});
- el.querySelectorAll('.file[data-id]').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));}
+ el.querySelectorAll('.file[data-id]').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));
+ el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));}
 /* Fold/unfold every folder at once. When they are all already collapsed the
    button expands them; otherwise it collapses them.
    The root is not one of them. Folding it answers "collapse all" with a lone
@@ -1541,12 +1546,14 @@ foldAllBtn.onclick=()=>{const d=foldable();if(!d.length)return;
  if(d.every(x=>collapsedDirs.has(x)))collapsedDirs.clear();
  else{d.forEach(x=>collapsedDirs.add(x));collapsedDirs.delete('.');}
  refreshTree();};
-function setFtab(t){if(ftab===t)return;
- ftab=t;document.getElementById('app').setAttribute('data-ftab',t);
- [ 'files','indexes' ].forEach(x=>{const b=document.getElementById('ftab-'+x);
-  b.classList.toggle('active',x===t);b.setAttribute('aria-selected',String(x===t));});
- railActive();refreshTree();}
-[ 'files','indexes' ].forEach(t=>{document.getElementById('ftab-'+t).onclick=()=>setFtab(t);});
+/* What the Indexes tab did, as a filter over the same tree: same rows, fewer of
+   them, the structure they sit in intact. Opening a reserved file releases it —
+   a reader who has arrived somewhere should not have to undo a filter to see
+   where they are. */
+const ixBtn=document.getElementById('ftree-ixonly');
+function setIxOnly(on){if(ixOnly===on)return;
+ ixOnly=on;ixBtn.setAttribute('aria-pressed',String(on));refreshTree();}
+ixBtn.onclick=()=>setIxOnly(!ixOnly);
 /* Searchable single-select combobox (keyboard-navigable) — one per files filter:
    type and tag. `items` is lazy so counts always reflect the current indexes. */
 function makeCombo(name,allLabel,items,onChange){
@@ -1582,7 +1589,6 @@ function fpGraph(label,go){const fg=document.getElementById('fp-graph');
  fg.hidden=false;fg.onclick=go;fg.querySelector('.fpg-lbl').textContent=label;
  fg.setAttribute('aria-label',label);fg.title=label;}
 function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
- setFtab('files');
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
  const ty=c.type||typeOf[id]||'Untyped';const cc=color[ty]||'#64748b';
  document.getElementById('fp-head').hidden=false;
@@ -1595,7 +1601,7 @@ function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byI
 /* Reserved files read in the preview too: the index map from its payload, the
    log fetched fresh on every click so a just-appended entry shows. */
 function openReserved(kind,path){fileSel=path;
- setFtab('indexes');
+ setIxOnly(false);
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.path===path));
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-title').textContent=path;
@@ -1874,8 +1880,8 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
   ftmin.addEventListener('click',()=>treeSet(!fgridEl.classList.contains('tree-min')));
   document.getElementById('ftree-list').addEventListener('click',e=>{
    if(e.target.closest('.file')&&matchMedia('(max-width:768px)').matches)treeSet(true);});
-  [ 'ftab-files','ftab-indexes' ].forEach(id=>{const t=document.getElementById(id);
-   if(t)t.addEventListener('click',()=>treeSet(false));});
+  const ix=document.getElementById('ftree-ixonly');
+  if(ix)ix.addEventListener('click',()=>treeSet(false));
  }
 })();
 
@@ -1883,7 +1889,7 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
 /* 2 is no longer a special case: every one of these goes through the rail, so
    `3` reaches the Files tab from the Indexes tab — it used to call setView
    ('files') while already on it, early-return, and do nothing at all. */
-const VIEW_KEYS={'1':'graph','2':'index','3':'files','4':'catalog','5':'tags','6':'stats'};
+const VIEW_KEYS={'1':'graph','2':'files','3':'catalog','4':'tags','5':'stats'};
 const swModal=document.getElementById('sw');
 /* The ? sheet reads this, and it is written directly against the handler below
    because the two have to move together: a shortcut list that has drifted from
@@ -1928,7 +1934,7 @@ addEventListener('keydown',e=>{if(!dgv.hidden){if(e.key==='Escape')closeDiagram(
 const Q=new URLSearchParams(location.search),QL=Q.get('layout'),QS=Q.get('select');
 if(QL&&[...layoutSel.options].some(o=>o.value===QL)){layoutSel.value=QL;runLayout(QL);}
 const QV=Q.get('view');
-if(QV==='index')goIndexes();
+if(QV==='index')readIndex();
 else if(QV&&document.querySelector('.rail-item[data-view="'+CSS.escape(QV)+'"]'))setView(QV);
 /* Both of these name a *node*, so each has to carry the view with it: the page
    can now be standing on the index when one is read, and selecting into a graph

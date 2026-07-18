@@ -98,8 +98,9 @@ wherever the page already holds it: `okf render` bakes every body in, so a stati
 file searches bodies offline; the live server keeps bodies lazy, so its index
 stays metadata-only until a backend body index arrives. Matches are ranked,
 multi-term (`AND`), prefix (as-you-type) and typo-tolerant, and drive the graph,
-catalog and files views alike; the **Indexes** tab carries a second index over
-each `index.md`/`log.md` **body**, not just its filename. Until an index loads —
+catalog and files views alike; a second index covers each `index.md`/`log.md`
+**body**, not just its filename, so the tree's authored rows are searchable on
+what they say. Until an index loads —
 or if the CDN is unreachable — each view falls back to its own substring filter,
 so the box is never dead. The browser and the CLI's [`search`](search.md) used to
 diverge here — the CLI a deterministic substring scan, the browser fuzzy — and
@@ -212,11 +213,29 @@ node — selecting into a graph nobody is looking at is a silent no-op, and
 The graph, catalog, files, tags, and stats panels are all *derived* from the
 model; the one layer humans actually write — the §6 index map and the
 [§7 log](../format/okf-format.md) — now renders in the browser too. The tree
-column carries two tabs: **Files** is a real explorer — directories *nest*, one
+column is **one tree**. The authored files used to live on a second tab as a
+flat list of paths, which put a directory's own map somewhere other than the
+directory — the one place a reader looks for it. `index.md` and `log.md` are rows
+now, at the top of the folder they document, above its subfolders and concepts,
+and **Indexes only** is a toggle that narrows the same tree to them: same rows,
+fewer of them, the structure intact. Opening a reserved file releases the toggle,
+because a reader who has arrived somewhere should not have to undo a filter to
+see where they are. The type and tag combos hide reserved files while they are
+set — a reserved file has neither, so a filter about concepts is not a statement
+it can answer.
+
+That also retired the last fiction in the rail: **Index** was a rail item with no
+`#view-index` behind it, just the files view showing its other tab, so
+`activeRail()` had to answer a question of view *and* tab. A rail item is a view
+again. `?view=index` still works — it shipped in 1.8.0 and is in the wild — but
+it now resolves to the *action* of opening the root map rather than to a place
+that no longer exists.
+
+The tree is a real explorer — directories *nest*, one
 row per path segment indented by depth, so `core/configurations` sits inside
 `core` instead of standing beside it as a sorted full path did, and closing a
 folder takes its whole subtree with it (foldable whether or not a search is
-narrowing them, with a fold/unfold-all control in the tab header; a collapsed
+narrowing them, with a fold/unfold-all control in the tree header; a collapsed
 group still shows its header, so it never hides a match, and a folder that holds
 nothing but folders still renders, or the chain to its children would break).
 The fold controls read every folder in the tree rather than the ones on screen,
@@ -226,8 +245,7 @@ click with a lone `(root)` row and hides the top-level folders — the one thing
 reader wants left standing after collapsing everything. Unfolding clears the
 whole set, root included, so a root closed by hand is still reversible from
 there.
-**Indexes** lays the authored layer flat — the log first as the chronological
-index, then every `index.md`, root before nested. Folder nodes in file-tree mode and area boxes in cluster mode are
+Folder nodes in file-tree mode and area boxes in cluster mode are
 clickable: the inspector opens that directory's map, the authored `index.md` or a
 synthesized listing badged as such when none exists; **Open in graph** on a
 reserved file jumps to its folder in the tree, where a file with no node still has
@@ -259,7 +277,7 @@ sequenceDiagram
 | `/node?id=` | one concept's rendered body |
 | `/node/meta?id=` | one concept's metadata |
 | `/catalog`, `/tags`, `/types` | the JSON behind the browser panels |
-| `/index` | the §6 map for the Indexes tab (boot snapshot) |
+| `/index` | the §6 map behind the tree's `index.md` rows (boot snapshot) |
 | `/log` | every `log.md`, read live from disk for the Log |
 
 Under a hub every path above keeps its shape, mounted under its bundle's prefix
