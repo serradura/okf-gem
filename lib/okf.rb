@@ -40,6 +40,12 @@ module OKF
   require "okf/bundle"
   require "okf/bundle/graph"
   require "okf/bundle/search"
+  # These two lines ARE the engine preference order. Each engine registers itself
+  # at load, `Search.engines` is registration order, and the router walks it after
+  # putting DEFAULT_ENGINE first — so reordering these requires reorders which
+  # engine answers a query two engines could both answer. `loading_test.rb` pins
+  # the result (`[:index, :scan]`) so the coupling cannot drift unnoticed, but the
+  # coupling is here, not there.
   require "okf/bundle/search/index"
   require "okf/bundle/search/scan"
   require "okf/bundle/validator"

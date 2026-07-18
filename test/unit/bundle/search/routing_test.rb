@@ -19,8 +19,54 @@ class SearchRoutingTest < SearchCase
     double
   end
 
+  # A spy engine: answers the duck type, records the keyword options the facade
+  # handed it, and returns no hits. It declares no capabilities, so a query that
+  # requires nothing routes straight to it.
+  def spy(capabilities: [])
+    double = engine(:spy, capabilities: capabilities)
+    double.instance_variable_set(:@seen, nil)
+    double.define_singleton_method(:seen) { @seen }
+    double.define_singleton_method(:call) do |_documents, _terms, **options|
+      @seen = options
+      []
+    end
+    double
+  end
+
   test "the built-ins register themselves at load, the default first" do
     assert_equal %i[index scan], Search.engines.map(&:id)
+  end
+
+  test "the routable vocabulary is the subset a query can actually ask for" do
+    # :prefix is declarable but not routable — the index offers it and nothing
+    # asks for its absence. Keeping the two lists distinct is what stops a
+    # capability nobody selects on from posing as a routing key.
+    assert_equal %i[regexp fuzzy], Search::ROUTABLE
+    assert_empty Search::ROUTABLE - Search::CAPABILITIES, "every routable capability must be declarable"
+    assert_includes Search::CAPABILITIES, :prefix
+    refute_includes Search::ROUTABLE, :prefix
+  end
+
+  test "an engine is handed only the options its capabilities imply" do
+    # The facade used to pass fuzzy: to every engine and rely on the engine to
+    # ignore it. Routing makes that harmless today, but "harmless because
+    # something else prevents it" is how an option comes to be silently dropped.
+    watcher = spy
+    Search.call(bundle(concept("a", title: "Anything")), [ "anything" ], engines: [ watcher ])
+
+    assert_equal [ :fields ], watcher.seen.keys, "an engine declaring no capabilities gets no capability options"
+  end
+
+  test "an engine declaring :fuzzy is handed fuzzy, and one declaring :regexp is not" do
+    fuzzy_capable = spy(capabilities: [ :fuzzy ])
+    Search.call(bundle(concept("a", title: "Anything")), [ "anything" ], fuzzy: true, engines: [ fuzzy_capable ])
+
+    assert_equal true, fuzzy_capable.seen[:fuzzy]
+
+    regexp_capable = spy(capabilities: [ :regexp ])
+    Search.call(bundle(concept("a", title: "Anything")), [ "anything" ], engines: [ regexp_capable ])
+
+    refute_includes regexp_capable.seen.keys, :fuzzy
   end
 
   test "engines is a frozen snapshot — a caller cannot grow the registry by mutating it" do

@@ -34,10 +34,26 @@ module OKF
         end
       end
 
-      # The declarable capability vocabulary. Frozen so an engine that declares
-      # `:regex` is refused at registration rather than silently never selected —
-      # a typo in an addon would otherwise present as "my engine is ignored".
+      # The **declarable** vocabulary: what an engine may claim about itself.
+      # Frozen so an engine declaring `:regex` is refused at registration rather
+      # than silently never selected — a typo in an addon would otherwise present
+      # as "my engine is ignored".
+      #
+      # `:prefix` lives here and *not* in ROUTABLE on purpose. Nothing asks for
+      # its absence, so it selects nothing; what it does is document that this
+      # engine grows a term to the tokens it prefixes, which an FTS5 engine may
+      # not do by default. Declarative, and honest about being declarative.
       CAPABILITIES = %i[regexp fuzzy prefix].freeze
+
+      # The **routable** subset: the capabilities a query can actually require,
+      # and therefore the only ones that pick an engine. Kept distinct from
+      # CAPABILITIES because a capability nothing selects on, filed among the ones
+      # that do, is documentation posing as code.
+      #
+      # Each entry is also the option name the facade hands an engine that
+      # declares it — see #engine_options, which is what keeps a meaningful
+      # option from reaching an engine that would quietly drop it.
+      ROUTABLE = %i[regexp fuzzy].freeze
 
       # Chosen when the query requires nothing in particular, which is the
       # overwhelming majority of searches.
@@ -138,7 +154,8 @@ module OKF
       def results
         return [] if @terms.empty?
 
-        rows = engine.call(documents, @terms, fields: @fields, fuzzy: @fuzzy).map do |hit|
+        chosen = engine
+        rows = chosen.call(documents, @terms, **engine_options(chosen)).map do |hit|
           slug, concept = @sources[hit[:key]]
           row(slug, concept, hit[:matched], hit[:score], hit[:terms])
         end
@@ -154,13 +171,31 @@ module OKF
         Search.engine_for(required_capabilities, engines: @engines || Search.engines)
       end
 
-      # Options translated into the capability vocabulary. `:prefix` is never
-      # required: the index offers it and nothing asks for its absence.
+      # What the query requires, in the routable vocabulary. `:prefix` never
+      # appears: it is declarable, not routable — nothing asks for its absence.
       def required_capabilities
-        required = []
-        required << :regexp if @regexp
-        required << :fuzzy if @fuzzy
-        required
+        ROUTABLE.select { |capability| requested[capability] }
+      end
+
+      # `fields:` always, plus exactly the routable options the chosen engine
+      # declared it understands.
+      #
+      # The facade used to hand every engine every option and trust it to ignore
+      # what it could not use. Routing makes that harmless in practice — a fuzzy
+      # query only ever reaches a :fuzzy engine — but "harmless because something
+      # else prevents it" is precisely how an option comes to be dropped in
+      # silence the day that something else changes. An engine now receives only
+      # what it can act on, so there is nothing left for it to ignore.
+      def engine_options(chosen)
+        options = { fields: @fields }
+        ROUTABLE.each do |capability|
+          options[capability] = requested[capability] if chosen.capabilities.include?(capability)
+        end
+        options
+      end
+
+      def requested
+        @requested ||= { regexp: @regexp, fuzzy: @fuzzy }
       end
 
       # Every concept as an indexable document, keyed uniquely across bundles.
