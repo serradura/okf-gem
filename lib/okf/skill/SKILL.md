@@ -5,14 +5,15 @@ description: >-
   directory of markdown files with YAML frontmatter that humans and agents read
   from one source. Use when capturing knowledge into a bundle (a service, schema,
   metric, decision, runbook: "document this in OKF", "capture this as a concept"),
+  converting existing docs into one ("migrate/OKFy our docs into a bundle"),
   retrieving from one without reading it whole ("what do we know about X?", "where
-  is X documented?", "search the bundle"), updating one after code or docs change
-  ("update the knowledge bundle"), checking its conformance or curation quality
-  ("validate/lint the bundle"), serving or rendering it as a graph, or working in a
-  repo that already carries an OKF bundle — a `.okf/` directory or a root `index.md`
-  carrying `okf_version`.
+  is X documented?", "search the bundle"), updating one after code or docs
+  change ("update the knowledge bundle"), checking its conformance or curation
+  quality ("validate/lint the bundle"), serving or rendering it as a graph, or
+  working in a repo that already carries an OKF bundle — a `.okf/` directory or a
+  root `index.md` carrying `okf_version`.
 user-invocable: true
-argument-hint: "[search|produce|maintain|consume|<okf-cli-verb>] [dir] [--flags]"
+argument-hint: "[search|produce|migrate|maintain|consume|curate|doctor|<okf-cli-verb>] [dir|@slug] [--flags]"
 allowed-tools: Read Write Edit Grep Glob Bash
 ---
 
@@ -70,7 +71,9 @@ The `okf` executable answers every mechanical question deterministically, and it
 read views show everything the browser UI does. **Don't probe for it — just run
 the verb.** A proactive `command -v okf` before every task spends a whole tool
 round proving what the next command reveals for free; the CLI's own failure is a
-cheaper, truer signal. The one distinction to hold: a shell `okf: command not
+cheaper, truer signal. (The two deliberate exceptions are [menu](playbooks/menu.md)
+and [doctor](playbooks/doctor.md) — both decide *whether to install*, so they check
+first.) The one distinction to hold: a shell `okf: command not
 found` is the *only* thing that means "install it" (→ [doctor](playbooks/doctor.md));
 every line that starts `error:` is okf *answering* — a bundle or usage result to
 read and act on, never a missing toolchain to send to doctor.

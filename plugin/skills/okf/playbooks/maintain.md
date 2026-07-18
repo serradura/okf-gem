@@ -43,7 +43,7 @@ up. The modelling craft behind steps 3 and 7 lives in
      by design only through its index — leave it. **Terminal-by-design is not a
      defect.** Loose ≠ orphan: an index listing makes a file *reachable* (not an
      orphan) but is not a graph edge, so an indexed file can still float here.
-7. **Curate the tag vocabulary** <!-- rule:okf-tag-vocabulary --> when the pass
+7. **Curate the tag vocabulary** when the pass
    touched tags, or when `okf tags <dir>` shows a long tail of singletons. Run `okf tags <dir> --by area` and
    `--by type` — the grouped view is the analysis; read each group top-down:
    - **twins** — two tags riding the exact same concepts (equal counts sort them

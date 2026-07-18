@@ -115,8 +115,9 @@ bundle-root [root-index](../templates/root-index.md), [log](../templates/log.md)
 ## Playbooks
 
 The step-by-step playbooks live in [../playbooks/](../playbooks/), one file per
-verb (produce, maintain, consume, curate, doctor), routed by the Commands table
-in [SKILL.md](../SKILL.md). The Closeout below is their shared finishing gate.
+verb (search, produce, migrate, maintain, consume, curate, doctor), routed by the
+Commands table in [SKILL.md](../SKILL.md). The Closeout below is their shared
+finishing gate.
 
 ## Closeout — the finishing gate
 
