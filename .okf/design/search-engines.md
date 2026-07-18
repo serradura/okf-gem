@@ -88,6 +88,20 @@ being excused from a rule.
 A registered engine with no conformance class is itself a test failure. That is
 the property the oracle rule was reaching for and could not express.
 
+**What the conformance suite cannot do, and what covers it.** It asserts that
+engines agree about the *shape* of an answer — row keys, ordering, ANDed terms,
+what `fields:` restricts. It cannot notice that every engine is missing a third
+of the matches, because consistency is not correctness. That blind spot is not
+hypothetical: the index swap made every word inside a code span unfindable, and
+the suite stayed green throughout.
+
+`recall_test.rb` covers it by running real queries over a corpus of tokenization
+hazards and measuring the index against the scan. The scan earns the oracle role
+there and *only* there — for recall it is sound, because raw-text matching finds
+any word that is present; for ranking and match sets the two engines disagree by
+design. The test pins the known holes and fails when the set changes in either
+direction, so a new hazard is named rather than discovered later in use.
+
 This follows the same discipline as the [core/shell split](core-shell-split.md):
 a boundary is only real when a test fails on crossing it, and it is checked the
 same way [integration first](integration-first.md) checks the CLI — against what

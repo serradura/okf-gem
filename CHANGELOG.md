@@ -64,13 +64,14 @@
   order, the snippet, the sort — and an engine answers only which documents match,
   how well, and where. The two built-ins are `Search::Index` (BM25+, default) and
   `Search::Scan` (regexp).
-  - **Selection is by capability, not by name.** `-e` requires `:regexp`,
-    `--fuzzy` requires `:fuzzy`, anything else gets the default. There is no
-    `--engine` flag, and routing prints **nothing** — no note, no header change,
-    no new JSON key. Every existing invocation answers exactly as before.
-  - **`okf search --help` now tells the engine story**, because it is the only
-    place left to tell it: each capability flag names its engine, and a note
-    states the token/raw-text split with concrete examples.
+  - **Selection is by capability when the query requires one.** `-e` requires
+    `:regexp`, `--fuzzy` requires `:fuzzy`, anything else gets the default — and
+    that routing prints **nothing**: no note, no header change, no new JSON key.
+    Every pre-existing invocation answers exactly as before. (`--engine`, above,
+    covers the case where nothing is required but the matching model matters.)
+  - **`okf search --help` tells the engine story**, since routing itself is
+    silent: each capability flag names its engine, `--engine` lists the
+    registered ones, and a note states the token/raw-text split with examples.
   - **`Search.register` is a published extension point** — append-only,
     idempotent by id, capabilities checked against a fixed vocabulary. This is
     the seam a future SQLite/FTS5 addon plugs into; no addon code ships here.
