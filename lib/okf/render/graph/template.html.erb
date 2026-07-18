@@ -583,6 +583,7 @@
    <svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#1a1a1a"/><polygon points="38,44 62,44 50,82" fill="#7a0a1e"/><polygon points="18,44 38,44 50,82" fill="#a8112c"/><polygon points="62,44 82,44 50,82" fill="#a8112c"/><polygon points="35,28 18,44 38,44" fill="#dc1e3c"/><polygon points="65,28 82,44 62,44" fill="#dc1e3c"/><polygon points="35,28 65,28 62,44 38,44" fill="#f43f5e"/><polygon points="36,29 49,29 42,42" fill="#fff" opacity=".38"/><polygon points="35,28 65,28 82,44 50,82 18,44" fill="none" stroke="#ff6b7f" stroke-width="2" stroke-linejoin="round"/></svg>
   </span>
   <button class="rail-item active" data-view="graph"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M7.5 16 8.2 8.3M10.9 16.4 16.3 10.5"/></svg></span><span class="ri-lbl">Graph</span></button>
+  <button class="rail-item" data-view="index"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></span><span class="ri-lbl">Index</span></button>
   <button class="rail-item" data-view="files"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span><span class="ri-lbl">Files</span></button>
   <button class="rail-item" data-view="catalog"><span class="ri-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="4" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="14.5" width="7.5" height="5.5" rx="1.6"/><rect x="13.5" y="14.5" width="7.5" height="5.5" rx="1.6"/></svg></span><span class="ri-lbl">Catalog</span></button>
   <button class="rail-item" data-view="tags"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 4.5h6.8L20 13.7l-6.3 6.3L4.5 10.8V4.5Z"/><circle cx="8.4" cy="8.4" r="1.4" fill="currentColor" stroke="none"/></svg></span><span class="ri-lbl">Tags</span></button>
@@ -1418,7 +1419,13 @@ function hello2(){try{
  document.getElementById('hello2').hidden=false;
 }catch(err){}}
 document.getElementById('hello2-x').addEventListener('click',hello2Done);
-document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+/* Index is a shortcut, not a view: it opens the root map exactly as the
+   first-visit note's button does. Keeping it in the rail (and so in the palette,
+   which reads the rail) costs nothing now that `activeRail()` answers with the
+   view it lands on — Files — so nothing has to invent a place for it to be. */
+document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>{
+ if(b.dataset.view==='index')return readIndex();
+ setView(b.dataset.view);});
 /* ── full-text search (MiniSearch, lazy) ──
    loadScript-loads the pinned build on first focus, then builds one index over
    FT_FIELDS. combineWith:'AND' + prefix keeps as-you-type search intuitive;
@@ -1972,7 +1979,7 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
 /* 2 is no longer a special case: every one of these goes through the rail, so
    `3` reaches the Files tab from the Indexes tab — it used to call setView
    ('files') while already on it, early-return, and do nothing at all. */
-const VIEW_KEYS={'1':'graph','2':'files','3':'catalog','4':'tags','5':'stats'};
+const VIEW_KEYS={'1':'graph','2':'index','3':'files','4':'catalog','5':'tags','6':'stats'};
 const swModal=document.getElementById('sw');
 /* The ? sheet reads this, and it is written directly against the handler below
    because the two have to move together: a shortcut list that has drifted from

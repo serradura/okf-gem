@@ -324,9 +324,23 @@ class OKF::Render::GraphTest < OKF::TestCase
     refute_includes html, %(id="ftab-files"), "and so is the tab it was paired with"
     refute_includes html, "data-ftab", "the app no longer carries a tab in its state"
     refute_includes html, "function setFtab(", "nor the function that switched it"
-    refute_includes html, %(data-view="index"), "the rail stands on one Files entry"
     refute_includes html, "function goIndexes(", "and the fake view it needed is gone"
     assert_includes html, "function activeRail(){return view;}", "a rail item is a view again, nothing more"
+  end
+
+  test "the rail keeps an Index shortcut, as an action rather than a place" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # it opens the root map, exactly as the first-visit note's button does. What
+    # it is not is a view: `activeRail()` answers with the view it lands on
+    # (Files), so Index never highlights and never has to pretend it is somewhere
+    assert_includes html, %(data-view="index"), "the rail item is back"
+    assert_includes html, "if(b.dataset.view==='index')return readIndex();", "and it runs the action, not a view switch"
+    assert_includes html, "function activeRail(){return view;}", "so nothing has to fake a place for it"
+    assert_includes html, "const VIEW_KEYS={'1':'graph','2':'index','3':'files','4':'catalog','5':'tags','6':'stats'};",
+      "and the number keys line up with the rail again"
   end
 
   test "index.md and log.md render inside the folder they document" do
@@ -388,8 +402,6 @@ class OKF::Render::GraphTest < OKF::TestCase
     # the deep link shipped in 1.8.0 and is in the wild; it named a place that
     # has since become an action, so it resolves to the action
     assert_includes html, "if(QV==='index')readIndex();", "the old deep link lands where it always meant to"
-    assert_includes html, "const VIEW_KEYS={'1':'graph','2':'files','3':'catalog','4':'tags','5':'stats'};",
-      "and the number keys close the gap the dropped rail item left"
   end
 
   test "collapsing the root hands the screen back on a compact layout" do

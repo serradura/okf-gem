@@ -245,12 +245,15 @@ see where they are. The type and tag combos hide reserved files while they are
 set — a reserved file has neither, so a filter about concepts is not a statement
 it can answer.
 
-That also retired the last fiction in the rail: **Index** was a rail item with no
+That also retired the last fiction in the rail. **Index** was a rail item with no
 `#view-index` behind it, just the files view showing its other tab, so
-`activeRail()` had to answer a question of view *and* tab. A rail item is a view
-again. `?view=index` still works — it shipped in 1.8.0 and is in the wild — but
-it now resolves to the *action* of opening the root map rather than to a place
-that no longer exists.
+`activeRail()` had to answer a question of view *and* tab. The item is still
+there — it is the fastest way to the one page written to be read first — but as
+an **action**: it opens the root map, exactly as the first-visit note's button
+does, through the same `readIndex()`. `activeRail()` answers with the view it
+lands on, so **Files** highlights and nothing has to invent a place for Index to
+be. `?view=index` resolves to that action too, which is what the deep link
+shipped in 1.8.0 always meant.
 
 The tree is a real explorer — directories *nest*, one
 row per path segment indented by depth, so `core/configurations` sits inside

@@ -24,11 +24,13 @@
   Narrowed, a folder owns exactly one row, so the row stands where the folder
   header stood — at that folder's depth, carrying the path — rather than nesting
   a single child under a header.
-  - **The rail loses its fake view.** `Index` was a rail item with no
+  - **The rail's Index becomes an action, not a fake view.** It had no
     `#view-index` behind it — the files view showing its other tab — so
-    `activeRail()` answered a question of view *and* tab. A rail item is a view
-    again, and the number keys close up (`2` is Files). `?view=index` still works,
-    resolving to the action of opening the root map.
+    `activeRail()` answered a question of view *and* tab. The shortcut stays,
+    opening the root map through the same `readIndex()` the first-visit note
+    uses; `activeRail()` answers with the view it lands on, so Files highlights
+    and nothing invents a place for Index to be. `?view=index` resolves to the
+    same action.
   - **Fixed on the way:** the reader header rendered empty — an unlabelled badge
     and a graph button pointing nowhere — whenever no file was open, because
     `.fp-head{display:flex}` outranks the UA sheet's `[hidden]{display:none}`.
