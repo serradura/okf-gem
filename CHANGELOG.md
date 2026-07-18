@@ -5,9 +5,11 @@
 - **The graph can draw the index layer, under any layout.** The §6 map was
   visible only inside file-tree mode, where a folder node stood in for a
   directory's `index.md`. **Show indexes** makes it a layer: each map is a tile
-  edged to the concepts it lists and the maps below it — solid where an author
-  wrote one, dashed and faint where the bundle only implies it, so the toggle
-  reads as curation as much as navigation. File-tree mode disables it rather than
+  edged to the concepts it lists and the maps below it, dressed by the same
+  selector as file-tree mode's folder node so the two cannot drift — grey and
+  square, because colour belongs to the concepts. Authorship shows as form, not
+  hue: solid where an author wrote a map, hollow and dashed where the bundle only
+  implies one, so the toggle reads as curation as much as navigation. File-tree mode disables it rather than
   doubling the folders it already draws.
   - **Drawn, never modelled.** `index.md` is reserved, so these nodes are built
     from `/index` straight onto the canvas; `NODES`, `/catalog` and the type and

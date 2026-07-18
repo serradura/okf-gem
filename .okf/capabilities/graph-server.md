@@ -124,10 +124,15 @@ edges — the acyclic layered tree of the files, next to the emergent link graph
 
 Beside it, **show indexes** draws the §6 map as a layer of its own, under
 *whatever* layout is running rather than only inside the tree. Each `index.md`
-becomes a square tile edged to the concepts it lists and to the maps beneath it:
-solid accent where an author wrote one, faint and dashed where the bundle only
-implies it — which makes the toggle a curation read as much as a navigation one,
-since a field of ghosts is a directory that never got a map. File-tree mode
+becomes a tile edged to the concepts it lists and to the maps beneath it. It is
+dressed by the *same selector* as file-tree mode's folder node, because the two
+are the same thing seen twice and a shared rule is what keeps them from drifting:
+grey and square, since colour belongs to the concepts and a map is chrome around
+them. What separates the two kinds of map is authorship, not hue — solid where
+an author wrote one, hollow and dashed where the bundle only implies it, the same
+"not really there" its dashed edges say. That makes the toggle a curation read as
+much as a navigation one, since a field of outlines is a directory that never got
+a map. File-tree mode
 already draws folders, so it disables the toggle rather than doubling it.
 
 Those nodes are **drawn, never modelled**. `index.md` is reserved — it is not a

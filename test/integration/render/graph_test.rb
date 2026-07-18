@@ -126,6 +126,12 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "function setIxNodes(", "and their own named action"
     assert_includes html, "getIndex().then", "built from /index — the authored layer, read where it lives"
     assert_includes html, "classes:'ixe'", "with edges of their own, so the link graph stays untouched"
+    # file-tree mode's folder and the index layer's map are the same thing seen
+    # twice, so one selector dresses both and they cannot drift apart
+    assert_includes html, "{selector:'node.dir,node.ix',style:{'shape':'round-rectangle','background-color':cvar('--faint')",
+      "a directory looks the same whichever mode drew it"
+    refute_includes html, "cvar(syn?'--faint':'--accent')", "authorship is not a hue — colour belongs to the concepts"
+    assert_includes html, "'border-style':'dashed'", "an implied directory is hollow and dashed instead"
   end
 
   test "index nodes are drawn, never modelled" do

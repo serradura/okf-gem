@@ -855,19 +855,20 @@ function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('-
   {selector:'edge',style:{'width':1.2,'line-color':edge,'target-arrow-color':edge,'target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.8}},
   {selector:'.dim',style:{'opacity':.1}},
   {selector:'.hl',style:{'border-width':3,'border-color':cvar('--accent')}},
-  {selector:'node.dir',style:{'shape':'round-rectangle','background-color':cvar('--faint'),'background-opacity':.85,
+  /* A directory reads the same whichever mode drew it — file-tree mode's folder
+     and the index layer's map are the same thing seen twice, so one selector
+     dresses both and they cannot drift apart. Grey and square: colour belongs to
+     the concepts, and a map is chrome around them, not another one of them. */
+  {selector:'node.dir,node.ix',style:{'shape':'round-rectangle','background-color':cvar('--faint'),'background-opacity':.85,
    'font-size':9.5,'font-weight':600,'color':cvar('--muted')}},
   {selector:'edge.tree',style:{'width':1.1,'opacity':.7,'target-arrow-shape':'none'}},
-  /* the authored layer reads as paper, not as another concept: a square tile,
-     the accent for a map somebody wrote, faint and dashed for one the bundle
-     only implies. Its edges are dashed too, so a glance separates "this is
-     documented here" from "these two concepts link". */
-  {selector:'node.ix',style:{'shape':'round-rectangle','background-color':cvar('--accent'),'background-opacity':.9,
-   'font-size':10,'font-weight':700,'color':cvar('--ink'),'border-width':0}},
-  {selector:'node.ix-syn',style:{'background-color':cvar('--faint'),'background-opacity':.35,
-   'border-width':1.5,'border-color':cvar('--faint'),'border-style':'dashed','color':cvar('--muted')}},
-  {selector:'edge.ixe',style:{'width':1,'opacity':.55,'line-style':'dashed','line-color':cvar('--accent'),'target-arrow-shape':'none'}},
-  {selector:'edge.ixe-syn',style:{'line-color':cvar('--faint'),'opacity':.4}},
+  /* what separates the two maps is authorship, not hue: a directory the bundle
+     only implies is hollow and dashed, which is the same "not really there"
+     the dashed edges say. */
+  {selector:'node.ix-syn',style:{'background-opacity':.2,
+   'border-width':1.5,'border-color':cvar('--faint'),'border-style':'dashed'}},
+  {selector:'edge.ixe',style:{'width':1,'opacity':.5,'line-style':'dashed','line-color':cvar('--edge'),'target-arrow-shape':'none'}},
+  {selector:'edge.ixe-syn',style:{'opacity':.3}},
   {selector:'edge.linkhid',style:{'display':'none'}},
   {selector:':parent',style:{'background-color':cvar('--ink'),'background-opacity':0.05,'border-width':1,'border-color':cvar('--edge'),'shape':'round-rectangle','padding':26,'label':'data(label)','color':cvar('--ink'),'font-size':13,'font-weight':600,'text-valign':'top','text-halign':'center','text-margin-y':-8,'min-zoomed-font-size':0,'text-outline-width':3,'text-outline-color':cvar('--canvas')}}
  ];}
@@ -1297,7 +1298,7 @@ function setIxNodes(on){if(on===ixNodes)return;ixNodes=on;btnIx.setAttribute('ar
    IXROWS.forEach(d=>{const syn=!!d.synthesized;
     cy.add({group:'nodes',classes:'ix'+(syn?' ix-syn':''),
      data:{id:IX+d.dir,dir:d.dir,title:d.dir==='.'?'/':d.dir.split('/').pop()+'/',
-      c:cvar(syn?'--faint':'--accent'),sz:d.dir==='.'?30:22}});});
+      c:cvar('--faint'),sz:d.dir==='.'?30:22}});});
    /* map → the maps below it, and map → each concept it lists. A listing entry
       whose node is missing is skipped rather than conjuring a dangling edge. */
    IXROWS.forEach(d=>(d.subdirs||[]).forEach(sub=>{
