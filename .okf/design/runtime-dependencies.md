@@ -4,7 +4,7 @@ title: Exactly two runtime dependencies
 description: The gem depends on rack and webrick only — no ActiveSupport, no build step, no JavaScript toolchain.
 resource: okf.gemspec
 tags: [rack, portability]
-timestamp: 2026-07-17T16:00:00Z
+timestamp: 2026-07-18T17:00:00Z
 ---
 
 # Overview
