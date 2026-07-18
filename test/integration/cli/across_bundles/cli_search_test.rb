@@ -6,9 +6,11 @@ require_relative "../cli_integration_case"
 # the whole surface of it. A plain dir answers about one bundle; leading @refs or
 # @all merge N bundles into one ranking, label every row with the bundle it came
 # from, and switch the JSON to an envelope whose head maps slug → dir. The
-# ranking is the load-bearing claim: scores are absolute term weights, so a row
-# from one bundle compares to a row from another, and ties break deterministically
-# (score, then slug, then id) no matter what order the refs were typed.
+# ranking is the load-bearing claim: the bundles go into **one** index, so a row
+# from one compares to a row from another by construction rather than by luck,
+# and ties break deterministically (score, then slug, then id) no matter what
+# order the refs were typed. (Before the index landed, scores were absolute field
+# weights that happened to compare; one corpus is what replaced that accident.)
 module AcrossBundles
   # Bundles named several at a time — merged retrieval.
   class CLISearchTest < CLIIntegrationCase
@@ -393,6 +395,31 @@ module AcrossBundles
         assert_equal 2, bad.status
         assert_match(/error: invalid pattern: premature end of char-class/, bad.err)
         assert_empty bad.out, "one bad pattern sinks the run before any bundle is read"
+      end
+    end
+
+    test "one engine answers the whole merge, chosen by the query and never announced" do
+      # The merge is where a per-engine result would do the most damage: two
+      # engines scoring two halves of one list would produce a ranking that means
+      # nothing. One query, one engine, one corpus — and the score shape is what
+      # makes which engine ran observable, since nothing says so.
+      with_registry("conformant", "mentions") do
+        index = json(okf("search", "@conformant", "@mentions", "sales", "--json"))
+        scan = json(okf("search", "@conformant", "@mentions", "-e", "sales", "--json"))
+
+        scan["matches"].each do |row|
+          assert_equal weight_sum(row["matched"]), row["score"],
+            "-e routes the whole merge to the scan, not just the first bundle"
+        end
+        index["matches"].each do |row|
+          refute_equal weight_sum(row["matched"]), row["score"],
+            "every row of the merge came from the index, including the ones from the second bundle"
+        end
+
+        human = okf("search", "@conformant", "@mentions", "-e", "sales")
+        assert_empty human.err, "choosing an engine is not a diagnostic"
+        assert_equal %w[bundles query count matches], scan.keys,
+          "the multi-bundle envelope gains no engine key"
       end
     end
 

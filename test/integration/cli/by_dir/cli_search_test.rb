@@ -67,6 +67,44 @@ module ByDir
       assert_empty bad.out, "a usage error leaves stdout clean"
     end
 
+    test "the engine is chosen by what the query needs, not by a flag naming one" do
+      # There is no --engine flag: -e requires regexp semantics, which only the
+      # scan offers, and a plain search requires nothing, so the index answers.
+      # Since the routing is silent, the score is what makes it observable — the
+      # scan sums the matched fields' weights, the index ranks by BM25+.
+      index = okf("search", fixture("conformant"), "orders", "--json")
+      scan = okf("search", fixture("conformant"), "-e", "orders", "--json")
+
+      assert_equal 0, index.status
+      assert_equal 0, scan.status
+
+      scanned = json(scan)["matches"].first
+      assert_equal weight_sum(scanned["matched"]), scanned["score"], "-e routes to the scan"
+
+      ranked = json(index)["matches"].first
+      refute_equal weight_sum(ranked["matched"]), ranked["score"],
+        "the default engine ranks by BM25+, which is not the field-weight sum"
+    end
+
+    test "routing says nothing at runtime: no note, no engine in the header, no new JSON key" do
+      # A `note: using the scan engine` was considered and rejected — someone who
+      # typed -e does not need to be told what -e does on every run. An absence
+      # nobody pins is an absence that drifts back, so it is pinned here.
+      index = okf("search", fixture("conformant"), "orders")
+      scan = okf("search", fixture("conformant"), "-e", "orders")
+
+      assert_empty scan.err, "choosing an engine is not a diagnostic"
+      assert_empty index.err
+      assert_equal index.out.lines.first, scan.out.lines.first,
+        "the header names the bundle and the query — never the engine that answered"
+
+      index_json = json(okf("search", fixture("conformant"), "orders", "--json"))
+      scan_json = json(okf("search", fixture("conformant"), "-e", "orders", "--json"))
+      assert_equal index_json.keys, scan_json.keys, "the envelope is one shape whichever engine answered"
+      assert_equal index_json["matches"].first.keys, scan_json["matches"].first.keys,
+        "and so is a match row — no engine field, no capability field"
+    end
+
     test "search --in narrows the searched fields; an unknown field lists the real ones" do
       scoped = okf("search", fixture("conformant"), "orders", "--in", "title")
       assert_equal 0, scoped.status

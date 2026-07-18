@@ -50,13 +50,62 @@ better; explainability did not get traded for it.
 
 # What a token index gives up
 
-An **infix**. `ustomer` used to find Customers by substring and now finds
-nothing, because the engine matches tokens and their prefixes rather than
-scanning raw text. `--regexp`/`-e` is the escape hatch, and it is the one query
-language an inverted index cannot answer: a pattern is matched against the raw
-text by linear scan, over the same fields with the same weights. The two are
-different query languages rather than two dials on one, so `-e` and `--fuzzy`
-together is a usage error (exit `2`) instead of a silently dropped flag.
+Everything a token index cannot represent is something the tokenizer already
+split or normalized away. Four losses, all measured, all recovered by `-e`:
+
+| Query | Scan (`-e`) | Index (default) |
+|---|---|---|
+| `"dedup key"` as one argument | contiguous only | two tokens ANDed — matches words paragraphs apart |
+| `7.2.0` | one string | tokens `7`, `2`, `0` — matches "0 downtime, 7 regions, 2 zones" |
+| `customer_id` | one string | `customer` + `id` — matches "the customer table has an id column" |
+| `ustomer` | finds Customers | nothing: an infix is not a token |
+
+The tokenizer splits on whitespace **and punctuation**, which is why a dot and an
+underscore both shatter an identifier. `-e` is the recovery for all four, and it
+is the one query language an inverted index cannot answer: a pattern is matched
+against raw text by linear scan, over the same fields with the same weights. The
+two are different query languages rather than two dials on one, so `-e` and
+`--fuzzy` together is a usage error (exit `2`) instead of a silently dropped flag.
+Note the edge: `-e` is a *pattern* language, so `7.2.0` still matches `7x2y0` —
+the literal wants `-e '7\.2\.0'`.
+
+**Ranking does not contain the loss.** This capability previously claimed the
+true hit still ranks first, so the cost was only extra rows below the answer.
+That is false, and the pinning tests found it: BM25 normalizes by field length,
+so a short body dense in `7`, `2` and `0` outscores the concept that actually
+says `7.2.0`. On this very bundle, `okf search .okf 7.2.0` ranks
+[the Ruby floor](../design/ruby-floor.md) — a page full of `2.4`, `2.6`, `3.x` —
+**above** [the graph server](graph-server.md), the one concept naming the
+version. The mitigation is real but partial, which is precisely why `-e` has to
+stay reachable and documented rather than merely present.
+
+# Engines are adapters, chosen by what the query needs
+
+`OKF::Bundle::Search` is a facade over N engines, not one implementation with a
+branch. It owns everything that defines what a *result* is — documents, the row
+and its key order, the snippet window, the final sort — and delegates only "which
+documents match, how well, and where":
+
+| Engine | Capabilities | Scoring |
+|---|---|---|
+| `Search::Index` (default) | `fuzzy`, `prefix` | BM25+, corpus-relative |
+| `Search::Scan` | `regexp` | summed field weights, absolute |
+
+Selection is by **capability, not by name**: `-e` requires `:regexp`, `--fuzzy`
+requires `:fuzzy`, and a query requiring nothing gets the default. There is
+deliberately no `--engine` flag — asking for `-e` unambiguously means "regexp
+semantics", and a second way to say it would be a second thing to keep consistent.
+Routing is **silent**: no note on stderr, nothing in the header, nothing in the
+JSON envelope. Someone who typed `-e` does not need to be told what `-e` does on
+every run.
+
+Which makes `okf search --help` the only place the story can be told, and
+therefore load-bearing: each capability flag names its engine, and a note states
+the token/raw-text split. Drop that text and the scan is still there but nobody
+finds it. `Search.register` is the seam an addon plugs into — the second base-gem
+extension point, deliberately shaped like the linter's — and
+[the engine contract](../design/search-engines.md) is what keeps a registered
+engine from redefining what a match is.
 
 # The index is built per invocation, and that is the current ceiling
 

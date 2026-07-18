@@ -148,6 +148,24 @@ a pattern is matched literally rather than by edit distance.
 body); the shared `--type/--area/--tag` filters narrow the candidates *first*,
 so a search scoped by what `index` taught you stays surgical.
 
+**`-e` is the exactness the token index gives up, and reaching for it is a
+judgment call only you can make.** The tokenizer splits on whitespace *and*
+punctuation, so four kinds of query silently mean something broader than they
+look: a phrase in one argument (`"dedup key"` matches those words paragraphs
+apart), a dotted version (`7.2.0` becomes the terms `7`, `2`, `0`), an
+underscored identifier (`customer_id` becomes `customer` + `id`), and a mid-word
+fragment (`ustomer`, which matches nothing at all). `-e` recovers all four by
+matching raw text. **Do not count on ranking to rescue the default** — BM25
+normalizes by field length, so a short concept dense in `7`, `2` and `0` can
+outrank the one that actually says `7.2.0`. When the query *is* an identifier, a
+version, or a phrase, reach for `-e` first rather than reading past the noise.
+<!-- rule:okf-search-exact-identifiers -->
+
+The engine is chosen by what the query needs, never named: `-e` routes to the
+regexp scan, `--fuzzy` to the index, anything else to the index by default.
+There is no `--engine` flag and nothing is printed about the choice — `okf search
+--help` is where the split is documented.
+
 **Search spans bundles.** Leading @refs pick several registered bundles
 (`okf search @handbook @notes auth`); **`@all`** is the ref that means every one.
 The bundles are indexed as **one corpus** and ranked together — BM25 prices a

@@ -14,6 +14,8 @@ lib/okf/
   markdown/               pure   format layer: frontmatter (§4), links (§5), citations (§8)
   concept.rb  bundle.rb   pure   the in-memory model (no disk, no stdio)
   bundle/graph.rb         pure   nodes/edges + type/tag indexes
+  bundle/search.rb        pure   facade: owns the row/snippet/sort + the engine registry
+  bundle/search/{index,scan}.rb  pure   the engines — minifts BM25+ (default), regexp scan
   bundle/validator*.rb    pure   spec §9 conformance (hard errors + soft warnings)
   bundle/linter*.rb       pure   curation-quality report (never rejects)
   concept/file.rb         shell  one-file on-disk handle

@@ -1,27 +1,50 @@
 # frozen_string_literal: true
 
-require "minifts"
-
 module OKF
   class Bundle
-    # Ranked text retrieval over one or more in-memory bundles, backed by a
-    # MiniFTS full-text index — the same engine, and the same BM25+ arithmetic,
-    # the browser page already runs as MiniSearch. Terms are ANDed: every term
-    # must hit at least one searched field, though not necessarily the same one.
-    # Rows carry the fields each term hit, so a result stays explainable rather
-    # than being a bare relevance number.
+    # Ranked text retrieval over one or more in-memory bundles. Terms are ANDed:
+    # every term must hit at least one searched field, though not necessarily the
+    # same one. Rows carry the fields each term hit, so a result stays explainable
+    # rather than being a bare relevance number.
     #
-    # Matching is by *token*, not substring: a term matches a whole word or a
-    # word it prefixes ("dedup" reaches "deduplication"), and `fuzzy: true` opts
-    # into typo tolerance. An infix is the one recall a token index gives up —
-    # `regexp: true` is the escape hatch, and the one query language an inverted
-    # index cannot answer, so it runs as a linear scan over the same fields.
+    # This class is a *facade*. It owns everything that defines what a result is —
+    # the documents, the row and its key order, the snippet window, the final sort
+    # — and delegates only "which documents match, how well, and where" to an
+    # engine (Search::Index by default, Search::Scan for regexp). An engine that
+    # built its own rows could disagree about what a match is; this split makes
+    # that unrepresentable.
     #
     # Pure — no disk, no stdio. The CLI's `okf search` and any embedding app
     # share it: OKF::Bundle::Search.call(bundle, [ "dedup", "key" ]).
     class Search
+      # Raised when the query needs something no available engine offers. The CLI
+      # turns it into a usage error (exit 2). Unreachable with only the built-ins
+      # — minifts is a hard dependency, so :fuzzy is always answerable — it exists
+      # for the addon case, where an engine's backing store can be missing.
+      class UnsupportedQuery < OKF::Error
+        attr_reader :missing
+
+        def initialize(missing)
+          @missing = missing
+          super(if missing.empty?
+                  "no search engine is available"
+                else
+                  "no available search engine offers #{missing.map { |name| ":#{name}" }.join(", ")}"
+                end)
+        end
+      end
+
+      # The declarable capability vocabulary. Frozen so an engine that declares
+      # `:regex` is refused at registration rather than silently never selected —
+      # a typo in an addon would otherwise present as "my engine is ignored".
+      CAPABILITIES = %i[regexp fuzzy prefix].freeze
+
+      # Chosen when the query requires nothing in particular, which is the
+      # overwhelming majority of searches.
+      DEFAULT_ENGINE = :index
+
       # The searchable fields with their rank weight, strongest signal first.
-      # In the index path these ride as MiniFTS per-field `boost`; a regexp scan
+      # In the index engine these ride as MiniFTS per-field `boost`; the scan
       # sums the weights of the fields that matched instead.
       WEIGHTS = {
         "title" => 5,
@@ -50,8 +73,39 @@ module OKF
       # silently drop one.
       KEY_SEPARATOR = "\0"
 
-      def self.call(bundle, terms, fields: nil, regexp: false, fuzzy: false)
-        new([ [ nil, bundle ] ], terms, fields: fields, regexp: regexp, fuzzy: fuzzy).results
+      # Append-only and idempotent by id: a second registration of an id already
+      # present is a no-op, so a double `require` cannot double the registry and
+      # an addon cannot quietly displace a built-in. Deliberately the same shape
+      # as the Linter's planned register hook — two extension points, one idiom.
+      def self.register(engine)
+        rogue = engine.capabilities - CAPABILITIES
+        raise ArgumentError, "unknown search capability: #{rogue.join(", ")}" unless rogue.empty?
+
+        @engines ||= []
+        @engines << engine unless @engines.any? { |registered| registered.id == engine.id }
+        engine
+      end
+
+      # A frozen snapshot in registration order. Frozen because the registry is
+      # only meant to grow through .register, where the vocabulary is checked.
+      def self.engines
+        (@engines ||= []).dup.freeze
+      end
+
+      # The router. The default engine leads, then registration order; the first
+      # available engine offering *every* required capability answers. Partition
+      # rather than sort_by, because sort_by is not stable and registration order
+      # is the tie-break.
+      def self.engine_for(required, engines: self.engines)
+        default, rest = engines.select(&:available?).partition { |engine| engine.id == DEFAULT_ENGINE }
+        found = (default + rest).find { |engine| (required - engine.capabilities).empty? }
+        return found if found
+
+        raise UnsupportedQuery, required
+      end
+
+      def self.call(bundle, terms, fields: nil, regexp: false, fuzzy: false, engines: nil)
+        new([ [ nil, bundle ] ], terms, fields: fields, regexp: regexp, fuzzy: fuzzy, engines: engines).results
       end
 
       # Several bundles as [ slug, bundle ] pairs, ranked into one list with every
@@ -59,20 +113,22 @@ module OKF
       # term by how rare it is in the corpus, so per-bundle indexes would score the
       # same match differently depending on which bundle it came from. One index
       # makes one corpus, and the merged ranking is comparable by construction.
-      def self.across(bundles, terms, fields: nil, regexp: false, fuzzy: false)
-        new(bundles, terms, fields: fields, regexp: regexp, fuzzy: fuzzy).results
+      def self.across(bundles, terms, fields: nil, regexp: false, fuzzy: false, engines: nil)
+        new(bundles, terms, fields: fields, regexp: regexp, fuzzy: fuzzy, engines: engines).results
       end
 
-      # Raises RegexpError on an invalid pattern with `regexp: true` — the caller
-      # owns turning that into a usage error.
-      def initialize(bundles, terms, fields: nil, regexp: false, fuzzy: false)
+      # Raises RegexpError on an invalid pattern with `regexp: true`, and
+      # UnsupportedQuery when no engine can answer — the caller owns turning
+      # either into a usage error. `engines:` overrides the registry, which is how
+      # the "nothing qualifies" path stays reachable without an addon installed.
+      def initialize(bundles, terms, fields: nil, regexp: false, fuzzy: false, engines: nil)
         @bundles = bundles
         @terms = Array(terms).reject { |term| OKF.blank?(term) }.map(&:to_s)
         @fields = fields.nil? || fields.empty? ? FIELDS : fields
         @regexp = regexp
         @fuzzy = fuzzy
+        @engines = engines
         @sources = {}
-        @patterns = @terms.map { |term| Regexp.new(term, Regexp::IGNORECASE) } if regexp
       end
 
       # Ranked match rows, catalog-style identity plus where the terms hit:
@@ -82,25 +138,29 @@ module OKF
       def results
         return [] if @terms.empty?
 
-        (@regexp ? scan : lookup).sort_by { |row| [ -row[:score], row[:slug].to_s, row[:id] ] }
+        rows = engine.call(documents, @terms, fields: @fields, fuzzy: @fuzzy).map do |hit|
+          slug, concept = @sources[hit[:key]]
+          row(slug, concept, hit[:matched], hit[:score], hit[:terms])
+        end
+        rows.sort_by { |row| [ -row[:score], row[:slug].to_s, row[:id] ] }
       end
 
       private
 
-      # The index path: one MiniFTS over every searched bundle. `fields:` narrows
-      # where a term may hit, so a field the caller excluded can neither match nor
-      # be credited.
-      def lookup
-        index = MiniFTS.new(fields: FIELDS, id_field: "key")
-        index.add_all(documents)
+      # The engine is chosen by what the query needs, not by a flag naming one.
+      # `-e` unambiguously means "regexp semantics", so it routes on its own and
+      # says nothing about it — there is no --engine flag to reconcile with.
+      def engine
+        Search.engine_for(required_capabilities, engines: @engines || Search.engines)
+      end
 
-        options = { combine_with: "AND", prefix: true, boost: WEIGHTS, fields: @fields }
-        options[:fuzzy] = FUZZY_DISTANCE if @fuzzy
-
-        index.search(@terms.join(" "), options).map do |hit|
-          slug, concept = @sources[hit[:id]]
-          row(slug, concept, matched_in(hit), hit[:score], hit[:terms])
-        end
+      # Options translated into the capability vocabulary. `:prefix` is never
+      # required: the index offers it and nothing asks for its absence.
+      def required_capabilities
+        required = []
+        required << :regexp if @regexp
+        required << :fuzzy if @fuzzy
+        required
       end
 
       # Every concept as an indexable document, keyed uniquely across bundles.
@@ -115,41 +175,6 @@ module OKF
           end
         end
         docs
-      end
-
-      # The union of fields any term hit, in WEIGHTS order. MiniFTS reports it per
-      # query term as { term => [field, …] }.
-      def matched_in(hit)
-        FIELDS.select { |field| hit[:match].any? { |_term, fields| fields.include?(field) } }
-      end
-
-      # The regexp path: a linear scan, because a pattern cannot be looked up in a
-      # token index. Scores stay absolute field weights, which compare across
-      # bundles without an index to normalize them.
-      def scan
-        rows = []
-        @bundles.each do |slug, bundle|
-          bundle.concepts.each do |concept|
-            texts = field_texts(concept)
-            matched = matched_fields(texts)
-            next if matched.nil?
-
-            rows << row(slug, concept, matched, matched.map { |field| WEIGHTS[field] }.reduce(0, :+), nil)
-          end
-        end
-        rows
-      end
-
-      # The union of fields any pattern hit, in WEIGHTS order — or nil when some
-      # pattern hit nothing (terms are ANDed).
-      def matched_fields(texts)
-        hits = @patterns.map do |pattern|
-          fields = @fields.select { |field| pattern.match?(texts[field]) }
-          return nil if fields.empty?
-
-          fields
-        end
-        FIELDS.select { |field| hits.any? { |fields| fields.include?(field) } }
       end
 
       # { field => original-case text } for every searchable field. The index reads
@@ -194,14 +219,15 @@ module OKF
         matcher.nil? ? "" : context(texts[field], matcher)
       end
 
-      # What to point the window at: the pattern that hit under `regexp`, otherwise
-      # the first *document* term MiniFTS matched — already lowercased, and present
-      # in the text verbatim even when the query only prefixed it.
+      # What to point the window at: the first of the engine's reported matchers
+      # that this text actually contains. Engine-agnostic on purpose — the scan
+      # reports compiled patterns, the index reports lowercased document terms,
+      # and both are things `locate` can find again in the flattened text.
       def snippet_matcher(text, terms)
-        return @patterns.find { |pattern| pattern.match?(text) } if @regexp
-
         down = text.downcase
-        Array(terms).find { |term| down.include?(term) }
+        Array(terms).find do |term|
+          term.is_a?(Regexp) ? term.match?(text) : down.include?(term)
+        end
       end
 
       def context(text, matcher)

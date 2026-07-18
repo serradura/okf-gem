@@ -195,10 +195,13 @@ module OKF
       options = { json: false, regexp: false, fuzzy: false }
       parser = OptionParser.new do |o|
         o.banner = "Usage: okf search <dir|@slug…|@all> <term> [term ...] [--regexp|--fuzzy] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
+        search_engine_note(o)
         json_flags(o, options, "emit the matches as JSON")
         projection_flags(o, options)
-        o.on("-e", "--regexp", "treat each term as a Ruby regular expression (case-insensitive)") { options[:regexp] = true }
-        o.on("--fuzzy", "tolerate typos (edit distance #{OKF::Bundle::Search::FUZZY_DISTANCE} × term length)") { options[:fuzzy] = true }
+        o.on("-e", "--regexp", "treat each term as a Ruby regular expression,",
+          "matched against raw text — case-insensitive (scan engine)") { options[:regexp] = true }
+        o.on("--fuzzy",
+          "tolerate typos, edit distance #{OKF::Bundle::Search::FUZZY_DISTANCE} × term length (index engine)") { options[:fuzzy] = true }
         o.on("--in LIST", Array, "search only these fields (#{OKF::Bundle::Search::FIELDS.join(", ")})") { |v| options[:in] = v.map(&:downcase) }
         filter_flags(o, options, :type, :area, :tag)
         help_flag(o)
@@ -259,6 +262,8 @@ module OKF
       0
     rescue RegexpError => e
       usage_error("invalid pattern: #{e.message}")
+    rescue OKF::Bundle::Search::UnsupportedQuery => e
+      usage_error(e.message)
     end
 
     # Every registered bundle, as [slug, dir] pairs — what @all expands to.
@@ -1130,6 +1135,26 @@ module OKF
         @out.puts parser.help
         throw :help, 0
       end
+    end
+
+    # The engine story, told once, in the only place there is to tell it. `search`
+    # routes on what the query needs — a pattern needs the scan, --fuzzy needs the
+    # index — and says nothing about it at runtime: no note on stderr, nothing in
+    # the header, and deliberately no --engine flag. So this is where a user learns
+    # that the exactness a token index gives up is still reachable, and that -e is
+    # how. Without it that capability is present but undiscoverable.
+    #
+    # It leads rather than trails because #help_flag registers -h with `on_tail`,
+    # which OptionParser renders after every separator: a closing paragraph would
+    # print *above* the -h line and split the option list in half. Stating the
+    # matching model before the flags reads better anyway.
+    def search_engine_note(parser)
+      parser.separator ""
+      parser.separator "Terms match whole tokens and the tokens they prefix, ranked by relevance — the"
+      parser.separator "index engine. -e matches raw text instead, so a phrase (\"dedup key\") and a"
+      parser.separator "dotted identifier (7.2.0, customer_id) match literally: the exactness a token"
+      parser.separator "index gives up."
+      parser.separator ""
     end
 
     # --fields/--except project the JSON down to the properties an agent wants, so it

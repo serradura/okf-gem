@@ -22,8 +22,13 @@ reads, and full bodies are read last, and only the winners.
 3. **Cut across with the finder when the question is lexical.** An exact
    symbol, an error code, a column name, a phrase — things structure won't
    surface — go to `okf search <dir> <terms>` (terms AND together, matched as
-   whole tokens or prefixes; `--regexp` for patterns like `err_[a-z]+_409`, and
-   for the mid-word fragments a token index cannot reach). Scope it with what the map taught you:
+   whole tokens or prefixes). **Reach for `-e` when the query is exact by
+   nature**: a phrase, a dotted version (`7.2.0`), an underscored identifier
+   (`customer_id`), a mid-word fragment (`ustomer`), or a pattern
+   (`err_[a-z]+_409`). The tokenizer splits on punctuation, so those queries
+   otherwise match far more loosely than they read — and ranking does not
+   reliably float the true hit to the top. <!-- rule:okf-search-exact-identifiers -->
+   Scope it with what the map taught you:
    `--area billing`, `--type Decision`, `--tag idempotency`, `--in body`.
    Matches rank by where they hit, and the snippet often *is* the answer.
    When the answer may live in another registered bundle, span them — leading

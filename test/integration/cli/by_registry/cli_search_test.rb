@@ -101,6 +101,24 @@ module ByRegistry
       end
     end
 
+    test "the engine follows the query through a ref, and is never announced" do
+      # Same routing as by_dir, proven again here because the identity is where
+      # the CLI decides what to answer about: a ref takes a different path to the
+      # bundle, and a verb that routes correctly by path can still be broken by ref.
+      with_registry("conformant") do
+        scanned = json(okf("search", "@conformant", "-e", "orders", "--json"))["matches"].first
+        assert_equal weight_sum(scanned["matched"]), scanned["score"], "-e routes to the scan"
+
+        ranked = json(okf("search", "@conformant", "orders", "--json"))["matches"].first
+        refute_equal weight_sum(ranked["matched"]), ranked["score"], "the default engine ranks by BM25+"
+
+        human = okf("search", "@conformant", "-e", "orders")
+        assert_empty human.err, "choosing an engine is not a diagnostic"
+        assert_equal okf("search", "@conformant", "orders").out.lines.first, human.out.lines.first,
+          "the header echoes the ref that was typed — never the engine that answered"
+      end
+    end
+
     test "--fuzzy forgives a typo through a ref, and refuses to pair with -e" do
       with_registry("conformant") do
         exact = okf("search", "@conformant", "custommer", "--json")

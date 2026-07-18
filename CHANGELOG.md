@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+- **Search engines are adapters now.** `OKF::Bundle::Search` became a facade over
+  N engines instead of one class with a `regexp ? scan : index` ternary. The
+  facade keeps everything that defines a result — documents, the row and its key
+  order, the snippet, the sort — and an engine answers only which documents match,
+  how well, and where. The two built-ins are `Search::Index` (BM25+, default) and
+  `Search::Scan` (regexp).
+  - **Selection is by capability, not by name.** `-e` requires `:regexp`,
+    `--fuzzy` requires `:fuzzy`, anything else gets the default. There is no
+    `--engine` flag, and routing prints **nothing** — no note, no header change,
+    no new JSON key. Every existing invocation answers exactly as before.
+  - **`okf search --help` now tells the engine story**, because it is the only
+    place left to tell it: each capability flag names its engine, and a note
+    states the token/raw-text split with concrete examples.
+  - **`Search.register` is a published extension point** — append-only,
+    idempotent by id, capabilities checked against a fixed vocabulary. This is
+    the seam a future SQLite/FTS5 addon plugs into; no addon code ships here.
+  - **A shared conformance suite replaces the "kernel is the oracle" rule**,
+    which multiple engines made impossible: the index and the scan disagree about
+    match sets by design, so neither can be the oracle. Every registered engine
+    now runs the same contract, with capability-gated blocks for its own
+    semantics, and a registered engine with no conformance class fails the suite.
+  - **The precision the token index gives up is pinned from both sides** — phrase,
+    dotted version, underscored identifier, infix — each asserting the false
+    positive the index admits *and* that `-e` refuses it. Writing those tests
+    falsified the claim that ranking keeps the true hit first: it does not. On
+    this repo's own bundle, `okf search .okf 7.2.0` ranks the Ruby-floor concept
+    above the one that names the version. The docs claiming otherwise are
+    corrected.
 - **`okf search` runs on a full-text index.** The engine is now
   [minifts](https://github.com/serradura/minifts) — the pure-Ruby port of the
   same MiniSearch build the browser page loads — making it the gem's third
