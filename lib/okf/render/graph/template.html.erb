@@ -1538,6 +1538,7 @@ function dirOfPath(p){return p.indexOf('/')<0?'.':p.split('/').slice(0,-1).join(
    itself has a reason to call it: on a compact layout the list is stacked on
    top of the reader, so a list with nothing left in it should hand the screen
    back rather than sit there empty. */
+let foldedByRoot=false;
 function treeMin(on){const g=document.querySelector('.files-grid'),b=document.getElementById('ftree-min');
  if(!g||!b)return;g.classList.toggle('tree-min',on);
  b.setAttribute('aria-expanded',on?'false':'true');
@@ -1621,8 +1622,11 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
  el.innerHTML=subtree('.',0);
  el.querySelectorAll('.ffolder').forEach(b=>b.onclick=()=>{const d=b.dataset.dir;
   if(collapsedDirs.has(d))collapsedDirs.delete(d);else collapsedDirs.add(d);renderTree(list);
-  /* Closing the root leaves a single row above a column of nothing. */
-  if(d==='.'&&collapsedDirs.has('.')&&matchMedia('(max-width:768px)').matches)treeMin(true);});
+  /* Closing the root leaves a single row above a column of nothing, so on a
+     compact layout the list hands the screen back. Remember *why*: reopening it
+     has to undo the collapse, or the reader lands on one row with the button
+     they just used unable to bring the tree back. */
+  if(d==='.'&&collapsedDirs.has('.')&&matchMedia('(max-width:768px)').matches){foldedByRoot=true;treeMin(true);}});
  el.querySelectorAll('.file[data-id]').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));
  el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));}
 /* Fold/unfold every folder at once. When they are all already collapsed the
@@ -1968,7 +1972,9 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
     the screen to the reader, the filter toggle brings the list back */
  const fgridEl=document.querySelector('.files-grid'),ftmin=document.getElementById('ftree-min');
  if(fgridEl&&ftmin){
-  ftmin.addEventListener('click',()=>treeMin(!fgridEl.classList.contains('tree-min')));
+  ftmin.addEventListener('click',()=>{const on=!fgridEl.classList.contains('tree-min');
+   if(!on&&foldedByRoot){foldedByRoot=false;collapsedDirs.delete('.');refreshTree();}
+   treeMin(on);});
   document.getElementById('ftree-list').addEventListener('click',e=>{
    if(e.target.closest('.file')&&matchMedia('(max-width:768px)').matches)treeMin(true);});
   const ix=document.getElementById('ftree-ixonly');

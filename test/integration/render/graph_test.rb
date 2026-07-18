@@ -418,8 +418,14 @@ class OKF::Render::GraphTest < OKF::TestCase
     # closing the root leaves one row above a column of nothing, and on a compact
     # layout that column is stacked on top of the reader — so it folds away
     assert_includes html, "function treeMin(", "the fold is a named action the tree can reach"
-    assert_includes html, "if(d==='.'&&collapsedDirs.has('.')&&matchMedia('(max-width:768px)').matches)treeMin(true);",
+    assert_includes html, "if(d==='.'&&collapsedDirs.has('.')&&matchMedia('(max-width:768px)').matches){foldedByRoot=true;treeMin(true);}",
       "closing the root on a phone or tablet collapses the list to its header"
+    # ...and that has to be one gesture, not two states to dig out of: reopening
+    # the list on a collapsed root would otherwise show a single row, with the
+    # button just used unable to bring the tree back
+    assert_includes html, "let foldedByRoot=false;", "the fold remembers why it happened"
+    assert_includes html, "if(!on&&foldedByRoot){foldedByRoot=false;collapsedDirs.delete('.');refreshTree();}",
+      "so reopening the list undoes the collapse that folded it"
   end
 
   test "collapse-all folds into the root, not over it" do

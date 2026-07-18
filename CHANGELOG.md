@@ -17,7 +17,10 @@
     or tags — but a map whose concepts are all filtered away leaves with them.
 - **Collapsing the root folds the file list away** on phones and tablets, where
   the list is stacked on top of the reader and closing the root otherwise left a
-  single row above a column of nothing.
+  single row above a column of nothing. Reopening the list undoes that collapse,
+  so it is one gesture rather than two states to dig out of — the fold remembers
+  *why* it happened, and a list folded because a file was opened comes back
+  exactly as it was left.
 - **The Indexes tab dissolves into the file tree.** The authored layer lived on a
   second tab as a flat list of paths, which put a directory's own map somewhere
   other than the directory. `index.md` and `log.md` are rows now, at the top of
