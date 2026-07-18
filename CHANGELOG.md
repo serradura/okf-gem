@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+- The bare not-a-directory error now teaches the registry grammar. A verb given
+  a target that is neither a directory nor an `@ref` moved from
+  `error: <arg> is not a directory` to
+  `… is not a directory or a registry ref (@slug names a registered bundle, @ the default; okf registry list)`,
+  so a consumer who typed a query or a bad path meets `@slug` addressing at the
+  error instead of hunting for it. (`@all` stays out of the message — it is
+  `search`'s alone, and the error seam is shared by every verb.)
+- The bundled skill teaches `@slug` as a first-class target and stops probing for
+  the CLI. `SKILL.md`'s "Which directory?" is now "Which target?" — a leading `@`
+  is a registry ref routed straight to `okf <verb> @slug`, with the fallback
+  "no bundle in the cwd → `okf registry list`" — and the consume/search playbooks
+  name `@slug` in their orientation steps. The per-run `command -v okf` presence
+  probe is gone: run the verb, and treat a shell `command not found` as the only
+  signal to install, so the common case pays no guard round.
+
 ## [1.8.0] - 2026-07-17
 
 - A persistent bundle registry and a multi-bundle hub. `okf registry`
