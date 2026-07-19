@@ -1,6 +1,33 @@
 # Update Log
 
 ## 2026-07-19
+* **Correction**: the reframe below stopped at the docs and left the **code
+  comment** behind. `plugin_paths` in
+  [`lib/okf/cli.rb`](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb)
+  still opened "Narrowed to gems named `okf-*`, which is a **trust** decision
+  rather than a tidiness one" — the exact framing the commit below retired, in
+  the file that concept's own citation points at. So the bundle, `AGENTS.md` and
+  the changelog said convention-first while the code said trust-first, and the
+  citation carried a reader from one to the other. Reframed there too: the
+  convention leads, the guard is named as mild, and the rule underneath that
+  *is* load-bearing points at `plugin_gem_name`. The lesson is one this bundle
+  keeps meeting from new angles — **"the code does not change" is true of
+  behaviour and false of prose.** A comment is prose the tools cannot see:
+  `validate` and `lint` both called the bundle healthy, correctly, because the
+  drift was outside it, and a docs-only pass has no failing test to stop it. A
+  grep for `trust` over `lib/` would have found it in one command, which is the
+  same shape as the `--engine` drift recorded further down: instantly findable
+  *if* you think to look outside the bundle for the sentence you just changed
+  inside it.
+* **Note**: the `security` tag **stays** on
+  [extension-points](design/extension-points.md), a judgment the reframe invites
+  and does not settle. The concept still argues where the trust boundary sits,
+  why the pure-Ruby escalation is real but narrow, and why an `$OKF_HOME`
+  allowlist was refused — that is security reasoning whatever it concludes, and
+  someone auditing this gem's code-execution surface should reach it. A tag that
+  marks *"this reasons about trust"* is not falsified by deciding that one rule
+  inside it earns little; dropping it would hide the concept that explains why
+  the prefix is not a defence from exactly the reader who needs that.
 * **Correction**: a maintain pass over the CLI restructure found three citations
   pointing at code that had moved, each reading perfectly and each now wrong:
   [graph-server](capabilities/graph-server.md) cited `lib/okf/cli.rb` for the

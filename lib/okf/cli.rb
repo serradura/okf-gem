@@ -184,20 +184,24 @@ module OKF
       # find_latest_files has been there since RubyGems 1.8, but the guard costs
       # nothing and says which method the behaviour depends on.
       #
-      # Narrowed to gems named `okf-*`, which is a **trust** decision rather than
-      # a tidiness one. `require` executes whatever it loads, and the trust
-      # boundary in Ruby is `gem install`, not `require` — but that is only
-      # wholly true of native extensions, which run `extconf.rb` at install time.
-      # A **pure-Ruby** gem executes nothing until something requires it, so a
-      # loader that requires by convention alone gives code a way to run that it
-      # otherwise would not have had.
+      # Narrowed to gems named `okf-*` — the convention Jekyll (`jekyll-*`) and
+      # Vagrant (`vagrant-*`) use for the same job, and the reason the rule is
+      # here: it makes what counts as an okf extension explicit, and stops an
+      # unrelated gem claiming the `okf/plugin.rb` path by accident.
       #
-      # The narrow rule closes the case where the user chose nothing at all: a
-      # transitive dependency that happens to ship `okf/plugin.rb` is discovered
-      # and skipped, not run. What it cannot close is a package deliberately
-      # installed under an `okf-` name — by then `gem install` has already been
-      # run on it, and no loader rule saves you from that. See
-      # .okf/design/extension-points.md for the threat model in full.
+      # It is a mild guard as well, since `require` runs whatever it loads, but
+      # the window it closes is nearly empty and calling it a **defence** would
+      # invite the false confidence that is worse than having no rule at all. A
+      # transitive dependency is required by its parent in normal use, so
+      # `require "foo"` already runs foo's; under Bundler, discovery is
+      # bundle-scoped, so the Gemfile is an allowlist already. What is left is a
+      # pure-Ruby gem installed globally and then used by nothing — and nothing
+      # here saves anyone from a package deliberately installed under an `okf-`
+      # name, because `gem install` has already run on it.
+      #
+      # The rule underneath this one *is* load-bearing: naming a gem must never
+      # load it. See `plugin_gem_name` below, and
+      # .okf/design/extension-points.md for the argument in full.
       def plugin_paths
         found = if Gem.respond_to?(:find_latest_files)
                   Gem.find_latest_files(PLUGIN_FILE)
