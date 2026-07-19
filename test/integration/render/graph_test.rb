@@ -169,6 +169,22 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "if(treeMode){", "and a reader already in file-tree mode stays there"
   end
 
+  test "the dim and highlight states outrank every base look" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # Cytoscape resolves equal-specificity selectors by array order, so a base
+    # rule declared after `.dim` wins over it. `edge.tree` and `edge.ixe` set
+    # their own opacity, which meant they never dimmed: a map's dashed edges sat
+    # at half opacity across the whole graph and no selection ever read as one.
+    states = html.index("/* ── state, last so it outranks")
+    refute_nil states, "the state block is named as such"
+    assert states > html.index("{selector:'edge.ixe'"), "dim is declared after the edge looks it has to beat"
+    assert states > html.index("{selector:'edge.tree'"), "file-tree mode's edges included"
+    assert states > html.index("{selector:':parent'"), "and the compound boxes"
+  end
+
   test "selecting anything emphasises it the same way" do
     write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 

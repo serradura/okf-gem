@@ -858,8 +858,6 @@ function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('-
    'font-size':10,'font-weight':500,'text-wrap':'wrap','text-max-width':120,'text-valign':'bottom','text-margin-y':5,
    'text-outline-width':2.5,'text-outline-color':halo,'min-zoomed-font-size':7,'border-width':0,'width':'data(sz)','height':'data(sz)'}},
   {selector:'edge',style:{'width':1.2,'line-color':edge,'target-arrow-color':edge,'target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.8}},
-  {selector:'.dim',style:{'opacity':.1}},
-  {selector:'.hl',style:{'border-width':3,'border-color':cvar('--accent')}},
   /* A folder node and a map node are the same thing twice over — clicking
      either opens that directory's index — so they converge on one look instead
      of parting by mode: an accent square, never a concept's circle, with the
@@ -877,7 +875,15 @@ function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('-
   {selector:'edge.ixe',style:{'width':1,'opacity':.5,'line-style':'dashed','line-color':cvar('--edge'),'target-arrow-shape':'none'}},
   {selector:'edge.ixe-syn',style:{'opacity':.3}},
   {selector:'edge.linkhid',style:{'display':'none'}},
-  {selector:':parent',style:{'background-color':cvar('--ink'),'background-opacity':0.05,'border-width':1,'border-color':cvar('--edge'),'shape':'round-rectangle','padding':26,'label':'data(label)','color':cvar('--ink'),'font-size':13,'font-weight':600,'text-valign':'top','text-halign':'center','text-margin-y':-8,'min-zoomed-font-size':0,'text-outline-width':3,'text-outline-color':cvar('--canvas')}}
+  {selector:':parent',style:{'background-color':cvar('--ink'),'background-opacity':0.05,'border-width':1,'border-color':cvar('--edge'),'shape':'round-rectangle','padding':26,'label':'data(label)','color':cvar('--ink'),'font-size':13,'font-weight':600,'text-valign':'top','text-halign':'center','text-margin-y':-8,'min-zoomed-font-size':0,'text-outline-width':3,'text-outline-color':cvar('--canvas')}},
+  /* ── state, last so it outranks every look above ──
+     Cytoscape resolves equal-specificity selectors by array order, so a base
+     rule declared after `.dim` beats it. `edge.tree` and `edge.ixe` each set
+     their own opacity, which meant neither ever dimmed: a map's dashed edges
+     sat at half opacity across the whole graph, and selecting one emphasised
+     nothing. Dim and highlight are states, not looks — they go last. */
+  {selector:'.dim',style:{'opacity':.1}},
+  {selector:'.hl',style:{'border-width':3,'border-color':cvar('--accent')}}
  ];}
 /* Only the floor for a graph that already fits. "Far enough out to see
    everything" is not a constant — a big bundle, especially clustered by area
