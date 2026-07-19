@@ -101,6 +101,63 @@ module ByRegistry
       end
     end
 
+    test "the engine follows the query through a ref, and is never announced" do
+      # Same routing as by_dir, proven again here because the identity is where
+      # the CLI decides what to answer about: a ref takes a different path to the
+      # bundle, and a verb that routes correctly by path can still be broken by ref.
+      with_registry("conformant") do
+        scanned = json(okf("search", "@conformant", "orders", "--json"))["matches"].first
+        assert_equal weight_sum(scanned["matched"]), scanned["score"],
+          "a plain search stays on the default scan, through a ref as by path"
+
+        ranked = json(okf("search", "@conformant", "custommer", "--fuzzy", "--json"))["matches"].first
+        refute_equal weight_sum(ranked["matched"]), ranked["score"],
+          "--fuzzy routes to the index, which ranks by BM25+"
+
+        human = okf("search", "@conformant", "-e", "orders")
+        assert_empty human.err, "choosing an engine is not a diagnostic"
+        assert_equal okf("search", "@conformant", "orders").out.lines.first, human.out.lines.first,
+          "the header echoes the ref that was typed — never the engine that answered"
+      end
+    end
+
+    test "--engine reaches the named engine through a ref, and refuses what it cannot do" do
+      with_registry("conformant") do
+        scanned = okf("search", "@conformant", "--engine", "scan", "ustomer", "--json")
+        assert_equal 0, scanned.status
+        assert_includes json(scanned)["matches"].map { |row| row["id"] }, "tables/customers",
+          "raw-text matching arrives by ref exactly as it does by path"
+        assert_equal "conformant", json(scanned)["matches"].first["slug"], "and the row still carries its bundle"
+
+        clash = okf("search", "@conformant", "--engine", "index", "-e", "ord[a-z]+s")
+        assert_equal 2, clash.status
+        assert_match(/error: --engine index does not support --regexp/, clash.err)
+
+        bogus = okf("search", "@conformant", "--engine", "fts5", "orders")
+        assert_equal 2, bogus.status
+        assert_match(/error: unknown search engine: fts5/, bogus.err)
+        assert_empty bogus.out, "a usage error leaves stdout clean"
+      end
+    end
+
+    test "--fuzzy forgives a typo through a ref, and refuses to pair with -e" do
+      with_registry("conformant") do
+        exact = okf("search", "@conformant", "custommer", "--json")
+        assert_equal 0, json(exact)["count"], "search is exact by default, so a typo misses"
+
+        fuzzy = json(okf("search", "@conformant", "custommer", "--fuzzy", "--json"))
+        assert_includes fuzzy["matches"].map { |row| row["id"] }, "tables/customers"
+
+        # Two query languages, not two dials: a pattern is matched literally, so
+        # honouring one flag and dropping the other would answer a different
+        # question than the one that was asked.
+        clash = okf("search", "@conformant", "custommer", "--fuzzy", "-e")
+        assert_equal 2, clash.status
+        assert_match(/error: --regexp and --fuzzy are mutually exclusive/, clash.err)
+        assert_empty clash.out, "a usage error leaves stdout clean"
+      end
+    end
+
     test "--in narrows the searched fields; an unknown field lists the real ones" do
       with_registry("conformant") do
         scoped = okf("search", "@conformant", "orders", "--in", "title")
@@ -194,7 +251,7 @@ module ByRegistry
         result = okf("search", "@conformant")
 
         assert_equal 2, result.status
-        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term> \[term \.\.\.\]/, result.err)
+        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term…>/, result.err)
         assert_empty result.out
       end
     end

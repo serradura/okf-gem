@@ -103,6 +103,42 @@ class OKF::Bundle::SearchTest < OKF::TestCase
     assert_empty OKF::Bundle::Search.call(bundle, [ "absent" ])
   end
 
+  test "terms match whole tokens and their prefixes, but never an infix" do
+    bundle = OKF::Bundle.new(concepts: [ concept("a", body: "we rely on deduplication here") ])
+
+    assert_equal [ "a" ], OKF::Bundle::Search.call(bundle, [ "deduplication" ], engine: "index").map { |row| row[:id] }
+    assert_equal [ "a" ], OKF::Bundle::Search.call(bundle, [ "dedup" ], engine: "index").map { |row| row[:id] },
+      "a term reaches the token it prefixes"
+    assert_empty OKF::Bundle::Search.call(bundle, [ "duplication" ], engine: "index"),
+      "an infix is the recall a token index gives up — the default scan still finds it"
+  end
+
+  test "fuzzy: true forgives a typo the exact search misses" do
+    bundle = OKF::Bundle.new(concepts: [ concept("a", title: "Customers") ])
+
+    assert_empty OKF::Bundle::Search.call(bundle, [ "custommer" ])
+    assert_equal [ "a" ], OKF::Bundle::Search.call(bundle, [ "custommer" ], fuzzy: true).map { |row| row[:id] }
+  end
+
+  test "across labels each row with its bundle and ranks them in one corpus" do
+    one = OKF::Bundle.new(concepts: [ concept("shared", title: "Billing", body: "invoices and dunning") ])
+    two = OKF::Bundle.new(concepts: [ concept("shared", body: "billing is mentioned once") ])
+
+    rows = OKF::Bundle::Search.across([ [ "one", one ], [ "two", two ] ], [ "billing" ])
+
+    assert_equal %w[one two], rows.map { |row| row[:slug] },
+      "ids collide across bundles, so the slug is what keeps the two rows apart"
+    assert_equal %w[shared shared], rows.map { |row| row[:id] }
+    assert_operator rows.first[:score], :>, rows.last[:score]
+  end
+
+  test "a single-bundle row carries no slug key at all" do
+    bundle = OKF::Bundle.new(concepts: [ concept("a", title: "Billing") ])
+
+    refute OKF::Bundle::Search.call(bundle, [ "billing" ]).first.key?(:slug),
+      "one bundle has no slug to carry, and a nil label would project as a real field"
+  end
+
   test "regexp: true treats terms as case-insensitive Ruby patterns" do
     bundle = OKF::Bundle.new(concepts: [
                                concept("a", body: "raises ERR_DEDUP_409 on conflict"),

@@ -56,3 +56,23 @@ Style/StringConcatenation:
 Lint/AmbiguousBlockAssociation:
   Exclude:
     - "test/**/*"
+
+# A test file is a list of scenarios and the engine conformance suite is one
+# module of them: length there is coverage, not complexity. ClassLength is off
+# globally for the same reason — these two only bite because the shared suite is
+# a module of `test` blocks rather than a class.
+# inherit_mode keeps the cops' own defaults (gemspecs, Rakefiles) instead of
+# replacing them — without it, excluding test/ would silently re-enable the cop
+# on okf.gemspec.
+Metrics/BlockLength:
+  inherit_mode:
+    merge:
+      - Exclude
+  Exclude:
+    - "test/**/*"
+Metrics/ModuleLength:
+  inherit_mode:
+    merge:
+      - Exclude
+  Exclude:
+    - "test/**/*"

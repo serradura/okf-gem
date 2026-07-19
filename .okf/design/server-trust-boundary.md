@@ -2,9 +2,9 @@
 type: Constraint
 title: The server trust boundary
 description: The page sanitizes each concept body before rendering and escapes inlined data, so both XSS paths into the page are closed — served live or rendered static.
-resource: lib/okf/server/graph/template.html.erb
+resource: lib/okf/render/graph/template.html.erb
 tags: [security, server, xss]
-timestamp: 2026-07-17T14:00:00Z
+timestamp: 2026-07-18T17:00:00Z
 ---
 
 # Overview
@@ -40,11 +40,15 @@ server, and the embedded description stays server-escaped exactly as above.
 
 DOMPurify removes the code, not the content. The page still fetches and shows the
 links, images, and Mermaid diagrams a body names (Mermaid runs in its `strict`
-mode), and it pulls Cytoscape, marked, and DOMPurify from a CDN. So the rule is no
-longer _only serve bundles you trust_ — it is the ordinary care you would give any
-document from a source you do not know.
+mode), and it runs third-party code from a CDN — Cytoscape, marked and DOMPurify
+at boot, with Mermaid, Panzoom, the extra layout engines and
+[MiniSearch](../capabilities/graph-server.md) lazily on first use. Each of those
+is trust extended to the CDN as much as to the bundle; MiniSearch alone is pinned
+to an exact version (`7.2.0`), because it has to *agree* with the Ruby port rather
+than merely work. So the rule is no longer _only serve bundles you trust_ — it is
+the ordinary care you would give any document from a source you do not know.
 
 # Citations
 
 [1] [README.md — Server trust boundary](https://github.com/serradura/okf-gem/blob/main/README.md) — the two-defense summary.
-[2] [lib/okf/server/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/graph/template.html.erb) — `json_for_script` and the `DOMPurify.sanitize(marked.parse(...))` render.
+[2] [lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/lib/okf/render/graph/template.html.erb) — the inlined `EMBED` and the `DOMPurify.sanitize(marked.parse(...))` render; `json_for_script` (its `<`-escape) is the method in the sibling `render/graph.rb`.

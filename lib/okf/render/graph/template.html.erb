@@ -308,10 +308,91 @@
  #btn-menu .menudot[hidden]{display:none}
  #nav-bk{position:fixed;inset:0;z-index:74;background:rgba(0,0,0,.35)}
  #nav-bk[hidden]{display:none}
- #mnote{position:fixed;left:12px;right:12px;bottom:12px;z-index:72;display:flex;gap:10px;align-items:center;justify-content:space-between;
-  background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px;font-size:13px;color:var(--ink)}
- #mnote[hidden]{display:none}
- #mnote .btn{flex:none;width:28px;height:28px;font-size:13px}
+ /* the second beat: where the rail is folded behind ☰, a reader who has just
+    left the graph cannot see where the other views went. It sits *under the
+    button it is about*, with a caret pointing at it — a bottom sheet naming a
+    top-left control asks the reader to do the mapping. Lighter than the first
+    note in every way, because it is a nudge and not a decision. */
+ #hello2{position:fixed;top:56px;left:10px;z-index:73;max-width:250px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  padding:12px 13px 11px;color:var(--ink)}
+ #hello2[hidden]{display:none}
+ @media (min-width:769px){ #hello2{display:none} }
+ #hello2::before{content:"";position:absolute;top:-6px;left:16px;width:10px;height:10px;
+  background:var(--panel);border-left:1px solid var(--line);border-top:1px solid var(--line);transform:rotate(45deg)}
+ #hello2 .hello-dots{margin-bottom:9px}
+ #hello2 .hello2-h{margin:0 0 5px;font-size:15px;font-weight:650;line-height:1.3}
+ #hello2 .hello2-b{margin:0 0 11px;font-size:13px;line-height:1.45;color:var(--muted)}
+ #hello2 #hello2-x{min-height:40px;font-size:14px}
+ /* the first-visit note. One card at the bottom of the graph, stacked so each
+    part does one job: the question, then the action, then the gestures. It was
+    a single 13px paragraph with the action buried mid-sentence, which is the
+    one layout that fails hardest on the screen it matters most on. */
+ #hello{position:fixed;left:12px;right:12px;bottom:12px;z-index:72;
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+  padding:18px 18px 16px;color:var(--ink)}
+ @media (min-width:769px){ #hello{left:50%;right:auto;transform:translateX(-50%);width:380px} }
+ #hello[hidden]{display:none}
+ /* a *sibling* combinator, not a descendant one: the note lives outside #app,
+    next to the other fixed overlays, so `#app … #hello` matches nothing */
+ #app:not([data-view=graph]) ~ #hello{display:none}
+ /* the page's own vocabulary: the hint says "any dot", and these are what it
+    means — the graph's real node colours, at something like their real size */
+ .hello-dots{display:flex;gap:5px;margin-bottom:11px}
+ .hello-dots i{width:9px;height:9px;border-radius:50%}
+ .hello-dots i:nth-child(1){background:#6E56CF}
+ .hello-dots i:nth-child(2){background:#D97757}
+ .hello-dots i:nth-child(3){background:#22C55E}
+ #hello .hello-h{margin:0 0 13px;font-size:17px;font-weight:650;letter-spacing:-.01em;line-height:1.25}
+ /* One rule dresses both notes' buttons — they are the same guide speaking, and
+    a shared selector is what keeps them from drifting apart later. Ink-on-bg
+    rather than the accent: it is the only pairing that clears 4.5:1 in both
+    themes, and it leaves the dots as the one piece of colour in either card. */
+ #hello #hello-go,#hello2 #hello2-x{display:block;width:100%;min-height:46px;border:0;border-radius:11px;
+  background:var(--ink);color:var(--bg);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer}
+ #hello #hello-go:hover,#hello2 #hello2-x:hover{opacity:.88}
+ #hello .hello-hint{margin:13px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted)}
+ #hello #hello-x{position:absolute;top:11px;right:11px;width:34px;height:34px;font-size:13px}
+ /* Two independent questions, so two independent gates — width answers neither
+    on its own. What the reader *does* follows the pointer: a touch tablet in
+    landscape is wider than 768px and still taps, a narrow desktop window is
+    narrower and still clicks. What the reader can *reach* follows the width:
+    ☰ exists only once the rail collapses, so promising it anywhere else is a
+    lie. A pointer-less environment matches nothing and keeps the click wording,
+    which is the safe default. */
+ #hello .hello-touch{display:none}
+ @media (pointer:coarse){ #hello .hello-touch{display:inline} #hello .hello-point{display:none} }
+ #hello .hello-menu{display:none}
+ @media (max-width:768px){ #hello .hello-menu{display:inline} }
+ /* a landscape phone has width to spare and no height at all, where the stacked
+    card takes half the screen — same words, tighter setting */
+ @media (max-height:480px){
+  #hello{padding:13px 15px 12px;border-radius:14px}
+  #hello .hello-dots{margin-bottom:8px}
+  #hello .hello-h{font-size:15.5px;margin-bottom:10px}
+  #hello #hello-go{min-height:42px;font-size:14.5px}
+  #hello .hello-hint{margin-top:9px;font-size:12.5px}
+ }
+ /* and once it is short *and* wide, the stack itself is the problem: the
+    question and the action sit on one row and spend the width instead of the
+    height. Scoped to ≥769px so it stays inside the centred regime above —
+    below that the card is edge-to-edge with no transform to conflict with. */
+ @media (max-height:480px) and (min-width:769px){
+  #hello{display:grid;grid-template-columns:1fr auto;column-gap:18px;align-items:center;
+   width:min(640px,calc(100vw - 24px))}
+  #hello .hello-dots{grid-column:1/-1}
+  #hello .hello-h{grid-column:1;grid-row:2;margin:0}
+  #hello #hello-go{grid-column:2;grid-row:2;width:auto;padding:0 22px}
+  #hello .hello-hint{grid-column:1/-1;margin-top:10px}
+ }
+ @media (prefers-reduced-motion:no-preference){
+  #hello:not([hidden]){animation:hello-in .22s ease-out both}
+  @keyframes hello-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @media (min-width:769px){
+   #hello:not([hidden]){animation-name:hello-in-c}
+   @keyframes hello-in-c{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+  }
+ }
 
  /* ── catalog ── */
  .pad{padding:22px 24px;overflow:auto;flex:1}
@@ -341,24 +422,34 @@
  #ftree-resizer::after{content:"";position:absolute;right:3px;top:0;bottom:0;width:2px;background:var(--accent);opacity:0;transition:opacity .15s}
  #ftree-resizer:hover::after,#ftree-resizer.dragging::after{opacity:.7}
  .ftree-list{overflow:auto;flex:1;padding:8px}
+ /* --d is the row's depth in the tree, set inline by the renderer; the Indexes
+    tab sets none and falls back to 0, which is the flat list it wants. */
  .ffolder{display:flex;align-items:center;gap:6px;width:100%;text-align:left;border:0;background:none;cursor:pointer;font-family:inherit;
-  font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);padding:12px 8px 5px;font-weight:600}
+  font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);font-weight:600;
+  padding:12px 8px 5px calc(8px + var(--d,0)*13px)}
  .ffolder:hover{color:var(--muted)}
+ /* the root row carries the bundle's name rather than a path segment, so it is
+    set as a name: no uppercasing, and truncated instead of wrapping */
+ .ffolder.root{text-transform:none;letter-spacing:0;font-size:12px;color:var(--muted)}
+ .ffolder.root span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
  .ffolder .chev{width:11px;height:11px;flex:none;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
  .ffolder.closed .chev{transform:rotate(-90deg)}
  .file.res .fn{color:var(--muted)}
  .file .fn .ricon{width:12px;height:12px;flex:none;stroke:var(--faint);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
- .ftabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--line);flex:none;align-items:center}
+ .ftabs{display:flex;gap:6px;padding:9px 10px;border-bottom:1px solid var(--line);flex:none;align-items:center}
+ .ftree-name{font-size:12.5px;font-weight:600;color:var(--ink);padding-left:2px}
+ /* the filter that replaced the Indexes tab: pressed, it narrows the same tree
+    to the authored layer instead of swapping in a second, flat one */
+ #ftree-ixonly{height:28px;gap:5px;font-size:12px;color:var(--muted)}
+ #ftree-ixonly svg{width:13px;height:13px}
+ #ftree-ixonly[aria-pressed=true]{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent}
  /* mobile-only: collapses the stacked file list down to this tab bar */
- #ftree-min{display:none;width:28px;height:28px;flex:none;margin-bottom:4px}
+ #ftree-min{display:none;width:28px;height:28px;flex:none;margin-left:auto}
  #ftree-min svg{transition:transform .15s}
  .files-grid.tree-min #ftree-min svg{transform:rotate(180deg)}
- .ftab{flex:1;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);
-  padding:8px 10px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
- .ftab:hover{color:var(--ink)}
- .ftab.active{color:var(--ink);border-bottom-color:var(--accent)}
- /* the type/tag combos filter concepts; they mean nothing on the Indexes tab */
- #app[data-ftab=indexes] #file-controls .combo{display:none}
+ #ftree-foldall{width:28px;height:28px;flex:none}
+ #ftree-foldall svg{transition:transform .15s}
+ #ftree-foldall.all-closed svg{transform:rotate(180deg)}
  .file .fn .badge-res{margin-left:auto;flex:none;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
   color:var(--faint);background:var(--line-2);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
  /* The name needs an element of its own: as a bare text node it was an
@@ -367,13 +458,18 @@
     edge instead. overflow:hidden takes that minimum to zero, which is what lets
     the name give way and the badge stay put. */
  .file .fn .rn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
- .file{display:block;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:7px 9px;cursor:pointer;font-family:inherit;color:var(--ink)}
+ .file{display:block;width:100%;text-align:left;border:0;background:none;border-radius:8px;cursor:pointer;font-family:inherit;color:var(--ink);
+  padding:7px 9px 7px calc(8px + var(--d,0)*13px)}
  .file:hover{background:var(--panel-2)} .file.sel{background:var(--accent-soft)}
  .file .fn{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px}
  .file .fn .dot{width:7px;height:7px;border-radius:50%;flex:none}
  .file .fd{font-size:11.5px;color:var(--faint);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .fpreview{min-width:0;overflow:auto;display:flex;flex-direction:column}
  .fp-head{display:flex;align-items:center;gap:10px;padding:14px 22px;border-bottom:1px solid var(--line);flex:none}
+ /* `display:flex` outranks the UA sheet's `[hidden]{display:none}`, so the head
+    stayed on screen with nothing in it — an empty badge and a graph button
+    pointing nowhere — every time the reader had no file open. */
+ .fp-head[hidden]{display:none}
  .fp-head .title{margin:0;font-size:16px}
  .fp-body{padding:20px 28px;overflow:auto;flex:1}
  .fp-body .body{border-top:0;padding-top:0;margin-top:0}
@@ -451,6 +547,17 @@
   #bar-tools .search{min-width:0;max-width:none;flex:1 1 auto} /* search spans the full sheet width */
   #app.controls-open #graph-controls,#app.controls-open #file-controls{flex-wrap:wrap}
   #app.controls-open #file-controls .combo{flex:1 1 44%;width:auto;min-width:130px}
+  /* Wrapping by whatever happened to fit left one icon orphaned on a line of its
+     own. The two controls carrying words take a column each, so the first line
+     is two even halves; the icon buttons then get a line to themselves and
+     spread across it. */
+  #app.controls-open #graph-controls{gap:8px}
+  #app.controls-open #graph-controls>#btn-filters,
+  #app.controls-open #graph-controls>.selwrap{flex:1 1 calc(50% - 4px);min-width:0}
+  /* the select has to grow with its wrapper. Stretching only the wrapper left
+     the control at its natural width with the chevron pinned to the wrapper's
+     far edge — a chevron floating over dead space, and every click on it lost. */
+  #app.controls-open #graph-controls>.selwrap>#layout{width:100%}
   /* the graph inspector takes the whole viewport — the ✕ closes it; widening,
      drag-resizing, and the topbar panel toggle have no job at this size
      (grid-template beats the resizer's inline --side-w) */
@@ -476,11 +583,11 @@
  /* ── tablet and up: the panes stay side-by-side, but the same chevron folds
     the whole list column into a slim strip so the reader takes the width ── */
  @media (min-width:769px){
-  #ftree-min{display:inline-grid;margin-left:auto}
+  #ftree-min{display:inline-grid}
   #ftree-min svg{transform:rotate(90deg)}
   .files-grid.tree-min #ftree-min svg{transform:rotate(-90deg)}
   .files-grid.tree-min{grid-template-columns:auto 1fr}
-  .files-grid.tree-min .ftree-list,.files-grid.tree-min .ftab,.files-grid.tree-min #ftree-resizer{display:none}
+  .files-grid.tree-min .ftree-list,.files-grid.tree-min .ftabs,.files-grid.tree-min #ftree-resizer{display:none}
  }
  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style></head>
@@ -541,6 +648,8 @@
      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" opacity=".45"/><circle cx="9" cy="9" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1.9" fill="currentColor" stroke="none"/><circle cx="11" cy="15" r="1.9" fill="currentColor" stroke="none"/></svg></button>
     <button class="btn" id="btn-tree" type="button" aria-label="File tree" aria-pressed="false" title="File tree: folders and files, parent-to-child edges only">
      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M12 12H6v4M12 12h6v4"/></svg></button>
+    <button class="btn" id="btn-ix" type="button" aria-label="Show indexes" aria-pressed="false" title="Draw the index.md map layer alongside the concepts">
+     <svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></button>
     <button class="btn" id="btn-panel" type="button" aria-label="Toggle inspector" aria-pressed="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
    </div>
    </div>
@@ -606,9 +715,12 @@
    <section class="view" id="view-files">
     <div class="files-grid">
      <div class="ftree">
-      <div class="ftabs" role="tablist" aria-label="File kinds">
-       <button class="ftab active" id="ftab-files" type="button" role="tab" aria-selected="true">Files</button>
-       <button class="ftab" id="ftab-indexes" type="button" role="tab" aria-selected="false">Indexes</button>
+      <div class="ftabs">
+       <span class="ftree-name">Files</span>
+       <button class="btn text" id="ftree-ixonly" type="button" aria-pressed="false" title="Show only index.md and log.md">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg><span>Indexes only</span></button>
+       <button class="btn" id="ftree-foldall" type="button" aria-label="Collapse all folders" title="Collapse all folders">
+        <svg viewBox="0 0 24 24"><path d="m7 13 5-5 5 5"/><path d="m7 19 5-5 5 5"/></svg></button>
        <button class="btn" id="ftree-min" type="button" aria-label="Collapse file list" aria-expanded="true" aria-controls="ftree-list">
         <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
       </div>
@@ -685,24 +797,48 @@
 </div>
 
 <div id="nav-bk" hidden></div>
-<div id="mnote" hidden role="note">
- <span>Best experienced on a desktop — tap ☰ for views, pinch to zoom, tap a concept to read it.</span>
- <button class="btn" id="mnote-x" type="button" aria-label="Dismiss">✕</button>
+<div id="hello2" hidden role="note" aria-labelledby="hello2-h">
+ <span class="hello-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+ <p class="hello2-h" id="hello2-h">Tap ☰ for the other views</p>
+ <p class="hello2-b">Graph, Files, Catalog, Tags and Stats.</p>
+ <button id="hello2-x" type="button">Got it</button>
+</div>
+<div id="hello" hidden role="note" aria-labelledby="hello-h">
+ <button class="btn" id="hello-x" type="button" aria-label="Dismiss">✕</button>
+ <span class="hello-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+ <p class="hello-h" id="hello-h">First time here?</p>
+ <button id="hello-go" type="button">Read the index</button>
+ <p class="hello-hint">
+  <span class="hello-point">Or click any dot to read that concept. Scroll to zoom, drag to pan.</span>
+  <span class="hello-touch">Or tap any dot to read that concept. Pinch to zoom, drag to pan.</span>
+  <span class="hello-menu"> ☰ opens the other views.</span>
+ </p>
 </div>
 
 <script>
 const NODES=<%= nodes_json %>, EDGES=<%= edges_json %>, TYPES=<%= types_json %>, TAGS=<%= tags_json %>;
 const NODE_ENDPOINT=<%= @node_endpoint.to_json %>, META_ENDPOINT=<%= @meta_endpoint.to_json %>;
+const BUNDLE=<%= name_json %>;
 const CATALOG_ENDPOINT="catalog",INDEX_ENDPOINT="index",LOG_ENDPOINT="log";
 /* The hub's bundle switcher (⌘/Ctrl-K). SIBLINGS is empty for a standalone
    server and for `okf render`, so a single bundle or a static file offers none. */
 const SIBLINGS=<%= siblings_json %>, SELF_SLUG=<%= self_slug_json %>, HUB_PATH=<%= hub_path_json %>;
 /* null when served live (`okf server`) — the getters below fetch the endpoints
-   above. `okf render` injects a payload {catalog,index,logs,bodies,meta}, and
-   every getter resolves from it instead, so one file needs no server and the
-   endpoint consts above go inert. */
+   above. `okf render` injects a payload {catalog,index,logs,bodies}, and every
+   getter resolves from it instead (the /node/meta fragment derived from the
+   catalog), so one file needs no server and the endpoint consts above go inert. */
 const EMBED=<%= embed_json %>;
-const MIN=<%= OKF::Server::Graph::MIN_SIZE %>, MAX=<%= OKF::Server::Graph::MAX_SIZE %>;
+/* Full-text search state (MiniSearch, lazy — built on first search). One ranked
+   index behind the search box for the graph, catalog and files views. It indexes
+   title/id/type/tags/description in every mode, plus each concept body wherever
+   the page already holds it: `okf render` bakes every body in, so a static file
+   searches bodies offline; the live server keeps bodies lazy, so its index stays
+   metadata-only until a backend body index arrives. Same 7.2.0 build and config
+   as the Ruby port, so a Ruby-built index and this one rank identically. */
+const FT_FIELDS=['title','id','type','tags','description'].concat(EMBED?['body']:[]);
+let _MiniSearch=null,ftIndex=null,ftBuilding=null;
+const descOf={};
+const MIN=<%= OKF::Render::Graph::MIN_SIZE %>, MAX=<%= OKF::Render::Graph::MAX_SIZE %>;
 const PALETTE=["#6E56CF","#D97757","#22C55E","#3B82F6","#EAB308","#EC4899","#14B8A6","#F97316","#A855F7","#0EA5E9","#84CC16","#EF4444","#64748B"];
 const root=document.documentElement;
 const byId=Object.fromEntries(NODES.map(n=>[n.id,n]));
@@ -733,13 +869,32 @@ function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('-
    'font-size':10,'font-weight':500,'text-wrap':'wrap','text-max-width':120,'text-valign':'bottom','text-margin-y':5,
    'text-outline-width':2.5,'text-outline-color':halo,'min-zoomed-font-size':7,'border-width':0,'width':'data(sz)','height':'data(sz)'}},
   {selector:'edge',style:{'width':1.2,'line-color':edge,'target-arrow-color':edge,'target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.8}},
-  {selector:'.dim',style:{'opacity':.1}},
-  {selector:'.hl',style:{'border-width':3,'border-color':cvar('--accent')}},
-  {selector:'node.dir',style:{'shape':'round-rectangle','background-color':cvar('--faint'),'background-opacity':.85,
-   'font-size':9.5,'font-weight':600,'color':cvar('--muted')}},
-  {selector:'edge.tree',style:{'width':1.1,'opacity':.7,'target-arrow-shape':'none'}},
+  /* A folder node and a map node are the same thing twice over — clicking
+     either opens that directory's index — so they converge on one look instead
+     of parting by mode: an accent square, never a concept's circle, with the
+     edges into it dashed. Colour separates *kinds* here, not modes; a directory
+     is not a concept and should not read as one. */
+  {selector:'node.dir,node.ix',style:{'shape':'round-rectangle','background-color':cvar('--accent'),'background-opacity':.9,
+   'font-size':9.5,'font-weight':700,'color':cvar('--ink')}},
+  {selector:'edge.tree',style:{'width':1.1,'opacity':.7,'line-style':'dashed','target-arrow-shape':'none'}},
+  /* what separates the two maps is authorship, not hue: a directory the bundle
+     only implies is hollow and dashed, which is the same "not really there"
+     the dashed edges say. */
+  /* authorship still shows as form: a map nobody wrote is hollow and dashed */
+  {selector:'node.ix-syn',style:{'background-color':cvar('--faint'),'background-opacity':.2,'color':cvar('--muted'),
+   'border-width':1.5,'border-color':cvar('--faint'),'border-style':'dashed'}},
+  {selector:'edge.ixe',style:{'width':1,'opacity':.5,'line-style':'dashed','line-color':cvar('--edge'),'target-arrow-shape':'none'}},
+  {selector:'edge.ixe-syn',style:{'opacity':.3}},
   {selector:'edge.linkhid',style:{'display':'none'}},
-  {selector:':parent',style:{'background-color':cvar('--ink'),'background-opacity':0.05,'border-width':1,'border-color':cvar('--edge'),'shape':'round-rectangle','padding':26,'label':'data(label)','color':cvar('--ink'),'font-size':13,'font-weight':600,'text-valign':'top','text-halign':'center','text-margin-y':-8,'min-zoomed-font-size':0,'text-outline-width':3,'text-outline-color':cvar('--canvas')}}
+  {selector:':parent',style:{'background-color':cvar('--ink'),'background-opacity':0.05,'border-width':1,'border-color':cvar('--edge'),'shape':'round-rectangle','padding':26,'label':'data(label)','color':cvar('--ink'),'font-size':13,'font-weight':600,'text-valign':'top','text-halign':'center','text-margin-y':-8,'min-zoomed-font-size':0,'text-outline-width':3,'text-outline-color':cvar('--canvas')}},
+  /* ── state, last so it outranks every look above ──
+     Cytoscape resolves equal-specificity selectors by array order, so a base
+     rule declared after `.dim` beats it. `edge.tree` and `edge.ixe` each set
+     their own opacity, which meant neither ever dimmed: a map's dashed edges
+     sat at half opacity across the whole graph, and selecting one emphasised
+     nothing. Dim and highlight are states, not looks — they go last. */
+  {selector:'.dim',style:{'opacity':.1}},
+  {selector:'.hl',style:{'border-width':3,'border-color':cvar('--accent')}}
  ];}
 /* Only the floor for a graph that already fits. "Far enough out to see
    everything" is not a constant — a big bundle, especially clustered by area
@@ -906,7 +1061,7 @@ interceptMdLinks(document.getElementById('fp-body'),()=>fileSel,id=>openFile(id)
 function showDir(dir){getIndex().then(dirs=>{const d=dirs.find(x=>x.dir===dir);if(!d)return;
  const opened=openPanel();sideBody.scrollTop=0;
  shownId=d.dir==='.'?'index':d.dir+'/index'; /* pseudo-id: relative links in the map resolve against its directory */
- const label=d.dir==='.'?'(root)':d.dir+'/';
+ const label=d.dir==='.'?BUNDLE:d.dir+'/';
  const types=Object.entries(d.types||{}).map(([t,n])=>esc(t||'Untyped')+' '+n).join(' · ');
  sideBody.innerHTML=`<span class="type">${d.present?'index.md':'no index.md · synthesized'}</span>
   <h2 class="title">${esc(label)}</h2>
@@ -925,10 +1080,14 @@ function showLog(path){LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.pa
  if(opened)requestAnimationFrame(()=>cy.resize());});}
 /* Two per-concept reads shared by the inspector and the files preview: the raw
    markdown body (rendered client-side) and the description fragment. Live they
-   hit /node and /node/meta; under EMBED they resolve from the baked payload.
+   hit /node and /node/meta; under EMBED the body resolves from the baked payload
+   and the meta fragment is derived from the baked catalog — escaped here the same
+   way /node/meta escapes it — so the description lives in exactly one place.
    Never memoized in server mode, so on-disk edits keep reflecting. */
+const EMBED_DESC=EMBED?Object.fromEntries((EMBED.catalog||[]).map(c=>[c.id,c.description||''])):null;
+const metaFragment=d=>(d==null||String(d).trim()==='')?'<span class="empty">no description</span>':esc(d);
 function getNodeBody(id){return EMBED?Promise.resolve(EMBED.bodies[id]||''):fetch(NODE_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
-function getNodeMeta(id){return EMBED?Promise.resolve(EMBED.meta[id]||''):fetch(META_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
+function getNodeMeta(id){return EMBED?Promise.resolve(metaFragment(EMBED_DESC[id])):fetch(META_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
 function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Untyped';const c=color[ty]||'#64748b';
  shownId=id;const opened=openPanel();sideBody.scrollTop=0;
  sideBody.innerHTML=`<button type="button" class="type facet" data-focus-type="${esc(ty)}" title="Show only ${esc(ty)} in the graph"><span class="dot" style="background:${c}"></span>${esc(ty)}</button>
@@ -959,25 +1118,44 @@ let centerTimer;
 function centerOn(ele,delay){clearTimeout(centerTimer);
  const go=()=>{cy.resize();cy.stop();cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});};
  if(delay)centerTimer=setTimeout(go,260);else{cy.stop();cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});}}
+/* Emphasise a node and its immediate neighbourhood. One gesture for a concept,
+   a folder and a map: selection should mean the same thing on this canvas
+   whatever was selected, and it used to mean three things — a concept dimmed the
+   rest, a map did nothing, a folder node did nothing either. */
+function focusNode(ele,opened){if(!ele||!ele.length)return;
+ cy.elements().removeClass('hl').addClass('dim');
+ ele.closedNeighborhood().removeClass('dim');ele.addClass('hl');
+ centerOn(ele,opened);}
 function select(id){const ele=cy.getElementById(id);if(!ele.length)return;const opened=show(id);
- cy.elements().removeClass('hl').addClass('dim');const nb=ele.closedNeighborhood();nb.removeClass('dim');ele.addClass('hl');
- centerOn(ele,opened);
+ focusNode(ele,opened);
  try{if(decodeURIComponent((location.hash||'').slice(1))!==id)location.hash=encodeURIComponent(id);}catch(e){}}
 cy.on('tap','node',e=>{const t=e.target;
- if(t.hasClass('dir'))return showDir(t.id().slice(DIR.length)||'.');
+ if(t.hasClass('dir')){showDir(t.id().slice(DIR.length)||'.');return focusNode(t,true);}
+ if(t.hasClass('ix')){showDir(t.data('dir')||'.');return focusNode(t,true);}
  if(t.isParent()){const a=t.id().indexOf('area::')===0?t.id().slice(6):null;return showDir(a&&a!=='(root)'?a:'.');}
  select(t.id());});
-cy.on('tap',e=>{if(e.target===cy)cy.elements().removeClass('dim hl');});
+/* Clear the focus: drop the dim/highlight and let the hash forget the node, so a
+   reload does not reselect it. Tapping empty canvas does this — but a dense graph
+   leaves almost no empty canvas to hit, so Esc is bound to it too (keydown). */
+function deselect(){cy.elements().removeClass('dim hl');try{if(location.hash)history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
+cy.on('tap',e=>{if(e.target===cy)deselect();});
 
 /* ── graph filters (slide-over) ── */
 const hiddenTypes=new Set(), activeTags=new Set(), activeAreas=new Set();
 const searchInput=document.getElementById('search');
 const q={graph:'',catalog:'',files:'',tags:''};
-function applyGraphFilter(){const s=q.graph.toLowerCase();
- cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir'))return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
-  const hay=(n.data('title')+' '+t+' '+nt.join(' ')).toLowerCase();
-  const m=(!s||hay.includes(s))&&!hiddenTypes.has(t)&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
+function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.graph);
+ cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir')||n.hasClass('ix'))return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
+  const hay=(n.data('title')+' '+t+' '+nt.join(' ')+' '+(descOf[id]||'')).toLowerCase();
+  const txt=ids?ids.has(id):(!s||hay.includes(s));
+  const m=txt&&!hiddenTypes.has(t)&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
   n.style('display',m?'element':'none');});
+ /* Cluster mode draws an area box around each group's concepts. When a filter
+    hides every concept in a group, hide the now-empty box too (and bring it back
+    when one survives) — the same rule fitBox already uses to leave stale boxes
+    out of the fit, now applied to what is drawn. */
+ cy.nodes(':parent').forEach(p=>p.style('display',p.children().some(c=>c.style('display')!=='none')?'element':'none'));
+ ixVisibility();
  relaxZoom();}
 function fbadge(){const c=hiddenTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;ctlBadge();syncFacets();}
@@ -1090,6 +1268,11 @@ function setClustered(on){if(on===clustered)return;if(on&&treeMode)setTree(false
  if(on){const as=[...new Set(NODES.map(n=>areaOf(n.id)))];
   cy.add(as.map(a=>({group:'nodes',data:{id:'area::'+a,label:a}})));
   cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length)e.move({parent:'area::'+areaOf(n.id)});}));
+  /* A box is made for every area; if a search or filter was already narrowing
+     the graph, the areas it emptied would cluster as phantom boxes. Re-apply the
+     filter now — before the layout tiles them — so empty areas never get drawn.
+     (Filtering while already clustered runs applyGraphFilter on its own.) */
+  applyGraphFilter();
   clusterLayout();
  }else{
   cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length&&e.isChild())e.move({parent:null});}));
@@ -1103,12 +1286,13 @@ let treeMode=false;const btnTree=document.getElementById('btn-tree');
 const DIR='dir::';
 function setTree(on){if(on===treeMode)return;if(on&&clustered)setClustered(false);
  treeMode=on;btnTree.setAttribute('aria-pressed',String(on));layoutSel.disabled=on;btnCluster.disabled=on;
+ btnIx.disabled=on;if(on&&ixNodes)setIxNodes(false,false);
  if(on){
   const dirs=new Set(['']);
   NODES.forEach(n=>{const parts=n.id.split('/');for(let i=1;i<parts.length;i++)dirs.add(parts.slice(0,i).join('/'));});
   cy.batch(()=>{
    cy.add([...dirs].map(d=>({group:'nodes',classes:'dir',
-    data:{id:DIR+d,title:d?d.split('/').pop()+'/':'/',c:cvar('--faint'),sz:d?20:28}})));
+    data:{id:DIR+d,title:d?d.split('/').pop()+'/':BUNDLE,c:cvar('--accent'),sz:d?20:28}})));
    [...dirs].forEach(d=>{if(!d)return;const p=d.split('/').slice(0,-1).join('/');
     cy.add({group:'edges',classes:'tree',data:{id:'tree::'+d,source:DIR+p,target:DIR+d}});});
    NODES.forEach(n=>{const p=n.id.split('/').slice(0,-1).join('/');
@@ -1124,13 +1308,69 @@ function setTree(on){if(on===treeMode)return;if(on&&clustered)setClustered(false
   cy.batch(()=>{cy.edges('.tree').remove();cy.nodes('.dir').remove();cy.edges().removeClass('linkhid');});
   runLayout(layoutSel.value);}}
 btnTree.onclick=()=>setTree(!treeMode);
+/* ── the authored layer, drawn ──
+   The §6 map used to be visible only inside file-tree mode, where a folder node
+   stood in for a directory's index.md. It is a layer of its own now: switch it
+   on under any layout and each `index.md` becomes a node, edged to the concepts
+   it maps and to the child maps beneath it. Cluster and tree mode still work —
+   tree already draws folders, so it disables the toggle rather than doubling it.
+
+   These nodes are *drawn, never modelled*. index.md is reserved (it is not a
+   concept), and the page must not be the place that quietly decides otherwise:
+   they are built from /index straight onto the canvas, so NODES, /catalog and
+   the type and tag indexes never learn they exist. */
+const IX='ix::';
+let ixNodes=false,IXROWS=[],ixSeq=0;
+const btnIx=document.getElementById('btn-ix');
+/* `relayout:false` says a caller owns the layout and is about to run its own —
+   without it the teardown's layout and file-tree mode's breadthfirst raced over
+   the same canvas, and the tree landed wrong until it was clicked again. The
+   ticket covers the other direction: the add is async, so a toggle flipped or a
+   mode entered while /index is in flight has to cancel the landing. */
+function setIxNodes(on,relayout){if(on===ixNodes)return Promise.resolve();
+ ixNodes=on;btnIx.setAttribute('aria-pressed',String(on));
+ const seq=++ixSeq;
+ if(!on){IXROWS=[];cy.batch(()=>{cy.edges('.ixe').remove();cy.nodes('.ix').remove();});
+  if(relayout!==false)runLayout(layoutSel.value);return Promise.resolve();}
+ return getIndex().then(dirs=>{if(seq!==ixSeq||!ixNodes||treeMode)return;IXROWS=dirs||[];
+  cy.batch(()=>{
+   IXROWS.forEach(d=>{const syn=!!d.synthesized;
+    cy.add({group:'nodes',classes:'ix'+(syn?' ix-syn':''),
+     data:{id:IX+d.dir,dir:d.dir,title:d.dir==='.'?BUNDLE:d.dir.split('/').pop()+'/',
+      c:cvar(syn?'--faint':'--accent'),sz:d.dir==='.'?30:22}});});
+   /* map → the maps below it, and map → each concept it lists. A listing entry
+      whose node is missing is skipped rather than conjuring a dangling edge. */
+   IXROWS.forEach(d=>(d.subdirs||[]).forEach(sub=>{
+    if(cy.getElementById(IX+sub).length)
+     cy.add({group:'edges',classes:'ixe',data:{id:'ixe::'+d.dir+'>'+sub,source:IX+d.dir,target:IX+sub}});}));
+   IXROWS.forEach(d=>(d.listing||[]).forEach(it=>{
+    if(cy.getElementById(it.id).length)
+     cy.add({group:'edges',classes:'ixe'+(d.synthesized?' ixe-syn':''),data:{id:'ixe::n::'+d.dir+'::'+it.id,source:IX+d.dir,target:it.id}});}));
+  });
+  applyGraphFilter();runLayout(layoutSel.value);});}
+btnIx.onclick=()=>setIxNodes(!ixNodes);
+/* A map whose concepts are all filtered away has nothing left to point at, so it
+   leaves with them — the same rule that keeps emptied area boxes off the canvas.
+   Deepest first, because a parent map survives on a surviving child. */
+function ixVisibility(){if(!ixNodes||!IXROWS.length)return;
+ const depth=d=>d==='.'?0:d.split('/').length;
+ const rows=IXROWS.slice().sort((a,b)=>depth(b.dir)-depth(a.dir));
+ const on={};
+ rows.forEach(d=>{
+  const anyConcept=(d.listing||[]).some(it=>{const n=cy.getElementById(it.id);return n.length&&n.style('display')!=='none';});
+  const anyChild=(d.subdirs||[]).some(sub=>on[sub]);
+  on[d.dir]=anyConcept||anyChild;});
+ rows.forEach(d=>{const n=cy.getElementById(IX+d.dir);if(n.length)n.style('display',on[d.dir]?'element':'none');});}
 /* A reserved file's "Open in graph": switch to the file tree, select its
    folder node, and put the directory's map in the inspector. */
-function openInTree(dir){setView('graph');setTree(true);
- showDir(dir);
- requestAnimationFrame(()=>{const ele=cy.getElementById(DIR+(dir==='.'?'':dir));if(!ele.length)return;
-  cy.elements().removeClass('hl').addClass('dim');ele.closedNeighborhood().removeClass('dim');ele.addClass('hl');
-  centerOn(ele,true);});}
+function openMapInGraph(dir){setView('graph');showDir(dir);
+ /* Already in file-tree mode: that view *is* the map, so focus its folder node
+    and keep the neighbourhood emphasis the mode is for. */
+ if(treeMode){requestAnimationFrame(()=>focusNode(cy.getElementById(DIR+(dir==='.'?'':dir)),true));return;}
+ /* Otherwise switch the *layer* on rather than the mode: the reader asked to see
+    this map in the graph, not to be handed a different graph. The layout they
+    chose survives, and the map is emphasised exactly as a concept would be. */
+ setIxNodes(true).then(()=>focusNode(cy.getElementById(IX+dir),true));}
 
 /* ── fit to screen ── */
 // cy.animate({fit:…}) is a no-op in this Cytoscape build, so compute the target
@@ -1182,17 +1422,17 @@ function setView(v){if(v===view)return;view=v;document.getElementById('app').set
  const ph=SEARCH_PH[v];
  if(ph!==undefined){searchInput.placeholder=ph;searchInput.value=q[v]||'';}
  if(v==='graph')requestAnimationFrame(()=>cy.resize());
+ if(v!=='graph')hello2();
  if(v==='catalog'&&!inited.catalog)initCatalog();
  if(v==='files'&&!inited.files)initFiles();
  if(v==='tags'&&!inited.tags)initTags();
  if(v==='stats'&&!inited.stats)initStats();}
 /* The Files view answers to two rail items: Files when the Files tab is up,
    Index when the Indexes tab is — the Index rail item is a shortcut into it. */
-/* Which rail item the page is standing on. "index" is not a view — there is no
-   #view-index — but the files view showing its Indexes tab, so the answer is a
-   question of view *and* tab. Everything that has to name the current place
-   asks here: the rail's own highlight, and the palette's `current` badge. */
-function activeRail(){return view==='files'&&typeof ftab!=='undefined'&&ftab==='indexes'?'index':view;}
+/* Which rail item the page is standing on. It was a question of view *and*
+   tab, back when "index" was a rail item with no #view-index behind it. The
+   tab is gone and so is the pretence: a rail item is a view. */
+function activeRail(){return view;}
 /* And everything that has to *go* somewhere clicks the rail item rather than
    calling setView: Index and Files are one view differing by tab, so setView
    alone lands on whichever tab was last open — and for "index" it lands on a
@@ -1201,18 +1441,77 @@ function activeRail(){return view==='files'&&typeof ftab!=='undefined'&&ftab==='
 function goRail(v){const b=document.querySelector('.rail-item[data-view="'+v+'"]');if(b)b.click();}
 function railActive(){const v=activeRail();
  document.querySelectorAll('.rail-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));}
-function goIndexes(){if(view!=='files')setView('files');setFtab('indexes');railActive();}
+/* The root map, opened. There is no longer a view to send anyone to instead:
+   index.md is a row in the tree like any other, so "read the index" can only
+   mean the file. */
+function readIndex(){setView('files');openReserved('index','index.md');}
+/* The second beat, and only where it is true: above 768px the rail is on screen
+   and needs no introduction. It fires on *leaving the graph* rather than off the
+   first note's button, so the reader who dismissed that note and found their own
+   way still gets told where the views went. Opening the menu answers it — the
+   reader has demonstrably found ☰, so the note stops asking. */
+function hello2Done(){const h=document.getElementById('hello2');
+ /* only a note on screen can be answered. ☰ is the *only* way off the graph on
+    a compact layout, so the first tap always comes before the note — marking it
+    done there would burn the flag on a hint the reader never saw. */
+ if(h.hidden)return;
+ h.hidden=true;try{localStorage.setItem('okf-hello2','1');}catch(err){}}
+function hello2(){try{
+ if(localStorage.getItem('okf-hello2'))return;
+ if(!matchMedia('(max-width:768px)').matches)return;
+ document.getElementById('hello2').hidden=false;
+}catch(err){}}
+document.getElementById('hello2-x').addEventListener('click',hello2Done);
+/* Index is a shortcut, not a view: it opens the root map exactly as the
+   first-visit note's button does. Keeping it in the rail (and so in the palette,
+   which reads the rail) costs nothing now that `activeRail()` answers with the
+   view it lands on — Files — so nothing has to invent a place for it to be. */
 document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>{
- if(b.dataset.view==='index')return goIndexes();
- if(b.dataset.view==='files'&&typeof ftab!=='undefined'&&ftab!=='files'){if(view!=='files')setView('files');setFtab('files');railActive();return;}
+ if(b.dataset.view==='index')return readIndex();
  setView(b.dataset.view);});
-searchInput.oninput=()=>{q[view]=searchInput.value;
- if(view==='graph')applyGraphFilter();else if(view==='catalog')renderCatalog();else if(view==='tags')renderCloud();
- else if(view==='files')refreshTree();};
+/* ── full-text search (MiniSearch, lazy) ──
+   loadScript-loads the pinned build on first focus, then builds one index over
+   FT_FIELDS. combineWith:'AND' + prefix keeps as-you-type search intuitive;
+   fuzzy:0.2 tolerates typos; the boosts mirror the Ruby port's field weights
+   (title>id>tags>type=description>body). Until it is ready — or if the CDN is
+   unreachable — ftMatch returns null and each view keeps its substring filter,
+   so the box is never dead. */
+function loadMiniSearch(){return _MiniSearch||(_MiniSearch=loadScript('https://cdn.jsdelivr.net/npm/minisearch@7.2.0/dist/umd/index.js').then(()=>window.MiniSearch));}
+function buildFtIndex(){return ftIndex?Promise.resolve(ftIndex):(ftBuilding||(ftBuilding=Promise.all([loadMiniSearch(),getCatalog()]).then(([MiniSearch,list])=>{
+ const idx=new MiniSearch({idField:'id',fields:FT_FIELDS,storeFields:['id'],
+  extractField:(doc,f)=>f==='tags'?(doc.tags||[]).join(' '):f==='body'?((EMBED&&EMBED.bodies[doc.id])||''):(doc[f]==null?'':String(doc[f])),
+  searchOptions:{prefix:true,fuzzy:0.2,combineWith:'AND',boost:{title:5,id:4,tags:3,type:2,description:2,body:1}}});
+ idx.addAll(list);ftIndex=idx;
+ if((view==='graph'||view==='catalog'||view==='files')&&(q[view]||'').trim())applySearch();
+ return idx;}).catch(()=>{ftBuilding=null;return null;})));}
+/* The ranked set of ids a query matches, or null → the caller keeps its own
+   substring filter (index not ready, or an empty query that shows everything). */
+function ftMatch(text){const t=(text||'').trim();if(!ftIndex||!t)return null;return new Set(ftIndex.search(t).map(r=>r.id));}
+/* The Indexes tab lists the authored reserved files (log.md + each index.md).
+   Those are not concepts, so they ride in a second small index keyed by path,
+   over each file's path and its body/content — same engine, so the Indexes tab
+   searches full text just like the concept views instead of matching only the
+   filename. Built lazily on the first search while that tab is open. */
+let ftResIndex=null,ftResBuilding=null;
+function buildFtResIndex(){return ftResIndex?Promise.resolve(ftResIndex):(ftResBuilding||(ftResBuilding=Promise.all([loadMiniSearch(),getIndex(),getLogs()]).then(([MiniSearch,dirs,logs])=>{
+ const docs=[];
+ logs.forEach(l=>docs.push({id:'log:'+l.path,path:l.path,text:l.path+' '+(l.content||'')}));
+ dirs.forEach(d=>{if(d.present)docs.push({id:'idx:'+d.index_path,path:d.index_path,text:d.index_path+' '+(d.body||'')});});
+ const idx=new MiniSearch({idField:'id',fields:['path','text'],storeFields:['path'],searchOptions:{prefix:true,fuzzy:0.2,combineWith:'AND',boost:{path:3,text:1}}});
+ idx.addAll(docs);ftResIndex=idx;
+ if(view==='files'&&(q.files||'').trim())refreshTree();
+ return idx;}).catch(()=>{ftResBuilding=null;return null;})));}
+function ftResMatch(text){const t=(text||'').trim();if(!ftResIndex||!t)return null;return new Set(ftResIndex.search(t).map(r=>r.path));}
+function applySearch(){if(view==='graph')applyGraphFilter();else if(view==='catalog')renderCatalog();else if(view==='tags')renderCloud();else if(view==='files')refreshTree();}
+searchInput.oninput=()=>{q[view]=searchInput.value;buildFtIndex();applySearch();};
+searchInput.onfocus=()=>{buildFtIndex();};
 
 /* ── catalog ── */
 let CATALOG=null;
-function getCatalog(){return CATALOG||(CATALOG=EMBED?Promise.resolve(EMBED.catalog):fetch(CATALOG_ENDPOINT).then(r=>r.json()).then(d=>d.concepts));}
+/* Resolves the rich per-concept rows once (inlined under EMBED, fetched live
+   otherwise) and fills descOf on the way, so even the pre-index substring
+   fallback can match a graph node by its leaf description. */
+function getCatalog(){return CATALOG||(CATALOG=(EMBED?Promise.resolve(EMBED.catalog):fetch(CATALOG_ENDPOINT).then(r=>r.json()).then(d=>d.concepts)).then(list=>{list.forEach(c=>{descOf[c.id]=c.description||'';});return list;}));}
 const catActiveTypes=new Set(), catActiveAreas=new Set(), catActiveTags=new Set();
 const catByCount=types.slice().sort((a,b)=>(TYPES[b]||[]).length-(TYPES[a]||[]).length);
 const catChip=t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} <span class="c">${(TYPES[t]||[]).length}</span></span>`;
@@ -1242,10 +1541,11 @@ function initCatalog(){inited.catalog=true;
  document.getElementById('cat-filters-reset').onclick=()=>{catActiveTypes.clear();catActiveAreas.clear();catActiveTags.clear();renderCatFilters();renderCatalog();};
  document.getElementById('cat-filter-search').oninput=renderCatFilters;
  getCatalog().then(renderCatalog);}
-function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.catalog||'').toLowerCase();
+function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.catalog||'').toLowerCase();const ids=ftMatch(q.catalog);
  const rows=list.filter(c=>{if(catActiveTypes.size&&!catActiveTypes.has(c.type))return false;
   if(catActiveAreas.size&&!catActiveAreas.has(areaOf(c.id)))return false;
   if(catActiveTags.size&&!c.tags.some(t=>catActiveTags.has(t)))return false;
+  if(ids)return ids.has(c.id);
   if(s){const hay=(c.title+' '+c.description+' '+c.type+' '+c.tags.join(' ')+' '+c.id).toLowerCase();if(!hay.includes(s))return false;}return true;});
  document.getElementById('cat-cnt').textContent=rows.length+' of '+list.length+' concepts';
  const g=document.getElementById('cat-grid');
@@ -1270,44 +1570,130 @@ function initFiles(){inited.files=true;refreshTree();}
    chronological index), then every index.md, root before nested. Reserved
    files come from the /index and /log payloads — they are not concepts, so
    the catalog cannot know them. */
-let IXDIRS=null,LOGPATHS=null,ftab='files';
+let IXDIRS=null,LOGPATHS=null;
+let ixOnly=false;
 const collapsedDirs=new Set();
+let lastFileDirs=[];
+const foldAllBtn=document.getElementById('ftree-foldall');
 function dirOfPath(p){return p.indexOf('/')<0?'.':p.split('/').slice(0,-1).join('/');}
+/* Folding the files list down to its header. Lives out here because the tree
+   itself has a reason to call it: on a compact layout the list is stacked on
+   top of the reader, so a list with nothing left in it should hand the screen
+   back rather than sit there empty. */
+let foldedByRoot=false;
+function treeMin(on){const g=document.querySelector('.files-grid'),b=document.getElementById('ftree-min');
+ if(!g||!b)return;g.classList.toggle('tree-min',on);
+ b.setAttribute('aria-expanded',on?'false':'true');
+ b.setAttribute('aria-label',on?'Expand file list':'Collapse file list');}
+/* Every parent→child step on the way from a directory up to the root. The tree
+   is built from these rather than from the directory names alone, so a folder
+   holding nothing but folders still renders as their parent: `core` has to exist
+   for `core/configurations` to sit inside it, even when no file lives in `core`. */
+function dirParents(dir){const out=[];let d=dir;
+ while(d!=='.'){const p=dirOfPath(d);out.push([ p,d ]);d=p;}
+ return out;}
+/* One reserved row. `label` is what the reader reads: the bare filename when the
+   row sits inside the folder that owns it, the whole path when it stands in for
+   that folder. `data-path` is the real one either way. */
+function resRow(r,depth,label){
+ const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
+ return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}" title="${esc(r.path)}" style="--d:${depth}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg><span class="rn">${esc(label)}</span><span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}
+/* Narrowed to the authored layer, a folder owns exactly one row — so its header
+   is a line of chrome per map, and a reader scrolls twice as far to read half as
+   much. The row stands where the header stood, at the folder's own depth and
+   carrying the path: the flat list the tab used to show, with the nesting still
+   legible in the indent. */
+function flatRes(res){
+ const dirs=Object.keys(res).sort((a,b)=>a==='.'?-1:b==='.'?1:(a<b?-1:1));
+ return dirs.map(d=>{const depth=d==='.'?0:d.split('/').length;
+  return res[d].map(r=>resRow(r,depth,r.path)).join('');}).join('');}
+/* One tree, both layers. The authored files used to live on a second tab as a
+   flat list of paths, which put a directory's own map somewhere other than the
+   directory — the one place a reader looks for it. They are rows now, at the top
+   of the folder they document. */
 function renderTree(list){const s=(q.files||'').toLowerCase();
  const el=document.getElementById('ftree-list');
- if(ftab==='indexes'){
-  const reserved=[];
-  (LOGPATHS||[]).forEach(p=>{if(!s||p.toLowerCase().includes(s))reserved.push({kind:'log',path:p});});
-  (IXDIRS||[]).forEach(d=>{if(d.present&&(!s||d.index_path.toLowerCase().includes(s)))reserved.push({kind:'index',path:d.index_path});});
-  const rank=r=>[ r.kind==='log'?0:1, r.path.indexOf('/')<0?0:1, r.path ];
-  reserved.sort((a,b)=>{const x=rank(a),y=rank(b);return (x[0]-y[0])||(x[1]-y[1])||(x[2]<y[2]?-1:1);});
-  if(!reserved.length){el.innerHTML='<p class="empty" style="padding:14px">No index.md or log.md files'+(s?' match.':' yet.')+'</p>';return;}
-  el.innerHTML=reserved.map(r=>{
-   const icon=r.kind==='index'?'<path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/>':'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.2 2"/>';
-   return `<button class="file res${fileSel===r.path?' sel':''}" data-res="${r.kind}" data-path="${esc(r.path)}" title="${esc(r.path)}"><span class="fn"><svg class="ricon" viewBox="0 0 24 24">${icon}</svg><span class="rn">${esc(r.path)}</span><span class="badge-res">${r.kind==='index'?'map':'log'}</span></span></button>`;}).join('');
+ const ft=fileTypeCombo.get(), fg=fileTagCombo.get();const ids=ftMatch(q.files);
+ const rows=ixOnly?[]:list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(ids?ids.has(c.id):(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s))));
+ /* Reserved files carry neither a type nor tags, so either combo filtering is
+    a statement about concepts and they step aside for it. */
+ const res={};let resCount=0;
+ if(!ft&&!fg){
+  if((q.files||'').trim())buildFtResIndex();
+  const rset=ftResMatch(q.files);
+  const keep=p=>rset?rset.has(p):(!s||p.toLowerCase().includes(s));
+  (IXDIRS||[]).forEach(d=>{if(d.present&&keep(d.index_path))(res[d.dir]=res[d.dir]||[]).push({kind:'index',path:d.index_path});});
+  (LOGPATHS||[]).forEach(p=>{if(keep(p))(res[dirOfPath(p)]=res[dirOfPath(p)]||[]).push({kind:'log',path:p});});
+  Object.keys(res).forEach(d=>{res[d].sort((a,b)=>a.kind===b.kind?0:(a.kind==='index'?-1:1));resCount+=res[d].length;});
+ }
+ if(ixOnly){el.innerHTML=flatRes(res)||'<p class="empty" style="padding:14px">No index.md or log.md files'+(s?' match.':' yet.')+'</p>';
+  lastFileDirs=[];syncFoldAll();
   el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));
   return;}
- const ft=fileTypeCombo.get(), fg=fileTagCombo.get();
- const rows=list.filter(c=>(!ft||c.type===ft)&&(!fg||c.tags.indexOf(fg)>=0)&&(!s||(c.title+' '+c.id+' '+c.description).toLowerCase().includes(s)));
  const groups={};rows.forEach(c=>{(groups[c.dir]=groups[c.dir]||[]).push(c);});
- const dirs=Object.keys(groups).sort();
- if(!dirs.length){el.innerHTML='<p class="empty" style="padding:14px">No files match.</p>';return;}
- const filtering=!!(s||ft||fg);
- el.innerHTML=dirs.map(dir=>{
-  const closed=!filtering&&collapsedDirs.has(dir);
-  const head=`<button class="ffolder${closed?' closed':''}" data-dir="${esc(dir)}"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>${dir==='.'?'(root)':esc(dir)+'/'}</button>`;
+ /* Directories nest. A sorted list of full paths made `core` and
+    `core/configurations` siblings, which reads as two unrelated folders instead
+    of a parent and its child — and left the depth of a bundle invisible. */
+ const kids={};
+ Object.keys(groups).concat(Object.keys(res)).forEach(d=>dirParents(d).forEach(pair=>{
+  const set=kids[pair[0]]=kids[pair[0]]||[];if(set.indexOf(pair[1])<0)set.push(pair[1]);}));
+ Object.keys(kids).forEach(k=>kids[k].sort());
+ /* The fold controls read every folder in the tree, not just the ones on screen:
+    computed from the walk itself, "collapse all" stays reversible after the root
+    closes and hides the rest. */
+ const dirs=[];(function walk(d){dirs.push(d);(kids[d]||[]).forEach(walk);})('.');
+ lastFileDirs=dirs;syncFoldAll();
+ if(!rows.length&&!resCount){el.innerHTML='<p class="empty" style="padding:14px">'+
+  (ixOnly?('No index.md or log.md files'+(s?' match.':' yet.')):'No files match.')+'</p>';return;}
+ /* A directory's own map and log, above the folders and files they cover. */
+ function resIn(dir,depth){return (res[dir]||[]).map(r=>resRow(r,depth,r.path.split('/').pop())).join('');}
+ /* Collapse is honored whether or not a search is active — a search that force-
+    expanded every folder left the fold clicks dead. A folder that matches still
+    shows its header, so a collapsed group is never a hidden match. Closing a
+    folder now takes its subtree with it, because the subtree renders from inside. */
+ function subtree(dir,depth){
+  const closed=collapsedDirs.has(dir);
+  const name=dir==='.'?esc(BUNDLE):esc(dir.split('/').pop())+'/';
+  const head=`<button class="ffolder${closed?' closed':''}${dir==='.'?' root':''}" data-dir="${esc(dir)}" style="--d:${depth}"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><span>${name}</span></button>`;
   if(closed)return head;
-  return head+(groups[dir]||[]).map(c=>{const cc=color[c.type]||'#64748b';const name=c.id.split('/').pop()+'.md';
-   return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(name)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('');}).join('');
+  return head
+   +resIn(dir,depth+1)
+   +(kids[dir]||[]).map(k=>subtree(k,depth+1)).join('')
+   +(groups[dir]||[]).map(c=>{const cc=color[c.type]||'#64748b';const fname=c.id.split('/').pop()+'.md';
+     return `<button class="file${fileSel===c.id?' sel':''}" data-id="${esc(c.id)}" style="--d:${depth+1}"><span class="fn"><span class="dot" style="background:${cc}"></span>${esc(fname)}</span>${c.description?`<span class="fd">${esc(c.description)}</span>`:''}</button>`;}).join('');}
+ el.innerHTML=subtree('.',0);
  el.querySelectorAll('.ffolder').forEach(b=>b.onclick=()=>{const d=b.dataset.dir;
-  if(collapsedDirs.has(d))collapsedDirs.delete(d);else collapsedDirs.add(d);renderTree(list);});
- el.querySelectorAll('.file[data-id]').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));}
-function setFtab(t){if(ftab===t)return;
- ftab=t;document.getElementById('app').setAttribute('data-ftab',t);
- [ 'files','indexes' ].forEach(x=>{const b=document.getElementById('ftab-'+x);
-  b.classList.toggle('active',x===t);b.setAttribute('aria-selected',String(x===t));});
- railActive();refreshTree();}
-[ 'files','indexes' ].forEach(t=>{document.getElementById('ftab-'+t).onclick=()=>setFtab(t);});
+  if(collapsedDirs.has(d))collapsedDirs.delete(d);else collapsedDirs.add(d);renderTree(list);
+  /* Closing the root leaves a single row above a column of nothing, so on a
+     compact layout the list hands the screen back. Remember *why*: reopening it
+     has to undo the collapse, or the reader lands on one row with the button
+     they just used unable to bring the tree back. */
+  if(d==='.'&&collapsedDirs.has('.')&&matchMedia('(max-width:768px)').matches){foldedByRoot=true;treeMin(true);}});
+ el.querySelectorAll('.file[data-id]').forEach(b=>b.onclick=()=>openFile(b.dataset.id,list));
+ el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));}
+/* Fold/unfold every folder at once. When they are all already collapsed the
+   button expands them; otherwise it collapses them.
+   The root is not one of them. Folding it answers "collapse all" with a lone
+   `(root)` row and hides the top-level folders — the one thing a reader wants
+   left standing after collapsing everything — so the control folds everything
+   *inside* the root and opens the root itself. Unfolding clears the whole set,
+   root included, so a root closed by hand is still reversible from here. */
+function foldable(){return lastFileDirs.filter(d=>d!=='.');}
+function syncFoldAll(){const d=foldable(),all=d.length>0&&d.every(x=>collapsedDirs.has(x));
+ foldAllBtn.classList.toggle('all-closed',all);foldAllBtn.disabled=d.length===0;
+ const lbl=all?'Expand all folders':'Collapse all folders';foldAllBtn.title=lbl;foldAllBtn.setAttribute('aria-label',lbl);}
+foldAllBtn.onclick=()=>{const d=foldable();if(!d.length)return;
+ if(d.every(x=>collapsedDirs.has(x)))collapsedDirs.clear();
+ else{d.forEach(x=>collapsedDirs.add(x));collapsedDirs.delete('.');}
+ refreshTree();};
+/* What the Indexes tab did, as a filter over the same tree: same rows, fewer of
+   them, the structure they sit in intact. Opening a reserved file releases it —
+   a reader who has arrived somewhere should not have to undo a filter to see
+   where they are. */
+const ixBtn=document.getElementById('ftree-ixonly');
+function setIxOnly(on){if(ixOnly===on)return;
+ ixOnly=on;ixBtn.setAttribute('aria-pressed',String(on));refreshTree();}
+ixBtn.onclick=()=>setIxOnly(!ixOnly);
 /* Searchable single-select combobox (keyboard-navigable) — one per files filter:
    type and tag. `items` is lazy so counts always reflect the current indexes. */
 function makeCombo(name,allLabel,items,onChange){
@@ -1337,27 +1723,42 @@ function makeCombo(name,allLabel,items,onChange){
 const refreshTree=()=>{ctlBadge();return Promise.all([ getCatalog(),getIndex(),getLogs() ]).then(([ list,dirs,logs ])=>{IXDIRS=dirs;LOGPATHS=logs.map(l=>l.path);renderTree(list);});};
 const fileTypeCombo=makeCombo('file-type','All types',()=>catByCount.map(t=>({v:t,n:(TYPES[t]||[]).length,c:color[t]})),refreshTree);
 const fileTagCombo=makeCombo('file-tag','All tags',()=>tagsByCount.map(t=>({v:t,n:(TAGS[t]||[]).length})),refreshTree);
-function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
- setFtab('files');
+/* The reader's graph button. One label for every file: the question is the same
+   whatever is open — where is this in the graph? — and wording it per file made
+   one action read as three. Only the destination differs, so only that is passed.
+   The label itself lives in the markup, where it cannot go stale. */
+function fpGraph(go){const fg=document.getElementById('fp-graph');fg.hidden=false;fg.onclick=go;}
+function openFile(id,list){fileSel=id;
+ /* A concept cannot appear in an Indexes-only list, so opening one releases the
+    filter that would hide it — otherwise the reader's selection is invisible and
+    they lose their place. Opening a *map* does not release it: that row is right
+    there in the list, and dropping a filter the reader set is not a click's
+    business. The rule is the filter yields only when it would hide what was just
+    opened. */
+ if(ixOnly)setIxOnly(false);
+ const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
  const ty=c.type||typeOf[id]||'Untyped';const cc=color[ty]||'#64748b';
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-type').innerHTML=`<span class="dot" style="background:${cc}"></span>${esc(ty)}`;
  document.getElementById('fp-title').textContent=c.title||(byId[id]||{}).title||id;
- document.getElementById('fp-graph').hidden=false;
- document.getElementById('fp-graph').onclick=()=>goToGraph(id);
+ fpGraph(()=>goToGraph(id));
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  getNodeBody(id).then(txt=>{
   const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);}).catch(()=>{body.innerHTML='<p class="empty">could not load this file</p>';});}
 /* Reserved files read in the preview too: the index map from its payload, the
    log fetched fresh on every click so a just-appended entry shows. */
 function openReserved(kind,path){fileSel=path;
- setFtab('indexes');
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.path===path));
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-title').textContent=path;
- const fg=document.getElementById('fp-graph');
- fg.hidden=false;fg.onclick=()=>openInTree(dirOfPath(path));
+ const d=dirOfPath(path);
+ /* A log is a chronology, not a place in the graph, so the button is not shown
+    at all — hidden rather than disabled, because it is never applicable here, not
+    merely unavailable now. It was worse than useless: a log's directory is the
+    root, so it opened the *root index's* node. */
+ if(kind==='index')fpGraph(()=>openMapInGraph(d));
+ else document.getElementById('fp-graph').hidden=true;
  const type=document.getElementById('fp-type');
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  const done=txt=>{const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);};
@@ -1602,13 +2003,9 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
  const bf=document.getElementById('btn-filters');
  if(bf)bf.addEventListener('click',()=>ctlSet(false));
  menuBtn.addEventListener('click',()=>navSet(!app.classList.contains('nav-open')));
+ menuBtn.addEventListener('click',hello2Done);
  bk.addEventListener('mousedown',()=>navSet(false));
  document.getElementById('rail').addEventListener('click',e=>{if(e.target.closest('.rail-item,.btn')){navSet(false);ctlSet(false);}});
- let small=false;try{small=matchMedia('(max-width:768px)').matches;}catch(err){}
- if(small){try{
-  if(!localStorage.getItem('okf-mnote')){const n=document.getElementById('mnote');n.hidden=false;
-   document.getElementById('mnote-x').addEventListener('click',()=>{n.hidden=true;try{localStorage.setItem('okf-mnote','1');}catch(err){}});}
- }catch(err){}}
  /* the initial layout runs before the viewport settles (fonts, window chrome,
     a phone's address bar), which can leave the graph tiny — on any screen. Fit
     once after load (past the canvas ResizeObserver's 240ms debounce) and again
@@ -1621,18 +2018,17 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
   addEventListener('load',()=>setTimeout(fitGraph,400));
   addEventListener('orientationchange',()=>setTimeout(fitGraph,450));
  }
- /* files view: the stacked list collapses to its tab bar — picking a file
-    hands the screen to the reader, picking a tab brings the list back */
+ /* files view: the stacked list collapses to its header — picking a file hands
+    the screen to the reader, the filter toggle brings the list back */
  const fgridEl=document.querySelector('.files-grid'),ftmin=document.getElementById('ftree-min');
  if(fgridEl&&ftmin){
-  const treeSet=o=>{fgridEl.classList.toggle('tree-min',o);
-   ftmin.setAttribute('aria-expanded',o?'false':'true');
-   ftmin.setAttribute('aria-label',o?'Expand file list':'Collapse file list');};
-  ftmin.addEventListener('click',()=>treeSet(!fgridEl.classList.contains('tree-min')));
+  ftmin.addEventListener('click',()=>{const on=!fgridEl.classList.contains('tree-min');
+   if(!on&&foldedByRoot){foldedByRoot=false;collapsedDirs.delete('.');refreshTree();}
+   treeMin(on);});
   document.getElementById('ftree-list').addEventListener('click',e=>{
-   if(e.target.closest('.file')&&matchMedia('(max-width:768px)').matches)treeSet(true);});
-  [ 'ftab-files','ftab-indexes' ].forEach(id=>{const t=document.getElementById(id);
-   if(t)t.addEventListener('click',()=>treeSet(false));});
+   if(e.target.closest('.file')&&matchMedia('(max-width:768px)').matches)treeMin(true);});
+  const ix=document.getElementById('ftree-ixonly');
+  if(ix)ix.addEventListener('click',()=>treeMin(false));
  }
 })();
 
@@ -1654,7 +2050,7 @@ const KEYS=[
  [ 'f', 'fullscreen' ],
  [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K', HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
  [ '?', 'this list' ],
- [ 'Esc', 'close whatever is open' ]
+ [ 'Esc', 'close what is open, or clear the graph selection' ]
 ];
 const kb=document.getElementById('kb');
 let kbLast=null;
@@ -1678,17 +2074,40 @@ addEventListener('keydown',e=>{if(!dgv.hidden){if(e.key==='Escape')closeDiagram(
  else if(e.key==='?'){e.preventDefault();kbOpen();}
  else if(e.key==='\\'&&view==='graph'){setSide(gbody.getAttribute('data-side')==='hidden'?'default':'hidden');}
  else if(e.key==='0'&&view==='graph'){fitGraph();}
+ else if(e.key==='Escape'&&view==='graph'){deselect();}
  else if(e.key==='f'){btnFull.click();}});
 
 /* ── deep links ── */
 const Q=new URLSearchParams(location.search),QL=Q.get('layout'),QS=Q.get('select');
 if(QL&&[...layoutSel.options].some(o=>o.value===QL)){layoutSel.value=QL;runLayout(QL);}
 const QV=Q.get('view');
-if(QV==='index')goIndexes();
+if(QV==='index')readIndex();
 else if(QV&&document.querySelector('.rail-item[data-view="'+CSS.escape(QV)+'"]'))setView(QV);
-function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1));if(h&&byId[h])select(h);}catch(e){}}
+/* Both of these name a *node*, so each has to carry the view with it: the page
+   can now be standing on the index when one is read, and selecting into a graph
+   nobody is looking at is a silent no-op. goToGraph on the graph is a no-op
+   itself (setView returns early), so this costs the old path nothing. */
+function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1));if(h&&byId[h])goToGraph(h);}catch(e){}}
 addEventListener('hashchange',fromHash);
-if(QS&&byId[QS])select(QS);else fromHash();
+if(QS&&byId[QS])goToGraph(QS);else fromHash();
+
+/* ── first visit ──
+   The graph is the first impression and stays that way. What it cannot say on
+   its own is that the bundle has an index — the one page an author wrote to be
+   read first — so a note says it once, and never again. Landing on the index
+   instead was the other way to solve this; it only read well on a wide window,
+   and cost every visitor the view that makes a bundle legible at a glance.
+   The wording is written for a finger, because a phone is where a newcomer is
+   least oriented and where "click" means nothing. */
+try{if(!localStorage.getItem('okf-hello')){
+ const h=document.getElementById('hello');h.hidden=false;
+ /* the canvas hint says the same three gestures the note just said, so it
+    stands down while the note is up rather than repeating it alongside */
+ const gh=document.querySelector('.ghint');if(gh)gh.style.visibility='hidden';
+ const close=()=>{h.hidden=true;if(gh)gh.style.visibility='';try{localStorage.setItem('okf-hello','1');}catch(err){}};
+ document.getElementById('hello-x').addEventListener('click',close);
+ document.getElementById('hello-go').addEventListener('click',()=>{close();readIndex();});
+}}catch(err){}
 
 /* ── a small hello for the curious ── */
 try{console.log('%cokf%c — knowledge as code. '+NODES.length+' concepts, one graph.','color:#e21e1e;font-weight:700;font-size:15px','color:inherit');}catch(e){}

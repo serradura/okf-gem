@@ -67,6 +67,118 @@ module ByDir
       assert_empty bad.out, "a usage error leaves stdout clean"
     end
 
+    test "a plain search is answered by the scan — the default pays no index build" do
+      # The default engine is the scan, not the index. A one-shot CLI builds an
+      # index, asks one question and exits, so the build has a single query to
+      # amortize over: measured end to end, 3.00s vs 0.24s at 1,000 concepts.
+      # Raw-text matching also has no tokenizer, so the terms glued to symbols
+      # that the index cannot reach (`minifts`, $OKF_HOME) stay findable.
+      #
+      # The routing is silent, so the score is what makes the choice observable:
+      # the scan sums the matched fields' weights, the index ranks by BM25+.
+      plain = okf("search", fixture("conformant"), "orders", "--json")
+
+      assert_equal 0, plain.status
+      top = json(plain)["matches"].first
+      assert_equal weight_sum(top["matched"]), top["score"],
+        "a plain search scores by field weight, which is the scan answering"
+    end
+
+    test "the engine is chosen by what the query needs, not by a flag naming one" do
+      # A capability flag routes without naming an engine: --fuzzy requires typo
+      # tolerance, which only the index offers, so it routes *away* from the
+      # default. That is the clean demonstration now that the scan leads — -e asks
+      # for regexp, which the default already provides, so it moves nothing.
+      #
+      # Since the routing is silent, the score is what makes it observable: the
+      # scan sums the matched fields' weights, the index ranks by BM25+.
+      fuzzy = okf("search", fixture("conformant"), "custommer", "--fuzzy", "--json")
+      plain = okf("search", fixture("conformant"), "customers", "--json")
+
+      assert_equal 0, fuzzy.status
+      assert_equal 0, plain.status
+
+      routed = json(fuzzy)["matches"].first
+      refute_equal weight_sum(routed["matched"]), routed["score"],
+        "--fuzzy routes to the index, which ranks by BM25+ and not the field-weight sum"
+
+      default = json(plain)["matches"].first
+      assert_equal weight_sum(default["matched"]), default["score"],
+        "a query needing nothing stays on the scan"
+    end
+
+    test "routing says nothing at runtime: no note, no engine in the header, no new JSON key" do
+      # A `note: using the scan engine` was considered and rejected — someone who
+      # typed -e does not need to be told what -e does on every run. An absence
+      # nobody pins is an absence that drifts back, so it is pinned here.
+      index = okf("search", fixture("conformant"), "orders")
+      scan = okf("search", fixture("conformant"), "-e", "orders")
+
+      assert_empty scan.err, "choosing an engine is not a diagnostic"
+      assert_empty index.err
+      assert_equal index.out.lines.first, scan.out.lines.first,
+        "the header names the bundle and the query — never the engine that answered"
+
+      index_json = json(okf("search", fixture("conformant"), "orders", "--json"))
+      scan_json = json(okf("search", fixture("conformant"), "-e", "orders", "--json"))
+      assert_equal index_json.keys, scan_json.keys, "the envelope is one shape whichever engine answered"
+      assert_equal index_json["matches"].first.keys, scan_json["matches"].first.keys,
+        "and so is a match row — no engine field, no capability field"
+    end
+
+    test "raw-text matching is the default, infix and all" do
+      # The capability flags cannot ask for this: raw-text matching *requires*
+      # nothing, so there is no capability to route on. It is the default instead,
+      # which is what makes a mid-word fragment reachable without any flag.
+      infix = okf("search", fixture("conformant"), "ustomer", "--json")
+
+      assert_equal 0, infix.status
+      assert_includes json(infix)["matches"].map { |row| row["id"] }, "tables/customers",
+        "a mid-word fragment, which the token index cannot reach"
+      assert_equal 0, json(okf("search", fixture("conformant"), "--engine", "index", "ustomer", "--json"))["count"],
+        "naming the index is how a caller opts back into losing it"
+    end
+
+    test "the default matches literally — a term is not a pattern unless -e says so" do
+      literal = okf("search", fixture("conformant"), "customer_id", "--json")
+
+      assert_equal 0, literal.status
+      assert_equal [ "tables/orders" ], json(literal)["matches"].map { |row| row["id"] },
+        "the whole identifier, not its parts — which is the precision the index trades away"
+    end
+
+    test "search --engine scan is the default spelled out, and answers identically" do
+      named = okf("search", fixture("conformant"), "--engine", "scan", "orders", "--json")
+      implied = okf("search", fixture("conformant"), "orders", "--json")
+
+      assert_equal 0, named.status
+      assert_equal json(implied)["matches"], json(named)["matches"], "naming the default cannot change the answer"
+    end
+
+    test "search --engine and a flag it cannot honour is a usage error naming both" do
+      # The whole point of refusing rather than falling back: honouring one and
+      # dropping the other would answer a question nobody asked.
+      clash = okf("search", fixture("conformant"), "--engine", "index", "-e", "ord[a-z]+s")
+
+      assert_equal 2, clash.status
+      assert_match(/error: --engine index does not support --regexp/, clash.err)
+      assert_match(/scan/, clash.err, "the error names an engine that can, so the fix is in the message")
+      assert_empty clash.out, "a usage error leaves stdout clean"
+
+      fuzzy = okf("search", fixture("conformant"), "--engine", "scan", "--fuzzy", "custommer")
+      assert_equal 2, fuzzy.status
+      assert_match(/error: --engine scan does not support --fuzzy/, fuzzy.err)
+      assert_match(/index/, fuzzy.err)
+    end
+
+    test "search --engine with a name nobody registered lists the ones that exist" do
+      bogus = okf("search", fixture("conformant"), "--engine", "fts5", "orders")
+
+      assert_equal 2, bogus.status
+      assert_match(/error: unknown search engine: fts5 \(available: index, scan\)/, bogus.err)
+      assert_empty bogus.out, "a usage error leaves stdout clean"
+    end
+
     test "search --in narrows the searched fields; an unknown field lists the real ones" do
       scoped = okf("search", fixture("conformant"), "orders", "--in", "title")
       assert_equal 0, scoped.status
@@ -77,6 +189,30 @@ module ByDir
       bogus = okf("search", fixture("conformant"), "orders", "--in", "bogus")
       assert_equal 2, bogus.status
       assert_match(/unknown field\(s\): bogus \(searchable: title, id, tags, type, description, body\)/, bogus.err)
+    end
+
+    test "search matches whole tokens, not substrings — a mid-word fragment finds nothing" do
+      # The index is tokenized, so a term is matched against whole words and their
+      # prefixes. "custom" still reaches Customers; "ustomer" does not. That infix
+      # is the recall naming the index gives up — it is no longer what a plain
+      # search costs, so the engine has to be named to observe it.
+      prefixed = json(okf("search", fixture("conformant"), "--engine", "index", "custom", "--json"))
+      assert_includes prefixed["matches"].map { |row| row["id"] }, "tables/customers",
+        "a prefix of a real token still matches"
+
+      infix = okf("search", fixture("conformant"), "--engine", "index", "ustomer", "--json")
+      assert_equal 0, infix.status, "still an advisory read"
+      assert_equal 0, json(infix)["count"], "a mid-token fragment is not a term"
+    end
+
+    test "search --fuzzy tolerates a typo; without it the same term finds nothing" do
+      exact = okf("search", fixture("conformant"), "custommer", "--json")
+      assert_equal 0, json(exact)["count"], "search is exact-by-default, so a typo misses"
+
+      fuzzy = okf("search", fixture("conformant"), "custommer", "--fuzzy", "--json")
+      assert_equal 0, fuzzy.status
+      assert_includes json(fuzzy)["matches"].map { |row| row["id"] }, "tables/customers",
+        "--fuzzy is the opt-in that forgives the typo"
     end
 
     test "search composes with the shared filters, which narrow the candidates first" do

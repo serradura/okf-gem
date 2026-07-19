@@ -101,6 +101,18 @@ class CLIIntegrationCase < OKF::TestCase
     dir
   end
 
+  # The scan engine's score, by definition: the summed weight of the fields that
+  # matched. It is how a test tells which engine answered, since the routing is
+  # deliberately silent and prints nothing.
+  #
+  # The score's *class* looks like the easier tell — the scan sums integers, the
+  # index returns BM25 floats — and it is wrong: `Integer#round(4)` returns a
+  # Float on Ruby 2.4, so a scan row's score is 12.0 there and 12 everywhere
+  # else. The floor caught it. Comparing values, not classes, is portable.
+  def weight_sum(matched)
+    matched.map { |field| OKF::Bundle::Search::WEIGHTS[field] }.reduce(0, :+)
+  end
+
   # chmod cannot deny root, so a permission-shaped test asserts nothing when the
   # suite runs as one — which the Ruby 2.4 Docker check does. Skip rather than
   # pass vacuously: a test that goes green because the world is not the way it

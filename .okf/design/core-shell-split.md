@@ -4,7 +4,7 @@ title: The core/shell split
 description: A pure functional core that never touches disk or stdio, and a thin shell that owns all I/O — enforced by a test.
 resource: test/unit/boundary_test.rb
 tags: [architecture, pure, testing, diagram]
-timestamp: 2026-07-17T04:00:00Z
+timestamp: 2026-07-18T19:00:00Z
 ---
 
 # Overview
@@ -16,6 +16,7 @@ the [search](../capabilities/search.md),
 the [format layer](../format/) — logic that returns data and does no I/O. The
 **shell** owns everything that touches the world: the on-disk handles
 (`Concept::File`, `Bundle::{Reader,Writer,Folder}`), the
+[renderer](../capabilities/render.md) that draws the page, the
 [server](../capabilities/graph-server.md) and its hub, the
 [registry](../registry.md), and the [CLI](../cli.md).
 
@@ -23,6 +24,7 @@ the [format layer](../format/) — logic that returns data and does no I/O. The
 flowchart TB
   subgraph shell ["Shell — the only layer that does I/O"]
     CLI["CLI"]
+    Render["Render::Graph"]
     Server["Server::App · Hub"]
     Registry["Registry"]
     RW["Reader · Writer · Folder"]
@@ -45,6 +47,12 @@ flowchart TB
 reaches for `File` / `Dir` / `FileUtils` / stdio. The dependency rule is executable,
 so the boundary cannot rot silently: **put new I/O in the shell, put new logic in
 the core, pure.**
+
+"Pure" here means *no I/O*, not *no dependencies*: a core file may require a
+third-party library as long as the library is itself pure computation. `Search`
+requires [`minifts`](../design/runtime-dependencies.md) and stays in the core,
+because an in-memory index touches neither disk nor stdio. A gem that read a
+config file or logged to stderr would not get the same pass.
 
 # Why it pays off
 

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../cli_integration_case"
-require "okf/server/graph"
+require "okf/render/graph"
 
 # `okf render` end to end — the static counterpart to `server`: the same
 # interactive page with the whole bundle baked into one self-contained HTML file
@@ -20,6 +20,7 @@ module ByDir
       assert_match(/const EMBED=\{"catalog":/, result.out, "render mode bakes the payload in")
       refute_match(/const EMBED=null/, result.out, "EMBED=null is the server mode the page must not be in")
       assert_match(/"bodies":/, result.out)
+      refute_match(/"meta":/, result.out, "meta is derived client-side from the catalog description, not baked")
       assert_match(/Joined with \[customers\]\(\/tables\/customers\.md\) on `customer_id`\./, result.out,
         "a concept's markdown body is baked in verbatim")
       assert_match(/# Update Log/, result.out, "so is the reserved log")
@@ -77,9 +78,9 @@ module ByDir
     end
 
     test "--layout seeds the page's initial layout, for each of the five built-ins" do
-      assert_equal %w[cose concentric breadthfirst circle grid], OKF::Server::Graph::LAYOUTS
+      assert_equal %w[cose concentric breadthfirst circle grid], OKF::Render::Graph::LAYOUTS
 
-      OKF::Server::Graph::LAYOUTS.each do |layout|
+      OKF::Render::Graph::LAYOUTS.each do |layout|
         result = okf("render", fixture("minimal"), "--layout", layout)
 
         assert_equal 0, result.status, "--layout #{layout} is valid"

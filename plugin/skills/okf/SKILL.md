@@ -5,14 +5,15 @@ description: >-
   directory of markdown files with YAML frontmatter that humans and agents read
   from one source. Use when capturing knowledge into a bundle (a service, schema,
   metric, decision, runbook: "document this in OKF", "capture this as a concept"),
+  converting existing docs into one ("migrate/OKFy our docs into a bundle"),
   retrieving from one without reading it whole ("what do we know about X?", "where
-  is X documented?", "search the bundle"), updating one after code or docs change
-  ("update the knowledge bundle"), checking its conformance or curation quality
-  ("validate/lint the bundle"), serving or rendering it as a graph, or working in a
-  repo that already carries an OKF bundle — a `.okf/` directory or a root `index.md`
-  carrying `okf_version`.
+  is X documented?", "search the bundle"), updating one after code or docs
+  change ("update the knowledge bundle"), checking its conformance or curation
+  quality ("validate/lint the bundle"), serving or rendering it as a graph, or
+  working in a repo that already carries an OKF bundle — a `.okf/` directory or a
+  root `index.md` carrying `okf_version`.
 user-invocable: true
-argument-hint: "[search|produce|maintain|consume|<okf-cli-verb>] [dir] [--flags]"
+argument-hint: "[search|produce|migrate|maintain|consume|curate|doctor|<okf-cli-verb>] [dir|@slug] [--flags]"
 allowed-tools: Read Write Edit Grep Glob Bash
 ---
 
@@ -66,12 +67,16 @@ earn your keep as the expert, not the executable.
 
 ## The CLI is your eyes — you are the judgment
 
-Guard once, then trust it — the `okf` executable answers every mechanical question
-deterministically, and its read views show everything the browser UI does:
-
-```bash
-command -v okf >/dev/null || echo "okf CLI missing — install: gem install okf (or from a checkout: cd gem && bundle exec rake install)"
-```
+The `okf` executable answers every mechanical question deterministically, and its
+read views show everything the browser UI does. **Don't probe for it — just run
+the verb.** A proactive `command -v okf` before every task spends a whole tool
+round proving what the next command reveals for free; the CLI's own failure is a
+cheaper, truer signal. (The two deliberate exceptions are [menu](playbooks/menu.md)
+and [doctor](playbooks/doctor.md) — both decide *whether to install*, so they check
+first.) The one distinction to hold: a shell `okf: command not
+found` is the *only* thing that means "install it" (→ [doctor](playbooks/doctor.md));
+every line that starts `error:` is okf *answering* — a bundle or usage result to
+read and act on, never a missing toolchain to send to doctor.
 
 Don't memorize the surface — `okf --help` maps every verb, `okf <verb> --help` its
 flags. The division of labour is the whole game:
@@ -98,7 +103,7 @@ shapes, the tag-curation views, the server's trust boundary.
 ## Orient before you touch anything
 
 Picking up a bundle you don't already know — to consume or maintain — run `okf
-index <dir>` (the §6 map: every directory's index body, rollups, and listings) and
+index <dir|@slug>` (the §6 map: every directory's index body, rollups, and listings) and
 read `log.md` (the §7 baseline of what changed last) **before** greping or opening
 leaves. It is the cheapest high-signal context, and the only reliable way to catch
 enumeration drift: **grep cannot find an index entry that is missing** — you can't
@@ -123,9 +128,15 @@ is X documented" → `search`; a repo already carrying a bundle plus a task
 needing its knowledge → `consume`; "check / graph / preview it" → run the
 matching CLI verb and interpret the result. When genuinely ambiguous, ask.
 
-**Which directory?** Use the path given. Otherwise default to `.okf/` at the repo
-root, but first detect whether the project already keeps its bundle elsewhere
-(e.g. `docs/`) and prefer that. Commit the bundle alongside the code it describes.
+**Which target?** A leading `@` is a *registry ref*, not a path: `@slug` names a
+bundle registered with `okf registry set`, bare `@` the default — route it
+straight to `okf <verb> @slug` and skip the directory hunt (`okf search` spans
+several: `@a @b`, or `@all`). A plain path is used as given. Given no target and a
+cwd that carries no bundle, `okf registry list` is the next move, not a hunt
+across sibling directories. Producing a *new* bundle with no path? Default to
+`.okf/` at the repo root, but first detect whether the project already keeps its
+bundle elsewhere (e.g. `docs/`) and prefer that; commit it alongside the code it
+describes.
 
 **Target isn't a bundle?** When a verb points at a directory that holds markdown
 but no root `index.md` carrying `okf_version` — `validate` failing wholesale on

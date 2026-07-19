@@ -52,4 +52,11 @@ Gem::Specification.new do |spec|
   # version those Rubies accept.
   spec.add_dependency "rack", ">= 2.2"
   spec.add_dependency "webrick", ">= 1.4"
+
+  # The search engine (OKF::Bundle::Search). minifts is a pure-Ruby port of the
+  # JavaScript MiniSearch the browser page already loads, pinned to the same
+  # major so a Ruby-built index and the browser's rank identically. Zero runtime
+  # dependencies of its own and the same 2.4 floor, so it costs the gem nothing
+  # but the code that does the work.
+  spec.add_dependency "minifts", "~> 1.0"
 end

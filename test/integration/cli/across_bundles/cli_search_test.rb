@@ -6,9 +6,11 @@ require_relative "../cli_integration_case"
 # the whole surface of it. A plain dir answers about one bundle; leading @refs or
 # @all merge N bundles into one ranking, label every row with the bundle it came
 # from, and switch the JSON to an envelope whose head maps slug → dir. The
-# ranking is the load-bearing claim: scores are absolute term weights, so a row
-# from one bundle compares to a row from another, and ties break deterministically
-# (score, then slug, then id) no matter what order the refs were typed.
+# ranking is the load-bearing claim: the bundles go into **one** index, so a row
+# from one compares to a row from another by construction rather than by luck,
+# and ties break deterministically (score, then slug, then id) no matter what
+# order the refs were typed. (Before the index landed, scores were absolute field
+# weights that happened to compare; one corpus is what replaced that accident.)
 module AcrossBundles
   # Bundles named several at a time — merged retrieval.
   class CLISearchTest < CLIIntegrationCase
@@ -94,7 +96,7 @@ module AcrossBundles
 
     # -- merged ranking: the load-bearing claim
 
-    test "merged ranking orders by absolute term weight, so scores compare across bundles" do
+    test "merged ranking comes from one index, so the scores compare" do
       with_registry("conformant", "rooted", "minimal") do
         data = json(okf("search", "@conformant", "@rooted", "@minimal", "the", "--json"))
         scores = data["matches"].map { |row| row["score"] }
@@ -108,9 +110,52 @@ module AcrossBundles
       end
     end
 
+    test "the searched bundles are one corpus: a score is relative to the whole answer" do
+      with_registry("conformant", "rooted", "minimal") do
+        # BM25 prices a term by how rare it is, so the corpus is an input to every
+        # score. Searching a bundle alone and searching it in company must
+        # therefore price the same concept differently — and that difference is the
+        # observable proof the merge ranks *one* corpus instead of splicing three
+        # independent rankings, which is exactly what would make the numbers
+        # incomparable while still looking like a sorted list.
+        #
+        # Named explicitly because this is a *BM25* property, not a merge property:
+        # the default scan scores by absolute field weight, so its numbers do not
+        # move with the corpus and are comparable across bundles by construction.
+        # Testing this through the default would assert nothing.
+        solo_run = okf("search", "@conformant", "the", "--engine", "index", "--json")
+        joint_run = okf("search", "@conformant", "@rooted", "@minimal", "the", "--engine", "index", "--json")
+
+        solo = json(solo_run)["matches"].find { |row| row["id"] == "datasets/sales" }["score"]
+        joint = json(joint_run)["matches"].find { |row| row["id"] == "datasets/sales" }["score"]
+
+        assert_operator solo, :>, joint,
+          "'the' is commoner across three bundles than in one, so the same row is worth less in company"
+      end
+    end
+
+    test "the default merge needs no corpus: a score is the same alone or in company" do
+      with_registry("conformant", "rooted", "minimal") do
+        # The mirror of the test above, and the reason the swap does not weaken the
+        # merge. The scan scores by field weight alone, so a row is worth exactly
+        # the same whether it was searched by itself or beside two other bundles —
+        # comparable across bundles without needing one shared corpus at all.
+        alone = json(okf("search", "@conformant", "the", "--json"))["matches"]
+        merged = json(okf("search", "@conformant", "@rooted", "@minimal", "the", "--json"))["matches"]
+
+        solo = alone.find { |row| row["id"] == "datasets/sales" }["score"]
+        joint = merged.find { |row| row["id"] == "datasets/sales" }["score"]
+
+        assert_equal solo, joint, "a field-weight score has no corpus term to move"
+      end
+    end
+
     test "ties break deterministically: score, then slug, then id" do
       with_registry("conformant", "rooted") do
-        rows = json(okf("search", "@conformant", "@rooted", "the", "--json"))["matches"]
+        # A BM25 score is a float off per-document statistics and practically never
+        # ties. The regexp path still scores by absolute field weight, so it is
+        # where equal scores actually occur — and where the rule stays observable.
+        rows = json(okf("search", "@conformant", "@rooted", "-e", "the", "--json"))["matches"]
         tied = rows.select { |row| row["score"] == 3 }.map { |row| "#{row["slug"]}/#{row["id"]}" }
 
         assert_equal 3, tied.size, "three concepts score 3 — the tie the ordering has to resolve"
@@ -374,6 +419,67 @@ module AcrossBundles
       end
     end
 
+    test "one engine answers the whole merge, chosen by the query and never announced" do
+      # The merge is where a per-engine result would do the most damage: two
+      # engines scoring two halves of one list would produce a ranking that means
+      # nothing. One query, one engine, one corpus — and the score shape is what
+      # makes which engine ran observable, since nothing says so.
+      with_registry("conformant", "mentions") do
+        index = json(okf("search", "@conformant", "@mentions", "sales", "--engine", "index", "--json"))
+        scan = json(okf("search", "@conformant", "@mentions", "-e", "sales", "--json"))
+
+        scan["matches"].each do |row|
+          assert_equal weight_sum(row["matched"]), row["score"],
+            "-e routes the whole merge to the scan, not just the first bundle"
+        end
+        index["matches"].each do |row|
+          refute_equal weight_sum(row["matched"]), row["score"],
+            "every row of the merge came from the index, including the ones from the second bundle"
+        end
+
+        human = okf("search", "@conformant", "@mentions", "-e", "sales")
+        assert_empty human.err, "choosing an engine is not a diagnostic"
+        assert_equal %w[bundles query count matches], scan.keys,
+          "the multi-bundle envelope gains no engine key"
+      end
+    end
+
+    test "search --engine names one engine for the whole merge, not one per bundle" do
+      with_registry("conformant", "mentions") do
+        merged = okf("search", "@conformant", "@mentions", "--engine", "scan", "sales", "--json")
+        assert_equal 0, merged.status
+
+        data = json(merged)
+        data["matches"].each do |row|
+          assert_equal weight_sum(row["matched"]), row["score"],
+            "every row of the merge came from the named engine, whichever bundle it came from"
+        end
+        assert_equal %w[bundles query count matches], data.keys, "naming an engine adds no key to the envelope"
+
+        clash = okf("search", "@conformant", "@mentions", "--engine", "index", "-e", "^sale")
+        assert_equal 2, clash.status
+        assert_match(/error: --engine index does not support --regexp/, clash.err)
+        assert_empty clash.out, "one impossible pairing sinks the run before any bundle is read"
+      end
+    end
+
+    test "search --fuzzy forgives a typo in every bundle, and refuses to pair with -e" do
+      with_registry("conformant", "rooted") do
+        exact = okf("search", "@conformant", "@rooted", "gatway", "custommer", "--json")
+        assert_equal 0, json(exact)["count"], "exact by default, so neither typo lands"
+
+        fuzzy = json(okf("search", "@conformant", "@rooted", "gatway", "--fuzzy", "--json"))
+        assert_equal [ "rooted" ], fuzzy["matches"].map { |row| row["slug"] }.uniq,
+          "the tolerance is applied across the merge, not just to the first bundle"
+        assert_includes fuzzy["matches"].map { |row| row["id"] }, "services/gateway"
+
+        clash = okf("search", "@conformant", "@rooted", "gatway", "--fuzzy", "-e")
+        assert_equal 2, clash.status
+        assert_match(/error: --regexp and --fuzzy are mutually exclusive/, clash.err)
+        assert_empty clash.out, "one contradictory pair sinks the run before any bundle is read"
+      end
+    end
+
     test "search --in narrows the searched fields in every bundle; an unknown field lists the real ones" do
       with_registry("conformant", "mentions") do
         scoped = json(okf("search", "@conformant", "@mentions", "payments", "--in", "tags", "--json"))
@@ -476,12 +582,12 @@ module AcrossBundles
       with_registry("conformant", "minimal") do
         refs = okf("search", "@conformant", "@minimal")
         assert_equal 2, refs.status
-        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term> \[term \.\.\.\]/, refs.err)
+        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term…>/, refs.err)
         assert_empty refs.out, "no terms, no ranking — and no empty answer that looks like one"
 
         every = okf("search", "@all")
         assert_equal 2, every.status
-        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term> \[term \.\.\.\]/, every.err)
+        assert_match(/Usage: okf search <dir\|@slug…\|@all> <term…>/, every.err)
         assert_empty every.out
       end
     end

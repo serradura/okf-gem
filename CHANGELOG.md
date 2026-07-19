@@ -1,6 +1,223 @@
 # Changelog
 
-## [Unreleased]
+## [1.9.0] - 2026-07-19
+
+- **`okf search` gains an opt-in full-text index engine.** `--engine index` — and
+  `--fuzzy`, which implies it — routes to
+  [minifts](https://github.com/serradura/minifts), the pure-Ruby port of the same
+  MiniSearch build the graph page loads. It is the gem's third runtime
+  dependency, admitted because it costs the footprint nothing the first two were
+  chosen to protect: no native extension, no dependency tree of its own, the same
+  Ruby 2.4 floor. Three things it adds, and nothing else does:
+  - **BM25+ relevance ranking**, where the default scores by summed field weight;
+  - **`--fuzzy`** — typo tolerance at edit distance `0.2 × term length`, the
+    browser's own setting. Search stays exact unless you ask;
+  - **parity with the graph page**, which runs the same MiniSearch build, so the
+    two rank identically when the index is named.
+- **The default search is unchanged** — literal, case-insensitive substring
+  matching over the same fields with the same weights as 1.8.0. The index is
+  opt-in rather than default because a one-shot CLI builds an index, asks one
+  question, and exits: end to end, **3.00 s against 0.24 s at 1,000 concepts**,
+  the build accounting for ~95% of that. The ~44–56× per-query throughput that
+  recommends minifts is the right measure for a long-lived index — a page, a
+  server — and the wrong one for a process that exits. A cached prebuilt index is
+  what would change that arithmetic.
+  - **Know what the index costs before naming it.** Its tokenizer splits on
+    punctuation, so `customer_id` becomes `customer` + `id` and `7.2.0` becomes
+    `7`, `2`, `0`; an infix (`ustomer`) finds nothing; and a backtick is Unicode
+    `Sk` rather than punctuation, so a word inside a code span indexes as
+    `` `minifts` `` and the query `minifts` does not match it — 409 such tokens
+    on this repo's own bundle. Ranking does not rescue it: BM25 normalizes by
+    field length, so a short concept dense in `7`, `2` and `0` can outrank the one
+    that actually says `7.2.0`. The default has none of these, because raw-text
+    matching has no tokenizer.
+- **`--engine NAME` picks the engine outright**, for the case a capability flag
+  cannot express: a matching *model* requires nothing, so no flag selects one.
+  Naming an engine that cannot do what was also asked is a usage error naming one
+  that can (`--engine index -e` → *try --engine scan*), and an unknown name lists
+  what is available. `--help` reads the registry, so an addon's engine appears
+  without the CLI knowing it exists.
+- **Search engines are adapters.** `OKF::Bundle::Search` became a facade over N
+  engines instead of one class with a `regexp ? scan : index` branch. The facade
+  keeps everything that defines a result — documents, the row and its key order,
+  the snippet, the sort — and an engine answers only which documents match, how
+  well, and where. The built-ins are `Search::Scan` (raw text, the default,
+  `regexp`) and `Search::Index` (minifts, `fuzzy`/`prefix`).
+  - **Selection is by capability when the query requires one** — `--fuzzy`
+    requires `:fuzzy`, so it routes to the index without naming it — and that
+    routing prints **nothing**: no note, no header change, no new JSON key.
+  - **`Search.register` is a published extension point** — append-only,
+    idempotent by id, capabilities checked against a fixed vocabulary. This is
+    the seam a future SQLite/FTS5 addon plugs into; no addon code ships here.
+  - **A shared conformance suite replaces the "kernel is the oracle" rule**,
+    which multiple engines made impossible: the index and the scan disagree about
+    match sets by design, so neither can be the oracle. Every registered engine
+    runs the same contract, with capability-gated blocks for its own semantics,
+    and a registered engine with no conformance class fails the suite.
+- **Cross-bundle search ranks one corpus under `--engine index`.** BM25 prices a
+  term by how rare it is, so ranking each bundle separately and interleaving the
+  lists would produce a ranking that looks sorted and compares nothing; the
+  searched bundles are indexed together instead. The visible consequence, under
+  that engine only: a score is relative to the whole answer, so the same concept
+  scores lower searched beside other bundles than alone. The default's scores are
+  absolute and need no such treatment.
+
+- **The graph can draw the index layer, under any layout.** The §6 map was
+  visible only inside file-tree mode, where a folder node stood in for a
+  directory's `index.md`. **Show indexes** makes it a layer: each map is a tile
+  edged to the concepts it lists and the maps below it, dressed by the same
+  selector as file-tree mode's folder node, because the two are the same thing
+  twice over — clicking either opens that directory's `index.md`. Both are accent
+  squares with dashed edges into them, so colour separates *kinds* rather than
+  modes: a directory is not a concept and no longer reads as one. Authorship shows
+  as form — solid where an author wrote a map, hollow and dashed where the bundle
+  only implies one — so the toggle reads as curation as much as navigation.
+  - **Moving between the modes lands in one click.** Tearing the layer down ran
+    its own layout while file-tree mode ran `breadthfirst` a beat later, two
+    layouts racing the same canvas; and because the layer is fetched, a promise
+    resolving after a mode change could land inside file-tree mode. A `relayout`
+    flag settles the first, a per-toggle ticket the second.
+  - **File-tree mode disables the toggle** rather than doubling the folders it
+    already draws.
+  - **One label on every file's graph button.** It read "Explore the knowledge
+    graph" on the root index and "Open core/ in graph" on a nested one, which made
+    a single action look like three. The question is the same whatever is open, so
+    the label is too — and it lives in the markup, where it cannot go stale.
+  - **Opening a map from the reader keeps the reader's graph.** It forced
+    file-tree mode, discarding whatever layout was running, and dimmed the canvas
+    to the map's immediate neighbours. It now switches the *layer* on rather than
+    the *mode* and leaves the layout alone. A reader already in file-tree mode
+    stays there.
+  - **Selecting anything emphasises it the same way.** A concept dimmed the graph
+    to its neighbourhood, a map did nothing at all, and a folder node did nothing
+    either — three meanings for one gesture. One `focusNode` now serves all three.
+  - **Drawn, never modelled.** `index.md` is reserved, so these nodes are built
+    from `/index` straight onto the canvas; `NODES`, `/catalog` and the type and
+    tag indexes never learn they exist. Filters pass them over — a map has no type
+    or tags — but a map whose concepts are all filtered away leaves with them.
+- **Collapsing the root folds the file list away** on phones and tablets, where
+  the list is stacked on top of the reader and closing the root otherwise left a
+  single row above a column of nothing. Reopening the list undoes that collapse,
+  so it is one gesture rather than two states to dig out of — the fold remembers
+  *why* it happened, and a list folded because a file was opened comes back
+  exactly as it was left.
+- **The bundle names its own root.** `(root)` and `/` are what a filesystem calls
+  it, not what a reader does. The tree's root row, file-tree mode's root node, the
+  index layer's root map and the inspector's directory map now all carry the name
+  the page header already shows, `--title` included. `areaOf` keeps its own
+  `(root)`: that is the area vocabulary `okf stats --by area` and `tags --by area`
+  print, not a UI label.
+- **The Indexes tab dissolves into the file tree.** The authored layer lived on a
+  second tab as a flat list of paths, which put a directory's own map somewhere
+  other than the directory. `index.md` and `log.md` are rows now, at the top of
+  the folder they document, and **Indexes only** is a toggle over the same tree —
+  same rows, fewer of them, structure intact. The toggle yields only when it would
+  hide what was just opened — a map stays under it, a concept releases it — so
+  browsing the authored layer no longer destroys the list being browsed. A log
+  offers no graph button at all: it is a chronology, not a place in the graph, and
+  the button had been opening the root index's node.
+  Narrowed, a folder owns exactly one row, so the row stands where the folder
+  header stood — at that folder's depth, carrying the path — rather than nesting
+  a single child under a header.
+  - **The rail's Index becomes an action, not a fake view.** It had no
+    `#view-index` behind it — the files view showing its other tab — so
+    `activeRail()` answered a question of view *and* tab. The shortcut stays,
+    opening the root map through the same `readIndex()` the first-visit note
+    uses; `activeRail()` answers with the view it lands on, so Files highlights
+    and nothing invents a place for Index to be. `?view=index` resolves to the
+    same action.
+  - **Fixed on the way:** the reader header rendered empty — an unlabelled badge
+    and a graph button pointing nowhere — whenever no file was open, because
+    `.fp-head{display:flex}` outranks the UA sheet's `[hidden]{display:none}`.
+- **A first-visit note tells a newcomer the index exists.** The `index.md` an
+  author wrote to be read first was reachable only by finding the Indexes tab and
+  clicking a row, so a reader meeting a bundle for the first time met unlabelled
+  dots with no way in. The page still opens on the graph — it is what makes a
+  bundle legible at a glance, at every width — and a dismissible note at the
+  bottom now says what the picture is, how to touch it, and where the index is.
+  **Read the index** goes straight there; the dismissal is remembered.
+  - **It absorbed the old mobile-only tip** rather than stacking a second banner
+    under it, and it is written for a finger throughout, since a phone is where a
+    first-time reader is least oriented.
+  - **The wording follows the device on two gates, not one.** What a reader does
+    follows `(pointer:coarse)` — a touch tablet in landscape is wider than 768px
+    and still taps; a narrow desktop window is narrower and still clicks. What a
+    reader can reach follows `(max-width:768px)`, because that is when the rail
+    collapses behind `☰`. Short viewports tighten; short *and* wide puts the
+    question beside the button, taking a landscape phone from half the screen to
+    under a third.
+  - **A second note points at `☰`** on compact layouts only, anchored under the
+    button it names rather than at the bottom of the screen. It fires on leaving
+    the graph by any route, so dismissing the first note does not cost it, and
+    opening `☰` answers it — but only once it is on screen, since `☰` is the only
+    way off the graph there and the first tap always comes first.
+  - **Deep links are unaffected**, and `?select=`/`#hash` now switch to the graph
+    before selecting, since the page can be standing elsewhere when they are read.
+- **The file tree nests.** Directories were a sorted list of full paths, which
+  made `core` and `core/configurations` read as two unrelated folders and left
+  the shape of a bundle invisible. Each row is now one path segment indented by
+  depth, folders before files, and collapsing a folder takes its subtree with it.
+  A directory holding nothing but directories still renders, so the chain to its
+  children never breaks.
+  - **"Collapse all" folds into the root, not over it** — everything inside the
+    root closes and the root stays open, so the click leaves the top-level
+    folders standing instead of a single `(root)` row. Unfolding clears the whole
+    set, root included, so a root closed by hand is still reversible from there.
+
+- The graph page's search box grows a full-text index. One MiniSearch index —
+  lazy-loaded from the CDN on first search, pinned to the `7.2.0` the Ruby
+  MiniSearch port tracks so an `okf search --engine index` result and the
+  browser's rank identically — now backs the graph, catalog and files views: ranked, multi-term
+  (`AND`), prefix (as-you-type) and typo-tolerant, over title, id, type, tags and
+  **description** — plus each concept's **body** wherever the page already holds
+  it (`okf render` bakes every body in, so a static file searches bodies offline;
+  the live server keeps bodies lazy, so its index stays metadata-only until a
+  backend body index arrives). The graph could not be searched by a leaf's
+  description before; now it can. The Files view's **Indexes** tab gets its own
+  full-text index too, over each `index.md`/`log.md`'s body — not just its
+  filename. Until an index loads — or if the CDN is unreachable — each view falls
+  back to its own substring filter, so the box is never dead.
+- The Files tree's folder collapse works during a search. An active search or
+  type/tag filter used to force every folder open, so fold clicks did nothing;
+  folders now honor their collapsed state always (a collapsed group still shows
+  its header, so a match is never hidden). A **fold/unfold-all** control in the
+  Files tab header collapses or expands every visible group at once.
+- Clustering no longer leaves phantom empty boxes. When a filter or a search hid
+  every concept in an area, the cluster's labelled box lingered as an empty
+  rectangle; the box now hides when no child survives and returns when one does —
+  the same rule the fit already used to leave stale boxes out of view, now
+  applied to what is drawn.
+- `Esc` clears the graph selection. A dense graph leaves almost no empty canvas
+  to click for deselecting; `Esc` now drops the highlight (and lets the URL hash
+  forget the node) the same way tapping empty canvas does.
+- A title-less concept now wears one name in every view. `catalog` and the §6
+  index listing fell back a concept with no `title` to its full id — `area/thing`
+  — while the graph node fell back blank-aware to the basename — `thing` — so the
+  same concept answered to two labels across two views of one bundle, and a
+  `title: ""` slipped past the nil-only `||` to catalog as an empty string. Both
+  now fall back the graph's way (`File.basename`, blank-aware), so the label is
+  the same wherever the concept appears.
+- `okf render` stops baking a redundant description map. The static page derived
+  its `/node/meta` fragments from a separate `meta` payload that held nothing but
+  each concept's description, HTML-escaped — data the embedded `catalog` already
+  carries raw. The page now escapes the catalog's description on the client (the
+  same escape the server applies at `/node/meta`), so the `meta` key leaves the
+  baked payload and the description lives in one place. Both XSS guards are
+  unchanged; `okf server` is untouched.
+- The bare not-a-directory error now teaches the registry grammar. A verb given
+  a target that is neither a directory nor an `@ref` moved from
+  `error: <arg> is not a directory` to
+  `… is not a directory or a registry ref (@slug names a registered bundle, @ the default; okf registry list)`,
+  so a consumer who typed a query or a bad path meets `@slug` addressing at the
+  error instead of hunting for it. (`@all` stays out of the message — it is
+  `search`'s alone, and the error seam is shared by every verb.)
+- The bundled skill teaches `@slug` as a first-class target and stops probing for
+  the CLI. `SKILL.md`'s "Which directory?" is now "Which target?" — a leading `@`
+  is a registry ref routed straight to `okf <verb> @slug`, with the fallback
+  "no bundle in the cwd → `okf registry list`" — and the consume/search playbooks
+  name `@slug` in their orientation steps. The per-run `command -v okf` presence
+  probe is gone: run the verb, and treat a shell `command not found` as the only
+  signal to install, so the common case pays no guard round.
 
 ## [1.8.0] - 2026-07-17
 

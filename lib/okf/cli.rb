@@ -92,6 +92,12 @@ module OKF
     # together.
     ALL_REF = "@all"
 
+    # The core raises `:regexp`; a user typed `--regexp`. Translating here keeps
+    # the flag vocabulary in the shell, where it belongs, and lets the message end
+    # with the fix rather than only the complaint: an engine that *can* do what was
+    # asked is named, so the next command is obvious.
+    CAPABILITY_FLAGS = { regexp: "--regexp", fuzzy: "--fuzzy" }.freeze
+
     # The row shape each list view emits, so `--fields`/`--except` can be checked
     # against a name even when the result is empty. Without it the typo guard
     # keyed off the data: `--fields bogus` was a usage error against a bundle
@@ -183,20 +189,27 @@ module OKF
       0
     end
 
-    # Deterministic text retrieval — the browser page's search brought to the CLI
-    # and extended to bodies. Terms after the directory are ANDed case-insensitive
-    # substrings (Ruby regexps with --regexp); rows rank by where they hit (title >
-    # id > tags > type/description > body) and carry one bounded context snippet,
-    # so "which concept covers X?" costs a few rows, not a body read. Advisory
-    # read: exit 0 even with no matches. Deliberately not fuzzy — the consuming
-    # agent is the fuzzy layer.
+    # Ranked text retrieval — the browser page's search brought to the CLI on the
+    # same engine (a MiniFTS index) and extended to bodies. Terms after the
+    # directory are ANDed tokens, matched whole or by prefix (Ruby regexps with
+    # --regexp, typo tolerance with --fuzzy); rows rank by BM25+ weighted toward
+    # where they hit (title > id > tags > type/description > body) and carry one
+    # bounded context snippet, so "which concept covers X?" costs a few rows, not
+    # a body read. Advisory read: exit 0 even with no matches. Exact by default —
+    # the consuming agent is the fuzzy layer, until it asks not to be.
     def search(argv)
-      options = { json: false, regexp: false }
+      options = { json: false, regexp: false, fuzzy: false, engine: nil }
       parser = OptionParser.new do |o|
-        o.banner = "Usage: okf search <dir|@slug…|@all> <term> [term ...] [--regexp] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
+        o.banner = "Usage: okf search <dir|@slug…|@all> <term…> [--engine NAME] [--regexp|--fuzzy] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
+        search_engine_note(o)
         json_flags(o, options, "emit the matches as JSON")
         projection_flags(o, options)
-        o.on("-e", "--regexp", "treat each term as a Ruby regular expression (case-insensitive)") { options[:regexp] = true }
+        o.on("-e", "--regexp", "read each term as a Ruby regular expression rather",
+          "than literal text — case-insensitive (scan engine)") { options[:regexp] = true }
+        o.on("--fuzzy",
+          "tolerate typos, edit distance #{OKF::Bundle::Search::FUZZY_DISTANCE} × term length (index engine)") { options[:fuzzy] = true }
+        o.on("--engine NAME", "match with this engine instead of the default",
+          "(#{engine_names}) — index is BM25+ ranked, token-based") { |v| options[:engine] = v }
         o.on("--in LIST", Array, "search only these fields (#{OKF::Bundle::Search::FIELDS.join(", ")})") { |v| options[:in] = v.map(&:downcase) }
         filter_flags(o, options, :type, :area, :tag)
         help_flag(o)
@@ -237,11 +250,19 @@ module OKF
       unknown = Array(options[:in]) - OKF::Bundle::Search::FIELDS
       return usage_error("unknown field(s): #{unknown.join(", ")} (searchable: #{OKF::Bundle::Search::FIELDS.join(", ")})") unless unknown.empty?
 
+      # Two query languages, not two dials on one: a regexp is matched against raw
+      # text, --fuzzy is an edit distance over indexed tokens. Silently honouring
+      # one and dropping the other would answer a question nobody asked.
+      if options[:regexp] && options[:fuzzy]
+        return usage_error("--regexp and --fuzzy are mutually exclusive (a pattern is matched literally, not by edit distance)")
+      end
+
       return multi_search(pairs, terms, options) if pairs
 
       folder = OKF::Bundle::Folder.load(dir)
       report_skipped(folder)
-      rows = OKF::Bundle::Search.call(folder.bundle, terms, fields: options[:in], regexp: options[:regexp])
+      rows = OKF::Bundle::Search.call(folder.bundle, terms, fields: options[:in], regexp: options[:regexp],
+        fuzzy: options[:fuzzy], engine: options[:engine])
       keep = filter_ids(folder, options)
       rows = rows.select { |row| keep.include?(row[:id]) } unless keep.nil?
       return print_search_json(dir, terms, rows, options) if options[:json]
@@ -250,6 +271,10 @@ module OKF
       0
     rescue RegexpError => e
       usage_error("invalid pattern: #{e.message}")
+    rescue OKF::Bundle::Search::UnknownEngine => e
+      usage_error(e.message)
+    rescue OKF::Bundle::Search::UnsupportedQuery => e
+      usage_error(unsupported_query_message(e))
     end
 
     # Every registered bundle, as [slug, dir] pairs — what @all expands to.
@@ -324,22 +349,29 @@ module OKF
       [ [ ref_slugs[path], path ] ]
     end
 
-    # Search each bundle with the same terms and merge the rankings — scores are
-    # absolute term weights, so they compare across bundles — every row labeled
-    # with its bundle's slug and ties broken deterministically.
+    # Search every bundle at once and merge the rankings, each row labeled with
+    # its bundle's slug. The bundles go in as *one* corpus rather than one search
+    # each: BM25 weighs a term by how rare it is, so ranking each bundle on its own
+    # statistics and then interleaving the lists would let the same match score
+    # differently for no reason a reader could see. One index, one ranking.
+    #
+    # Filters stay per-bundle — they are per-folder questions — so they apply to
+    # the merged rows by (slug, id) afterwards.
     def multi_search(pairs, terms, options)
-      rows = []
+      bundles = []
+      keeps = {}
       total = 0
       pairs.each do |slug, dir|
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)
         total += folder.bundle.concepts.size
-        found = OKF::Bundle::Search.call(folder.bundle, terms, fields: options[:in], regexp: options[:regexp])
+        bundles << [ slug, folder.bundle ]
         keep = filter_ids(folder, options)
-        found = found.select { |row| keep.include?(row[:id]) } unless keep.nil?
-        found.each { |row| rows << { slug: slug }.merge(row) }
+        keeps[slug] = keep unless keep.nil?
       end
-      rows.sort_by! { |row| [ -row[:score], row[:slug], row[:id] ] }
+      rows = OKF::Bundle::Search.across(bundles, terms, fields: options[:in], regexp: options[:regexp],
+        fuzzy: options[:fuzzy], engine: options[:engine])
+      rows = rows.select { |row| !keeps.key?(row[:slug]) || keeps[row[:slug]].include?(row[:id]) }
       return print_multi_search_json(pairs, terms, rows, options) if options[:json]
 
       print_multi_search(pairs, terms, rows, total)
@@ -400,7 +432,7 @@ module OKF
         o.on("--bind ADDR", "address to bind (default #{options[:bind]})") { |v| options[:bind] = v }
         o.on("-t", "--title TITLE", "graph title, single bundle only (default: parent/bundle dir name)") { |v| options[:title] = v }
         o.on("-l", "--link URL", "source URL shown in the header, single bundle only") { |v| options[:link] = v }
-        o.on("--layout NAME", OKF::Server::Graph::LAYOUTS, "initial layout (#{OKF::Server::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
+        o.on("--layout NAME", OKF::Render::Graph::LAYOUTS, "initial layout (#{OKF::Render::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
         help_flag(o)
       end
       dirs = positional_dirs(parser, argv) or return 2
@@ -531,7 +563,7 @@ module OKF
     # self-contained HTML file (bodies, catalog, index, logs baked in, no server
     # needed — e.g. hosting on GitHub Pages). Prints to stdout unless -o is given.
     def render(argv)
-      require "okf/server/app"
+      require "okf/render/graph"
 
       options = { output: nil, title: nil, link: nil, layout: "cose" }
       parser = OptionParser.new do |o|
@@ -539,14 +571,14 @@ module OKF
         o.on("-o", "--output FILE", "write to FILE instead of stdout") { |v| options[:output] = v }
         o.on("-t", "--title TITLE", "graph title (default: parent/bundle dir name)") { |v| options[:title] = v }
         o.on("-l", "--link URL", "source URL shown in the header") { |v| options[:link] = v }
-        o.on("--layout NAME", OKF::Server::Graph::LAYOUTS, "initial layout (#{OKF::Server::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
+        o.on("--layout NAME", OKF::Render::Graph::LAYOUTS, "initial layout (#{OKF::Render::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
         help_flag(o)
       end
       dir = positional_dir(parser, argv) or return 2
 
       folder = OKF::Bundle::Folder.load(dir)
       report_skipped(folder)
-      html = OKF::Server::App.new(folder, title: options[:title] || folder.name, link: options[:link], layout: options[:layout]).render_static
+      html = OKF::Render::Graph.static(folder, title: options[:title], link: options[:link], layout: options[:layout])
       if options[:output]
         # A bad -o path (a missing directory, a permission denial) is a bad
         # *argument*: exit 2 with the reason, never a backtrace and an exit code
@@ -1117,6 +1149,43 @@ module OKF
       end
     end
 
+    # The registered engines, read at parse time so an addon that registers one
+    # shows up in `--help` without the CLI knowing it exists.
+    def engine_names
+      OKF::Bundle::Search.engines.map(&:id).join(" | ")
+    end
+
+    def unsupported_query_message(error)
+      wanted = error.missing.map { |name| CAPABILITY_FLAGS.fetch(name, ":#{name}") }.join(", ")
+      return "no available search engine offers #{wanted}" if error.engine.nil?
+
+      able = OKF::Bundle::Search.engines.select { |engine| (error.missing - engine.capabilities).empty? }
+      message = "--engine #{error.engine} does not support #{wanted}"
+      message += " (try --engine #{able.map(&:id).join(" or ")})" unless able.empty?
+      message
+    end
+
+    # The engine story, told once, in the only place there is to tell it. `search`
+    # routes on what the query needs — a pattern needs the scan, --fuzzy needs the
+    # index — and says nothing about it at runtime: no note on stderr, nothing in
+    # the header, and deliberately no --engine flag. So this is where a user learns
+    # that the exactness a token index gives up is still reachable, and that -e is
+    # how. Without it that capability is present but undiscoverable.
+    #
+    # It leads rather than trails because #help_flag registers -h with `on_tail`,
+    # which OptionParser renders after every separator: a closing paragraph would
+    # print *above* the -h line and split the option list in half. Stating the
+    # matching model before the flags reads better anyway.
+    def search_engine_note(parser)
+      parser.separator ""
+      parser.separator "Terms match raw text, so a phrase (\"dedup key\"), a dotted identifier (7.2.0,"
+      parser.separator "customer_id) and a word inside `backticks` all match literally — the scan engine."
+      parser.separator "--engine index matches whole tokens and the tokens they prefix, ranked by BM25+:"
+      parser.separator "better ranking and the engine the browser page runs, at the cost of that"
+      parser.separator "exactness. --fuzzy implies it. Add -e to read the terms as regular expressions."
+      parser.separator ""
+    end
+
     # --fields/--except project the JSON down to the properties an agent wants, so it
     # never pays tokens for fields it will not read. --fields is an allowlist,
     # --except a denylist (mutually exclusive); both imply --json and apply per item
@@ -1281,7 +1350,8 @@ module OKF
       return resolve_registered(arg) if arg.start_with?("@")
 
       unless File.directory?(arg)
-        @err.puts "error: #{arg} is not a directory"
+        @err.puts "error: #{arg} is not a directory or a registry ref " \
+                  "(@slug names a registered bundle, @ the default; okf registry list)"
         return nil
       end
       arg
@@ -1692,7 +1762,7 @@ module OKF
           loose     <dir|@slug> [--json]                          list files with no graph links, by folder
           validate  <dir|@slug> [--json]                          check OKF v0.1 conformance
 
-          search    <dir|@slug…|@all> <term…> [-e] [...]          find concepts by text or regexp, ranked (@all: every bundle)
+          search    <dir|@slug…|@all> <term…> [-e|--fuzzy] [...]  find concepts by text or regexp, ranked (@all: every bundle)
           index     <dir|@slug> [--json] [--area A] [--no-body]   the index map: dirs, their listings and rollups
           stats     <dir|@slug> [--json]                          bundle rollups (concepts, types, areas, links, tags)
           types     <dir|@slug> [--json] [filters]                list types with their concepts, by count

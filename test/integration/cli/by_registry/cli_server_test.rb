@@ -96,7 +96,7 @@ module ByRegistry
 
     test "every valid --layout reaches the page served for a ref" do
       with_registry("minimal") do
-        OKF::Server::Graph::LAYOUTS.each do |layout|
+        OKF::Render::Graph::LAYOUTS.each do |layout|
           result, booted = okf_server("@minimal", "--layout", layout)
 
           assert_equal 0, result.status, layout

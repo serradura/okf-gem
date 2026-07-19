@@ -14,12 +14,14 @@ lib/okf/
   markdown/               pure   format layer: frontmatter (§4), links (§5), citations (§8)
   concept.rb  bundle.rb   pure   the in-memory model (no disk, no stdio)
   bundle/graph.rb         pure   nodes/edges + type/tag indexes
+  bundle/search.rb        pure   facade: owns the row/snippet/sort + the engine registry
+  bundle/search/{index,scan}.rb  pure   the engines — raw-text scan (default), minifts BM25+
   bundle/validator*.rb    pure   spec §9 conformance (hard errors + soft warnings)
   bundle/linter*.rb       pure   curation-quality report (never rejects)
   concept/file.rb         shell  one-file on-disk handle
   bundle/reader|writer|folder.rb  shell  directory <-> Bundle (writer is atomic, validates before publish)
+  render/graph.rb + graph/template.html.erb  shell  the whole UI in one self-contained ERB file — `okf render` bakes it (.static), the server serves the same
   server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types, /index, /log
-  server/graph.rb + graph/template.html.erb  the whole UI in one self-contained ERB file
   server/runner.rb        shell  built-in WEBrick <-> Rack bridge (replaces any rackup need)
   skill.rb + skill/       shell  the companion agent skill + its installer
   cli.rb                  shell  the only layer that parses argv, prints, and exits
@@ -62,10 +64,18 @@ you touch what `require "okf"` pulls in.
    docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
      "cp -a /src /build && cd /build && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
    ```
-2. **Runtime dependencies are exactly `rack` and `webrick`.** No ActiveSupport —
-   `OKF.blank?` and `Markdown::Frontmatter.stringify_keys` exist precisely so it
-   is not needed. A new runtime dependency is a design decision, not a
-   convenience; challenge it.
+2. **Runtime dependencies are exactly `rack`, `webrick` and `minifts`.** No
+   ActiveSupport — `OKF.blank?` and `Markdown::Frontmatter.stringify_keys` exist
+   precisely so it is not needed. A new runtime dependency is a design decision,
+   not a convenience; challenge it. `minifts` (the index engine) cleared that
+   bar by being pure Ruby with **no dependencies of its own**, the same 2.4
+   floor, and no native extension — it is what defers SQLite + FTS5, and being a
+   bit-for-bit port of the browser's MiniSearch is what lets `--engine index`
+   rank identically to the page. A fourth gem needs an argument that strong.
+   Note it now backs a *non-default* engine: the scan leads because a one-shot
+   CLI cannot amortize an index build (3.00 s vs 0.24 s at 1,000 concepts). That
+   weakens the dependency's case but does not retire it — `--fuzzy` and page
+   parity both still need it — and a cached index would restore it outright.
 3. **YAML only through `Markdown::Frontmatter`** — `safe_load`, `Date`/`Time`
    permitted, no aliases. The Psych <3.1 positional-argument shim lives there;
    do not call `YAML.safe_load`/`YAML.load` anywhere else.
@@ -76,7 +86,9 @@ you touch what `require "okf"` pulls in.
    2 usage error.
 5. **The server page stays self-contained**: one ERB template, inline CSS/JS,
    only Cytoscape, marked, and DOMPurify from a CDN at boot (Mermaid, Panzoom,
-   and the extra layout engines lazy-load from the same CDN on first use),
+   MiniSearch, and the extra layout engines lazy-load from the same CDN on first
+   use — MiniSearch on the first search, pinned to the same `7.2.0` the Ruby port
+   tracks so an `--engine index` result and the browser's rank identically),
    bodies pulled on demand with `fetch()`. No htmx, no bundler, no build step. Two XSS defenses hold the
    line: inlined data goes through `json_for_script` (escapes `<` so it cannot
    break out of its `<script>`), and every fetched body is run through

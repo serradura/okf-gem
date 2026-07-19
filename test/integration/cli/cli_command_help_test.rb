@@ -112,6 +112,34 @@ class CLICommandHelpTest < CLIIntegrationCase
     end
   end
 
+  # `search` picks its engine from what the query needs, and says nothing about
+  # it: no note on stderr, nothing in the header, and no --engine flag to
+  # discover. That makes --help the *only* place the engine story is told, so
+  # this attribution is load-bearing text rather than decoration. Drop it and the
+  # scan engine — the one thing that still matches a phrase, an infix, or a
+  # dotted identifier exactly — becomes unreachable in practice.
+  ENGINE_BEARING = { "--regexp" => "scan", "--fuzzy" => "index" }.freeze
+
+  test "search --help attributes each capability flag to the engine that answers it" do
+    help = okf("search", "--help").out
+
+    ENGINE_BEARING.each do |flag, engine|
+      block = option_block(help, flag)
+
+      refute_empty block, "search --help must document #{flag}"
+      assert_includes block, "#{engine} engine",
+        "routing is silent, so #{flag}'s own help is the only place its engine can be named"
+    end
+  end
+
+  test "search --help names the exactness -e buys back, or the tradeoff is undiscoverable" do
+    help = okf("search", "--help").out
+
+    assert_match(/token/i, help, "the default engine matches tokens; help must say so")
+    assert_match(/7\.2\.0|customer_id|dedup key/, help,
+      "an abstract 'matches raw text' teaches nobody when to reach for -e; the help needs a concrete example")
+  end
+
   test "the @slug the read views advertise is one they really take" do
     # Keeps SLUG_TAKING a claim about behavior rather than a transcription of the
     # banners — without it, a hint added to a verb that cannot resolve an @slug
@@ -131,5 +159,27 @@ class CLICommandHelpTest < CLIIntegrationCase
       assert_equal 0, okf("render", "@conformant", "-o", File.join(@out_dir, "graph.html")).status,
         "render's banner promises an @slug"
     end
+  end
+
+  private
+
+  # A flag's whole help entry: the line carrying the flag plus any continuation
+  # lines OptionParser wrapped underneath it. Asserting on the block rather than
+  # the single line keeps the guard about *what the help says* instead of how
+  # wide the terminal was when it was written.
+  def option_block(help, flag)
+    lines = help.lines
+    # Anchored to the options column: the banner names --regexp too, inside the
+    # grammar, and matching that instead would assert against the wrong line.
+    start = lines.index { |line| line.match?(/\A\s+(-\S,\s+)?#{Regexp.escape(flag)}\b/) }
+    return "" if start.nil?
+
+    block = [ lines[start] ]
+    lines[(start + 1)..-1].to_a.each do |line|
+      break if line.strip.empty? || line.match?(/\A\s{0,12}-/)
+
+      block << line
+    end
+    block.join
   end
 end
