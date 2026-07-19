@@ -154,9 +154,11 @@ module OKF
 
         @plugins_loaded = true
         @plugin_failures = []
+        @loaded_plugins = []
         plugin_paths.each do |path|
           begin
             require path
+            @loaded_plugins << path
           rescue ::LoadError, ::StandardError => e
             @plugin_failures << [ path, e ]
           end
@@ -198,7 +200,17 @@ module OKF
       # Test seam: put the registry back to what shipped and forget the load
       # latch. Registration happens at require time, so without this a test that
       # installs a fake plugin would leak it into every test that runs after it.
+      #
+      # Dropping the files from $LOADED_FEATURES is not optional, and the reason
+      # is worth stating: `require` is idempotent, so clearing the registry
+      # alone leaves a plugin *unregistered and unloadable* — the next
+      # load_plugins would find the file, require it, get `false`, and register
+      # nothing. That only stays hidden while each test writes its plugin to a
+      # fresh tmpdir; the moment one points at a real gem's lib/, the verb
+      # vanishes after the first reset.
       def reset_plugins!
+        Array(@loaded_plugins).each { |path| $LOADED_FEATURES.delete(path) }
+        @loaded_plugins = []
         @commands = builtins.dup
         @plugins_loaded = false
         @plugin_failures = []

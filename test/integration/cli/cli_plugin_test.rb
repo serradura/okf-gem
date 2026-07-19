@@ -179,6 +179,23 @@ class CLIPluginTest < CLIIntegrationCase
       "a malformed command fails where it is installed, naming what it is missing")
   end
 
+  # The failure this was written after. `require` is idempotent, so a reset that
+  # only cleared the registry left the verb unregistered *and* unloadable: the
+  # next scan found the file, required it, got `false`, and registered nothing.
+  # Every other test here writes to a fresh tmpdir, which hid it completely — it
+  # surfaced only against a real gem, whose lib/ path does not change between
+  # loads.
+  test "a reset re-registers from the same path, not only the first time" do
+    plugin(PING)
+
+    assert_equal 0, okf("ping", "one").status
+
+    OKF::CLI.reset_plugins!
+
+    assert_equal "pong: two\n", okf("ping", "two").out,
+      "the verb has to come back after a reset, or the seam works once per path and never again"
+  end
+
   test "loading twice does not register twice" do
     plugin(PING)
     okf("--help")
