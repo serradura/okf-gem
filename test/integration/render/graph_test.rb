@@ -518,6 +518,23 @@ class OKF::Render::GraphTest < OKF::TestCase
     refute_includes html, "margin-bottom:4px", "and the tab-strip offset that left it 2px high is gone"
   end
 
+  test "the mobile tools sheet lays its controls in columns, not a ragged wrap" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # wrapping five things and a dropdown by whatever happened to fit left one
+    # icon orphaned on a line of its own. The two controls that carry words get a
+    # column each, so the first line is two even halves; the icon buttons then
+    # take a line of their own and spread across it.
+    assert_includes html, "flex:1 1 calc(50% - 4px)", "the worded controls take half the width each"
+    assert_includes html, "#app.controls-open #graph-controls>#btn-filters",
+      "Filters is one of them"
+    assert_includes html, "#app.controls-open #graph-controls>.selwrap",
+      "and the layout select is the other"
+    assert_includes html, "justify-content:space-between", "the icons then spread over their own line"
+  end
+
   test "a toggle narrows the tree to the authored layer" do
     write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 
