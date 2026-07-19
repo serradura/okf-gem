@@ -518,19 +518,21 @@ class OKF::Render::GraphTest < OKF::TestCase
     refute_includes html, "d.forEach(x=>collapsedDirs.delete(x))", "the old all-inclusive fold is gone"
   end
 
-  test "the reader's graph button says what it will open" do
+  test "every file's graph button reads the same" do
     write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 
     html = render
 
-    # on the root index it opens the whole bundle, on a nested one just that
-    # folder — and saying so is the invitation a first-time reader needs, put
-    # where their eye already is instead of in a banner they have to dismiss
-    assert_includes html, "function fpGraph(", "one place relabels and rewires the button"
-    assert_includes html, "'Explore the knowledge graph'", "the root index opens the whole graph"
-    assert_includes html, "'Open '+d+'/ in graph'", "a nested index names its own folder"
-    assert_includes html, "fpGraph('Open in graph',()=>goToGraph(id));",
-      "a concept resets the label, so a stale one never outlives the index that set it"
+    # it said "Explore the knowledge graph" on the root index and "Open core/ in
+    # graph" on a nested one, which made a single action read as three. The
+    # question is the same whatever is open — where is this in the graph? — and a
+    # label is not the place to answer a different one.
+    assert_includes html, "function fpGraph(go){", "the button takes a destination, not a name"
+    refute_includes html, "Explore the knowledge graph", "no per-file wording left"
+    refute_includes html, "'Open '+d+'/ in graph'"
+    assert_includes html, %(aria-label="Open in graph" title="Open in graph"), "the one label lives in the markup"
+    assert_includes html, "fpGraph(()=>goToGraph(id));", "a concept goes to its node"
+    assert_includes html, "fpGraph(()=>openMapInGraph(d));", "a map goes to the layer"
   end
 
   test ".static renders a whole bundle from a folder — bundle baked in, meta derived from the catalog" do

@@ -1704,18 +1704,18 @@ function makeCombo(name,allLabel,items,onChange){
 const refreshTree=()=>{ctlBadge();return Promise.all([ getCatalog(),getIndex(),getLogs() ]).then(([ list,dirs,logs ])=>{IXDIRS=dirs;LOGPATHS=logs.map(l=>l.path);renderTree(list);});};
 const fileTypeCombo=makeCombo('file-type','All types',()=>catByCount.map(t=>({v:t,n:(TYPES[t]||[]).length,c:color[t]})),refreshTree);
 const fileTagCombo=makeCombo('file-tag','All tags',()=>tagsByCount.map(t=>({v:t,n:(TAGS[t]||[]).length})),refreshTree);
-/* The reader's graph button, relabelled for whatever it is about to open. Both
-   callers go through here so a label can never outlive the file that set it. */
-function fpGraph(label,go){const fg=document.getElementById('fp-graph');
- fg.hidden=false;fg.onclick=go;fg.querySelector('.fpg-lbl').textContent=label;
- fg.setAttribute('aria-label',label);fg.title=label;}
+/* The reader's graph button. One label for every file: the question is the same
+   whatever is open — where is this in the graph? — and wording it per file made
+   one action read as three. Only the destination differs, so only that is passed.
+   The label itself lives in the markup, where it cannot go stale. */
+function fpGraph(go){const fg=document.getElementById('fp-graph');fg.hidden=false;fg.onclick=go;}
 function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
  const ty=c.type||typeOf[id]||'Untyped';const cc=color[ty]||'#64748b';
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-type').innerHTML=`<span class="dot" style="background:${cc}"></span>${esc(ty)}`;
  document.getElementById('fp-title').textContent=c.title||(byId[id]||{}).title||id;
- fpGraph('Open in graph',()=>goToGraph(id));
+ fpGraph(()=>goToGraph(id));
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  getNodeBody(id).then(txt=>{
   const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);}).catch(()=>{body.innerHTML='<p class="empty">could not load this file</p>';});}
@@ -1726,12 +1726,8 @@ function openReserved(kind,path){fileSel=path;
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.path===path));
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-title').textContent=path;
- /* On the root index this opens the whole bundle; on a nested one, just that
-    folder. Naming which is also the standing invitation into the graph — the
-    landing hands a newcomer the index, and this is how the graph introduces
-    itself from there, in the place the reader is already looking. */
  const d=dirOfPath(path);
- fpGraph(kind==='index'?(d==='.'?'Explore the knowledge graph':'Open '+d+'/ in graph'):'Open in graph',()=>openMapInGraph(d));
+ fpGraph(()=>openMapInGraph(d));
  const type=document.getElementById('fp-type');
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  const done=txt=>{const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);};

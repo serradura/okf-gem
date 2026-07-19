@@ -16,8 +16,13 @@
     its own layout while file-tree mode ran `breadthfirst` a beat later, two
     layouts racing the same canvas; and because the layer is fetched, a promise
     resolving after a mode change could land inside file-tree mode. A `relayout`
-    flag settles the first, a per-toggle ticket the second. File-tree mode disables it rather than
-  doubling the folders it already draws.
+    flag settles the first, a per-toggle ticket the second.
+  - **File-tree mode disables the toggle** rather than doubling the folders it
+    already draws.
+  - **One label on every file's graph button.** It read "Explore the knowledge
+    graph" on the root index and "Open core/ in graph" on a nested one, which made
+    a single action look like three. The question is the same whatever is open, so
+    the label is too — and it lives in the markup, where it cannot go stale.
   - **Opening a map from the reader keeps the reader's graph.** It forced
     file-tree mode, discarding whatever layout was running, and dimmed the canvas
     to the map's immediate neighbours. It now switches the *layer* on rather than

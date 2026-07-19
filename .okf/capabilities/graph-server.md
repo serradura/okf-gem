@@ -296,8 +296,9 @@ whole set, root included, so a root closed by hand is still reversible from
 there.
 Folder nodes in file-tree mode and area boxes in cluster mode are
 clickable: the inspector opens that directory's map, the authored `index.md` or a
-synthesized listing badged as such when none exists; **Open in graph** on a
-reserved file shows that map *in* the graph: it switches the **index layer** on
+synthesized listing badged as such when none exists; **Open in graph** — one label on
+every file, because the question is the same whatever is open — shows a map *in*
+the graph: it switches the **index layer** on
 rather than file-tree mode, so the layout the reader chose survives, and it
 highlights the map without dimming the graph around it — reducing the canvas to
 the map's immediate neighbours answers a question nobody asked. A reader already
