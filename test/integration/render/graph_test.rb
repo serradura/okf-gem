@@ -500,6 +500,24 @@ class OKF::Render::GraphTest < OKF::TestCase
       "and a log gets none — hidden, not disabled: it is never applicable, not merely unavailable now"
   end
 
+  test "the tree header lays out the same at every width" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # `.ftree-name` pushed everything right, and the counter-gap that balances it
+    # lived only in the desktop block — so on a phone the controls stranded
+    # themselves against the far edge, a screen's width from the label they belong
+    # to. One layout now: label, its controls beside it, the pane toggle pinned.
+    assert_includes html, ".ftree-name{font-size:12.5px;font-weight:600;color:var(--ink);padding-left:2px}",
+      "the label no longer shoves the controls away"
+    assert_includes html, "#ftree-min{display:none;width:28px;height:28px;flex:none;margin-left:auto}",
+      "the pane toggle is what claims the far edge, at every width"
+    refute_includes html, "#ftree-min{display:inline-grid;margin-left:auto}",
+      "so the desktop block no longer needs its own copy"
+    refute_includes html, "margin-bottom:4px", "and the tab-strip offset that left it 2px high is gone"
+  end
+
   test "a toggle narrows the tree to the authored layer" do
     write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 
