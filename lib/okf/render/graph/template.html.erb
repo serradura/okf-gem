@@ -1717,7 +1717,15 @@ const fileTagCombo=makeCombo('file-tag','All tags',()=>tagsByCount.map(t=>({v:t,
    one action read as three. Only the destination differs, so only that is passed.
    The label itself lives in the markup, where it cannot go stale. */
 function fpGraph(go){const fg=document.getElementById('fp-graph');fg.hidden=false;fg.onclick=go;}
-function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
+function openFile(id,list){fileSel=id;
+ /* A concept cannot appear in an Indexes-only list, so opening one releases the
+    filter that would hide it — otherwise the reader's selection is invisible and
+    they lose their place. Opening a *map* does not release it: that row is right
+    there in the list, and dropping a filter the reader set is not a click's
+    business. The rule is the filter yields only when it would hide what was just
+    opened. */
+ if(ixOnly)setIxOnly(false);
+ const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
  const ty=c.type||typeOf[id]||'Untyped';const cc=color[ty]||'#64748b';
  document.getElementById('fp-head').hidden=false;
@@ -1730,12 +1738,16 @@ function openFile(id,list){fileSel=id;const c=(list||[]).find(x=>x.id===id)||byI
 /* Reserved files read in the preview too: the index map from its payload, the
    log fetched fresh on every click so a just-appended entry shows. */
 function openReserved(kind,path){fileSel=path;
- setIxOnly(false);
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.path===path));
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-title').textContent=path;
  const d=dirOfPath(path);
- fpGraph(()=>openMapInGraph(d));
+ /* A log is a chronology, not a place in the graph, so the button is not shown
+    at all — hidden rather than disabled, because it is never applicable here, not
+    merely unavailable now. It was worse than useless: a log's directory is the
+    root, so it opened the *root index's* node. */
+ if(kind==='index')fpGraph(()=>openMapInGraph(d));
+ else document.getElementById('fp-graph').hidden=true;
  const type=document.getElementById('fp-type');
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  const done=txt=>{const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);};

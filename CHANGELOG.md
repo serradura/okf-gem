@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+- **`okf search` matches raw text again by default.** The BM25+ index becomes the
+  opt-in engine (`--engine index`, or `--fuzzy`, which routes to it); the linear
+  scan takes the default back. A one-shot CLI builds an index, asks one question
+  and exits, so the build has a single query to amortize it over — end to end,
+  **3.00 s against 0.24 s at 1,000 concepts**, 0.83 s against 0.18 s at 250, with
+  the build accounting for ~95% of the index path at every size. The throughput
+  number that motivated the swap (~44–56× per query) is the right measure for a
+  long-lived index and the wrong one for a process that exits.
+  - **It also closes a silent recall hole.** MiniSearch splits on `\p{Z}\p{P}`,
+    and a backtick is `Sk` while `$` is `Sc` — so neither is ever split off and a
+    word inside a code span is stored as the token `` `minifts` ``, unfindable by
+    the query `minifts`. On this repo's own bundle that was 2 hits where raw text
+    finds 5. Raw-text matching has no tokenizer and therefore none of its holes.
+  - **What the index still buys, by asking for it:** BM25+ ranking, prefix
+    matching (`dedup` → `deduplication`), `--fuzzy`, and rank parity with the
+    browser page — which runs the same MiniSearch build. That parity is now
+    conditional on naming the engine; it used to be unconditional.
+  - **Exactness is the default again**: a phrase, `7.2.0`, `customer_id`, a
+    mid-word `ustomer` and a backticked word all match the way they are typed.
+  - Expect this to be revisited once a cached prebuilt index removes the build
+    from the comparison.
+
 - **The graph can draw the index layer, under any layout.** The §6 map was
   visible only inside file-tree mode, where a folder node stood in for a
   directory's `index.md`. **Show indexes** makes it a layer: each map is a tile
@@ -51,7 +73,11 @@
   second tab as a flat list of paths, which put a directory's own map somewhere
   other than the directory. `index.md` and `log.md` are rows now, at the top of
   the folder they document, and **Indexes only** is a toggle over the same tree —
-  same rows, fewer of them, structure intact. Opening a reserved file releases it.
+  same rows, fewer of them, structure intact. The toggle yields only when it would
+  hide what was just opened — a map stays under it, a concept releases it — so
+  browsing the authored layer no longer destroys the list being browsed. A log
+  offers no graph button at all: it is a chronology, not a place in the graph, and
+  the button had been opening the root index's node.
   Narrowed, a folder owns exactly one row, so the row stands where the folder
   header stood — at that folder's depth, carrying the path — rather than nesting
   a single child under a header.

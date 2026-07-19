@@ -470,6 +470,36 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "data-res=", "each keeps its kind, so a click still knows what it opened"
   end
 
+  test "the Indexes-only filter releases only when it would hide what was opened" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # It was the other way round: opening a *map* dropped the filter, though that
+    # row is right there in the list — so browsing the authored layer destroyed
+    # the list being browsed on the first click. Opening a *concept* kept it,
+    # though a concept cannot appear under the filter at all, leaving the reader
+    # with an invisible selection.
+    assert_includes html, "if(ixOnly)setIxOnly(false);", "opening a concept releases the filter that would hide it"
+    reserved = html[/function openReserved\(kind,path\).*?^function /m]
+    refute_nil reserved
+    refute_includes reserved, "setIxOnly(false)", "opening a map leaves the reader's filter alone"
+  end
+
+  test "a log offers no graph button, because a log has no node" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # `log.md` is a chronology, not a place in the graph. The button was not
+    # merely useless there — its directory is the root, so it opened the *root
+    # index's* node, answering a question about a different file entirely.
+    assert_includes html, "if(kind==='index')fpGraph(()=>openMapInGraph(d));",
+      "only a map gets the button"
+    assert_includes html, "else document.getElementById('fp-graph').hidden=true;",
+      "and a log gets none — hidden, not disabled: it is never applicable, not merely unavailable now"
+  end
+
   test "a toggle narrows the tree to the authored layer" do
     write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 

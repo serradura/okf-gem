@@ -254,9 +254,15 @@ the row stands where the header stood instead, at that folder's depth and
 carrying the path. That is the flat list the tab used to show, with the nesting
 still legible in the indent. One row renderer serves both shapes; only the label
 differs (bare filename inside its folder, whole path when it stands in for one),
-so a click behaves identically either way. Opening a reserved file releases the toggle,
-because a reader who has arrived somewhere should not have to undo a filter to
-see where they are. The type and tag combos hide reserved files while they are
+so a click behaves identically either way. The toggle yields only when it would hide what was
+just opened: a map is right there in the filtered list, so opening one leaves it
+alone — browsing the authored layer must not destroy the list being browsed — and
+a concept cannot appear under it at all, so following a link to one releases it
+rather than leaving the reader's selection invisible. A **log** offers no graph
+button: it is a chronology, not a place in the graph, and the button is hidden
+rather than disabled because it is never applicable, not merely unavailable now.
+(It was worse than dead: a log's directory is the root, so it opened the *root
+index's* node.) The type and tag combos hide reserved files while they are
 set — a reserved file has neither, so a filter about concepts is not a statement
 it can answer.
 
