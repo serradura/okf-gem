@@ -2,6 +2,7 @@
 
 require_relative "cli_integration_case"
 require "tmpdir"
+require "minitest/mock"
 
 # The extension seam, driven the way a gem uses it: a directory on the load path
 # carrying `okf/plugin.rb`, exactly as an installed gem's lib/ would be.
@@ -74,13 +75,22 @@ class CLIPluginTest < CLIIntegrationCase
   end
 
   test "the map is the built-ins alone when nothing is installed" do
-    # No plugin written: the scan runs and finds nothing.
-    OKF::CLI.reset_plugins!
+    # "Nothing is installed" has to be *made* true, not hoped for. Discovery
+    # reads the machine, so on a developer's box — okf-tui on the load path, or
+    # any addon installed as a gem — this would go red with nothing wrong. The
+    # property under test is a rendering one (an empty group prints no heading),
+    # and it should not be able to fail for an environmental reason.
+    #
+    # Same seam, same reason as Search.call's `engines:`: an "and now there are
+    # none" case stays reachable without uninstalling anything.
+    OKF::CLI.stub(:plugin_paths, []) do
+      OKF::CLI.reset_plugins!
 
-    map = okf("--help").out
+      map = okf("--help").out
 
-    refute_match(/installed extensions:/, map, "a heading with nothing under it is noise")
-    assert_match(/^\s+lint\s/, map, "the built-in map is untouched")
+      refute_match(/installed extensions:/, map, "a heading with nothing under it is noise")
+      assert_match(/^\s+lint\s/, map, "the built-in map is untouched")
+    end
   end
 
   # The whole reason discovery is lazy rather than eager.
