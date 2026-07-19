@@ -24,8 +24,26 @@ lib/okf/
   server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types, /index, /log
   server/runner.rb        shell  built-in WEBrick <-> Rack bridge (replaces any rackup need)
   skill.rb + skill/       shell  the companion agent skill + its installer
-  cli.rb                  shell  the only layer that parses argv, prints, and exits
+  cli.rb                  shell  the command registry, the dispatcher, and `okf help`
+  cli/command.rb          shell  the base every verb inherits: streams, refs, shared flags, printers
+  cli/<verb>.rb           shell  one file per verb, each registering itself at load
 ```
+
+The CLI is the only layer that parses argv, prints, and exits. A verb is a
+`CLI::Command` subclass answering four questions about itself (`.id`, `.group`,
+`.help_rows`, `.hidden?`) and one about a run (`#call(argv)`, returning the exit
+status). Privacy is the boundary: `#call` is the whole public surface, so a
+helper cannot become a verb by accident.
+
+`CLI.register` is deliberately the same shape as `Search.register` — append-only,
+idempotent by id, duck type checked at registration. **The require block at the
+bottom of `cli.rb` IS the order `okf help` lists the verbs in**; a test pins it.
+
+That registry is also the extension point. Any gem with `okf/plugin.rb` on its
+load path can register a verb, and `okf` finds it — no edit here, no list of
+known addons (a test greps `cli.rb` to keep it that way). Discovery is **lazy**:
+a built-in never scans, so only an unknown verb or `okf help` pays the ~11ms.
+A plugin that raises is skipped and reported on stderr, never fatal.
 
 The core/shell split is _enforced_: `test/unit/boundary_test.rb` fails if a pure
 file names a shell class or touches `File`/`Dir`/`FileUtils`/stdio. Put new I/O

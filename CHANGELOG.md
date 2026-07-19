@@ -1,5 +1,30 @@
 # Changelog
 
+## [Unreleased]
+
+- **`okf` is extensible.** Any gem that puts `okf/plugin.rb` on its load path can
+  register a verb, and it answers to `okf` — listed in `okf help` under
+  `installed extensions:`, dispatched like a built-in. There is no list of known
+  addons in this gem and no configuration step for the user: installing the gem
+  is the whole installation. It is the same seam `Search.register` opened for
+  search engines, and the same idiom — append-only, idempotent by id, so an addon
+  can never quietly displace a built-in.
+  - **Discovery is lazy**, which is what makes it affordable. A built-in verb
+    resolves against the registry and dispatches without scanning at all; only an
+    unknown verb or `okf help` — which has to know everything by definition —
+    pays the ~11ms `Gem.find_latest_files` costs on the 2.4 floor. A one-shot CLI
+    that will not build a search index for a single query should not pay for
+    discovery to answer a verb it shipped with.
+  - **A broken addon is skipped and reported, never fatal** — the same
+    best-effort posture the reader takes with an unparseable file. The note goes
+    to stderr, so a `--json` run's stdout stays a clean machine substrate.
+- **The CLI is one file per verb.** `lib/okf/cli.rb` was 1,794 lines and a
+  15-arm `case`; it is now a registry and a dispatcher, with the verbs under
+  `lib/okf/cli/` and the shared surface on a `Command` base class. Behaviour is
+  unchanged — every existing test passes untouched — but `okf help` is now
+  composed from what the commands say about themselves rather than from a
+  heredoc that had to be remembered separately.
+
 ## [1.9.0] - 2026-07-19
 
 - **`okf search` gains an opt-in full-text index engine.** `--engine index` — and

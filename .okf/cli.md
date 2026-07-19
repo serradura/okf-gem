@@ -4,7 +4,7 @@ title: The okf command-line front end
 description: The only layer that parses argv, prints, writes files, and decides exit codes.
 resource: lib/okf/cli.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-17T14:00:00Z
+timestamp: 2026-07-19T18:00:00Z
 ---
 
 # Overview
@@ -24,8 +24,18 @@ and asserted like the command itself.
 
 # Subcommands
 
-Dispatch is a single `case` on the first argument. The verbs fall into three
-groups:
+Dispatch goes through a **registry**. Each verb is a `CLI::Command` subclass in
+its own file under `lib/okf/cli/`, registering itself at load; `cli.rb` looks the
+name up and calls it. The require block at the bottom of `cli.rb` *is* the order
+`okf help` lists them in, and a test pins that so the coupling cannot drift
+unnoticed.
+
+That registry is also the CLI's [extension point](design/extension-points.md): a
+gem shipping `okf/plugin.rb` adds a verb with no edit here, and it appears in the
+map under `installed extensions:`. Discovery is lazy — a built-in never scans —
+and a broken addon is reported on stderr rather than being fatal.
+
+The built-in verbs fall into three groups:
 
 | Group | Verbs | Notes |
 |-------|-------|-------|
@@ -154,4 +164,5 @@ tolerance for damage, never for a claim.
 
 # Citations
 
-[1] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the dispatch, option parsing, and printers.
+[1] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the registry, the dispatcher, and the map.
+[2] [lib/okf/cli/command.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/command.rb) — the base every verb inherits: refs, shared flags, the JSON emitters, the printers.
