@@ -137,7 +137,7 @@ class CLIPluginTest < CLIIntegrationCase
 
     err = okf("nosuchverb").err
 
-    assert_equal 1, err.scan(/failed to load/).length,
+    assert_equal 1, err.scan("failed to load").length,
       "the same note twice reads as two problems: #{err.inspect}"
   end
 
