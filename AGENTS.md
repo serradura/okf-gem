@@ -15,7 +15,7 @@ lib/okf/
   concept.rb  bundle.rb   pure   the in-memory model (no disk, no stdio)
   bundle/graph.rb         pure   nodes/edges + type/tag indexes
   bundle/search.rb        pure   facade: owns the row/snippet/sort + the engine registry
-  bundle/search/{index,scan}.rb  pure   the engines — minifts BM25+ (default), regexp scan
+  bundle/search/{index,scan}.rb  pure   the engines — raw-text scan (default), minifts BM25+
   bundle/validator*.rb    pure   spec §9 conformance (hard errors + soft warnings)
   bundle/linter*.rb       pure   curation-quality report (never rejects)
   concept/file.rb         shell  one-file on-disk handle
@@ -67,11 +67,15 @@ you touch what `require "okf"` pulls in.
 2. **Runtime dependencies are exactly `rack`, `webrick` and `minifts`.** No
    ActiveSupport — `OKF.blank?` and `Markdown::Frontmatter.stringify_keys` exist
    precisely so it is not needed. A new runtime dependency is a design decision,
-   not a convenience; challenge it. `minifts` (the search engine) cleared that
+   not a convenience; challenge it. `minifts` (the index engine) cleared that
    bar by being pure Ruby with **no dependencies of its own**, the same 2.4
    floor, and no native extension — it is what defers SQLite + FTS5, and being a
-   bit-for-bit port of the browser's MiniSearch is what makes the CLI and the
-   page rank identically. A fourth gem needs an argument that strong.
+   bit-for-bit port of the browser's MiniSearch is what lets `--engine index`
+   rank identically to the page. A fourth gem needs an argument that strong.
+   Note it now backs a *non-default* engine: the scan leads because a one-shot
+   CLI cannot amortize an index build (3.00 s vs 0.24 s at 1,000 concepts). That
+   weakens the dependency's case but does not retire it — `--fuzzy` and page
+   parity both still need it — and a cached index would restore it outright.
 3. **YAML only through `Markdown::Frontmatter`** — `safe_load`, `Date`/`Time`
    permitted, no aliases. The Psych <3.1 positional-argument shim lives there;
    do not call `YAML.safe_load`/`YAML.load` anywhere else.
@@ -84,7 +88,7 @@ you touch what `require "okf"` pulls in.
    only Cytoscape, marked, and DOMPurify from a CDN at boot (Mermaid, Panzoom,
    MiniSearch, and the extra layout engines lazy-load from the same CDN on first
    use — MiniSearch on the first search, pinned to the same `7.2.0` the Ruby port
-   tracks so a Ruby-built index and the browser's rank identically),
+   tracks so an `--engine index` result and the browser's rank identically),
    bodies pulled on demand with `fetch()`. No htmx, no bundler, no build step. Two XSS defenses hold the
    line: inlined data goes through `json_for_script` (escapes `<` so it cannot
    break out of its `<script>`), and every fetched body is run through

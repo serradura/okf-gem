@@ -1,10 +1,10 @@
 ---
 type: Constraint
 title: Search engines are adapters, and the facade owns the row
-description: One facade over N retrieval engines, selected by the capabilities a query needs — with a shared conformance suite standing in for the oracle rule that multiple engines made impossible.
+description: One facade over N retrieval engines — the scan by default, the index when a query needs it or names it — with a shared conformance suite standing in for the oracle rule that multiple engines made impossible.
 resource: lib/okf/bundle/search.rb
 tags: [architecture, search, extensibility, testing]
-timestamp: 2026-07-18T19:00:00Z
+timestamp: 2026-07-18T22:00:00Z
 ---
 
 # Overview
@@ -25,25 +25,56 @@ what a match *means* — two engines, two answer shapes, and a merged ranking th
 looks sorted and compares nothing. Putting the row in the facade makes that
 unrepresentable rather than merely discouraged.
 
-# Selection is by capability, not by name
+# Selection is by capability, then by name
 
 An engine declares three things — `id`, `capabilities`, `available?` — and the
 router picks the first available engine offering **every** capability the query
 requires, default first, then registration order:
 
 ```
--e            requires :regexp  →  Search::Scan
 --fuzzy       requires :fuzzy   →  Search::Index
-neither                         →  the default (:index)
+-e            requires :regexp  →  the default already offers it
+neither                         →  the default (:scan)
 nothing qualifies               →  UnsupportedQuery, which the CLI makes exit 2
 ```
 
-There is deliberately **no `--engine` flag**. The flags a user already reaches
-for are the selector, so there is no second vocabulary to keep consistent with
-the first, and no way to ask for an engine that cannot answer the question. The
-cost is that the choice is invisible, which is why
-[`okf search --help`](../cli.md) carries the engine attribution: it is the only
-surface left to explain it on.
+Capability routing came first and was, for one release, the *only* selector —
+"the flags a user already reaches for are the selector" — on the reasoning that a
+second vocabulary would have to be kept consistent with the first. That was
+wrong in one specific way, and the gap is worth recording: **a capability flag can
+only express what a query needs, not which matching model answers it.** Raw-text
+matching requires nothing; BM25 ranking requires nothing. Neither can be asked for
+by requiring something, so under capability routing alone the non-default engine
+was unreachable at any price.
+
+`--engine NAME` is the override that closes it, and naming an engine is an
+override rather than a hint: an engine that cannot do what was *also* asked is an
+error (`UnsupportedQuery` naming the engine), never a silent fallback, since
+falling back would answer a different question than the one posed. An unknown
+name lists what is registered.
+
+# The default is the scan
+
+The default engine is `Search::Scan`, and the reason is that a CLI process builds
+an index, asks one question and exits — a build with a single query to amortize
+it over. End to end: 3.00 s against 0.24 s at 1,000 concepts, 0.83 s against
+0.18 s at 250. The build is ~95% of the index path's cost at every size.
+
+Recall settles it. Raw-text matching has no tokenizer, so it has none of the
+tokenizer's holes: MiniSearch splits on `\p{Z}\p{P}`, and a backtick is `Sk`
+while `$` is `Sc`, so a word inside a code span is stored as the token
+`` `minifts` `` and the query `minifts` does not match it. On this bundle that
+was 2 hits where the scan found 5. A loss that returns plausible rows while
+omitting most of the answer is the worst kind to have on a path nobody opted
+into.
+
+What the index gives back — BM25+ ranking, prefix matching, `--fuzzy`, and
+parity with the browser page — is now reached by asking. That the *page* still
+runs MiniSearch means the CLI and the page rank identically only under
+`--engine index`; the claim used to be unconditional and is not any more.
+
+This is expected to be revisited: a cached prebuilt index removes the build from
+the comparison entirely, at which point the arithmetic above no longer holds.
 
 `available?` is not decorative. The base gem's two engines are always available —
 `minifts` is a hard dependency with no native extension — but an addon backed by

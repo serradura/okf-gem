@@ -67,23 +67,44 @@ module ByDir
       assert_empty bad.out, "a usage error leaves stdout clean"
     end
 
+    test "a plain search is answered by the scan — the default pays no index build" do
+      # The default engine is the scan, not the index. A one-shot CLI builds an
+      # index, asks one question and exits, so the build has a single query to
+      # amortize over: measured end to end, 3.00s vs 0.24s at 1,000 concepts.
+      # Raw-text matching also has no tokenizer, so the terms glued to symbols
+      # that the index cannot reach (`minifts`, $OKF_HOME) stay findable.
+      #
+      # The routing is silent, so the score is what makes the choice observable:
+      # the scan sums the matched fields' weights, the index ranks by BM25+.
+      plain = okf("search", fixture("conformant"), "orders", "--json")
+
+      assert_equal 0, plain.status
+      top = json(plain)["matches"].first
+      assert_equal weight_sum(top["matched"]), top["score"],
+        "a plain search scores by field weight, which is the scan answering"
+    end
+
     test "the engine is chosen by what the query needs, not by a flag naming one" do
-      # There is no --engine flag: -e requires regexp semantics, which only the
-      # scan offers, and a plain search requires nothing, so the index answers.
-      # Since the routing is silent, the score is what makes it observable — the
+      # A capability flag routes without naming an engine: --fuzzy requires typo
+      # tolerance, which only the index offers, so it routes *away* from the
+      # default. That is the clean demonstration now that the scan leads — -e asks
+      # for regexp, which the default already provides, so it moves nothing.
+      #
+      # Since the routing is silent, the score is what makes it observable: the
       # scan sums the matched fields' weights, the index ranks by BM25+.
-      index = okf("search", fixture("conformant"), "orders", "--json")
-      scan = okf("search", fixture("conformant"), "-e", "orders", "--json")
+      fuzzy = okf("search", fixture("conformant"), "custommer", "--fuzzy", "--json")
+      plain = okf("search", fixture("conformant"), "customers", "--json")
 
-      assert_equal 0, index.status
-      assert_equal 0, scan.status
+      assert_equal 0, fuzzy.status
+      assert_equal 0, plain.status
 
-      scanned = json(scan)["matches"].first
-      assert_equal weight_sum(scanned["matched"]), scanned["score"], "-e routes to the scan"
+      routed = json(fuzzy)["matches"].first
+      refute_equal weight_sum(routed["matched"]), routed["score"],
+        "--fuzzy routes to the index, which ranks by BM25+ and not the field-weight sum"
 
-      ranked = json(index)["matches"].first
-      refute_equal weight_sum(ranked["matched"]), ranked["score"],
-        "the default engine ranks by BM25+, which is not the field-weight sum"
+      default = json(plain)["matches"].first
+      assert_equal weight_sum(default["matched"]), default["score"],
+        "a query needing nothing stays on the scan"
     end
 
     test "routing says nothing at runtime: no note, no engine in the header, no new JSON key" do
@@ -105,30 +126,29 @@ module ByDir
         "and so is a match row — no engine field, no capability field"
     end
 
-    test "search --engine scan restores raw-text matching, infix and all" do
+    test "raw-text matching is the default, infix and all" do
       # The capability flags cannot ask for this: raw-text matching *requires*
-      # nothing, so there is no capability to route on. Naming the engine is how
-      # a caller reaches the semantics the index gave up — the pre-swap behaviour,
-      # ranking included, chosen deliberately rather than discovered.
-      infix = okf("search", fixture("conformant"), "--engine", "scan", "ustomer", "--json")
+      # nothing, so there is no capability to route on. It is the default instead,
+      # which is what makes a mid-word fragment reachable without any flag.
+      infix = okf("search", fixture("conformant"), "ustomer", "--json")
 
       assert_equal 0, infix.status
       assert_includes json(infix)["matches"].map { |row| row["id"] }, "tables/customers",
-        "a mid-word fragment the token index cannot reach"
-      assert_equal 0, json(okf("search", fixture("conformant"), "ustomer", "--json"))["count"],
-        "and the default is unchanged by the flag existing"
+        "a mid-word fragment, which the token index cannot reach"
+      assert_equal 0, json(okf("search", fixture("conformant"), "--engine", "index", "ustomer", "--json"))["count"],
+        "naming the index is how a caller opts back into losing it"
     end
 
-    test "search --engine scan matches literally — a term is not a pattern unless -e says so" do
-      literal = okf("search", fixture("conformant"), "--engine", "scan", "customer_id", "--json")
+    test "the default matches literally — a term is not a pattern unless -e says so" do
+      literal = okf("search", fixture("conformant"), "customer_id", "--json")
 
       assert_equal 0, literal.status
       assert_equal [ "tables/orders" ], json(literal)["matches"].map { |row| row["id"] },
         "the whole identifier, not its parts — which is the precision the index trades away"
     end
 
-    test "search --engine index is the default spelled out, and answers identically" do
-      named = okf("search", fixture("conformant"), "--engine", "index", "orders", "--json")
+    test "search --engine scan is the default spelled out, and answers identically" do
+      named = okf("search", fixture("conformant"), "--engine", "scan", "orders", "--json")
       implied = okf("search", fixture("conformant"), "orders", "--json")
 
       assert_equal 0, named.status
@@ -173,13 +193,14 @@ module ByDir
 
     test "search matches whole tokens, not substrings — a mid-word fragment finds nothing" do
       # The index is tokenized, so a term is matched against whole words and their
-      # prefixes. "custom" still reaches Customers; "ustomer" no longer does. This
-      # is the one recall the engine swap deliberately gives up: an infix.
-      prefixed = json(okf("search", fixture("conformant"), "custom", "--json"))
+      # prefixes. "custom" still reaches Customers; "ustomer" does not. That infix
+      # is the recall naming the index gives up — it is no longer what a plain
+      # search costs, so the engine has to be named to observe it.
+      prefixed = json(okf("search", fixture("conformant"), "--engine", "index", "custom", "--json"))
       assert_includes prefixed["matches"].map { |row| row["id"] }, "tables/customers",
         "a prefix of a real token still matches"
 
-      infix = okf("search", fixture("conformant"), "ustomer", "--json")
+      infix = okf("search", fixture("conformant"), "--engine", "index", "ustomer", "--json")
       assert_equal 0, infix.status, "still an advisory read"
       assert_equal 0, json(infix)["count"], "a mid-token fragment is not a term"
     end

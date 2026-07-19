@@ -77,7 +77,18 @@ module OKF
 
       # Chosen when the query requires nothing in particular, which is the
       # overwhelming majority of searches.
-      DEFAULT_ENGINE = :index
+      #
+      # The scan, not the index, because a one-shot CLI builds an index, asks one
+      # question and exits — a build with a single query to amortize it over.
+      # Measured end to end: 3.00s vs 0.24s at 1,000 concepts, 0.83s vs 0.18s at
+      # 250, and the gap widens with the bundle. Raw-text matching also carries no
+      # tokenizer, so the terms that are glued to symbols and therefore
+      # unreachable by token (`minifts`, $OKF_HOME) stay findable by default.
+      #
+      # What it gives up is BM25+ ranking, reachable with `--engine index` — and
+      # that is also the engine the browser page runs, so the two rank alike only
+      # when the index is named. See .okf/design/search-engines.md.
+      DEFAULT_ENGINE = :scan
 
       # The searchable fields with their rank weight, strongest signal first.
       # In the index engine these ride as MiniFTS per-field `boost`; the scan

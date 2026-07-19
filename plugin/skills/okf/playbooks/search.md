@@ -21,17 +21,19 @@ reads, and full bodies are read last, and only the winners.
    <!-- rule:okf-search-map-first -->
 3. **Cut across with the finder when the question is lexical.** An exact
    symbol, an error code, a column name, a phrase — things structure won't
-   surface — go to `okf search <dir> <terms>` (terms AND together, matched as
-   whole tokens or prefixes). **Reach for `--engine scan` when the query is exact
-   by nature**: a phrase, a dotted version (`7.2.0`), an underscored identifier
-   (`customer_id`), a mid-word fragment (`ustomer`), or anything likely written
-   in `backticks` — a code span indexes as one glued token, so the default misses
-   it entirely. Add `-e` on top for patterns (`err_[a-z]+_409`). The default
-   tokenizer splits on punctuation, so those queries otherwise match far more
-   loosely than they read, and ranking does not reliably float the true hit to the
-   top. A search that returns suspiciously few rows for an identifier is the
-   signal. <!-- rule:okf-search-exact-identifiers -->
-   Scope it with what the map taught you:
+   surface — go to `okf search <dir> <terms>`. Terms AND together and are matched
+   **literally against raw text**, so an exact query means what it looks like: a
+   phrase, a dotted version (`7.2.0`), an underscored identifier (`customer_id`),
+   a mid-word fragment (`ustomer`) and a word written in `backticks` all match
+   the way you typed them. Add `-e` for patterns (`err_[a-z]+_409`).
+   <!-- rule:okf-search-exact-identifiers -->
+   **Reach for `--engine index` when the query is conceptual rather than exact**:
+   it ranks by BM25+ and matches whole tokens and their prefixes, so `dedup`
+   reaches `deduplication` and the most relevant concept tends to lead. The
+   tradeoff runs the other way — its tokenizer splits on punctuation and never
+   splits a backtick off, so identifiers shatter and code spans go missing. Match
+   the engine to the question, not to habit. <!-- rule:okf-search-engine-choice -->
+   Scope either with what the map taught you:
    `--area billing`, `--type Decision`, `--tag idempotency`, `--in body`.
    Matches rank by where they hit, and the snippet often *is* the answer.
    When the answer may live in another registered bundle, span them — leading

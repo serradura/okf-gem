@@ -106,11 +106,13 @@ module ByRegistry
       # the CLI decides what to answer about: a ref takes a different path to the
       # bundle, and a verb that routes correctly by path can still be broken by ref.
       with_registry("conformant") do
-        scanned = json(okf("search", "@conformant", "-e", "orders", "--json"))["matches"].first
-        assert_equal weight_sum(scanned["matched"]), scanned["score"], "-e routes to the scan"
+        scanned = json(okf("search", "@conformant", "orders", "--json"))["matches"].first
+        assert_equal weight_sum(scanned["matched"]), scanned["score"],
+          "a plain search stays on the default scan, through a ref as by path"
 
-        ranked = json(okf("search", "@conformant", "orders", "--json"))["matches"].first
-        refute_equal weight_sum(ranked["matched"]), ranked["score"], "the default engine ranks by BM25+"
+        ranked = json(okf("search", "@conformant", "custommer", "--fuzzy", "--json"))["matches"].first
+        refute_equal weight_sum(ranked["matched"]), ranked["score"],
+          "--fuzzy routes to the index, which ranks by BM25+"
 
         human = okf("search", "@conformant", "-e", "orders")
         assert_empty human.err, "choosing an engine is not a diagnostic"

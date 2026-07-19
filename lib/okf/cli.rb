@@ -209,7 +209,7 @@ module OKF
         o.on("--fuzzy",
           "tolerate typos, edit distance #{OKF::Bundle::Search::FUZZY_DISTANCE} × term length (index engine)") { options[:fuzzy] = true }
         o.on("--engine NAME", "match with this engine instead of the default",
-          "(#{engine_names}) — scan is raw text, pre-index behaviour") { |v| options[:engine] = v }
+          "(#{engine_names}) — index is BM25+ ranked, token-based") { |v| options[:engine] = v }
         o.on("--in LIST", Array, "search only these fields (#{OKF::Bundle::Search::FIELDS.join(", ")})") { |v| options[:in] = v.map(&:downcase) }
         filter_flags(o, options, :type, :area, :tag)
         help_flag(o)
@@ -1178,11 +1178,11 @@ module OKF
     # matching model before the flags reads better anyway.
     def search_engine_note(parser)
       parser.separator ""
-      parser.separator "Terms match whole tokens and the tokens they prefix, ranked by relevance — the"
-      parser.separator "index engine. --engine scan matches raw text instead, so a phrase (\"dedup key\"),"
-      parser.separator "a dotted identifier (7.2.0, customer_id) and a word inside `backticks` all match"
-      parser.separator "literally: the exactness a token index gives up, at the cost of its ranking."
-      parser.separator "Add -e to read the terms as regular expressions rather than literal text."
+      parser.separator "Terms match raw text, so a phrase (\"dedup key\"), a dotted identifier (7.2.0,"
+      parser.separator "customer_id) and a word inside `backticks` all match literally — the scan engine."
+      parser.separator "--engine index matches whole tokens and the tokens they prefix, ranked by BM25+:"
+      parser.separator "better ranking and the engine the browser page runs, at the cost of that"
+      parser.separator "exactness. --fuzzy implies it. Add -e to read the terms as regular expressions."
       parser.separator ""
     end
 

@@ -48,8 +48,10 @@ class SearchRecallTest < SearchCase
   # backtick is `Sk` while `$` is `Sc`, so neither is ever split off. The token
   # stored is "`minifts`", which the query `minifts` does not match.
   #
-  # This list is a statement of a known defect, not a target. It shrinks when the
-  # tokenizer learns to strip symbol edges; it must never grow silently.
+  # These are no longer paid by default — the scan is the default engine and has
+  # no tokenizer, so it has no holes. This list is what `--engine index` and
+  # `--fuzzy` still cost. It shrinks when the tokenizer learns to strip symbol
+  # edges; it must never grow silently.
   KNOWN_HOLES = %w[minifts json_for_script OKF_HOME].freeze
 
   def corpus
@@ -72,8 +74,18 @@ class SearchRecallTest < SearchCase
     assert_empty missed, "raw-text matching cannot miss a word that is present"
   end
 
+  test "the default engine has no recall holes at all — which is why it is the default" do
+    # The scan is the default, so this is the same measurement as above reached
+    # without naming an engine. Pinned separately because it is the property the
+    # swap was for: the holes below became opt-in rather than universal, and if
+    # the default ever moves back the regression must announce itself here.
+    missed = words.reject { |word| findable?(word) }
+
+    assert_empty missed, "a plain search finds every word the corpus contains"
+  end
+
   test "the index's recall holes are exactly the ones we know about" do
-    holes = words.reject { |word| findable?(word) }
+    holes = words.reject { |word| findable?(word, engine: "index") }
 
     assert_equal KNOWN_HOLES.sort, holes.sort,
       "a word the index cannot find and this list does not name is a new tokenization hazard"
@@ -105,9 +117,9 @@ class SearchRecallTest < SearchCase
     # Recall's mirror image, pinned in the same place because it drifts with the
     # same change. `stale-after` is two tokens ANDed, so it also finds the concept
     # that says okf_stale_after — the scan, matching raw text, finds only the flag.
-    assert_equal 2, Search.call(corpus, [ "stale-after" ]).size,
+    assert_equal 2, Search.call(corpus, [ "stale-after" ], engine: "index").size,
       "the index reads it as `stale` AND `after`, wherever they fall"
-    assert_equal 1, Search.call(corpus, [ "stale-after" ], engine: "scan").size,
-      "--engine scan is the recovery, as it is for the recall holes"
+    assert_equal 1, Search.call(corpus, [ "stale-after" ]).size,
+      "the default matches raw text, so it finds only the concept that says it"
   end
 end

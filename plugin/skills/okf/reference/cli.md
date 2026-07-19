@@ -139,48 +139,47 @@ defect — a terminal leaf (a backlog item, a spec reference) can be loose by de
 The browser page's search brought to the CLI and extended to bodies, so "which
 concept covers X?" costs rows, not body reads. `okf search <dir> <term…>`:
 terms AND together — every term must hit at least one searched field, not
-necessarily the same one — matched as **tokens**, whole or by prefix (`dedup`
-finds `deduplication`, but a mid-word `ustomer` finds nothing), or as Ruby
-regular expressions with `--regexp`/`-e` (an invalid pattern is a usage error,
-exit 2). `--fuzzy` forgives typos; pairing it with `-e` is a usage error, since
-a pattern is matched literally rather than by edit distance.
+necessarily the same one — matched **literally against raw text** by default, or
+as Ruby regular expressions with `--regexp`/`-e` (an invalid pattern is a usage
+error, exit 2). `--fuzzy` forgives typos; pairing it with `-e` is a usage error,
+since a pattern is matched literally rather than by edit distance.
 `--in a,b` restricts the searched fields (title, id, tags, type, description,
 body); the shared `--type/--area/--tag` filters narrow the candidates *first*,
 so a search scoped by what `index` taught you stays surgical.
 
-**`-e` is the exactness the token index gives up, and reaching for it is a
-judgment call only you can make.** The tokenizer splits on whitespace *and*
-punctuation, so four kinds of query silently mean something broader than they
-look: a phrase in one argument (`"dedup key"` matches those words paragraphs
-apart), a dotted version (`7.2.0` becomes the terms `7`, `2`, `0`), an
-underscored identifier (`customer_id` becomes `customer` + `id`), and a mid-word
-fragment (`ustomer`, which matches nothing at all). `-e` recovers all four by
-matching raw text. **Do not count on ranking to rescue the default** — BM25
-normalizes by field length, so a short concept dense in `7`, `2` and `0` can
-outrank the one that actually says `7.2.0`. When the query *is* an identifier, a
-version, or a phrase, reach for `-e` first rather than reading past the noise.
-<!-- rule:okf-search-exact-identifiers -->
+**The default is exact, so an exact query means what it looks like.** A phrase in
+one argument (`"dedup key"`), a dotted version (`7.2.0`), an underscored
+identifier (`customer_id`), a mid-word fragment (`ustomer`) and a word written in
+`backticks` all match literally. This is what the scan engine buys, and it is the
+default precisely because those queries are the common ones and the alternative
+loses them silently. <!-- rule:okf-search-exact-identifiers -->
 
-**`--engine scan` is the whole escape hatch, and the one to reach for when
-recall matters more than ranking.** The engine is normally chosen by what the
-query needs — `-e` routes to the scan, `--fuzzy` to the index, anything else to
-the index — and nothing is printed about the choice. `--engine NAME` overrides
-that for the case the flags cannot express: raw-text matching *requires*
-nothing, so no capability selects it. Under the scan, terms are matched
-literally (add `-e` for patterns), which recovers phrases, infixes, dotted
-identifiers **and words inside `backticks`** — the last being a large silent
-loss, since a code span indexes as one glued token and technical prose is full
-of them. The cost is the coarser pre-index ranking. Naming an engine that cannot
-do what you also asked (`--engine index -e`) is a usage error naming one that
-can. <!-- rule:okf-search-exact-identifiers -->
+**`--engine index` is the other engine, and the one to reach for when ranking
+matters more than exactness.** The engine is normally chosen by what the query
+needs — `--fuzzy` routes to the index, anything else stays on the default scan —
+and nothing is printed about the choice. `--engine NAME` overrides that for the
+case the flags cannot express: a matching *model* requires no capability, so no
+flag selects one. Under the index, terms match whole tokens and their prefixes
+(`dedup` finds `deduplication`), rows rank by BM25+, and it is the engine the
+browser page runs — so name it when reconciling a CLI answer with the page. The
+cost is real: its tokenizer splits on punctuation, so identifiers shatter
+(`customer_id` → `customer` + `id`), an infix finds nothing, and a backtick is
+never split off at all, so a word inside a code span is unfindable — a large
+silent loss, since technical prose is full of them. **Do not count on ranking to
+rescue it** — BM25 normalizes by field length, so a short concept dense in `7`,
+`2` and `0` can outrank the one that actually says `7.2.0`. Naming an engine that
+cannot do what you also asked (`--engine index -e`) is a usage error naming one
+that can. <!-- rule:okf-search-engine-choice -->
 
 **Search spans bundles.** Leading @refs pick several registered bundles
 (`okf search @handbook @notes auth`); **`@all`** is the ref that means every one.
-The bundles are indexed as **one corpus** and ranked together — BM25 prices a
-term by how rare it is, so separately-ranked lists would not compare — and each
-row carries its bundle's slug. A score is therefore relative to the whole
-answer: the same concept scores lower searched beside others than searched
-alone. This is the
+Rows from different bundles are ranked together and comparable, and each row
+carries its bundle's slug. Under `--engine index` the bundles go into **one
+corpus** — BM25 prices a term by how rare it is, so separately-ranked lists would
+not compare — which makes a score relative to the whole answer: the same concept
+scores lower searched beside others than searched alone. The default scan needs
+no such trick — its score is absolute, so a row is worth the same either way.
+This is the
 cross-bundle retrieval the in-page search does not have: one question, every
 bundle you keep. <!-- rule:okf-search-all -->
 
@@ -209,10 +208,10 @@ which has no slug to give. Two sharp edges: every *leading* @-arg is taken as a 
 the CLI notes both traps on stderr — and any ref, even one, switches the JSON
 envelope (next paragraph).
 
-Rows rank by **BM25+**, weighted toward where they hit — title 5, id 4, tags 3,
-type/description 2, body 1, carried as per-field boost — and carry one bounded
-context snippet from the strongest match that needs context (description or
-body). Every row still names the fields that hit (`matched`), so a result stays
+Rows rank by where they hit — title 5, id 4, tags 3, type/description 2, body 1 —
+summed as an absolute score by the default scan, and carried as per-field boost
+into **BM25+** under `--engine index`. Each row carries one bounded context
+snippet from the strongest match that needs context (description or body). Every row still names the fields that hit (`matched`), so a result stays
 citable rather than being a bare relevance number. Exact by default: the
 consuming agent is the fuzzy layer — when terms miss, learn the bundle's
 vocabulary from `tags`/`types` and re-ask in its own words, rather than

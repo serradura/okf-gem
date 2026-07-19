@@ -104,7 +104,7 @@ module AcrossBundles
         assert_equal scores.sort.reverse, scores, "a merged ranking stays ordered by score"
         # The interleave is the proof: bundles alternate down the list, so the
         # order is the score's doing and not a per-bundle concatenation.
-        assert_equal %w[rooted rooted conformant minimal conformant conformant],
+        assert_equal %w[conformant rooted rooted minimal conformant conformant],
           data["matches"].map { |row| row["slug"] }
         assert_operator scores.first, :>, scores.last
       end
@@ -118,14 +118,35 @@ module AcrossBundles
         # observable proof the merge ranks *one* corpus instead of splicing three
         # independent rankings, which is exactly what would make the numbers
         # incomparable while still looking like a sorted list.
+        #
+        # Named explicitly because this is a *BM25* property, not a merge property:
+        # the default scan scores by absolute field weight, so its numbers do not
+        # move with the corpus and are comparable across bundles by construction.
+        # Testing this through the default would assert nothing.
+        solo_run = okf("search", "@conformant", "the", "--engine", "index", "--json")
+        joint_run = okf("search", "@conformant", "@rooted", "@minimal", "the", "--engine", "index", "--json")
+
+        solo = json(solo_run)["matches"].find { |row| row["id"] == "datasets/sales" }["score"]
+        joint = json(joint_run)["matches"].find { |row| row["id"] == "datasets/sales" }["score"]
+
+        assert_operator solo, :>, joint,
+          "'the' is commoner across three bundles than in one, so the same row is worth less in company"
+      end
+    end
+
+    test "the default merge needs no corpus: a score is the same alone or in company" do
+      with_registry("conformant", "rooted", "minimal") do
+        # The mirror of the test above, and the reason the swap does not weaken the
+        # merge. The scan scores by field weight alone, so a row is worth exactly
+        # the same whether it was searched by itself or beside two other bundles —
+        # comparable across bundles without needing one shared corpus at all.
         alone = json(okf("search", "@conformant", "the", "--json"))["matches"]
         merged = json(okf("search", "@conformant", "@rooted", "@minimal", "the", "--json"))["matches"]
 
         solo = alone.find { |row| row["id"] == "datasets/sales" }["score"]
         joint = merged.find { |row| row["id"] == "datasets/sales" }["score"]
 
-        assert_operator solo, :>, joint,
-          "'the' is commoner across three bundles than in one, so the same row is worth less in company"
+        assert_equal solo, joint, "a field-weight score has no corpus term to move"
       end
     end
 
@@ -359,7 +380,7 @@ module AcrossBundles
         labeled = json(okf("search", "@conformant", "@rooted", "the", "--fields", "id,slug,score"))
         assert_equal %w[slug id score], labeled["matches"].first.keys,
           "projection is a filter, not a reorder — the row keeps the envelope's key order"
-        assert_equal "rooted", labeled["matches"].first["slug"]
+        assert_equal "conformant", labeled["matches"].first["slug"]
 
         assert_equal 5, lean["count"], "projection trims the rows, never the answer"
       end
@@ -371,7 +392,7 @@ module AcrossBundles
         first = trimmed["matches"].first
         refute first.key?("snippet")
         refute first.key?("matched")
-        assert_equal "rooted", first["slug"], "--except keeps the label that resolves the row"
+        assert_equal "conformant", first["slug"], "--except keeps the label that resolves the row"
 
         clash = okf("search", "@conformant", "@rooted", "the", "--fields", "id", "--except", "score")
         assert_equal 2, clash.status
@@ -404,7 +425,7 @@ module AcrossBundles
       # nothing. One query, one engine, one corpus — and the score shape is what
       # makes which engine ran observable, since nothing says so.
       with_registry("conformant", "mentions") do
-        index = json(okf("search", "@conformant", "@mentions", "sales", "--json"))
+        index = json(okf("search", "@conformant", "@mentions", "sales", "--engine", "index", "--json"))
         scan = json(okf("search", "@conformant", "@mentions", "-e", "sales", "--json"))
 
         scan["matches"].each do |row|
@@ -477,7 +498,7 @@ module AcrossBundles
       with_registry("conformant", "rooted", "mentions") do
         # --area is resolved inside each bundle: "(root)" means every bundle's own root.
         rooted_area = json(okf("search", "@all", "the", "--area", "root", "--json"))
-        assert_equal [ "rooted/charter", "mentions/ownership", "mentions/escalation" ],
+        assert_equal [ "mentions/ownership", "rooted/charter", "mentions/escalation" ],
           rooted_area["matches"].map { |row| "#{row["slug"]}/#{row["id"]}" },
           "each bundle contributed only its own root-area concepts"
 
@@ -486,7 +507,7 @@ module AcrossBundles
           "a type only one bundle uses narrows the merge to that bundle"
 
         tagged = json(okf("search", "@all", "the", "--tag", "shared", "--json"))
-        assert_equal %w[services/gateway charter], tagged["matches"].map { |row| row["id"] }
+        assert_equal %w[charter services/gateway], tagged["matches"].map { |row| row["id"] }
 
         none = okf("search", "@all", "the", "--tag", "nothing-carries-this", "--json")
         assert_equal 0, none.status, "a filter matching nothing is still an advisory read"

@@ -78,7 +78,7 @@ class SearchRoutingTest < SearchCase
   end
 
   test "a query needing no capability routes to the default engine" do
-    assert_equal Search::Index, Search.engine_for([])
+    assert_equal Search::Scan, Search.engine_for([])
   end
 
   test "regexp routes to the engine declaring it, not the default" do
@@ -90,9 +90,12 @@ class SearchRoutingTest < SearchCase
   end
 
   test "the default engine leads the preference order even when registered later" do
-    engines = [ engine(:scan, capabilities: [ :regexp ]), engine(:index, capabilities: [ :fuzzy ]) ]
+    # Registration order is the tie-break, so the default must be listed *last*
+    # here or the assertion would hold for the wrong reason — first-registered
+    # and default-first are the same answer when they are the same engine.
+    engines = [ engine(:index, capabilities: [ :fuzzy ]), engine(:scan, capabilities: [ :regexp ]) ]
 
-    assert_equal :index, Search.engine_for([], engines: engines).id
+    assert_equal :scan, Search.engine_for([], engines: engines).id
   end
 
   test "an unavailable engine is passed over for one that can answer" do
@@ -166,11 +169,16 @@ class SearchRoutingTest < SearchCase
   end
 
   test "the facade forwards a named engine, and the name beats the default" do
+    # An infix separates the two engines cleanly: the scan matches raw text so it
+    # finds it, the index matches whole tokens so it cannot. With the scan now the
+    # default, naming the *index* is what proves the name is honoured — the
+    # contrast runs the other way than it did when the index led.
     raw = bundle(concept("a", title: "Customers"))
 
-    assert_equal [ "a" ], Search.call(raw, [ "ustomer" ], engine: "scan").map { |row| row[:id] },
-      "--engine scan restores raw-text matching, infix and all"
-    assert_equal [], Search.call(raw, [ "ustomer" ]), "the default is unchanged by the flag existing"
+    assert_equal [], Search.call(raw, [ "ustomer" ], engine: "index"),
+      "--engine index is honoured even though the default would have matched"
+    assert_equal [ "a" ], Search.call(raw, [ "ustomer" ]).map { |row| row[:id] },
+      "the default reaches an infix, which is what naming the index gave up"
   end
 
   test "register is idempotent by id — a double require does not double the registry" do

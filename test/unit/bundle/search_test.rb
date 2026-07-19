@@ -106,11 +106,11 @@ class OKF::Bundle::SearchTest < OKF::TestCase
   test "terms match whole tokens and their prefixes, but never an infix" do
     bundle = OKF::Bundle.new(concepts: [ concept("a", body: "we rely on deduplication here") ])
 
-    assert_equal [ "a" ], OKF::Bundle::Search.call(bundle, [ "deduplication" ]).map { |row| row[:id] }
-    assert_equal [ "a" ], OKF::Bundle::Search.call(bundle, [ "dedup" ]).map { |row| row[:id] },
+    assert_equal [ "a" ], OKF::Bundle::Search.call(bundle, [ "deduplication" ], engine: "index").map { |row| row[:id] }
+    assert_equal [ "a" ], OKF::Bundle::Search.call(bundle, [ "dedup" ], engine: "index").map { |row| row[:id] },
       "a term reaches the token it prefixes"
-    assert_empty OKF::Bundle::Search.call(bundle, [ "duplication" ]),
-      "an infix is the recall a token index gives up — regexp: true is the escape hatch"
+    assert_empty OKF::Bundle::Search.call(bundle, [ "duplication" ], engine: "index"),
+      "an infix is the recall a token index gives up — the default scan still finds it"
   end
 
   test "fuzzy: true forgives a typo the exact search misses" do
