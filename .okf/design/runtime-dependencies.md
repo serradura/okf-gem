@@ -4,7 +4,7 @@ title: Three runtime dependencies, each challenged
 description: The gem depends on rack, webrick and minifts only — no ActiveSupport, no build step, no JavaScript toolchain, and no native extension.
 resource: okf.gemspec
 tags: [rack, portability]
-timestamp: 2026-07-18T19:00:00Z
+timestamp: 2026-07-19T03:00:00Z
 ---
 
 # Overview
@@ -16,7 +16,7 @@ be challenged, not a convenience:
 |-----|-----|
 | `rack` (`>= 2.2`) | the [server](../capabilities/graph-server.md) is a mountable Rack app |
 | `webrick` (`>= 1.4`) | the default runner — unbundled from Ruby in 3.0, so it must be declared |
-| `minifts` (`~> 1.0`) | the [search](../capabilities/search.md) engine — a full-text index instead of a linear scan |
+| `minifts` (`~> 1.0`) | [search](../capabilities/search.md)'s index engine — BM25+ ranking, prefix and fuzzy matching, on request |
 
 # What the third one had to prove
 
@@ -31,10 +31,21 @@ outgrow an in-memory index is still FTS5's to answer.
 
 It buys a second thing that no third-party gem usually can. `minifts` is a
 bit-for-bit port of the JavaScript MiniSearch the [browser
-page](../capabilities/graph-server.md) already loads, so the CLI and the browser
-now rank identically by construction rather than by two implementations agreeing
-for a while — and an index built in Ruby can be searched in the browser, which is
-what a cached, pre-built index would need.
+page](../capabilities/graph-server.md) already loads, so `--engine index` and the
+browser rank identically by construction rather than by two implementations
+agreeing for a while — and an index built in Ruby can be searched in the browser,
+which is what a cached, pre-built index would need.
+
+**The case got weaker, and the entry stays honest about it.** `minifts` now backs
+a **non-default** engine: the scan took the default back, because a one-shot CLI
+cannot amortize an index build (3.00 s against 0.24 s at 1,000 concepts) and
+because raw text has none of the tokenizer's recall holes. A dependency that only
+serves an opt-in path is a dependency carrying less weight than the one admitted
+here. It is not close to retirement — `--fuzzy` has no other implementation,
+BM25+ ranking has no other source, and page parity has no other route — but the
+argument that justified it was *ranked search by default*, and that is no longer
+what it delivers. If a cached prebuilt index makes the index viable as the
+default again, this entry is restored rather than merely re-argued.
 
 # No ActiveSupport, on purpose
 

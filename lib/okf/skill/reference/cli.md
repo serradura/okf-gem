@@ -171,6 +171,33 @@ rescue it** — BM25 normalizes by field length, so a short concept dense in `7`
 cannot do what you also asked (`--engine index -e`) is a usage error naming one
 that can. <!-- rule:okf-search-engine-choice -->
 
+**The capabilities, and which engine has them.** An engine is selected by what
+the query *requires*; only a matching model has to be named, because requiring
+nothing is not something a flag can express:
+
+| Flag | Capability | Engine | What it does |
+|---|---|---|---|
+| *(none)* | — | scan | literal substring over raw text; scores by summed field weight |
+| `-e` / `--regexp` | `regexp` | scan | each term is a Ruby regexp, case-insensitive; invalid → exit 2 |
+| `--fuzzy` | `fuzzy` | **index** | edit distance 0.2 × term length — and switches engine |
+| `--engine index` | — | index | whole-token + prefix matching, BM25+ ranking, browser parity |
+| `--engine scan` | — | scan | the default, spelled out |
+
+Two consequences worth holding. **`--fuzzy` is an engine switch, not a mode**: it
+carries the whole index with it, so a run that wanted one typo forgiven also gets
+shattered identifiers and unfindable code spans — fix the spelling and stay on
+the default when you can. And **`-e` moves nothing** now, because the default
+engine already offers `regexp`; it changes how a term is *read* (pattern rather
+than literal), not where it is matched. <!-- rule:okf-search-fuzzy-is-a-switch -->
+
+`prefix` is a capability the index declares but no flag selects — it is always on
+there. **It is not a reason to reach for the index**: a substring match already
+covers every prefix and then some, so `dedup` finds `deduplication` under both
+engines, while `duplication` and `uplicat` find it under the default only. Prefix
+is what the index needs to catch up to raw text, not a capability it adds on top.
+The index's real advantages over the default are exactly three — relevance
+ranking, typo tolerance, and page parity.
+
 **Search spans bundles.** Leading @refs pick several registered bundles
 (`okf search @handbook @notes auth`); **`@all`** is the ref that means every one.
 Rows from different bundles are ranked together and comparable, and each row

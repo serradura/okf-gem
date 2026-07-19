@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-18T19:00:00Z
+timestamp: 2026-07-19T03:00:00Z
 ---
 
 # Overview
@@ -91,8 +91,8 @@ handler it documents, so it cannot drift from what the keys do.
 
 The one search box is backed by a full-text index —
 [MiniSearch](https://github.com/lucaong/minisearch), lazy-loaded on first focus
-and pinned to the same `7.2.0` the Ruby [`minifts`](search.md) port tracks, so a
-Ruby-built index and the browser's rank identically. It indexes title, id,
+and pinned to the same `7.2.0` the Ruby [`minifts`](search.md) port tracks, so an
+`okf search --engine index` result and the browser's rank identically. It indexes title, id,
 type, tags and **description** in every mode, plus each concept's **body**
 wherever the page already holds it: `okf render` bakes every body in, so a static
 file searches bodies offline; the live server keeps bodies lazy, so its index
@@ -102,13 +102,21 @@ catalog and files views alike; a second index covers each `index.md`/`log.md`
 **body**, not just its filename, so the tree's authored rows are searchable on
 what they say. Until an index loads —
 or if the CDN is unreachable — each view falls back to its own substring filter,
-so the box is never dead. The browser and the CLI's [`search`](search.md) used to
-diverge here — the CLI a deterministic substring scan, the browser fuzzy — and
-that gap is now **closed from the other side**: the CLI runs the same engine
-through the `minifts` port, so both rank by the same BM25+ arithmetic and differ
-only in the options each passes. The browser searches as you type and forgives
-typos because a human wants the near miss; the CLI stays exact until `--fuzzy`
-because an agent citing a row wants the field that actually hit.
+so the box is never dead. **The browser and the CLI diverge again by default, and
+this time on purpose.** The gap was once accidental — the CLI a substring scan,
+the browser fuzzy, two implementations nobody had reconciled — and the `minifts`
+port closed it by making both run one engine. [`search`](search.md) has since
+made the scan its default, which reopens the gap deliberately: the two surfaces
+have different lifecycles, and the reason is the difference. A page holds its
+index across every keystroke, so a build amortizes over hundreds of queries; a
+CLI process builds, asks once, and exits. `okf search --engine index` is the
+setting where both run the same BM25+ arithmetic and rank alike — the route to
+take when reconciling a CLI answer with what the page shows.
+
+The behavioural split follows the reader, not just the arithmetic. The browser
+searches as you type and forgives typos because a human wants the near miss; the
+CLI matches raw text exactly because an agent citing a row wants the identifier
+it typed, backticks and dots intact.
 
 # Links navigate in-app; the graph has a second mode
 

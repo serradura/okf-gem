@@ -3,7 +3,7 @@ type: Capability
 title: Ranked text search (search)
 description: Full-text retrieval over concept metadata and bodies — raw-text matching by default, BM25+ token ranking on request, and explainable row by row either way.
 resource: lib/okf/bundle/search.rb
-tags: [read, cli, json, registry]
+tags: [read, cli, json, registry, search]
 timestamp: 2026-07-18T22:00:00Z
 ---
 
@@ -115,11 +115,17 @@ Reaching for it is a real choice, not a legacy path:
 
 - **BM25+ ranking.** Corpus-relative relevance, which absolute field weights only
   approximate. On a large or uneven bundle this is the better ordering.
-- **Prefix matching.** `dedup` reaches `deduplication` without a wildcard.
 - **Fuzzy matching.** `--fuzzy` is only available here — the scan has no notion
   of edit distance, so asking for it routes automatically.
 - **Parity with the browser page**, which runs the same MiniSearch build. If you
   are reconciling a CLI answer with what the page shows, name the index.
+
+That is the whole list — three things. The `prefix` capability is conspicuously
+**not** a fourth, though the index declares it: a substring match already reaches
+every prefix, so `dedup` finds `deduplication` under either engine while
+`duplication` and `uplicat` find it under the scan alone. Prefix is what a token
+index needs to catch up to raw text, not something it adds on top. Worth stating
+plainly, because "prefix matching" reads like a feature the default lacks.
 
 # Engines are adapters, chosen by what the query needs
 

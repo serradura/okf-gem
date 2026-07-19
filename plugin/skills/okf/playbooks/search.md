@@ -25,15 +25,33 @@ reads, and full bodies are read last, and only the winners.
    **literally against raw text**, so an exact query means what it looks like: a
    phrase, a dotted version (`7.2.0`), an underscored identifier (`customer_id`),
    a mid-word fragment (`ustomer`) and a word written in `backticks` all match
-   the way you typed them. Add `-e` for patterns (`err_[a-z]+_409`).
-   <!-- rule:okf-search-exact-identifiers -->
-   **Reach for `--engine index` when the query is conceptual rather than exact**:
-   it ranks by BM25+ and matches whole tokens and their prefixes, so `dedup`
-   reaches `deduplication` and the most relevant concept tends to lead. The
-   tradeoff runs the other way — its tokenizer splits on punctuation and never
-   splits a backtick off, so identifiers shatter and code spans go missing. Match
-   the engine to the question, not to habit. <!-- rule:okf-search-engine-choice -->
-   Scope either with what the map taught you:
+   the way you typed them. <!-- rule:okf-search-exact-identifiers -->
+
+   **Match the engine to the shape of the query, not to habit** — the default
+   answers most of them, and the two engines fail in opposite directions:
+   <!-- rule:okf-search-engine-choice -->
+
+   | Your query is | Reach for | Because |
+   |---|---|---|
+   | an identifier, version, path, phrase, or anything in `` `backticks` `` | *nothing — the default* | matched literally; the index shatters all of these |
+   | a mid-word fragment (`ustomer`) | *nothing — the default* | an infix is not a token, so the index cannot reach it |
+   | a pattern (`err_[a-z]+_409`) | `-e` | Ruby regexp over raw text; still the scan |
+   | a partial word (`dedup` → `deduplication`) | *nothing — the default* | substring covers prefixes, and suffixes and infixes too |
+   | a theme, where you want the best match to lead | `--engine index` | BM25+ ranks by relevance, not by summed field weight |
+   | possibly mistyped | `--fuzzy` | edit distance 0.2 × term length — the index's alone |
+   | being reconciled with the browser page | `--engine index` | same MiniSearch build, so the two rank alike |
+
+   The index has exactly **three** things the default lacks: relevance ranking,
+   typo tolerance, and page parity. Its `prefix` capability is not a fourth — a
+   substring match already reaches every prefix, so `prefix` is what the index
+   needs to *catch up*, not a reason to choose it.
+
+   **`--fuzzy` is an engine switch, not a mode.** It routes to the index, so a
+   run that only wanted a typo forgiven also gets token matching, shattered
+   identifiers and unfindable code spans. Fix the spelling and stay on the
+   default when you can. <!-- rule:okf-search-fuzzy-is-a-switch -->
+
+   Scope any of them with what the map taught you:
    `--area billing`, `--type Decision`, `--tag idempotency`, `--in body`.
    Matches rank by where they hit, and the snippet often *is* the answer.
    When the answer may live in another registered bundle, span them — leading
@@ -59,3 +77,9 @@ Anti-patterns, each a real token bill:
   fuzzy layer. When terms miss, learn the bundle's vocabulary — `okf tags
   <dir>`, `okf types <dir>` — and re-ask in its own words. `--fuzzy` forgives a
   *typo*, not a wrong vocabulary, so it is the wrong reach for this.
+- **Flag-shopping a query that found nothing.** Cycling `--fuzzy`, then
+  `--engine index`, then `-e` over the same terms is guessing, and each engine
+  fails differently enough that one of them eventually returns *something* —
+  which is how a wrong answer gets found. Zero matches is usually a vocabulary
+  result, not an engine result: go back to the map and the tag list. Reach for a
+  different engine when you can say which property of the query needs it.
