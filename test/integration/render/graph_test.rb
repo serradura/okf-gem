@@ -165,10 +165,26 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "function openMapInGraph(", "the action is about the map, not about tree mode"
     refute_includes html, "function openInTree(", "the tree-forcing version is gone"
     assert_includes html, "setIxNodes(true).then(", "it switches the index layer on and waits for it"
-    assert_includes html, "cy.elements().removeClass('dim hl');ele.addClass('hl');",
-      "then highlights the map without dimming the graph around it"
     # file-tree mode already draws folders, so there it still focuses the folder
     assert_includes html, "if(treeMode){", "and a reader already in file-tree mode stays there"
+  end
+
+  test "selecting anything emphasises it the same way" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # a concept dimmed the graph to its neighbourhood; a map did nothing at all,
+    # and a folder node did nothing either. Selection has to mean one thing on
+    # this canvas whatever was selected, so one function does it for all three.
+    assert_includes html, "function focusNode(ele,opened){", "the emphasis is a named, shared gesture"
+    assert_includes html, " focusNode(ele,opened);", "a concept delegates to it"
+    assert_includes html, "if(t.hasClass('ix')){showDir(t.data('dir')||'.');return focusNode(t,true);}",
+      "tapping a map emphasises it too, instead of only opening the inspector"
+    assert_includes html, "if(t.hasClass('dir')){showDir(t.id().slice(DIR.length)||'.');return focusNode(t,true);}",
+      "and so does tapping a folder node"
+    refute_includes html, "cy.elements().removeClass('dim hl');ele.addClass('hl');",
+      "no bespoke no-dim path left for maps"
   end
 
   test "the index layer reports when it has landed" do

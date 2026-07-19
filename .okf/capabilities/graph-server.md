@@ -299,9 +299,10 @@ clickable: the inspector opens that directory's map, the authored `index.md` or 
 synthesized listing badged as such when none exists; **Open in graph** — one label on
 every file, because the question is the same whatever is open — shows a map *in*
 the graph: it switches the **index layer** on
-rather than file-tree mode, so the layout the reader chose survives, and it
-highlights the map without dimming the graph around it — reducing the canvas to
-the map's immediate neighbours answers a question nobody asked. A reader already
+rather than file-tree mode, so the layout the reader chose survives, and the
+map is emphasised exactly as a concept is — one `focusNode` serves a concept, a
+folder node and a map, because selection should mean the same thing on this
+canvas whatever was selected. A reader already
 in file-tree mode stays there and focuses the folder node, because that view is
 the map. The toggle hands back a promise for it, since the layer is fetched and
 the node has to exist before it can be highlighted. The log is read **live from disk** on every open, so an entry a `maintain`

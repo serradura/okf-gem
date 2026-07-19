@@ -26,8 +26,11 @@
   - **Opening a map from the reader keeps the reader's graph.** It forced
     file-tree mode, discarding whatever layout was running, and dimmed the canvas
     to the map's immediate neighbours. It now switches the *layer* on rather than
-    the *mode*, leaves the layout alone, and highlights the map against the whole
-    graph. A reader already in file-tree mode stays there.
+    the *mode* and leaves the layout alone. A reader already in file-tree mode
+    stays there.
+  - **Selecting anything emphasises it the same way.** A concept dimmed the graph
+    to its neighbourhood, a map did nothing at all, and a folder node did nothing
+    either — three meanings for one gesture. One `focusNode` now serves all three.
   - **Drawn, never modelled.** `index.md` is reserved, so these nodes are built
     from `/index` straight onto the canvas; `NODES`, `/catalog` and the type and
     tag indexes never learn they exist. Filters pass them over — a map has no type

@@ -1101,13 +1101,20 @@ let centerTimer;
 function centerOn(ele,delay){clearTimeout(centerTimer);
  const go=()=>{cy.resize();cy.stop();cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});};
  if(delay)centerTimer=setTimeout(go,260);else{cy.stop();cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});}}
+/* Emphasise a node and its immediate neighbourhood. One gesture for a concept,
+   a folder and a map: selection should mean the same thing on this canvas
+   whatever was selected, and it used to mean three things — a concept dimmed the
+   rest, a map did nothing, a folder node did nothing either. */
+function focusNode(ele,opened){if(!ele||!ele.length)return;
+ cy.elements().removeClass('hl').addClass('dim');
+ ele.closedNeighborhood().removeClass('dim');ele.addClass('hl');
+ centerOn(ele,opened);}
 function select(id){const ele=cy.getElementById(id);if(!ele.length)return;const opened=show(id);
- cy.elements().removeClass('hl').addClass('dim');const nb=ele.closedNeighborhood();nb.removeClass('dim');ele.addClass('hl');
- centerOn(ele,opened);
+ focusNode(ele,opened);
  try{if(decodeURIComponent((location.hash||'').slice(1))!==id)location.hash=encodeURIComponent(id);}catch(e){}}
 cy.on('tap','node',e=>{const t=e.target;
- if(t.hasClass('dir'))return showDir(t.id().slice(DIR.length)||'.');
- if(t.hasClass('ix'))return showDir(t.data('dir')||'.');
+ if(t.hasClass('dir')){showDir(t.id().slice(DIR.length)||'.');return focusNode(t,true);}
+ if(t.hasClass('ix')){showDir(t.data('dir')||'.');return focusNode(t,true);}
  if(t.isParent()){const a=t.id().indexOf('area::')===0?t.id().slice(6):null;return showDir(a&&a!=='(root)'?a:'.');}
  select(t.id());});
 /* Clear the focus: drop the dim/highlight and let the hash forget the node, so a
@@ -1342,16 +1349,11 @@ function ixVisibility(){if(!ixNodes||!IXROWS.length)return;
 function openMapInGraph(dir){setView('graph');showDir(dir);
  /* Already in file-tree mode: that view *is* the map, so focus its folder node
     and keep the neighbourhood emphasis the mode is for. */
- if(treeMode){requestAnimationFrame(()=>{const ele=cy.getElementById(DIR+(dir==='.'?'':dir));if(!ele.length)return;
-   cy.elements().removeClass('hl').addClass('dim');ele.closedNeighborhood().removeClass('dim');ele.addClass('hl');
-   centerOn(ele,true);});
-  return;}
+ if(treeMode){requestAnimationFrame(()=>focusNode(cy.getElementById(DIR+(dir==='.'?'':dir)),true));return;}
  /* Otherwise switch the *layer* on rather than the mode: the reader asked to see
     this map in the graph, not to be handed a different graph. The layout they
-    chose stays, and nothing is dimmed — reducing the canvas to the map's
-    immediate neighbours answers a question they did not ask. */
- setIxNodes(true).then(()=>{const ele=cy.getElementById(IX+dir);if(!ele.length)return;
-  cy.elements().removeClass('dim hl');ele.addClass('hl');centerOn(ele,true);});}
+    chose survives, and the map is emphasised exactly as a concept would be. */
+ setIxNodes(true).then(()=>focusNode(cy.getElementById(IX+dir),true));}
 
 /* ── fit to screen ── */
 // cy.animate({fit:…}) is a no-op in this Cytoscape build, so compute the target
