@@ -28,6 +28,12 @@
   so it is one gesture rather than two states to dig out of — the fold remembers
   *why* it happened, and a list folded because a file was opened comes back
   exactly as it was left.
+- **The bundle names its own root.** `(root)` and `/` are what a filesystem calls
+  it, not what a reader does. The tree's root row, file-tree mode's root node, the
+  index layer's root map and the inspector's directory map now all carry the name
+  the page header already shows, `--title` included. `areaOf` keeps its own
+  `(root)`: that is the area vocabulary `okf stats --by area` and `tags --by area`
+  print, not a UI label.
 - **The Indexes tab dissolves into the file tree.** The authored layer lived on a
   second tab as a flat list of paths, which put a directory's own map somewhere
   other than the directory. `index.md` and `log.md` are rows now, at the top of

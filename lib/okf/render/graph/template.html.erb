@@ -428,6 +428,10 @@
   font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);font-weight:600;
   padding:12px 8px 5px calc(8px + var(--d,0)*13px)}
  .ffolder:hover{color:var(--muted)}
+ /* the root row carries the bundle's name rather than a path segment, so it is
+    set as a name: no uppercasing, and truncated instead of wrapping */
+ .ffolder.root{text-transform:none;letter-spacing:0;font-size:12px;color:var(--muted)}
+ .ffolder.root span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
  .ffolder .chev{width:11px;height:11px;flex:none;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
  .ffolder.closed .chev{transform:rotate(-90deg)}
  .file.res .fn{color:var(--muted)}
@@ -803,6 +807,7 @@
 <script>
 const NODES=<%= nodes_json %>, EDGES=<%= edges_json %>, TYPES=<%= types_json %>, TAGS=<%= tags_json %>;
 const NODE_ENDPOINT=<%= @node_endpoint.to_json %>, META_ENDPOINT=<%= @meta_endpoint.to_json %>;
+const BUNDLE=<%= name_json %>;
 const CATALOG_ENDPOINT="catalog",INDEX_ENDPOINT="index",LOG_ENDPOINT="log";
 /* The hub's bundle switcher (⌘/Ctrl-K). SIBLINGS is empty for a standalone
    server and for `okf render`, so a single bundle or a static file offers none. */
@@ -1039,7 +1044,7 @@ interceptMdLinks(document.getElementById('fp-body'),()=>fileSel,id=>openFile(id)
 function showDir(dir){getIndex().then(dirs=>{const d=dirs.find(x=>x.dir===dir);if(!d)return;
  const opened=openPanel();sideBody.scrollTop=0;
  shownId=d.dir==='.'?'index':d.dir+'/index'; /* pseudo-id: relative links in the map resolve against its directory */
- const label=d.dir==='.'?'(root)':d.dir+'/';
+ const label=d.dir==='.'?BUNDLE:d.dir+'/';
  const types=Object.entries(d.types||{}).map(([t,n])=>esc(t||'Untyped')+' '+n).join(' · ');
  sideBody.innerHTML=`<span class="type">${d.present?'index.md':'no index.md · synthesized'}</span>
   <h2 class="title">${esc(label)}</h2>
@@ -1263,7 +1268,7 @@ function setTree(on){if(on===treeMode)return;if(on&&clustered)setClustered(false
   NODES.forEach(n=>{const parts=n.id.split('/');for(let i=1;i<parts.length;i++)dirs.add(parts.slice(0,i).join('/'));});
   cy.batch(()=>{
    cy.add([...dirs].map(d=>({group:'nodes',classes:'dir',
-    data:{id:DIR+d,title:d?d.split('/').pop()+'/':'/',c:cvar('--accent'),sz:d?20:28}})));
+    data:{id:DIR+d,title:d?d.split('/').pop()+'/':BUNDLE,c:cvar('--accent'),sz:d?20:28}})));
    [...dirs].forEach(d=>{if(!d)return;const p=d.split('/').slice(0,-1).join('/');
     cy.add({group:'edges',classes:'tree',data:{id:'tree::'+d,source:DIR+p,target:DIR+d}});});
    NODES.forEach(n=>{const p=n.id.split('/').slice(0,-1).join('/');
@@ -1306,7 +1311,7 @@ function setIxNodes(on,relayout){if(on===ixNodes)return;ixNodes=on;btnIx.setAttr
   cy.batch(()=>{
    IXROWS.forEach(d=>{const syn=!!d.synthesized;
     cy.add({group:'nodes',classes:'ix'+(syn?' ix-syn':''),
-     data:{id:IX+d.dir,dir:d.dir,title:d.dir==='.'?'/':d.dir.split('/').pop()+'/',
+     data:{id:IX+d.dir,dir:d.dir,title:d.dir==='.'?BUNDLE:d.dir.split('/').pop()+'/',
       c:cvar(syn?'--faint':'--accent'),sz:d.dir==='.'?30:22}});});
    /* map → the maps below it, and map → each concept it lists. A listing entry
       whose node is missing is skipped rather than conjuring a dangling edge. */
@@ -1620,8 +1625,8 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
     folder now takes its subtree with it, because the subtree renders from inside. */
  function subtree(dir,depth){
   const closed=collapsedDirs.has(dir);
-  const name=dir==='.'?'(root)':esc(dir.split('/').pop())+'/';
-  const head=`<button class="ffolder${closed?' closed':''}" data-dir="${esc(dir)}" style="--d:${depth}"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>${name}</button>`;
+  const name=dir==='.'?esc(BUNDLE):esc(dir.split('/').pop())+'/';
+  const head=`<button class="ffolder${closed?' closed':''}${dir==='.'?' root':''}" data-dir="${esc(dir)}" style="--d:${depth}"><svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><span>${name}</span></button>`;
   if(closed)return head;
   return head
    +resIn(dir,depth+1)

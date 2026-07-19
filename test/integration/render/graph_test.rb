@@ -172,6 +172,33 @@ class OKF::Render::GraphTest < OKF::TestCase
       "a stale promise, a toggle since flipped, or tree mode all cancel the add"
   end
 
+  test "the bundle names its own root, everywhere the root is drawn" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render(title: "minifts/.okf")
+
+    # `(root)` and `/` are what a filesystem calls it, not what a reader does —
+    # the bundle already has a name in the header, and that is the orientation
+    assert_includes html, %(const BUNDLE="minifts/.okf";), "the name reaches the client, script-escaped"
+    assert_includes html, "const name=dir==='.'?esc(BUNDLE):", "the tree's root row wears it"
+    assert_includes html, "const label=d.dir==='.'?BUNDLE:", "so does the inspector's directory map"
+    assert_includes html, "title:d?d.split('/').pop()+'/':BUNDLE", "and file-tree mode's root node"
+    assert_includes html, "title:d.dir==='.'?BUNDLE:", "and the index layer's root map"
+  end
+
+  test "the area vocabulary keeps its own (root), which the CLI shares" do
+    write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render(title: "Demo")
+
+    # `(root)` is the *area* label — what `okf stats --by area` and `tags --by
+    # area` print, and what their tests pin. Renaming the tree's root row must
+    # not quietly rename a CLI-shared vocabulary along with it.
+    assert_includes html, "const areaOf=id=>id.includes('/')?id.split('/')[0]:'(root)';",
+      "an area with no directory is still (root)"
+    assert_includes html, "a&&a!=='(root)'?a:'.'", "and the cluster box that names it still resolves to the root dir"
+  end
+
   test "hides a cluster box once a filter empties it, and binds Esc to deselect" do
     write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 

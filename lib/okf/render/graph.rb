@@ -100,6 +100,12 @@ module OKF
         html_escape(graph_name)
       end
 
+      # The bundle's own name, for the client: what the header already shows, so
+      # the page can label the root with it instead of `(root)` or `/`.
+      def name_json
+        json_for_script(graph_name)
+      end
+
       def og_title
         html_escape("OKF · #{graph_name}")
       end

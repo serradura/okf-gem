@@ -270,6 +270,16 @@ lands on, so **Files** highlights and nothing has to invent a place for Index to
 be. `?view=index` resolves to that action too, which is what the deep link
 shipped in 1.8.0 always meant.
 
+The bundle names its own root. `(root)` and `/` are what a filesystem calls it,
+not what a reader does, so the tree's root row, file-tree mode's root node, the
+index layer's root map and the inspector's directory map all carry the name the
+header already shows — `--title` included, so a named server labels the root with
+that name. The row is set as a name rather than a path segment: no uppercasing,
+and truncated rather than wrapped, since a title has no length limit. What keeps
+its own `(root)` is `areaOf`, the **area** vocabulary shared with `okf stats --by
+area` and `tags --by area` — a UI label and a CLI-facing vocabulary that happened
+to read alike, and only one of them was being renamed.
+
 The tree is a real explorer — directories *nest*, one
 row per path segment indented by depth, so `core/configurations` sits inside
 `core` instead of standing beside it as a sorted full path did, and closing a
