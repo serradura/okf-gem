@@ -1,6 +1,32 @@
 # Update Log
 
 ## 2026-07-19
+* **Correction**: a maintain pass over the CLI restructure found three citations
+  pointing at code that had moved, each reading perfectly and each now wrong:
+  [graph-server](capabilities/graph-server.md) cited `lib/okf/cli.rb` for the
+  `serve` boot seam and [render](capabilities/render.md) for the `render` verb —
+  both now live under `lib/okf/cli/` — and
+  [integration-first](design/integration-first.md) still called low coverage "in
+  `cli.rb`" a hole, when `cli.rb` is now a dispatcher and the verbs it meant are
+  in `cli/`. `validate` and `lint` called the bundle healthy throughout: a
+  citation that names a real file nobody moved *to* is invisible to both.
+* **Update**: the **shipped skill** learned that the verb list is open. Its
+  [cli reference](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill/reference/cli.md)
+  and `SKILL.md`'s verb row now say an installed extension adds verbs of its
+  own, so a verb `okf help` shows and the reference does not document reads as
+  **normal rather than a documentation error**. Worth doing because the skill is
+  how an agent learns this surface, and an agent that treats an unknown verb as
+  a doc bug will go looking for the bug. `rake plugin:sync` run, so the
+  generated copy does not drift.
+* **Update**: `cli_plugin_test.rb` added to
+  [integration-first](design/integration-first.md)'s tree, which is an
+  enumeration and therefore the one thing grep cannot audit. It is the odd file
+  there — it names no bundle and tests no verb of ours — so the entry says why.
+* **Note**: tag curation merged the singleton `plugins` into **`extensibility`**,
+  which was already carried by [search-engines](design/search-engines.md). Two
+  singletons naming one theme, on the two concepts that are about that theme and
+  link to each other; `extensibility` was established first, so the newer name
+  merged into it rather than the reverse. Singletons 9 → 7.
 * **Change**: the CLI became a **registry**, and with it an extension point — the new [extension points](design/extension-points.md) concept, with [cli](cli.md)'s dispatch section rewritten around it. `lib/okf/cli.rb` was 1,794 lines and a 15-arm `case`; the verbs now live one per file under `lib/okf/cli/`, each a `Command` subclass registering itself at load, with the shared surface (refs, flags, the JSON emitters, the printers) on a base class. Behaviour is unchanged and the suite says so: every existing test passed untouched. Any gem shipping `okf/plugin.rb` on its load path can now add a verb — `okf-tui` is the first, answering `okf tui` — with **no edit to this gem and no list of known addons**, which a test enforces by grepping `cli.rb` for their names. `Search.register` set the idiom and this copies it exactly: append-only, idempotent by id, duck type checked at registration, so an addon cannot displace a built-in.
 * **Note**: discovery is **lazy**, and the arithmetic is the one that made the scan the default engine. `Gem.find_latest_files` costs ~11ms on the 2.4 floor — small, and still not worth paying on a run that only wanted `okf lint`, so a built-in resolves and dispatches without scanning at all. Only an unknown verb and `okf help` pay. An unplanned consequence, worth keeping: an addon claiming a built-in's verb is not merely refused, it is never loaded, because running that verb never triggers the scan.
 * **Note**: discovery is a **code-execution** decision, so the trust boundary is

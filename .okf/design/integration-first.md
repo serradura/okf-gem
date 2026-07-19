@@ -29,7 +29,14 @@ test/integration/cli/
   by_registry/              `okf lint @handbook`   — named through the registry
   across_bundles/           `okf search @a @b`     — several at once
   cli_help_test.rb …        the verbs that name no bundle
+  cli_plugin_test.rb        the extension seam — a plugin on the load path
 ```
+
+`cli_plugin_test.rb` is the odd one, deliberately: it names no bundle and tests
+no verb of ours. It writes `okf/plugin.rb` into a temp dir on `$LOAD_PATH`, which
+is indistinguishable from an installed gem's `lib/`, so the
+[seam](extension-points.md) is driven for real without building and installing a
+gem to drive it.
 
 Same command, same flags, three identities — because the identity is where the
 CLI decides *what to answer about*, and a verb that works by path can still be
@@ -53,7 +60,7 @@ no user can. Run integration by itself and the figure becomes a *map* instead of
 a score — read it that way. Low coverage in `bundle/writer.rb` or
 `concept/file.rb` is expected and honest: no CLI verb writes a bundle, so those
 belong to the [library API](../capabilities/library-api.md) to prove. Low coverage
-in `cli.rb`, `registry.rb`, or `server/` is a **hole** — a path a user can reach
+in `cli/`, `registry.rb`, or `server/` is a **hole** — a path a user can reach
 that no user-shaped test walks.
 
 # Fixtures are the cheap part

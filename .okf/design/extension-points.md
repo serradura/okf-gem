@@ -3,7 +3,7 @@ type: Constraint
 title: Three extension points, one idiom
 description: Linter checks, search engines and CLI verbs all register the same way — append-only, idempotent by id — and CLI discovery loads only okf-* gems, because requiring one runs its code.
 resource: lib/okf/cli.rb
-tags: [architecture, cli, plugins, search, registry, security]
+tags: [architecture, cli, extensibility, search, registry, security]
 timestamp: 2026-07-19T18:00:00Z
 ---
 
