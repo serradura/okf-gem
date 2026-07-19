@@ -293,6 +293,7 @@ module OKF
       @err = err
       @runner = runner
       @input = input
+      @plugin_notes_reported = false
     end
 
     def run(argv)
@@ -341,13 +342,19 @@ module OKF
     # ships okf/plugin.rb under a name outside the okf- prefix is either an
     # honest mistake somebody needs told about, or something that wanted to run
     # code on a machine where nobody asked it to. Both want saying out loud.
+    # Once per run, not once per caller. An unknown verb reaches this twice —
+    # dispatch looks, misses, and then prints the map, which looks again — and a
+    # warning repeated is a warning that reads like two problems.
     def report_plugin_failures(failures)
+      return if @plugin_notes_reported
+
+      @plugin_notes_reported = true
       Array(failures).each do |path, error|
         @err.puts "okf: extension at #{path} failed to load (#{error.class}: #{error.message})"
       end
       self.class.untrusted_plugins.each do |path, gem_name|
         @err.puts "okf: ignoring an extension shipped by `#{gem_name}` (#{path})"
-        @err.puts "  extensions are loaded only from gems named #{OKF::CLI::PLUGIN_GEM_PREFIX}*, since loading one runs its code"
+        @err.puts "  extensions are loaded only from gems named #{PLUGIN_GEM_PREFIX}*, since loading one runs its code"
       end
     end
 

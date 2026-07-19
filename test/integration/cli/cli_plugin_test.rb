@@ -130,6 +130,17 @@ class CLIPluginTest < CLIIntegrationCase
     end
   end
 
+  # An unknown verb reaches the reporter twice — dispatch looks and misses, then
+  # prints the map, which looks again. Said twice, one broken addon reads as two.
+  test "a plugin note is printed once per run, however many times it is consulted" do
+    plugin("raise LoadError, 'libfoo is missing'")
+
+    err = okf("nosuchverb").err
+
+    assert_equal 1, err.scan(/failed to load/).length,
+      "the same note twice reads as two problems: #{err.inspect}"
+  end
+
   test "an okf- gem is trusted, and so is a bare load path" do
     plugin(PING)
 
