@@ -18,6 +18,20 @@
   **considered and rejected as disproportionate** — the window it closes is one
   the user opened with `gem install`, and it would cost the property that makes
   the seam worth having.
+* **Correction**: the `okf-*` rule was first written up as a **trust decision**,
+  and that oversells it. Pressed on whether it earns its place, the honest
+  reading is that the window it closes is nearly empty: a transitive dependency
+  is required by its parent in normal use, so `require "foo"` already runs
+  `foo`'s dependencies — what is left is a gem installed and then used by
+  nothing at all. As a security control it earns very little, and calling it a
+  defence invites the false confidence that is worse than no rule. It stays on
+  its own merits, as the **naming convention** Jekyll and Vagrant use: it makes
+  what counts as an okf extension explicit and stops an unrelated gem claiming
+  the `okf/plugin.rb` path. Cost measured at 0.0ms per discovered path; the cost
+  that is real falls on authors, who must name an extension `okf-` something.
+  Reframed in [extension-points](design/extension-points.md), the changelog and
+  `AGENTS.md`. The one rule underneath that *is* load-bearing and keeps its
+  weight: naming a gem must never load it.
 * **Note**: **Thor was rejected, and the floor decided it** — Thor 1.3+ requires Ruby >= 2.6 against this gem's [2.4](design/ruby-floor.md), and only the EOL 1.2.2 accepts it, which is the pin-an-old-line-for-everyone mistake already recorded. It would also be a fourth [runtime dependency](design/runtime-dependencies.md) buying little: what was needed was a registry, not an option-parsing DSL, and `optparse` plus this gem's help/exit-code/stream-injection contract were already in hand. What kamal's Thor layout *did* supply is structure — a base class holding the shared surface, one file per command, privacy as the command boundary. Ideas are free.
 * **Correction**: the plugin test seam was **wrong in a way only a real gem could show**. `reset_plugins!` cleared the registry but left the file in `$LOADED_FEATURES`, and `require` is idempotent — so the next scan found the plugin, required it, got `false`, and registered nothing; the verb was gone until the process restarted. Every test hid it by writing its plugin to a fresh `Dir.mktmpdir`, so the path differed on every load and `require` always ran. It surfaced the moment the seam was pointed at `okf-tui`, whose `lib/` path does not move. The lesson is narrower than "test with real things" and worth stating: **a fixture that varies where the real thing is fixed can hide a bug in exactly the dimension it varies.**
 * **Correction**: [search](capabilities/search.md) listed **prefix matching** among what the index buys, and it buys nothing. A substring match already reaches every prefix — `dedup` finds `deduplication` under either engine, while `duplication` and `uplicat` find it under the scan alone — so `prefix` is what a token index needs to *catch up* to raw text, not a capability it adds on top. The claim was written the same day the scan became the default, into the very section arguing when to reach for the index, and it survived because "prefix matching" reads like a feature the alternative lacks. It was caught only by building the [skill](capabilities/agent-skill.md)'s engine-selection table and running each row instead of restating it: a table forces a claim per cell, and a cell is small enough to test. The advantages are now stated as a closed list of **three** — relevance ranking, typo tolerance, page parity — because a numbered list resists growing by plausible-sounding items in a way an open one does not.

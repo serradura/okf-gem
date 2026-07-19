@@ -62,20 +62,40 @@ It is not quite the whole truth, and the gap is the part worth writing down:
 | pure Ruby | **no** — no post-install hooks | **yes**, narrowly: a gem that would sit inert now runs |
 
 So the escalation is real and confined to one case — a pure-Ruby gem, installed
-but never required. Two things bound it:
+but never required. **That case is rarer than it first sounds**, and the honest
+reading matters: a transitive dependency is required by its parent in normal
+use, so if `foo` depends on `evil`, `require "foo"` already runs it. What is
+left is a gem installed and then used by nothing at all. Two things bound even
+that:
 
 1. **Under Bundler, discovery is bundle-scoped.** `Gem.find_latest_files` sees
    only what the Gemfile resolved, so the Gemfile is already an allowlist. The
    exposure is a global `gem install okf` run outside a bundle.
-2. **Only gems named `okf-*` are loaded.** A transitive dependency that happens
-   to ship `okf/plugin.rb` is discovered, **skipped, and reported on stderr** —
-   which is the case where the user chose nothing at all. Resolving the owning
-   gem's name reads the spec's `full_gem_path`; naming an extension never runs
-   it, and a test pins that.
+2. **Only gems named `okf-*` are loaded** — see below, though the naming
+   convention is the better reason for that rule than this one. Resolving the
+   owning gem's name reads the spec's `full_gem_path`; naming an extension
+   never runs it, and a test pins that.
 
 What the prefix cannot do is save anyone from a package they deliberately
 installed under an `okf-` name. A typosquat is a `gem install` that already
 happened; no loader rule undoes it.
+
+# The `okf-` prefix is a convention first, a guard second
+
+Stated plainly, because the reverse framing flatters it: **as a security control
+the prefix earns very little** — it closes a window that is nearly empty, and
+calling it a defence risks the false confidence that is worse than no rule.
+
+It stays because it is a good **convention** on its own terms, which is how
+Jekyll (`jekyll-*`), Vagrant (`vagrant-*`) and fastlane all namespace plugins.
+It makes what counts as an okf extension explicit, findable on RubyGems, and
+stops an unrelated gem claiming the `okf/plugin.rb` path by accident. Measured
+cost: 0.0ms per discovered path.
+
+The cost it does carry is on authors: an extension has to be *named* `okf-`
+something, so an internal `acme-okf-ext` is refused rather than loaded. That is
+the trade — a naming rule for a clear namespace — and it should be argued on
+those terms if it is ever revisited, not on the threat model above.
 
 **An allowlist was considered and rejected as disproportionate.** Recording
 enabled extensions in `$OKF_HOME` — the shape `okf registry set` already uses for
