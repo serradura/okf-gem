@@ -532,7 +532,11 @@ class OKF::Render::GraphTest < OKF::TestCase
       "Filters is one of them"
     assert_includes html, "#app.controls-open #graph-controls>.selwrap",
       "and the layout select is the other"
-    assert_includes html, "justify-content:space-between", "the icons then spread over their own line"
+    assert_includes html, "#app.controls-open #graph-controls>.selwrap>#layout{width:100%}",
+      "and the select grows with its wrapper — stretching only the wrapper left the chevron " \
+      "stranded outside the control, over dead space that swallowed the click"
+    refute_includes html, "justify-content:space-between",
+      "the icons stay a group rather than being flung to the edges"
   end
 
   test "a toggle narrows the tree to the authored layer" do

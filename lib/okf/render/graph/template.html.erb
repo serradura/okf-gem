@@ -551,9 +551,13 @@
      own. The two controls carrying words take a column each, so the first line
      is two even halves; the icon buttons then get a line to themselves and
      spread across it. */
-  #app.controls-open #graph-controls{gap:8px;justify-content:space-between}
+  #app.controls-open #graph-controls{gap:8px}
   #app.controls-open #graph-controls>#btn-filters,
   #app.controls-open #graph-controls>.selwrap{flex:1 1 calc(50% - 4px);min-width:0}
+  /* the select has to grow with its wrapper. Stretching only the wrapper left
+     the control at its natural width with the chevron pinned to the wrapper's
+     far edge — a chevron floating over dead space, and every click on it lost. */
+  #app.controls-open #graph-controls>.selwrap>#layout{width:100%}
   /* the graph inspector takes the whole viewport — the ✕ closes it; widening,
      drag-resizing, and the topbar panel toggle have no job at this size
      (grid-template beats the resizer's inline --side-w) */
