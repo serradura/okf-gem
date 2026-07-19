@@ -17,7 +17,7 @@ class RegisteredCommandsConformTest < OKF::TestCase
   ].freeze
 
   test "the built-ins are exactly these, in this order" do
-    assert_equal BUILTINS, OKF::CLI.commands.map(&:id),
+    assert_equal BUILTINS, OKF::CLI.builtins.map(&:id),
       "the require order at the bottom of cli.rb IS the map's order — changing it changes what a user reads"
   end
 
@@ -58,7 +58,7 @@ class RegisteredCommandsConformTest < OKF::TestCase
   test "every built-in declares a group the map actually prints" do
     groups = OKF::CLI::GROUPS.map(&:first)
 
-    OKF::CLI.commands.each do |command|
+    OKF::CLI.builtins.each do |command|
       assert_includes groups, command.group,
         "#{command.id} is in group #{command.group.inspect}, which GROUPS never prints — the verb would vanish from help"
     end
@@ -81,5 +81,19 @@ class RegisteredCommandsConformTest < OKF::TestCase
     error = assert_raises(ArgumentError) { OKF::CLI.register(Class.new) }
 
     assert_match(/does not answer/, error.message)
+  end
+
+  test "the plugin file is a convention, not a list of known addons" do
+    # The base gem naming its own addons is the coupling this seam exists to
+    # avoid; a grep is the cheapest way to keep it that way.
+    # Explicit encoding: the 2.4 Docker check runs with no locale, so
+    # Encoding.default_external is US-ASCII and a plain read tags this file's
+    # em-dashes as invalid bytes — which then raises the moment a regexp meets
+    # them. The same reason cli_integration_case#read_utf8 exists.
+    source = File.read(File.expand_path("../../../lib/okf/cli.rb", __dir__), encoding: "UTF-8")
+
+    assert_equal "okf/plugin.rb", OKF::CLI::PLUGIN_FILE
+    refute_match(/okf-tui|okf\/tui|okf-mcp|okf-sqlite3/, source,
+      "cli.rb must not name a specific addon — discovery is by convention")
   end
 end

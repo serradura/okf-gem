@@ -54,15 +54,28 @@ module OKF
       OKF::Server::Runner.run(app, host: host, port: port)
     end
 
+    # The file a gem ships to add verbs to `okf`. Everything about the seam is in
+    # this one constant: a gem that wants to extend the CLI puts `okf/plugin.rb`
+    # on its load path and registers from it.
+    #
+    # A convention rather than a list the base gem keeps, because the alternative
+    # is this gem naming its own addons — and the moment it does, adding an addon
+    # means editing okf. `--engine` already set the precedent on the search side:
+    # an addon shows up in help *without the CLI knowing it exists*.
+    PLUGIN_FILE = "okf/plugin.rb"
+
     # The map's shape: the order the groups print in, and the heading each one
-    # carries. The groups are separated by a blank
-    # line and their verbs speak for themselves.
+    # carries. Only extensions get a heading — the built-in groups are separated
+    # by a blank line and their verbs speak for themselves, which is how this map
+    # has always read. A plugin's verbs are labelled because "where did this come
+    # from?" is a question only an installed extension raises.
     GROUPS = [
       [ :act, nil ],
       [ :registry, nil ],
       [ :judge, nil ],
       [ :read, nil ],
-      [ :graph, nil ]
+      [ :graph, nil ],
+      [ :extension, "  installed extensions:" ]
     ].freeze
 
     # Everything the map's grammar column cannot say for itself. A test finds the
@@ -128,6 +141,70 @@ module OKF
         (@declined ||= []).dup.freeze
       end
 
+      # Load every installed extension, once. Returns the failures as
+      # [ path, error ] pairs rather than printing them: this is a class method
+      # with no streams, and the CLI's whole contract is that nothing writes
+      # anywhere but the streams it was handed.
+      #
+      # A plugin that raises is *skipped and reported*, never fatal — the same
+      # best-effort posture the reader takes with an unparseable file. One broken
+      # addon must not cost a user their `okf lint`.
+      def load_plugins
+        return @plugin_failures if @plugins_loaded
+
+        @plugins_loaded = true
+        @plugin_failures = []
+        plugin_paths.each do |path|
+          begin
+            require path
+          rescue ::LoadError, ::StandardError => e
+            @plugin_failures << [ path, e ]
+          end
+        end
+        @plugin_failures
+      end
+
+      # Latest-version-only where RubyGems offers it, so two installed versions
+      # of the same addon cannot both register. The fallback keeps the floor:
+      # find_latest_files has been there since RubyGems 1.8, but the guard costs
+      # nothing and says which method the behaviour depends on.
+      def plugin_paths
+        if Gem.respond_to?(:find_latest_files)
+          Gem.find_latest_files(PLUGIN_FILE)
+        else
+          Gem.find_files(PLUGIN_FILE)
+        end
+      rescue ::StandardError
+        []
+      end
+
+      # Called once at the bottom of this file, after the built-ins have
+      # registered. Everything registered after it is an extension — which makes
+      # "built-in" a fact the CLI knows rather than a group a command claims,
+      # and gives a test somewhere to roll back to.
+      def seal_builtins!
+        @builtins = commands
+      end
+
+      # The verbs this gem ships, frozen at seal time.
+      def builtins
+        (@builtins ||= []).dup.freeze
+      end
+
+      def extension?(command)
+        !builtins.include?(command)
+      end
+
+      # Test seam: put the registry back to what shipped and forget the load
+      # latch. Registration happens at require time, so without this a test that
+      # installs a fake plugin would leak it into every test that runs after it.
+      def reset_plugins!
+        @commands = builtins.dup
+        @plugins_loaded = false
+        @plugin_failures = []
+        @declined = []
+      end
+
       private
 
       def register_declined(command, existing)
@@ -165,8 +242,16 @@ module OKF
 
     private
 
+    # Built-ins answer without a plugin ever being loaded — the scan only
+    # happens once a name misses, which is every run of `okf lint` and no run
+    # of `okf tui`. Discovery is cheap (about 11ms on the 2.4 floor) but not
+    # free, and a one-shot CLI that already refuses to build a search index for
+    # a single query should not pay it to answer a verb it shipped with.
     def dispatch(name, argv)
-      command = self.class.lookup(name)
+      command = self.class.lookup(name) || begin
+        report_plugin_failures(self.class.load_plugins)
+        self.class.lookup(name)
+      end
       return unknown(name) if command.nil?
 
       command.new(out: @out, err: @err, runner: @runner, input: @input).call(argv)
@@ -178,7 +263,18 @@ module OKF
       2
     end
 
+    # On stderr, so a `--json` run's stdout stays a clean machine substrate even
+    # when an addon is broken.
+    def report_plugin_failures(failures)
+      Array(failures).each do |path, error|
+        @err.puts "okf: extension at #{path} failed to load (#{error.class}: #{error.message})"
+      end
+    end
+
     def usage(io)
+      # Help is the one place that must know about every verb, so it is the one
+      # place besides an unknown name that pays for discovery.
+      report_plugin_failures(self.class.load_plugins)
       io.puts "okf <command> [options]"
       io.puts
       GROUPS.each { |group, heading| print_group(io, group, heading) }
@@ -218,3 +314,7 @@ require "okf/cli/tags"
 require "okf/cli/files"
 require "okf/cli/catalog"
 require "okf/cli/graph"
+
+# The line between what ships and what is installed. Everything above is a
+# built-in; everything registered after this point came from a plugin.
+OKF::CLI.seal_builtins!
