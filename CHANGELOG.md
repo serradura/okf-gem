@@ -15,6 +15,14 @@
     pays the ~11ms `Gem.find_latest_files` costs on the 2.4 floor. A one-shot CLI
     that will not build a search index for a single query should not pay for
     discovery to answer a verb it shipped with.
+  - **Only gems named `okf-*` are loaded**, which is a trust decision rather than
+    a tidy one. Loading a plugin runs its code, and while Ruby's trust boundary is
+    `gem install` rather than `require`, that holds fully only for native
+    extensions — a pure-Ruby gem executes nothing until required. The prefix
+    closes the case where the user chose nothing at all: a transitive dependency
+    that happens to ship `okf/plugin.rb` is discovered, skipped, and reported on
+    stderr. Under Bundler, discovery is bundle-scoped anyway, so the Gemfile is
+    already an allowlist.
   - **A broken addon is skipped and reported, never fatal** — the same
     best-effort posture the reader takes with an unparseable file. The note goes
     to stderr, so a `--json` run's stdout stays a clean machine substrate.

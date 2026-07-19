@@ -1,9 +1,9 @@
 ---
 type: Constraint
 title: Three extension points, one idiom
-description: Linter checks, search engines and CLI verbs all register the same way — append-only, idempotent by id, so an addon can never displace a built-in.
+description: Linter checks, search engines and CLI verbs all register the same way — append-only, idempotent by id — and CLI discovery loads only okf-* gems, because requiring one runs its code.
 resource: lib/okf/cli.rb
-tags: [architecture, cli, plugins, search, registry]
+tags: [architecture, cli, plugins, search, registry, security]
 timestamp: 2026-07-19T18:00:00Z
 ---
 
@@ -42,6 +42,48 @@ knowing it exists**. A test greps `cli.rb` for addon names to keep it that way.
 The one-way dependency is what makes it safe: `okf-tui` depends on `okf`, `okf`
 depends on nothing of `okf-tui`, and discovery is by convention rather than
 declaration — so there is no cycle to resolve.
+
+# The trust boundary, and where it actually sits
+
+`require` runs whatever it loads, so discovery-by-convention is a code-execution
+decision and deserves to be argued rather than assumed.
+
+The usual principle is that **Ruby's trust boundary is `gem install`, not
+`require`** — by the time a package is on your disk, it has had its chance. That
+is the reason `rubygems_plugin.rb`, Bundler's plugins and Minitest's
+`minitest/*_plugin.rb` all load exactly this way and none is treated as a
+vulnerability.
+
+It is not quite the whole truth, and the gap is the part worth writing down:
+
+| Gem | Executes at install? | Does a convention loader escalate? |
+|-----|----------------------|-------------------------------------|
+| native extension | **yes** — `extconf.rb` compiles | no; it already ran |
+| pure Ruby | **no** — no post-install hooks | **yes**, narrowly: a gem that would sit inert now runs |
+
+So the escalation is real and confined to one case — a pure-Ruby gem, installed
+but never required. Two things bound it:
+
+1. **Under Bundler, discovery is bundle-scoped.** `Gem.find_latest_files` sees
+   only what the Gemfile resolved, so the Gemfile is already an allowlist. The
+   exposure is a global `gem install okf` run outside a bundle.
+2. **Only gems named `okf-*` are loaded.** A transitive dependency that happens
+   to ship `okf/plugin.rb` is discovered, **skipped, and reported on stderr** —
+   which is the case where the user chose nothing at all. Resolving the owning
+   gem's name reads the spec's `full_gem_path`; naming an extension never runs
+   it, and a test pins that.
+
+What the prefix cannot do is save anyone from a package they deliberately
+installed under an `okf-` name. A typosquat is a `gem install` that already
+happened; no loader rule undoes it.
+
+**An allowlist was considered and rejected as disproportionate.** Recording
+enabled extensions in `$OKF_HOME` — the shape `okf registry set` already uses for
+bundles — would close the remaining window, at the cost of the property that
+makes this seam worth having: installing the gem is the whole installation. The
+window it closes is one the user opened themselves with `gem install`. If okf
+ever grows an extension that runs with privileges the CLI does not already have,
+this trade should be reopened.
 
 # Lazy, because a one-shot CLI cannot afford eager
 
@@ -105,3 +147,4 @@ Those are ideas, and ideas are free.
 [2] [lib/okf/bundle/search.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/bundle/search.rb) — the idiom this one copies.
 [3] Verified 2026-07-19 on `ruby:2.4.10` (RubyGems 3.0.3): `Gem.find_latest_files` is present and answers in ~11ms; the full suite is green on the floor.
 [4] Thor's ruby_version on RubyGems, 2026-07-19: 1.4.0 and 1.3.2 declare `>= 2.6.0`; 1.2.2 declares `>= 2.0.0`.
+[5] Measured 2026-07-19: under `bundle exec`, `Gem.find_latest_files("okf/plugin.rb")` returned 0 with a sibling okf-tui checkout present but absent from the Gemfile; outside bundler it scans every installed gem (259 on that machine).

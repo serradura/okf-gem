@@ -64,6 +64,19 @@ module OKF
     # an addon shows up in help *without the CLI knowing it exists*.
     PLUGIN_FILE = "okf/plugin.rb"
 
+    # Only gems named `okf-*` are loaded. `require` runs whatever it loads, and
+    # while the trust boundary in Ruby is `gem install` rather than `require`,
+    # that holds fully only for native extensions — those run `extconf.rb` at
+    # install time. A **pure-Ruby** gem executes nothing until required, so
+    # loading by convention alone would hand code a way to run that it did not
+    # otherwise have.
+    #
+    # The prefix closes the case where the user chose nothing: a transitive
+    # dependency shipping this file is discovered and skipped rather than run.
+    # It cannot close a package deliberately installed under an `okf-` name —
+    # `gem install` has already run by then, and no loader rule undoes that.
+    PLUGIN_GEM_PREFIX = "okf-"
+
     # The map's shape: the order the groups print in, and the heading each one
     # carries. Only extensions get a heading — the built-in groups are separated
     # by a blank line and their verbs speak for themselves, which is how this map
@@ -170,14 +183,59 @@ module OKF
       # of the same addon cannot both register. The fallback keeps the floor:
       # find_latest_files has been there since RubyGems 1.8, but the guard costs
       # nothing and says which method the behaviour depends on.
+      #
+      # Narrowed to gems named `okf-*`, which is a **trust** decision rather than
+      # a tidiness one. `require` executes whatever it loads, and the trust
+      # boundary in Ruby is `gem install`, not `require` — but that is only
+      # wholly true of native extensions, which run `extconf.rb` at install time.
+      # A **pure-Ruby** gem executes nothing until something requires it, so a
+      # loader that requires by convention alone gives code a way to run that it
+      # otherwise would not have had.
+      #
+      # The narrow rule closes the case where the user chose nothing at all: a
+      # transitive dependency that happens to ship `okf/plugin.rb` is discovered
+      # and skipped, not run. What it cannot close is a package deliberately
+      # installed under an `okf-` name — by then `gem install` has already been
+      # run on it, and no loader rule saves you from that. See
+      # .okf/design/extension-points.md for the threat model in full.
       def plugin_paths
-        if Gem.respond_to?(:find_latest_files)
-          Gem.find_latest_files(PLUGIN_FILE)
-        else
-          Gem.find_files(PLUGIN_FILE)
+        found = if Gem.respond_to?(:find_latest_files)
+                  Gem.find_latest_files(PLUGIN_FILE)
+                else
+                  Gem.find_files(PLUGIN_FILE)
+                end
+
+        @untrusted_plugins = []
+        found.select do |path|
+          name = plugin_gem_name(path)
+          next true if name.nil? || name.start_with?(PLUGIN_GEM_PREFIX)
+
+          @untrusted_plugins << [ path, name ]
+          false
         end
       rescue ::StandardError
         []
+      end
+
+      # The gem a discovered path belongs to, or nil when it belongs to none —
+      # a bare $LOAD_PATH entry, which is how a checkout and the suite's own
+      # fixtures appear. Resolved from the spec's full_gem_path rather than by
+      # loading anything: naming an extension must never mean running it.
+      def plugin_gem_name(path)
+        found = Gem::Specification.find do |spec|
+          full = spec.full_gem_path
+          path.start_with?(full.end_with?(File::SEPARATOR) ? full : "#{full}#{File::SEPARATOR}")
+        end
+        found&.name
+      rescue ::StandardError
+        nil
+      end
+
+      # Paths discovered but refused for their gem's name, as [ path, gem ]
+      # pairs. Kept so the refusal can be *reported*: an extension that is
+      # present and deliberately not run is exactly the thing a user needs told.
+      def untrusted_plugins
+        (@untrusted_plugins ||= []).dup.freeze
       end
 
       # Called once at the bottom of this file, after the built-ins have
@@ -214,6 +272,7 @@ module OKF
         @commands = builtins.dup
         @plugins_loaded = false
         @plugin_failures = []
+        @untrusted_plugins = []
         @declined = []
       end
 
@@ -276,10 +335,19 @@ module OKF
     end
 
     # On stderr, so a `--json` run's stdout stays a clean machine substrate even
-    # when an addon is broken.
+    # when an addon is broken — or when one was deliberately not run.
+    #
+    # A refused extension is *louder* than a broken one on purpose. A gem that
+    # ships okf/plugin.rb under a name outside the okf- prefix is either an
+    # honest mistake somebody needs told about, or something that wanted to run
+    # code on a machine where nobody asked it to. Both want saying out loud.
     def report_plugin_failures(failures)
       Array(failures).each do |path, error|
         @err.puts "okf: extension at #{path} failed to load (#{error.class}: #{error.message})"
+      end
+      self.class.untrusted_plugins.each do |path, gem_name|
+        @err.puts "okf: ignoring an extension shipped by `#{gem_name}` (#{path})"
+        @err.puts "  extensions are loaded only from gems named #{OKF::CLI::PLUGIN_GEM_PREFIX}*, since loading one runs its code"
       end
     end
 

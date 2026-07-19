@@ -93,6 +93,72 @@ class CLIPluginTest < CLIIntegrationCase
     end
   end
 
+  # ── the trust boundary ──
+  #
+  # `require` runs whatever it loads. The Ruby trust boundary is `gem install`
+  # rather than `require`, but that is fully true only of native extensions,
+  # which run extconf.rb at install; a pure-Ruby gem executes nothing until
+  # something requires it. So a loader that requires by convention alone gives
+  # code a way to run that it otherwise would not have had, and the okf- prefix
+  # is what closes the case where the user chose nothing at all.
+
+  test "an extension from a gem outside the okf- prefix is discovered and refused" do
+    # A file on disk rather than a flag in memory: the claim is that the plugin
+    # never ran *at all*, and a side effect that outlives the process is the
+    # only witness that cannot be faked by the assertion's own bookkeeping.
+    sentinel = File.join(@plugin_root, "it-ran")
+    plugin(<<~RUBY)
+      File.write(#{sentinel.inspect}, "x")
+      OKF::CLI.const_set(:Ping, Class.new(OKF::CLI::Command) do
+        def self.id
+          :ping
+        end
+      end)
+      OKF::CLI.register(OKF::CLI::Ping)
+    RUBY
+
+    # Pretend the file belongs to an unrelated gem, which is the case that
+    # matters: a transitive dependency nobody chose, shipping okf/plugin.rb.
+    OKF::CLI.stub(:plugin_gem_name, "some-unrelated-lib") do
+      OKF::CLI.reset_plugins!
+      result = okf("ping")
+
+      assert_equal 2, result.status, "the verb must not exist — the file was never run"
+      refute File.exist?(sentinel), "and its code must not have executed at all"
+      assert_match(/ignoring an extension shipped by `some-unrelated-lib`/, result.err)
+      assert_match(/gems named okf-\*/, result.err, "the refusal says why, or it reads as a bug")
+    end
+  end
+
+  test "an okf- gem is trusted, and so is a bare load path" do
+    plugin(PING)
+
+    OKF::CLI.stub(:plugin_gem_name, "okf-something") do
+      OKF::CLI.reset_plugins!
+
+      assert_equal 0, okf("ping", "x").status, "an okf- gem is exactly what the seam is for"
+    end
+
+    # nil means the path belongs to no gem — a checkout, `ruby -I`, a Gemfile
+    # `path:`. Someone put it there deliberately, which is a choice already made.
+    OKF::CLI.stub(:plugin_gem_name, nil) do
+      OKF::CLI.reset_plugins!
+
+      assert_equal 0, okf("ping", "x").status, "a bare load-path entry is a choice already made"
+    end
+  end
+
+  test "naming the gem behind a path never loads it" do
+    plugin("raise 'resolving a name must not run me'")
+
+    assert_nothing_raised do
+      OKF::CLI.plugin_paths
+    end
+
+    refute OKF::CLI.instance_variable_get(:@loaded_plugins)&.any?,
+      "listing what is installed has to be safe, or the refusal happens after the damage"
+  end
+
   # The whole reason discovery is lazy rather than eager.
   test "a built-in verb never pays for discovery" do
     plugin("raise 'this plugin must never be loaded'")
