@@ -228,7 +228,7 @@ docker run --rm -v "$PWD:/data" -p 8808:8808 ghcr.io/serradura/okf server . --bi
 Then open <http://127.0.0.1:8808>. Images are published for `linux/amd64` and
 `linux/arm64` on
 [ghcr.io](https://github.com/serradura/okf-gem/pkgs/container/okf): `:latest`
-tracks the newest release, or pin a version like `:1.8.0`.
+tracks the newest release, or pin a version like `:1.9.0`.
 
 Tired of the long line? Install a Docker-backed [`okf` command](https://docker.okfgem.com),
 so every verb drops the `docker run` prefix and reads exactly like the native CLI

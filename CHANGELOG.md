@@ -1,28 +1,66 @@
 # Changelog
 
-## [Unreleased]
+## [1.9.0] - 2026-07-19
 
-- **`okf search` matches raw text again by default.** The BM25+ index becomes the
-  opt-in engine (`--engine index`, or `--fuzzy`, which routes to it); the linear
-  scan takes the default back. A one-shot CLI builds an index, asks one question
-  and exits, so the build has a single query to amortize it over — end to end,
-  **3.00 s against 0.24 s at 1,000 concepts**, 0.83 s against 0.18 s at 250, with
-  the build accounting for ~95% of the index path at every size. The throughput
-  number that motivated the swap (~44–56× per query) is the right measure for a
-  long-lived index and the wrong one for a process that exits.
-  - **It also closes a silent recall hole.** MiniSearch splits on `\p{Z}\p{P}`,
-    and a backtick is `Sk` while `$` is `Sc` — so neither is ever split off and a
-    word inside a code span is stored as the token `` `minifts` ``, unfindable by
-    the query `minifts`. On this repo's own bundle that was 2 hits where raw text
-    finds 5. Raw-text matching has no tokenizer and therefore none of its holes.
-  - **What the index still buys, by asking for it:** BM25+ ranking, prefix
-    matching (`dedup` → `deduplication`), `--fuzzy`, and rank parity with the
-    browser page — which runs the same MiniSearch build. That parity is now
-    conditional on naming the engine; it used to be unconditional.
-  - **Exactness is the default again**: a phrase, `7.2.0`, `customer_id`, a
-    mid-word `ustomer` and a backticked word all match the way they are typed.
-  - Expect this to be revisited once a cached prebuilt index removes the build
-    from the comparison.
+- **`okf search` gains an opt-in full-text index engine.** `--engine index` — and
+  `--fuzzy`, which implies it — routes to
+  [minifts](https://github.com/serradura/minifts), the pure-Ruby port of the same
+  MiniSearch build the graph page loads. It is the gem's third runtime
+  dependency, admitted because it costs the footprint nothing the first two were
+  chosen to protect: no native extension, no dependency tree of its own, the same
+  Ruby 2.4 floor. Three things it adds, and nothing else does:
+  - **BM25+ relevance ranking**, where the default scores by summed field weight;
+  - **`--fuzzy`** — typo tolerance at edit distance `0.2 × term length`, the
+    browser's own setting. Search stays exact unless you ask;
+  - **parity with the graph page**, which runs the same MiniSearch build, so the
+    two rank identically when the index is named.
+- **The default search is unchanged** — literal, case-insensitive substring
+  matching over the same fields with the same weights as 1.8.0. The index is
+  opt-in rather than default because a one-shot CLI builds an index, asks one
+  question, and exits: end to end, **3.00 s against 0.24 s at 1,000 concepts**,
+  the build accounting for ~95% of that. The ~44–56× per-query throughput that
+  recommends minifts is the right measure for a long-lived index — a page, a
+  server — and the wrong one for a process that exits. A cached prebuilt index is
+  what would change that arithmetic.
+  - **Know what the index costs before naming it.** Its tokenizer splits on
+    punctuation, so `customer_id` becomes `customer` + `id` and `7.2.0` becomes
+    `7`, `2`, `0`; an infix (`ustomer`) finds nothing; and a backtick is Unicode
+    `Sk` rather than punctuation, so a word inside a code span indexes as
+    `` `minifts` `` and the query `minifts` does not match it — 409 such tokens
+    on this repo's own bundle. Ranking does not rescue it: BM25 normalizes by
+    field length, so a short concept dense in `7`, `2` and `0` can outrank the one
+    that actually says `7.2.0`. The default has none of these, because raw-text
+    matching has no tokenizer.
+- **`--engine NAME` picks the engine outright**, for the case a capability flag
+  cannot express: a matching *model* requires nothing, so no flag selects one.
+  Naming an engine that cannot do what was also asked is a usage error naming one
+  that can (`--engine index -e` → *try --engine scan*), and an unknown name lists
+  what is available. `--help` reads the registry, so an addon's engine appears
+  without the CLI knowing it exists.
+- **Search engines are adapters.** `OKF::Bundle::Search` became a facade over N
+  engines instead of one class with a `regexp ? scan : index` branch. The facade
+  keeps everything that defines a result — documents, the row and its key order,
+  the snippet, the sort — and an engine answers only which documents match, how
+  well, and where. The built-ins are `Search::Scan` (raw text, the default,
+  `regexp`) and `Search::Index` (minifts, `fuzzy`/`prefix`).
+  - **Selection is by capability when the query requires one** — `--fuzzy`
+    requires `:fuzzy`, so it routes to the index without naming it — and that
+    routing prints **nothing**: no note, no header change, no new JSON key.
+  - **`Search.register` is a published extension point** — append-only,
+    idempotent by id, capabilities checked against a fixed vocabulary. This is
+    the seam a future SQLite/FTS5 addon plugs into; no addon code ships here.
+  - **A shared conformance suite replaces the "kernel is the oracle" rule**,
+    which multiple engines made impossible: the index and the scan disagree about
+    match sets by design, so neither can be the oracle. Every registered engine
+    runs the same contract, with capability-gated blocks for its own semantics,
+    and a registered engine with no conformance class fails the suite.
+- **Cross-bundle search ranks one corpus under `--engine index`.** BM25 prices a
+  term by how rare it is, so ranking each bundle separately and interleaving the
+  lists would produce a ranking that looks sorted and compares nothing; the
+  searched bundles are indexed together instead. The visible consequence, under
+  that engine only: a score is relative to the whole answer, so the same concept
+  scores lower searched beside other bundles than alone. The default's scores are
+  absolute and need no such treatment.
 
 - **The graph can draw the index layer, under any layout.** The §6 map was
   visible only inside file-tree mode, where a folder node stood in for a
@@ -126,89 +164,10 @@
     folders standing instead of a single `(root)` row. Unfolding clears the whole
     set, root included, so a root closed by hand is still reversible from there.
 
-- **`okf search --engine NAME` picks the engine outright.** Capability flags
-  select an engine when the query *requires* something (`-e` needs `:regexp`,
-  `--fuzzy` needs `:fuzzy`), but raw-text matching requires nothing, so no flag
-  could ask for it. `--engine scan` is that ask: the pre-index behaviour, with
-  phrases, infixes, dotted identifiers and code spans all matching, at the cost
-  of BM25 ranking. Naming an engine that cannot do what was also asked is a usage
-  error that names one that can (`--engine index -e` → *try --engine scan*), and
-  an unknown name lists what is available. `--help` reads the registry, so an
-  addon's engine appears without the CLI knowing it exists.
-- **The scan matches literally unless `-e` says otherwise.** It compiled every
-  term as a regexp, which was invisible while `-e` was the only way to reach it.
-  With `--engine scan` it would have meant `7.2.0` matching `7x2y0`, `[draft]`
-  acting as a character class, and an ordinary term like `review (pending`
-  failing as an invalid pattern. Terms are now escaped unless `--regexp` is
-  given, so the engine chooses *where* to match and `-e` chooses *how*.
-- **Known recall gap, now documented and recoverable.** A backtick is Unicode
-  `Sk`, not punctuation, so MiniSearch's tokenizer never splits it off: a word
-  inside a code span indexes as `` `minifts` `` and the query `minifts` does not
-  match it. On this repo's own bundle that is 409 tokens over 1,013 occurrences —
-  `okf search .okf minifts` finds 2 concepts where `--engine scan` finds 5. The
-  scan recovers it; the default still misses it.
-- **Search engines are adapters now.** `OKF::Bundle::Search` became a facade over
-  N engines instead of one class with a `regexp ? scan : index` ternary. The
-  facade keeps everything that defines a result — documents, the row and its key
-  order, the snippet, the sort — and an engine answers only which documents match,
-  how well, and where. The two built-ins are `Search::Index` (BM25+, default) and
-  `Search::Scan` (regexp).
-  - **Selection is by capability when the query requires one.** `-e` requires
-    `:regexp`, `--fuzzy` requires `:fuzzy`, anything else gets the default — and
-    that routing prints **nothing**: no note, no header change, no new JSON key.
-    Every pre-existing invocation answers exactly as before. (`--engine`, above,
-    covers the case where nothing is required but the matching model matters.)
-  - **`okf search --help` tells the engine story**, since routing itself is
-    silent: each capability flag names its engine, `--engine` lists the
-    registered ones, and a note states the token/raw-text split with examples.
-  - **`Search.register` is a published extension point** — append-only,
-    idempotent by id, capabilities checked against a fixed vocabulary. This is
-    the seam a future SQLite/FTS5 addon plugs into; no addon code ships here.
-  - **A shared conformance suite replaces the "kernel is the oracle" rule**,
-    which multiple engines made impossible: the index and the scan disagree about
-    match sets by design, so neither can be the oracle. Every registered engine
-    now runs the same contract, with capability-gated blocks for its own
-    semantics, and a registered engine with no conformance class fails the suite.
-  - **The precision the token index gives up is pinned from both sides** — phrase,
-    dotted version, underscored identifier, infix — each asserting the false
-    positive the index admits *and* that `-e` refuses it. Writing those tests
-    falsified the claim that ranking keeps the true hit first: it does not. On
-    this repo's own bundle, `okf search .okf 7.2.0` ranks the Ruby-floor concept
-    above the one that names the version. The docs claiming otherwise are
-    corrected.
-- **`okf search` runs on a full-text index.** The engine is now
-  [minifts](https://github.com/serradura/minifts) — the pure-Ruby port of the
-  same MiniSearch build the browser page loads — making it the gem's third
-  runtime dependency (still no native extension, no dependency tree of its own,
-  same Ruby 2.4 floor). The CLI and the browser are one engine now, so they rank
-  identically instead of agreeing by maintenance. What changes for callers:
-  - terms match **tokens** and the tokens they prefix (`dedup` finds
-    `deduplication`) rather than raw substrings, so a mid-word fragment
-    (`ustomer`) no longer matches — use `-e` for that;
-  - ranking is **BM25+**, with the old per-field weights riding as boost, so
-    scores are floats and orderings shift;
-  - `--fuzzy` opts into typo tolerance (edit distance `0.2 × term length`, the
-    browser's setting). Search stays exact by default;
-  - `-e`/`--regexp` still runs a linear scan — a pattern is the one query an
-    inverted index cannot answer — and pairing it with `--fuzzy` is a usage
-    error (exit `2`) rather than a silently ignored flag;
-  - rows still carry `matched`, the fields each term hit, so a result stays
-    citable rather than being a bare relevance number.
-- **Cross-bundle search ranks one corpus.** `okf search @a @b` used to rank each
-  bundle separately and interleave the lists, which was sound when scores were
-  absolute field weights and became wrong under BM25, where a term is priced by
-  how rare it is in the corpus. The searched bundles are now indexed together, so
-  the merged ranking is comparable by construction. A visible consequence: a
-  score is relative to the whole answer, so the same concept scores lower
-  searched beside other bundles than searched alone.
-- **Known cost:** the index is built per invocation, so a one-shot CLI search now
-  pays for a build it never amortizes — ~55 ms on a 23-concept bundle (against
-  ~2 ms for the old scan), ~2.2 s at 1,000 concepts. Negligible at the size real
-  bundles are today; the fix is a cached prebuilt index, not a faster build.
 - The graph page's search box grows a full-text index. One MiniSearch index —
   lazy-loaded from the CDN on first search, pinned to the `7.2.0` the Ruby
-  MiniSearch port tracks so a Ruby-built index and the browser's rank
-  identically — now backs the graph, catalog and files views: ranked, multi-term
+  MiniSearch port tracks so an `okf search --engine index` result and the
+  browser's rank identically — now backs the graph, catalog and files views: ranked, multi-term
   (`AND`), prefix (as-you-type) and typo-tolerant, over title, id, type, tags and
   **description** — plus each concept's **body** wherever the page already holds
   it (`okf render` bakes every body in, so a static file searches bodies offline;
