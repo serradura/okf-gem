@@ -18,6 +18,11 @@
     resolving after a mode change could land inside file-tree mode. A `relayout`
     flag settles the first, a per-toggle ticket the second. File-tree mode disables it rather than
   doubling the folders it already draws.
+  - **Opening a map from the reader keeps the reader's graph.** It forced
+    file-tree mode, discarding whatever layout was running, and dimmed the canvas
+    to the map's immediate neighbours. It now switches the *layer* on rather than
+    the *mode*, leaves the layout alone, and highlights the map against the whole
+    graph. A reader already in file-tree mode stays there.
   - **Drawn, never modelled.** `index.md` is reserved, so these nodes are built
     from `/index` straight onto the canvas; `NODES`, `/catalog` and the type and
     tag indexes never learn they exist. Filters pass them over — a map has no type

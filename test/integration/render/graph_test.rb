@@ -154,6 +154,34 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "btnIx.disabled=on", "and file-tree mode, which already draws folders, disables the toggle"
   end
 
+  test "opening a map from the reader keeps the layout and turns the layer on" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # it forced file-tree mode, throwing away whatever layout the reader had
+    # chosen, and dimmed the graph down to the map's immediate neighbours — the
+    # reader asked to see a map *in* the graph, not to be given a different one
+    assert_includes html, "function openMapInGraph(", "the action is about the map, not about tree mode"
+    refute_includes html, "function openInTree(", "the tree-forcing version is gone"
+    assert_includes html, "setIxNodes(true).then(", "it switches the index layer on and waits for it"
+    assert_includes html, "cy.elements().removeClass('dim hl');ele.addClass('hl');",
+      "then highlights the map without dimming the graph around it"
+    # file-tree mode already draws folders, so there it still focuses the folder
+    assert_includes html, "if(treeMode){", "and a reader already in file-tree mode stays there"
+  end
+
+  test "the index layer reports when it has landed" do
+    write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
+
+    html = render
+
+    # the layer is fetched, so anything that wants to act on its nodes has to be
+    # able to wait for them — including the case where it is already on
+    assert_includes html, "if(on===ixNodes)return Promise.resolve();", "a no-op toggle still answers with a promise"
+    assert_includes html, "return getIndex().then(", "and the real one hands back the fetch"
+  end
+
   test "switching between the graph modes lands in one move" do
     write("core/a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 

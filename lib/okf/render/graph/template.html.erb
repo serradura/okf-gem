@@ -1303,11 +1303,12 @@ const btnIx=document.getElementById('btn-ix');
    the same canvas, and the tree landed wrong until it was clicked again. The
    ticket covers the other direction: the add is async, so a toggle flipped or a
    mode entered while /index is in flight has to cancel the landing. */
-function setIxNodes(on,relayout){if(on===ixNodes)return;ixNodes=on;btnIx.setAttribute('aria-pressed',String(on));
+function setIxNodes(on,relayout){if(on===ixNodes)return Promise.resolve();
+ ixNodes=on;btnIx.setAttribute('aria-pressed',String(on));
  const seq=++ixSeq;
  if(!on){IXROWS=[];cy.batch(()=>{cy.edges('.ixe').remove();cy.nodes('.ix').remove();});
-  if(relayout!==false)runLayout(layoutSel.value);return;}
- getIndex().then(dirs=>{if(seq!==ixSeq||!ixNodes||treeMode)return;IXROWS=dirs||[];
+  if(relayout!==false)runLayout(layoutSel.value);return Promise.resolve();}
+ return getIndex().then(dirs=>{if(seq!==ixSeq||!ixNodes||treeMode)return;IXROWS=dirs||[];
   cy.batch(()=>{
    IXROWS.forEach(d=>{const syn=!!d.synthesized;
     cy.add({group:'nodes',classes:'ix'+(syn?' ix-syn':''),
@@ -1338,11 +1339,19 @@ function ixVisibility(){if(!ixNodes||!IXROWS.length)return;
  rows.forEach(d=>{const n=cy.getElementById(IX+d.dir);if(n.length)n.style('display',on[d.dir]?'element':'none');});}
 /* A reserved file's "Open in graph": switch to the file tree, select its
    folder node, and put the directory's map in the inspector. */
-function openInTree(dir){setView('graph');setTree(true);
- showDir(dir);
- requestAnimationFrame(()=>{const ele=cy.getElementById(DIR+(dir==='.'?'':dir));if(!ele.length)return;
-  cy.elements().removeClass('hl').addClass('dim');ele.closedNeighborhood().removeClass('dim');ele.addClass('hl');
-  centerOn(ele,true);});}
+function openMapInGraph(dir){setView('graph');showDir(dir);
+ /* Already in file-tree mode: that view *is* the map, so focus its folder node
+    and keep the neighbourhood emphasis the mode is for. */
+ if(treeMode){requestAnimationFrame(()=>{const ele=cy.getElementById(DIR+(dir==='.'?'':dir));if(!ele.length)return;
+   cy.elements().removeClass('hl').addClass('dim');ele.closedNeighborhood().removeClass('dim');ele.addClass('hl');
+   centerOn(ele,true);});
+  return;}
+ /* Otherwise switch the *layer* on rather than the mode: the reader asked to see
+    this map in the graph, not to be handed a different graph. The layout they
+    chose stays, and nothing is dimmed — reducing the canvas to the map's
+    immediate neighbours answers a question they did not ask. */
+ setIxNodes(true).then(()=>{const ele=cy.getElementById(IX+dir);if(!ele.length)return;
+  cy.elements().removeClass('dim hl');ele.addClass('hl');centerOn(ele,true);});}
 
 /* ── fit to screen ── */
 // cy.animate({fit:…}) is a no-op in this Cytoscape build, so compute the target
@@ -1722,7 +1731,7 @@ function openReserved(kind,path){fileSel=path;
     landing hands a newcomer the index, and this is how the graph introduces
     itself from there, in the place the reader is already looking. */
  const d=dirOfPath(path);
- fpGraph(kind==='index'?(d==='.'?'Explore the knowledge graph':'Open '+d+'/ in graph'):'Open in graph',()=>openInTree(d));
+ fpGraph(kind==='index'?(d==='.'?'Explore the knowledge graph':'Open '+d+'/ in graph'):'Open in graph',()=>openMapInGraph(d));
  const type=document.getElementById('fp-type');
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  const done=txt=>{const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);};
