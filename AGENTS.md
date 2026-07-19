@@ -45,6 +45,18 @@ known addons (a test greps `cli.rb` to keep it that way). Discovery is **lazy**:
 a built-in never scans, so only an unknown verb or `okf help` pays the ~11ms.
 A plugin that raises is skipped and reported on stderr, never fatal.
 
+**Only gems named `okf-*` are loaded, and that is a trust rule — do not relax it
+for convenience.** `require` runs whatever it loads. Ruby's boundary is
+`gem install` rather than `require`, but only for native extensions (they run
+`extconf.rb` at install); a pure-Ruby gem executes nothing until required, so
+loading by convention alone hands it a way to run. The prefix closes the case
+where the user chose nothing — a transitive dependency shipping the file is
+discovered, skipped, and reported. Naming a gem must never load it:
+`plugin_gem_name` reads the spec's `full_gem_path`, and a test pins that. A path
+belonging to no gem stays trusted (`ruby -I`, a Gemfile `path:`, a checkout —
+someone put it there). Full threat model in
+[.okf/design/extension-points.md](.okf/design/extension-points.md).
+
 The core/shell split is _enforced_: `test/unit/boundary_test.rb` fails if a pure
 file names a shell class or touches `File`/`Dir`/`FileUtils`/stdio. Put new I/O
 in the shell; put new logic in the core, pure.
