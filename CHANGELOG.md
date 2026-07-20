@@ -1,5 +1,50 @@
 # Changelog
 
+## [Unreleased]
+
+- **`okf` is extensible.** Any gem that puts `okf/plugin.rb` on its load path can
+  register a verb, and it answers to `okf` — listed in `okf help` under
+  `installed extensions:`, dispatched like a built-in. There is no list of known
+  addons in this gem and no configuration step for the user: installing the gem
+  is the whole installation. It is the same seam `Search.register` opened for
+  search engines, and the same idiom — append-only, idempotent by id, so an addon
+  can never quietly displace a built-in.
+  - **Discovery is lazy**, which is what makes it affordable. A built-in verb
+    resolves against the registry and dispatches without scanning at all; only an
+    unknown verb or `okf help` — which has to know everything by definition —
+    pays the ~11ms `Gem.find_latest_files` costs on the 2.4 floor. A one-shot CLI
+    that will not build a search index for a single query should not pay for
+    discovery to answer a verb it shipped with.
+  - **Extensions must come from gems named `okf-*`**, the convention Jekyll and
+    Vagrant use for the same job: it makes what counts as an okf extension
+    explicit and stops an unrelated gem claiming the `okf/plugin.rb` path by
+    accident. One that is not so named is discovered, skipped, and reported on
+    stderr. A path belonging to *no* gem — a checkout, `ruby -I`, a Gemfile
+    `path:` — stays trusted, because someone put it there deliberately. It is a
+    mild guard too — loading a plugin runs its code — but the naming convention
+    is the reason, not the threat model, which is thin: under Bundler discovery
+    is bundle-scoped anyway, so the Gemfile is already an allowlist.
+  - **The rule holds when it cannot get an answer**, which is a separate promise
+    from the rule itself. A gem name that cannot be read — one corrupt gemspec
+    anywhere on the machine — is refused rather than treated as "belongs to no
+    gem", and the refusal names the exception that caused it. A discovery that
+    fails outright is reported too, since an empty list and no message is
+    indistinguishable from a machine with nothing installed.
+  - **A broken addon is skipped and reported, never fatal** — the same
+    best-effort posture the reader takes with an unparseable file. The note goes
+    to stderr, so a `--json` run's stdout stays a clean machine substrate.
+- **The CLI is one file per verb.** `lib/okf/cli.rb` was 1,794 lines and a
+  15-arm `case`; it is now a registry and a dispatcher, with the verbs under
+  `lib/okf/cli/` and the shared surface on a `Command` base class. Behaviour is
+  unchanged — every existing test passes untouched — but `okf help` is now
+  composed from what the commands say about themselves rather than from a
+  heredoc that had to be remembered separately.
+- **Fixed: `okf skill <a> <b>` installed into `<a>` and exited 0.** It hand-rolled
+  its own argument handling instead of using the shared pair every `<dir>` verb
+  goes through, so a second destination was silently dropped — the user named two
+  places and the tool wrote one, saying nothing. It is a usage error now (exit 2),
+  refused before anything is written.
+
 ## [1.9.0] - 2026-07-19
 
 - **`okf search` gains an opt-in full-text index engine.** `--engine index` — and

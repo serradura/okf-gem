@@ -3,7 +3,7 @@ type: Overview
 title: okf-gem at a glance
 description: A light Ruby gem that reads, searches, validates, lints, and serves Open Knowledge Format v0.1 bundles.
 tags: [okf, gem, diagram]
-timestamp: 2026-07-17T14:00:00Z
+timestamp: 2026-07-20T12:00:00Z
 ---
 
 # Overview
@@ -42,7 +42,7 @@ Over such a bundle the gem gives you seven capabilities behind one
 | [Library API](capabilities/library-api.md)               | Can my Ruby program use it?       | (in-process)     |
 
 Alongside those, a family of [read views](capabilities/read-views.md) —
-`index`, `catalog`, `files`, `tags`, `stats`, `graph` — print the bundle at a
+`index`, `catalog`, `files`, `types`, `tags`, `stats`, `graph` — print the bundle at a
 glance so an agent reads it without a browser.
 
 Knowledge rarely lives in one bundle, so `okf server` hosts one, several, or every
@@ -63,7 +63,7 @@ server to remember.
 The gem is deliberately light so it runs on the Ruby an OS already ships. That
 ethos is not incidental — it is enforced by [hard constraints](design/):
 a [Ruby 2.4 floor](design/ruby-floor.md), exactly
-[two runtime dependencies](design/runtime-dependencies.md), and a
+[three runtime dependencies](design/runtime-dependencies.md), and a
 [core/shell split](design/core-shell-split.md) that keeps all logic pure and
 testable without disk. Everything else — no ActiveSupport, no build step, no
 JavaScript toolchain — follows from those.

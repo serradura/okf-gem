@@ -24,8 +24,39 @@ lib/okf/
   server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types, /index, /log
   server/runner.rb        shell  built-in WEBrick <-> Rack bridge (replaces any rackup need)
   skill.rb + skill/       shell  the companion agent skill + its installer
-  cli.rb                  shell  the only layer that parses argv, prints, and exits
+  cli.rb                  shell  the command registry, the dispatcher, and `okf help`
+  cli/command.rb          shell  the base every verb inherits: streams, refs, shared flags, printers
+  cli/<verb>.rb           shell  one file per verb, each registering itself at load
 ```
+
+The CLI is the only layer that parses argv, prints, and exits. A verb is a
+`CLI::Command` subclass answering four questions about itself (`.id`, `.group`,
+`.help_rows`, `.hidden?`) and one about a run (`#call(argv)`, returning the exit
+status). Privacy is the boundary: `#call` is the whole public surface, so a
+helper cannot become a verb by accident.
+
+`CLI.register` is deliberately the same shape as `Search.register` — append-only,
+idempotent by id, duck type checked at registration. **The require block at the
+bottom of `cli.rb` IS the order `okf help` lists the verbs in**; a test pins it.
+
+That registry is also the extension point. Any gem with `okf/plugin.rb` on its
+load path can register a verb, and `okf` finds it — no edit here, no list of
+known addons (a test greps `cli.rb` to keep it that way). Discovery is **lazy**:
+a built-in never scans, so only an unknown verb or `okf help` pays the ~11ms.
+A plugin that raises is skipped and reported on stderr, never fatal.
+
+**Only gems named `okf-*` are loaded** — a naming convention, the one Jekyll
+(`jekyll-*`) and Vagrant (`vagrant-*`) use for the same job, which doubles as a
+mild guard since `require` runs whatever it loads. Argue it as a convention if it
+is ever revisited: the threat it closes is thin, and overselling it invites the
+false confidence that is worse than no rule at all.
+
+One rule underneath it *is* load-bearing: **naming a gem must never load it.**
+`plugin_gem_name` reads the spec's `full_gem_path` and requires nothing, because
+a refusal that happens after the `require` is not a refusal; a test pins it. A
+path belonging to no gem stays trusted (`ruby -I`, a Gemfile `path:`, a checkout
+— someone put it there). Threat model in
+[.okf/design/extension-points.md](.okf/design/extension-points.md).
 
 The core/shell split is _enforced_: `test/unit/boundary_test.rb` fails if a pure
 file names a shell class or touches `File`/`Dir`/`FileUtils`/stdio. Put new I/O
@@ -134,6 +165,7 @@ test/integration/cli/
   by_registry/              `okf lint @handbook`   — named through the registry
   across_bundles/           `okf search @a @b`     — several at once
   cli_help_test.rb …        the commands that name no bundle (help, version, skill)
+  cli_plugin_test.rb        the extension seam — a plugin on the load path
 ```
 
 Same command, same flags, three identities — because the identity is where the
@@ -166,7 +198,7 @@ bundle exec rake test:integration   # integration only + coverage/integration/
 
 Read the result as a map, not a score. Low coverage in `bundle/writer.rb` or
 `concept/file.rb` is *expected* — no CLI verb writes a bundle, so those are the
-library API's to prove. Low coverage in `cli.rb`, `registry.rb`, or `server/` is
+library API's to prove. Low coverage in `cli/`, `registry.rb`, or `server/` is
 a **hole**: it means a path a user can reach that no user-shaped test walks.
 Chase those, and let the residue tell you honestly which code the CLI cannot
 reach at all.

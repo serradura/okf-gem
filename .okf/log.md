@@ -1,6 +1,228 @@
 # Update Log
 
+## 2026-07-20
+* **Correction**: a sweep for stale prose before merge, and the two that mattered
+  had **nothing to do with this branch**. `overview.md` still said "exactly two
+  runtime dependencies" — `minifts` made it three at 1.9.0, and this log records
+  fixing that same count in other files *twice* while overview.md was missed both
+  times. Its read-view list was also missing `types`. A count stated in five
+  places drifts in the one nobody edits; the lesson is to grep the claim rather
+  than fix the instance, which is exactly what the two earlier entries failed to
+  do.
+* **Correction**: `cli.md` grouped the verbs into "three groups" — a harmless
+  editorial arrangement when the map was a heredoc, and **wrong the moment
+  `.group` became something a command declares**. `CLI::GROUPS` has five built-in
+  groups plus `:extension`, and the table put `graph` under Read and `registry`
+  under Act when both return their own. The table matches the code now. A doc can
+  go stale by the code growing a real version of what the doc was approximating.
+* **Change**: the prefix rule's own [design note](design/extension-points.md)
+  described itself, in its `description:` frontmatter, as loading only `okf-*`
+  gems *"because requiring one runs its code"* — the trust-first framing the body
+  spent two commits retiring. Third instance of the same reframe, found the same
+  way: fixing the sentence in front of you rather than searching for its copies.
+  The description is what `search` and `index` surface, so it was the one most
+  read and the last corrected.
+* **Correction**: the fail-open fixed yesterday **survived one frame above the
+  fix**. `plugin_gem_name` learned to refuse a name it could not read; the
+  `rescue ::StandardError` in `plugin_paths` still answered `[]` and threw its
+  exception away, so `Gem.find_latest_files` raising turned every installed
+  extension off in total silence — indistinguishable from a machine with none.
+  That is the same defect, in the same file, closed one layer too low: the fix
+  was aimed at the frame the bug was *found* in rather than at the shape of the
+  bug. The search failing is reported on its own terms now, since there is no
+  discovered path to hang a refusal on. Three failure modes, each closed
+  separately; the entry below claimed the second was the last of them.
+* **Correction**: the entry below asserts *"one pass has one outcome, so the
+  lookup either answers for every path or fails for every path"* — and the code
+  it describes **did not do that**. `@gem_index ||=` caches a value, not an
+  outcome, so a raising enumeration ran again for every discovered path (three
+  paths, three passes, counted). A failure clearing between paths — a gemspec
+  rewritten by a concurrent `gem install` — would refuse one and trust the next
+  in the same run: the very lottery the entry says was eliminated, still open in
+  the one branch the change existed for. The failure memoizes with the result
+  now, and a test counts the passes rather than trusting the sentence.
+  Second time in two days a comment stated a mechanism from intent rather than
+  from reading the code, both times in prose about *why* — the part no test
+  covers, and so the part that needs the evidence gathered *first*.
+* **Change**: the prefix test reads as a named question — `trusted_gem?`, with
+  `nil` (belongs to no gem, trusted) and `UNKNOWN_GEM` (lookup failed, refused)
+  as written branches. It was `name.is_a?(::String) && name.start_with?(…)`,
+  which excluded the sentinel by type-testing around it and needed four lines of
+  comment to say what one line now says. The type test also mis-stated its own
+  stakes: dropping it would not have raised NoMethodError *instead of refusing*,
+  it would have raised inside `plugin_paths`' own rescue and returned `[]`.
+* **Note**: the `gem_index` comment sold the change as a saving. It is not one —
+  it replaced a `find` that short-circuits on the first match with a `map` over
+  all 282 specs (1.0 ms), so on the ordinary one-path discovery it is strictly
+  more work. The failure-shape argument was always the real one and now stands
+  alone.
+
 ## 2026-07-19
+* **Correction**: the Note below justified its own change with a **mechanism
+  that does not exist**. It said a second `folder.graph` call would leave "every
+  concept therefore parsed twice"; concepts are parsed once, at `Folder.load`,
+  and `Graph.build`'s first line reads `bundle.concepts` from memory — no
+  `File`, no `Dir` on that path. What the second call actually costs is a second
+  *graph build*. The change was right and stands; the reason given for it was
+  invented rather than read, which is the same failure the testing rule names
+  (*"never assert what you assume the code does"*) committed in a comment, where
+  no test can catch it. Corrected in both `lib/okf/cli/render.rb` and the Note.
+* **Correction**: the fail-closed rule the entry below records **refused without
+  saying why**. `plugin_gem_name` rescued the lookup and threw the exception
+  away, so a machine with one corrupt gemspec lost *every* installed extension
+  under "its owning gem could not be determined" — a message naming no gem to
+  fix and no reason to look. The cause is carried now and printed with the
+  refusal. Fixing fail-open by fail-closed only pays if the closed door says
+  what shut it; the first version traded a silent wrong answer for an
+  undiagnosable right one.
+* **Change**: the owning-gem lookup walks the installed specs **once per
+  discovery** rather than once per discovered path (`gem_index`, built lazily so
+  the ordinary run — nothing discovered — still never walks them). The saving is
+  small and was never the point: one pass has one outcome, so the lookup either
+  answers for every path or fails for every path. Per-path enumeration made that
+  a lottery, where a path matching an early spec could succeed while a later path
+  tripped over the corrupt one — a rule holding for some extensions and not
+  others, which is worse than either.
+* **Correction**: `reset_plugins!` grew a guard — `unless @builtins.nil?` —
+  against being called before `seal_builtins!`, and the guard was **wrong twice
+  over**. The state cannot occur (`seal_builtins!` runs at the bottom of
+  `cli.rb`, so anything able to name the method has already loaded it), and had
+  it occurred the guard would not have caught it: `builtins` is
+  `(@builtins ||= []).dup.freeze`, so reading it once — `extension?` does — flips
+  the ivar from nil to `[]` and the guard passes, permitting exactly the empty
+  registry its own comment called the thing to avoid. Removed rather than
+  repaired: a guard against an unreachable state is speculative, and one that
+  reads a memoizing accessor to decide whether the memo has been set is a bug
+  waiting for a caller.
+* **Correction**: the correction below **fixed one comment and claimed the
+  file**. `lib/okf/cli.rb` carried the retired trust-first framing in *two*
+  places — on `plugin_paths` and, twelve lines above it, on the
+  `PLUGIN_GEM_PREFIX` constant itself, which still asserted that the prefix
+  "closes the case where the user chose nothing: a transitive dependency
+  shipping this file is discovered and skipped rather than run" — the exact
+  claim retired as nearly empty. The entry below says the code was "reframed
+  there too", and that was true of one comment out of two. Both read the
+  convention way now, with the constant carrying the short version and pointing
+  at `plugin_paths` for the argument, so there is one place to keep right rather
+  than two to keep agreeing. The lesson is sharper than the one below it and
+  aimed at the fix rather than the drift: **shown one instance, I fixed that
+  instance instead of grepping for the class.** The command that would have
+  caught it is the same command the entry below prescribes — `grep -rn trust
+  lib/` — and I wrote that prescription without running it.
+* **Change**: `okf skill <a> <b>` **installed into `<a>`, ignored `<b>` and
+  exited 0.** Every `<dir>` verb refuses a trailing argument through
+  `positional_dir`, but `skill` takes a *destination*, not a bundle, so it read
+  as outside the rule and hand-rolled its own `argv.shift` — the one verb with a
+  positional that never met the guard. It goes through the shared `positional` +
+  `no_extras?` pair now and exits 2 before writing anything, and [cli](cli.md)'s
+  exit-code section states the rule as being about the **positional** rather
+  than about a second *bundle*, since the narrow phrasing is what made the verb
+  look exempt. Predates the registry work — a straight carry-over from the
+  monolith, found by reviewing the moved code rather than the diff.
+* **Correction**: the `okf-*` rule **failed open**, which is the interesting half
+  of a rule everyone had agreed earns little. `plugin_gem_name` rescued to `nil`,
+  and `nil` is also the answer meaning "belongs to no gem" — the deliberately
+  *trusted* case for a checkout or a `ruby -I` path. So one corrupt gemspec
+  anywhere on the machine (`Gem::Specification` enumerates every installed spec)
+  would make the lookup raise, every discovered path come back "belongs to no
+  gem", and every plugin load — with no refusal printed, because nothing was
+  recorded as refused. A failure to determine is now its own answer, refused and
+  reported. Recorded in [extension-points](design/extension-points.md), since it
+  is a claim about the rule holding *under failure* rather than in the happy
+  path, and those are different claims that read like one.
+* **Note**: `okf render` built the graph **twice** — once inside
+  `Render::Graph.static` to bake the page, once more purely to count nodes for
+  the "wrote N concepts" line. `Graph.build` maps one node per concept, so
+  `folder.bundle.concepts.size` is the identical number off an object already in
+  hand. The count is unchanged (25 on this bundle, matching `okf graph`).
+  `server` still does this in both its modes and says so in a comment; left
+  alone deliberately, as its own change.
+* **Correction**: the reframe below stopped at the docs and left the **code
+  comment** behind. `plugin_paths` in
+  [`lib/okf/cli.rb`](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb)
+  still opened "Narrowed to gems named `okf-*`, which is a **trust** decision
+  rather than a tidiness one" — the exact framing the commit below retired, in
+  the file that concept's own citation points at. So the bundle, `AGENTS.md` and
+  the changelog said convention-first while the code said trust-first, and the
+  citation carried a reader from one to the other. Reframed there too: the
+  convention leads, the guard is named as mild, and the rule underneath that
+  *is* load-bearing points at `plugin_gem_name`. The lesson is one this bundle
+  keeps meeting from new angles — **"the code does not change" is true of
+  behaviour and false of prose.** A comment is prose the tools cannot see:
+  `validate` and `lint` both called the bundle healthy, correctly, because the
+  drift was outside it, and a docs-only pass has no failing test to stop it. A
+  grep for `trust` over `lib/` would have found it in one command, which is the
+  same shape as the `--engine` drift recorded further down: instantly findable
+  *if* you think to look outside the bundle for the sentence you just changed
+  inside it.
+* **Note**: the `security` tag **stays** on
+  [extension-points](design/extension-points.md), a judgment the reframe invites
+  and does not settle. The concept still argues where the trust boundary sits,
+  why the pure-Ruby escalation is real but narrow, and why an `$OKF_HOME`
+  allowlist was refused — that is security reasoning whatever it concludes, and
+  someone auditing this gem's code-execution surface should reach it. A tag that
+  marks *"this reasons about trust"* is not falsified by deciding that one rule
+  inside it earns little; dropping it would hide the concept that explains why
+  the prefix is not a defence from exactly the reader who needs that.
+* **Correction**: a maintain pass over the CLI restructure found three citations
+  pointing at code that had moved, each reading perfectly and each now wrong:
+  [graph-server](capabilities/graph-server.md) cited `lib/okf/cli.rb` for the
+  `serve` boot seam and [render](capabilities/render.md) for the `render` verb —
+  both now live under `lib/okf/cli/` — and
+  [integration-first](design/integration-first.md) still called low coverage "in
+  `cli.rb`" a hole, when `cli.rb` is now a dispatcher and the verbs it meant are
+  in `cli/`. `validate` and `lint` called the bundle healthy throughout: a
+  citation that names a real file nobody moved *to* is invisible to both.
+* **Update**: the **shipped skill** learned that the verb list is open. Its
+  [cli reference](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill/reference/cli.md)
+  and `SKILL.md`'s verb row now say an installed extension adds verbs of its
+  own, so a verb `okf help` shows and the reference does not document reads as
+  **normal rather than a documentation error**. Worth doing because the skill is
+  how an agent learns this surface, and an agent that treats an unknown verb as
+  a doc bug will go looking for the bug. `rake plugin:sync` run, so the
+  generated copy does not drift.
+* **Update**: `cli_plugin_test.rb` added to
+  [integration-first](design/integration-first.md)'s tree, which is an
+  enumeration and therefore the one thing grep cannot audit. It is the odd file
+  there — it names no bundle and tests no verb of ours — so the entry says why.
+* **Note**: tag curation merged the singleton `plugins` into **`extensibility`**,
+  which was already carried by [search-engines](design/search-engines.md). Two
+  singletons naming one theme, on the two concepts that are about that theme and
+  link to each other; `extensibility` was established first, so the newer name
+  merged into it rather than the reverse. Singletons 9 → 7.
+* **Change**: the CLI became a **registry**, and with it an extension point — the new [extension points](design/extension-points.md) concept, with [cli](cli.md)'s dispatch section rewritten around it. `lib/okf/cli.rb` was 1,794 lines and a 15-arm `case`; the verbs now live one per file under `lib/okf/cli/`, each a `Command` subclass registering itself at load, with the shared surface (refs, flags, the JSON emitters, the printers) on a base class. Behaviour is unchanged and the suite says so: every existing test passed untouched. Any gem shipping `okf/plugin.rb` on its load path can now add a verb — `okf-tui` is the first, answering `okf tui` — with **no edit to this gem and no list of known addons**, which a test enforces by grepping `cli.rb` for their names. `Search.register` set the idiom and this copies it exactly: append-only, idempotent by id, duck type checked at registration, so an addon cannot displace a built-in.
+* **Note**: discovery is **lazy**, and the arithmetic is the one that made the scan the default engine. `Gem.find_latest_files` costs ~11ms on the 2.4 floor — small, and still not worth paying on a run that only wanted `okf lint`, so a built-in resolves and dispatches without scanning at all. Only an unknown verb and `okf help` pay. An unplanned consequence, worth keeping: an addon claiming a built-in's verb is not merely refused, it is never loaded, because running that verb never triggers the scan.
+* **Note**: discovery is a **code-execution** decision, so the trust boundary is
+  argued in [extension-points](design/extension-points.md) rather than assumed.
+  The usual principle — Ruby trusts `gem install`, not `require` — is not the
+  whole truth: it holds for native extensions, which run `extconf.rb` at install,
+  and **not** for pure-Ruby gems, which execute nothing until something requires
+  them. So a convention loader does escalate, narrowly, for a pure-Ruby gem that
+  is installed but never required. Bounded two ways: under Bundler the scan is
+  bundle-scoped (the Gemfile is already an allowlist, measured — a sibling
+  okf-tui checkout absent from the Gemfile is not found), and only `okf-*` gems
+  are loaded, so a transitive dependency shipping `okf/plugin.rb` is discovered,
+  skipped and reported. Resolving the owning gem's name reads `full_gem_path`
+  and never loads the file; a test pins that. An `$OKF_HOME` allowlist was
+  **considered and rejected as disproportionate** — the window it closes is one
+  the user opened with `gem install`, and it would cost the property that makes
+  the seam worth having.
+* **Correction**: the `okf-*` rule was first written up as a **trust decision**,
+  and that oversells it. Pressed on whether it earns its place, the honest
+  reading is that the window it closes is nearly empty: a transitive dependency
+  is required by its parent in normal use, so `require "foo"` already runs
+  `foo`'s dependencies — what is left is a gem installed and then used by
+  nothing at all. As a security control it earns very little, and calling it a
+  defence invites the false confidence that is worse than no rule. It stays on
+  its own merits, as the **naming convention** Jekyll and Vagrant use: it makes
+  what counts as an okf extension explicit and stops an unrelated gem claiming
+  the `okf/plugin.rb` path. Cost measured at 0.0ms per discovered path; the cost
+  that is real falls on authors, who must name an extension `okf-` something.
+  Reframed in [extension-points](design/extension-points.md), the changelog and
+  `AGENTS.md`. The one rule underneath that *is* load-bearing and keeps its
+  weight: naming a gem must never load it.
+* **Note**: **Thor was rejected, and the floor decided it** — Thor 1.3+ requires Ruby >= 2.6 against this gem's [2.4](design/ruby-floor.md), and only the EOL 1.2.2 accepts it, which is the pin-an-old-line-for-everyone mistake already recorded. It would also be a fourth [runtime dependency](design/runtime-dependencies.md) buying little: what was needed was a registry, not an option-parsing DSL, and `optparse` plus this gem's help/exit-code/stream-injection contract were already in hand. What kamal's Thor layout *did* supply is structure — a base class holding the shared surface, one file per command, privacy as the command boundary. Ideas are free.
+* **Correction**: the plugin test seam was **wrong in a way only a real gem could show**. `reset_plugins!` cleared the registry but left the file in `$LOADED_FEATURES`, and `require` is idempotent — so the next scan found the plugin, required it, got `false`, and registered nothing; the verb was gone until the process restarted. Every test hid it by writing its plugin to a fresh `Dir.mktmpdir`, so the path differed on every load and `require` always ran. It surfaced the moment the seam was pointed at `okf-tui`, whose `lib/` path does not move. The lesson is narrower than "test with real things" and worth stating: **a fixture that varies where the real thing is fixed can hide a bug in exactly the dimension it varies.**
 * **Correction**: [search](capabilities/search.md) listed **prefix matching** among what the index buys, and it buys nothing. A substring match already reaches every prefix — `dedup` finds `deduplication` under either engine, while `duplication` and `uplicat` find it under the scan alone — so `prefix` is what a token index needs to *catch up* to raw text, not a capability it adds on top. The claim was written the same day the scan became the default, into the very section arguing when to reach for the index, and it survived because "prefix matching" reads like a feature the alternative lacks. It was caught only by building the [skill](capabilities/agent-skill.md)'s engine-selection table and running each row instead of restating it: a table forces a claim per cell, and a cell is small enough to test. The advantages are now stated as a closed list of **three** — relevance ranking, typo tolerance, page parity — because a numbered list resists growing by plausible-sounding items in a way an open one does not.
 * **Correction**: a maintain pass over the engine swap found three concepts the change falsified without touching, each a sentence that still reads perfectly. [The graph server](capabilities/graph-server.md) carried the worst of them: it told the story of a gap *closing* — "the browser and the CLI's search used to diverge here… that gap is now **closed from the other side**: the CLI runs the same engine" — and the swap reopened it that same day. It says so now, and says why it is deliberate rather than a regression: a page holds its index across every keystroke while a CLI process builds, asks once and exits, so the two surfaces have different lifecycles and `--engine index` is the setting where they agree. [Runtime dependencies](design/runtime-dependencies.md) had the subtler one — `minifts` is still justified (`--fuzzy` has no other implementation, BM25+ no other source, page parity no other route) but it now backs a **non-default** engine, and the argument that admitted it was *ranked search by default*. A dependency whose warrant weakened should say so rather than keep quoting the warrant. The [design index](design/index.md) summarized the engine contract as "chosen by capability" one release after `--engine` and one day after the scan took the default.
 * **Change**: the default search engine became the **scan**, and the index became opt-in (`--engine index`, or `--fuzzy`, which routes there). [search](capabilities/search.md) and [the engine contract](design/search-engines.md) both invert around it. The argument is a lifecycle one the earlier benchmark had already named but not acted on: a CLI process builds an index, asks one question and exits, so the build amortizes over nothing — measured end to end, **3.00 s against 0.24 s at 1,000 concepts**, 0.83 s against 0.18 s at 250, with the build ~95% of the index path at every size. Recall settled it rather than speed: raw-text matching has no tokenizer, so it has none of the tokenizer's holes, and the code-span loss recorded below stops being something a plain `okf search` pays. What the index buys — BM25+ ranking, prefix matching, `--fuzzy`, and rank parity with the browser page — is now reached by asking for it, which makes that parity **conditional** where the constraint in `AGENTS.md` had stated it flatly. The change costs one constant: capability routing already picks the first available engine offering what the query requires, so `--fuzzy` finds the index by itself and `-e` stops moving anything, since the default now offers `:regexp` outright.

@@ -20,6 +20,12 @@ The surface is self-describing — `okf --help` maps every verb, `okf <verb> --h
 its flags. Ask the tool for what exists; this file carries only what `--help`
 cannot: each verb's semantics, its traps, and its JSON shape.
 
+**The verb list is open, not closed.** An installed extension gem adds verbs of
+its own, listed under `installed extensions:` in `okf help`. So a verb that
+`--help` shows and this file does not document is **normal, not a documentation
+error** — ask `okf <verb> --help` for it, and expect nothing here about its
+semantics or JSON. Everything below documents the built-ins only.
+
 **`--json` is compact by design.** Every emitting verb prints single-line JSON —
 the token-efficient substrate you consume; `--pretty` (which implies `--json`)
 indents it for a human. The bytes differ, the JSON is identical, so parse either.

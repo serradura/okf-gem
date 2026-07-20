@@ -59,5 +59,5 @@ server — bodies still lazy — can only index their metadata.
 
 # Citations
 
-[1] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the `render` verb: stdout vs `-o FILE`, `--layout`/`-t`/`-l`, and the exit-2 on an unwritable path.
+[1] [lib/okf/cli/render.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/render.rb) — the `render` verb: stdout vs `-o FILE`, `--layout`/`-t`/`-l`, and the exit-2 on an unwritable path.
 [2] [lib/okf/render/graph.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/render/graph.rb) — `OKF::Render::Graph.static` and `.payload`, which bake the bundle into the template's `EMBED` payload.

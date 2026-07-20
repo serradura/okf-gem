@@ -93,4 +93,22 @@ class CLISkillTest < CLIIntegrationCase
     assert_equal 0, result.status
     assert File.file?(File.join(dest, "SKILL.md"))
   end
+
+  # `skill` takes exactly one destination, and a second one means the command was
+  # misunderstood — the same rule every <dir> verb keeps through positional_dir.
+  # Installing into the first and dropping the rest is the silent-wrong-answer
+  # shape: the user named two places and the tool wrote one, saying nothing.
+  test "a second destination is a usage error, not a silent install into the first" do
+    first = File.join(@out_dir, "one")
+    second = File.join(@out_dir, "two")
+
+    result = okf("skill", first, second)
+
+    assert_equal 2, result.status
+    assert_match(/unexpected argument '#{Regexp.escape(second)}'/, result.err)
+    # Refused before anything is written: neither destination is touched, so a
+    # rejected command cannot leave half an install behind.
+    refute File.directory?(first), "must not install into the first dest"
+    refute File.directory?(second), "must not install into the second dest"
+  end
 end

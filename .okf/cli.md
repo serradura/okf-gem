@@ -4,7 +4,7 @@ title: The okf command-line front end
 description: The only layer that parses argv, prints, writes files, and decides exit codes.
 resource: lib/okf/cli.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-17T14:00:00Z
+timestamp: 2026-07-20T12:00:00Z
 ---
 
 # Overview
@@ -24,14 +24,30 @@ and asserted like the command itself.
 
 # Subcommands
 
-Dispatch is a single `case` on the first argument. The verbs fall into three
-groups:
+Dispatch goes through a **registry**. Each verb is a `CLI::Command` subclass in
+its own file under `lib/okf/cli/`, registering itself at load; `cli.rb` looks the
+name up and calls it. The require block at the bottom of `cli.rb` *is* the order
+`okf help` lists them in, and a test pins that so the coupling cannot drift
+unnoticed.
+
+That registry is also the CLI's [extension point](design/extension-points.md): a
+gem shipping `okf/plugin.rb` adds a verb with no edit here, and it appears in the
+map under `installed extensions:`. Discovery is lazy — a built-in never scans —
+and a broken addon is reported on stderr rather than being fatal.
+
+A verb's group is now something it *declares* — `.group`, one of the four
+questions a command answers about itself — and `CLI::GROUPS` fixes the order they
+print in. So this is the map `okf help` builds, not an editorial arrangement of
+it; a group here that no command returns is a group nobody sees.
 
 | Group | Verbs | Notes |
 |-------|-------|-------|
-| Judge | `validate`, `lint`, `loose` | [validate](capabilities/validator.md) and [lint](capabilities/linter.md) answer different questions and stay separate. |
-| Read | `search`, `index`, `catalog`, `files`, `types`, `tags`, `stats`, `graph` | the [browser views as text](capabilities/read-views.md), plus the `index` map and [ranked search](capabilities/search.md). |
-| Act | `server`, `render`, `registry`, `skill` | boot the [graph server](capabilities/graph-server.md) or write it as a [static file](capabilities/render.md); curate the [bundle registry](registry.md); install the [agent skill](capabilities/agent-skill.md). |
+| `:act` | `skill`, `server`, `render` | boot the [graph server](capabilities/graph-server.md) or write it as a [static file](capabilities/render.md); install the [agent skill](capabilities/agent-skill.md). |
+| `:registry` | `registry` | one umbrella verb over five subcommands — curate the [bundle registry](registry.md). |
+| `:judge` | `lint`, `loose`, `validate` | [validate](capabilities/validator.md) and [lint](capabilities/linter.md) answer different questions and stay separate. |
+| `:read` | `search`, `index`, `stats`, `types`, `tags`, `files`, `catalog` | the [browser views as text](capabilities/read-views.md), plus the `index` map and [ranked search](capabilities/search.md). |
+| `:graph` | `graph` | its own group because it is the whole model at once, not a view onto part of it. |
+| `:extension` | *(whatever is installed)* | the only group with a printed heading — "where did this come from?" is a question only an addon raises. |
 
 Plus `version` / `--version` / `-v` and `help` / `--help` / `-h`.
 
@@ -55,8 +71,8 @@ one persistent file, and `$OKF_HOME` points every one of them at a different
 registry, which is what keeps the tests off the real `~/.okf`.
 
 One lever, not two. An earlier design also carried a `--home DIR` flag, which had
-to be remembered on the three verbs that offered it and forgotten on the eleven
-that did not — a flag whose whole job was to name a location the env var already
+to be remembered on the three verbs that offered it and forgotten on every other
+one — a flag whose whole job was to name a location the env var already
 named. `$OKF_HOME` composes where a flag cannot: it reaches every verb at once
 without being typed, it survives into a subprocess, and if the directory ever
 holds more than `registry.json` it keeps meaning the same thing.
@@ -121,7 +137,7 @@ The contract every verb keeps:
 |------|---------|
 | `0` | success — including a bundle with lint findings (`lint` is advisory) |
 | `1` | a non-conformant bundle (`validate`) or a `lint --fail-on warn` threshold crossed |
-| `2` | usage error — unknown command, missing directory, bad flag, a bad `-o` path, or a *second* bundle |
+| `2` | usage error — unknown command, missing directory, bad flag, a bad `-o` path, or a *second* positional |
 
 That last one is the subtle member: only [`search`](capabilities/search.md) merges
 several bundles and only `server` mounts them, so a second bundle handed to any
@@ -129,6 +145,15 @@ other verb is a question it cannot answer. Reading the first and dropping the re
 would answer confidently about a bundle nobody asked about, which is why it is a
 usage error rather than a convenience — the same reason a bad `-o` path is exit 2
 and not a backtrace.
+
+It is a rule about the **positional**, not about bundles, and stating it the
+narrow way is how it came to be broken. `skill` takes a destination rather than a
+`<dir>`, so it read as outside the rule, hand-rolled its own argument shift, and
+accepted a second destination — installing into the first, ignoring the second,
+exiting 0. It goes through the same shared pair as every other single-positional
+verb now (`positional` for the value, `no_extras?` for what must not follow it),
+because a guarantee that lives in a helper is only as wide as the verbs that
+call it.
 
 # Best-effort reads
 
@@ -154,4 +179,5 @@ tolerance for damage, never for a claim.
 
 # Citations
 
-[1] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the dispatch, option parsing, and printers.
+[1] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the registry, the dispatcher, and the map.
+[2] [lib/okf/cli/command.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/command.rb) — the base every verb inherits: refs, shared flags, the JSON emitters, the printers.
