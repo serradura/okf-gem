@@ -1,6 +1,42 @@
 # Update Log
 
 ## 2026-07-19
+* **Correction**: the Note below justified its own change with a **mechanism
+  that does not exist**. It said a second `folder.graph` call would leave "every
+  concept therefore parsed twice"; concepts are parsed once, at `Folder.load`,
+  and `Graph.build`'s first line reads `bundle.concepts` from memory — no
+  `File`, no `Dir` on that path. What the second call actually costs is a second
+  *graph build*. The change was right and stands; the reason given for it was
+  invented rather than read, which is the same failure the testing rule names
+  (*"never assert what you assume the code does"*) committed in a comment, where
+  no test can catch it. Corrected in both `lib/okf/cli/render.rb` and the Note.
+* **Correction**: the fail-closed rule the entry below records **refused without
+  saying why**. `plugin_gem_name` rescued the lookup and threw the exception
+  away, so a machine with one corrupt gemspec lost *every* installed extension
+  under "its owning gem could not be determined" — a message naming no gem to
+  fix and no reason to look. The cause is carried now and printed with the
+  refusal. Fixing fail-open by fail-closed only pays if the closed door says
+  what shut it; the first version traded a silent wrong answer for an
+  undiagnosable right one.
+* **Change**: the owning-gem lookup walks the installed specs **once per
+  discovery** rather than once per discovered path (`gem_index`, built lazily so
+  the ordinary run — nothing discovered — still never walks them). The saving is
+  small and was never the point: one pass has one outcome, so the lookup either
+  answers for every path or fails for every path. Per-path enumeration made that
+  a lottery, where a path matching an early spec could succeed while a later path
+  tripped over the corrupt one — a rule holding for some extensions and not
+  others, which is worse than either.
+* **Correction**: `reset_plugins!` grew a guard — `unless @builtins.nil?` —
+  against being called before `seal_builtins!`, and the guard was **wrong twice
+  over**. The state cannot occur (`seal_builtins!` runs at the bottom of
+  `cli.rb`, so anything able to name the method has already loaded it), and had
+  it occurred the guard would not have caught it: `builtins` is
+  `(@builtins ||= []).dup.freeze`, so reading it once — `extension?` does — flips
+  the ivar from nil to `[]` and the guard passes, permitting exactly the empty
+  registry its own comment called the thing to avoid. Removed rather than
+  repaired: a guard against an unreachable state is speculative, and one that
+  reads a memoizing accessor to decide whether the memo has been set is a bug
+  waiting for a caller.
 * **Correction**: the correction below **fixed one comment and claimed the
   file**. `lib/okf/cli.rb` carried the retired trust-first framing in *two*
   places — on `plugin_paths` and, twelve lines above it, on the
@@ -39,11 +75,11 @@
   path, and those are different claims that read like one.
 * **Note**: `okf render` built the graph **twice** — once inside
   `Render::Graph.static` to bake the page, once more purely to count nodes for
-  the "wrote N concepts" line — on a bundle whose every concept therefore parsed
-  twice. `Graph.build` maps one node per concept, so `folder.bundle.concepts.size`
-  is the identical number off an object already in hand. The count is unchanged
-  (25 on this bundle, matching `okf graph`). `server` still does this in both its
-  modes and says so in a comment; left alone deliberately, as its own change.
+  the "wrote N concepts" line. `Graph.build` maps one node per concept, so
+  `folder.bundle.concepts.size` is the identical number off an object already in
+  hand. The count is unchanged (25 on this bundle, matching `okf graph`).
+  `server` still does this in both its modes and says so in a comment; left
+  alone deliberately, as its own change.
 * **Correction**: the reframe below stopped at the docs and left the **code
   comment** behind. `plugin_paths` in
   [`lib/okf/cli.rb`](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb)

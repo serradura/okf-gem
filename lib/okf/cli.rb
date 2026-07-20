@@ -207,6 +207,8 @@ module OKF
         # Cleared first, so the rescue below cannot return "found nothing" while
         # leaving an earlier call's refusals standing to be reported again.
         @untrusted_plugins = []
+        @plugin_gem_error = nil
+        @gem_index = nil
         found = if Gem.respond_to?(:find_latest_files)
                   Gem.find_latest_files(PLUGIN_FILE)
                 else
@@ -215,14 +217,22 @@ module OKF
 
         found.select do |path|
           name = plugin_gem_name(path)
-          next true if name.nil?
-          next true if name != UNKNOWN_GEM && name.start_with?(PLUGIN_GEM_PREFIX)
+          # nil is trusted (belongs to no gem); a name is trusted when it carries
+          # the prefix. Asking the *type* rather than comparing against
+          # UNKNOWN_GEM is deliberate: the sentinel is a Symbol and has no
+          # #start_with?, so the check cannot be dropped as redundant without the
+          # corrupt-gemspec path raising NoMethodError instead of refusing.
+          next true if name.nil? || (name.is_a?(::String) && name.start_with?(PLUGIN_GEM_PREFIX))
 
           @untrusted_plugins << [ path, name ]
           false
         end
       rescue ::StandardError
         []
+      ensure
+        # Only a snapshot for the length of one discovery — a long-lived copy of
+        # every installed spec's path would outlive its usefulness and go stale.
+        @gem_index = nil
       end
 
       # Three answers, and the third has to stay distinct from the second: a gem
@@ -232,24 +242,44 @@ module OKF
       # it there; and UNKNOWN_GEM when the lookup itself failed.
       #
       # Answering nil for that last case is fail-open, and worth spelling out
-      # because it reads as harmless: Gem::Specification enumerates every
-      # installed spec, so one corrupt gemspec anywhere on the machine raises
-      # here — and every discovered path would come back "belongs to no gem" and
-      # load. A rule that quietly switches itself off under failure is the false
-      # confidence this one is deliberately modest to avoid, so a name that
-      # cannot be read is refused and reported like any other.
+      # because it reads as harmless: enumerating the installed specs is what
+      # raises when one gemspec anywhere on the machine is corrupt — and every
+      # discovered path would come back "belongs to no gem" and load. A rule that
+      # quietly switches itself off under failure is the false confidence this
+      # one is deliberately modest to avoid, so a name that cannot be read is
+      # refused — and the cause is kept, because refusing every extension on the
+      # machine while naming no reason leaves the user nothing to act on.
       #
       # Resolved from the spec's full_gem_path rather than by loading anything:
       # naming an extension must never mean running it.
       def plugin_gem_name(path)
-        found = Gem::Specification.find do |spec|
-          full = spec.full_gem_path
-          path.start_with?(full.end_with?(File::SEPARATOR) ? full : "#{full}#{File::SEPARATOR}")
-        end
-        found&.name
-      rescue ::StandardError
+        found = gem_index.find { |prefix, _name| path.start_with?(prefix) }
+        found&.last
+      rescue ::StandardError => e
+        @plugin_gem_error ||= e
         UNKNOWN_GEM
       end
+
+      # Every installed gem's path with the name that owns it, built once per
+      # discovery rather than re-walked per path. The saving is small — the cost
+      # is `full_gem_path` recomputed per spec per path — but the shape is the
+      # point: one pass has one outcome, so the lookup either answers for every
+      # path or fails for every path. Per-path enumeration made that a lottery,
+      # where an early match could hide the corrupt spec a later path trips over.
+      #
+      # Built lazily, so the ordinary run — nothing discovered — never walks the
+      # specs at all.
+      def gem_index
+        @gem_index ||= Gem::Specification.map do |spec|
+          full = spec.full_gem_path
+          [ full.end_with?(File::SEPARATOR) ? full : "#{full}#{File::SEPARATOR}", spec.name ]
+        end
+      end
+
+      # Why a name could not be read, when one could not. Reported with the
+      # refusal it caused: "could not be determined" on its own names no gem to
+      # fix and no reason to look.
+      attr_reader :plugin_gem_error
 
       # Paths discovered but refused for their gem's name, as [ path, gem ]
       # pairs. Kept so the refusal can be *reported*: an extension that is
@@ -289,13 +319,16 @@ module OKF
       def reset_plugins!
         Array(@loaded_plugins).each { |path| $LOADED_FEATURES.delete(path) }
         @loaded_plugins = []
-        # Only once there is a seal to roll back to. Before it, `builtins` is
-        # empty and this would not restore the registry but erase it — every
-        # verb gone, `okf help` blank, and no error saying why. Leaving the
-        # registry alone is strictly better than emptying it.
-        @commands = builtins.dup unless @builtins.nil?
+        # Unconditional, because there is always a seal to roll back to:
+        # `seal_builtins!` runs at the bottom of this file, so a caller that can
+        # name this method has already loaded it. An earlier version guarded on
+        # `@builtins.nil?` to cover a pre-seal call — a state that cannot occur,
+        # and a test that could not have detected it either way, since `builtins`
+        # memoizes `@builtins ||= []` and so stops being nil on its first read.
+        @commands = builtins.dup
         @plugins_loaded = false
         @plugin_failures = []
+        @plugin_gem_error = nil
         @untrusted_plugins = []
         @declined = []
       end
@@ -378,7 +411,9 @@ module OKF
       end
       self.class.untrusted_plugins.each do |path, gem_name|
         if gem_name == UNKNOWN_GEM
-          @err.puts "okf: ignoring the extension at #{path} — its owning gem could not be determined"
+          cause = self.class.plugin_gem_error
+          @err.puts "okf: ignoring the extension at #{path} — its owning gem could not be determined" \
+                    "#{cause && " (#{cause.class}: #{cause.message})"}"
           @err.puts "  extensions are loaded only from gems named #{PLUGIN_GEM_PREFIX}*, and a name that cannot be read cannot be checked"
         else
           @err.puts "okf: ignoring an extension shipped by `#{gem_name}` (#{path})"

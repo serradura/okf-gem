@@ -173,14 +173,22 @@ class CLIPluginTest < CLIIntegrationCase
     sentinel = File.join(@plugin_root, "it-ran")
     plugin("File.write(#{sentinel.inspect}, \"x\")\n#{PING}")
 
-    # What a broken gemspec in the gem home does to the lookup.
-    Gem::Specification.stub(:find, ->(*) { raise Gem::Exception, "invalid gemspec" }) do
+    # What a broken gemspec in the gem home does to the lookup. Stubbed at
+    # `each` — enumerating the installed specs is what actually raises, and it
+    # is the one boundary every way of asking (find, map) goes through, so the
+    # fixture does not have to track how the name is looked up. Discovery is
+    # unaffected: Gem.find_latest_files reaches a $LOAD_PATH entry without it.
+    Gem::Specification.stub(:each, ->(*) { raise Gem::Exception, "invalid gemspec" }) do
       OKF::CLI.reset_plugins!
       result = okf("ping")
 
       assert_equal 2, result.status, "an unanswerable name must refuse, not fall through to trusted"
       refute File.exist?(sentinel), "and the file must not have run"
       assert_match(/owning gem could not be determined/, result.err)
+      # Refusing without saying why leaves the user nothing to fix: every
+      # extension on the machine is off and the message names no cause.
+      assert_match(/Gem::Exception: invalid gemspec/, result.err,
+        "the refusal must carry the failure that caused it")
     end
   end
 

@@ -48,8 +48,10 @@ module OKF
           end
           # Off the bundle, not a second graph: Graph.build maps one node per
           # concept, so the counts are identical — and Folder#graph is not
-          # memoized, so asking for one here would parse every concept a second
-          # time (Render::Graph.static already built one) to print one number.
+          # memoized, so asking for one here would build a whole second graph
+          # (Render::Graph.static already built one) to print one number. Only
+          # the graph, to be exact: the concepts are parsed once at Folder.load
+          # and Graph.build reads them from memory, so this costs no disk.
           count = folder.bundle.concepts.size
           @out.puts "wrote #{count} #{pluralize(count, "concept")} to #{options[:output]}"
         else

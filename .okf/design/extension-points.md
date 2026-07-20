@@ -77,13 +77,22 @@ that:
    never runs it, and a test pins that.
 
    The rule has to hold *under failure* too, which is a separate claim and was
-   once false. `Gem::Specification` enumerates every installed spec, so one
-   corrupt gemspec anywhere on the machine raises during the lookup — and the
-   rescue answered `nil`, the same value that means "belongs to no gem" and is
-   trusted. Every discovered path would have loaded, silently. A name that
-   cannot be read is now its own answer, refused and reported like any other,
-   because a rule that switches itself off when it cannot get an answer is the
-   false confidence this one is deliberately modest to avoid.
+   once false. Enumerating the installed specs is what raises when one gemspec
+   anywhere on the machine is corrupt — and the rescue answered `nil`, the same
+   value that means "belongs to no gem" and is trusted. Every discovered path
+   would have loaded, silently. A name that cannot be read is now its own
+   answer, refused like any other, because a rule that switches itself off when
+   it cannot get an answer is the false confidence this one is deliberately
+   modest to avoid.
+
+   The refusal carries its cause, which is the other half of holding under
+   failure. Closing the door costs every extension on the machine at once, and
+   "its owning gem could not be determined" on its own names no gem to fix and
+   no reason to look — trading a silent wrong answer for an undiagnosable right
+   one. The exception is reported with the refusal it caused. The lookup is also
+   a single pass per discovery rather than one per path, so it has one outcome:
+   it answers for every path or fails for every path, never for some and not
+   others depending on which spec matched first.
 
 What the prefix cannot do is save anyone from a package they deliberately
 installed under an `okf-` name. A typosquat is a `gem install` that already
@@ -99,7 +108,9 @@ It stays because it is a good **convention** on its own terms, which is how
 Jekyll (`jekyll-*`), Vagrant (`vagrant-*`) and fastlane all namespace plugins.
 It makes what counts as an okf extension explicit, findable on RubyGems, and
 stops an unrelated gem claiming the `okf/plugin.rb` path by accident. Measured
-cost: 0.0ms per discovered path.
+cost: one pass over the installed specs per discovery — 1.0ms for 282 specs —
+then 0.0002ms to resolve each discovered path against it, and nothing at all on
+a run that discovers nothing.
 
 The cost it does carry is on authors: an extension has to be *named* `okf-`
 something, so an internal `acme-okf-ext` is refused rather than loaded. That is
