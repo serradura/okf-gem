@@ -19,6 +19,14 @@ export default defineConfig({
   use: {
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // OKF_SLOWMO=400 puts a pause between every action so a headed run is
+    // watchable — at full speed the browser blurs through a spec too fast to
+    // read. Off by default; `rake browser:watch` sets it.
+    launchOptions: { slowMo: Number(process.env.OKF_SLOWMO || 0) },
+    // OKF_VIDEO=1 records each spec to .tmp/results/. Useful when you want to
+    // see a run you were not watching — a CI failure, or the whole suite
+    // without sitting through it live.
+    video: process.env.OKF_VIDEO ? "on" : "off",
   },
 
   projects: [

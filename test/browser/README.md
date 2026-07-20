@@ -9,11 +9,35 @@ all invisible to a string assertion over the rendered HTML, which is what
 
 ```bash
 bundle exec rake browser:setup    # once: npm install + Chromium (~120MB)
-bundle exec rake test:browser     # the suite
-bundle exec rake browser:ui       # interactive: pick specs, watch them run
-bundle exec rake browser:report   # last run's traces and screenshots
+bundle exec rake test:browser     # the suite, headless, ~50s
 bundle exec rake serve            # the same fixture, yours to poke by hand
 ```
+
+## Seeing it run
+
+Four ways, in the order they are usually wanted:
+
+```bash
+bundle exec rake browser:ui               # the good one — spec list + live browser
+bundle exec rake browser:watch            # a real window, 400ms per action
+bundle exec rake browser:watch[filters,900]   # a different file, slower
+bundle exec rake browser:video[responsive]    # record to .webm instead
+bundle exec rake browser:report           # last run's traces and screenshots
+```
+
+`browser:ui` is Playwright's own runner: pick specs, watch them drive the
+page, then scrub back and forth through the recorded steps with the DOM at
+each one. It also records what you do by hand into a new spec.
+
+`watch` and `video` take a spec-file filter and a slow-motion delay, and
+default to one file against the live server — headed mode opens a window per
+worker, and the whole suite at watchable speed is minutes of flashing windows.
+Both read their knobs from `OKF_SLOWMO` and `OKF_VIDEO` in the config, so
+`OKF_VIDEO=1 npx playwright test` works too if you want the whole suite
+recorded.
+
+`report` is the one to reach for after a failure — and it is what the CI job
+uploads, so a red run there is inspectable without reproducing it locally.
 
 Not part of the default `rake` task — it needs node, which has no place on the
 Ruby 2.4 matrix, and the gem gains no dependency from it. CI runs it in a

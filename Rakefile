@@ -6,6 +6,20 @@ require "bundler/gem_tasks"
 # Ruby — minitest's own task class needs minitest 5.16+, which needs Ruby 2.6.
 require "rake/testtask"
 
+BROWSER_DIR = File.expand_path("test/browser", __dir__)
+
+# Every browser task shells out to npx from test/browser. `env` carries the
+# knobs playwright.config.js reads: OKF_SLOWMO (pause between actions, so a
+# headed run is watchable) and OKF_VIDEO (record each spec to .webm).
+def browser_sh(command, env = {})
+  Dir.chdir(BROWSER_DIR) { sh(env, command) }
+end
+
+# A headed or recorded run is scoped to one spec file against the live server:
+# headed mode opens a window per worker, and the whole suite at watchable speed
+# is minutes of flashing windows.
+BROWSER_ONE_FILE = "--project=server --workers=1"
+
 Rake::TestTask.new(:test) do |t|
   t.libs << "test" << "lib"
   t.test_files = FileList["test/**/*_test.rb"]
@@ -37,31 +51,45 @@ namespace :test do
   # gains no dependency from it.
   desc "Run the browser suite against the graph page (needs node; `rake browser:setup` first)"
   task :browser do
-    dir = File.expand_path("test/browser", __dir__)
-    unless File.directory?(File.join(dir, "node_modules"))
+    unless File.directory?(File.join(BROWSER_DIR, "node_modules"))
       abort "browser suite not installed: run `bundle exec rake browser:setup`"
     end
-    Dir.chdir(dir) { sh "npx playwright test" }
+    browser_sh("npx playwright test")
   end
 end
 
 namespace :browser do
   desc "Install the browser suite's node dependencies and Chromium"
   task :setup do
-    Dir.chdir(File.expand_path("test/browser", __dir__)) do
-      sh "npm install"
-      sh "npx playwright install chromium"
-    end
+    browser_sh("npm install")
+    browser_sh("npx playwright install chromium")
   end
 
   desc "Open the browser suite's interactive runner (pick specs, watch them drive a real page)"
   task :ui do
-    Dir.chdir(File.expand_path("test/browser", __dir__)) { sh "npx playwright test --ui" }
+    browser_sh("npx playwright test --ui")
+  end
+
+  #   rake browser:watch                  # inspector.spec.js, 400ms per action
+  #   rake browser:watch[filters]         # a different file
+  #   rake browser:watch[inspector,900]   # slower
+  desc "Watch a real browser run a spec file (args: [spec,slowmo_ms])"
+  task :watch, [ :spec, :slowmo ] do |_t, args|
+    browser_sh(
+      "npx playwright test #{args[:spec] || "inspector"} #{BROWSER_ONE_FILE} --headed",
+      "OKF_SLOWMO" => args[:slowmo] || "400"
+    )
+  end
+
+  desc "Record a spec file's run to video (args: [spec])"
+  task :video, [ :spec ] do |_t, args|
+    browser_sh("npx playwright test #{args[:spec] || "inspector"} #{BROWSER_ONE_FILE}", "OKF_VIDEO" => "1")
+    puts "\nvideos: test/browser/.tmp/results/**/*.webm"
   end
 
   desc "Show the last browser run's HTML report (traces, screenshots, timings)"
   task :report do
-    Dir.chdir(File.expand_path("test/browser", __dir__)) { sh "npx playwright show-report .tmp/report" }
+    browser_sh("npx playwright show-report .tmp/report")
   end
 end
 
