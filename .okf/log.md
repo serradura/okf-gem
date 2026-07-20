@@ -1,6 +1,49 @@
 # Update Log
 
 ## 2026-07-19
+* **Correction**: the correction below **fixed one comment and claimed the
+  file**. `lib/okf/cli.rb` carried the retired trust-first framing in *two*
+  places — on `plugin_paths` and, twelve lines above it, on the
+  `PLUGIN_GEM_PREFIX` constant itself, which still asserted that the prefix
+  "closes the case where the user chose nothing: a transitive dependency
+  shipping this file is discovered and skipped rather than run" — the exact
+  claim retired as nearly empty. The entry below says the code was "reframed
+  there too", and that was true of one comment out of two. Both read the
+  convention way now, with the constant carrying the short version and pointing
+  at `plugin_paths` for the argument, so there is one place to keep right rather
+  than two to keep agreeing. The lesson is sharper than the one below it and
+  aimed at the fix rather than the drift: **shown one instance, I fixed that
+  instance instead of grepping for the class.** The command that would have
+  caught it is the same command the entry below prescribes — `grep -rn trust
+  lib/` — and I wrote that prescription without running it.
+* **Change**: `okf skill <a> <b>` **installed into `<a>`, ignored `<b>` and
+  exited 0.** Every `<dir>` verb refuses a trailing argument through
+  `positional_dir`, but `skill` takes a *destination*, not a bundle, so it read
+  as outside the rule and hand-rolled its own `argv.shift` — the one verb with a
+  positional that never met the guard. It goes through the shared `positional` +
+  `no_extras?` pair now and exits 2 before writing anything, and [cli](cli.md)'s
+  exit-code section states the rule as being about the **positional** rather
+  than about a second *bundle*, since the narrow phrasing is what made the verb
+  look exempt. Predates the registry work — a straight carry-over from the
+  monolith, found by reviewing the moved code rather than the diff.
+* **Correction**: the `okf-*` rule **failed open**, which is the interesting half
+  of a rule everyone had agreed earns little. `plugin_gem_name` rescued to `nil`,
+  and `nil` is also the answer meaning "belongs to no gem" — the deliberately
+  *trusted* case for a checkout or a `ruby -I` path. So one corrupt gemspec
+  anywhere on the machine (`Gem::Specification` enumerates every installed spec)
+  would make the lookup raise, every discovered path come back "belongs to no
+  gem", and every plugin load — with no refusal printed, because nothing was
+  recorded as refused. A failure to determine is now its own answer, refused and
+  reported. Recorded in [extension-points](design/extension-points.md), since it
+  is a claim about the rule holding *under failure* rather than in the happy
+  path, and those are different claims that read like one.
+* **Note**: `okf render` built the graph **twice** — once inside
+  `Render::Graph.static` to bake the page, once more purely to count nodes for
+  the "wrote N concepts" line — on a bundle whose every concept therefore parsed
+  twice. `Graph.build` maps one node per concept, so `folder.bundle.concepts.size`
+  is the identical number off an object already in hand. The count is unchanged
+  (25 on this bundle, matching `okf graph`). `server` still does this in both its
+  modes and says so in a comment; left alone deliberately, as its own change.
 * **Correction**: the reframe below stopped at the docs and left the **code
   comment** behind. `plugin_paths` in
   [`lib/okf/cli.rb`](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb)

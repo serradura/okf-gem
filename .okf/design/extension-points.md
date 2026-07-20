@@ -76,6 +76,15 @@ that:
    owning gem's name reads the spec's `full_gem_path`; naming an extension
    never runs it, and a test pins that.
 
+   The rule has to hold *under failure* too, which is a separate claim and was
+   once false. `Gem::Specification` enumerates every installed spec, so one
+   corrupt gemspec anywhere on the machine raises during the lookup — and the
+   rescue answered `nil`, the same value that means "belongs to no gem" and is
+   trusted. Every discovered path would have loaded, silently. A name that
+   cannot be read is now its own answer, refused and reported like any other,
+   because a rule that switches itself off when it cannot get an answer is the
+   false confidence this one is deliberately modest to avoid.
+
 What the prefix cannot do is save anyone from a package they deliberately
 installed under an `okf-` name. A typosquat is a `gem install` that already
 happened; no loader rule undoes it.

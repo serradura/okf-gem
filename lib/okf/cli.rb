@@ -64,18 +64,19 @@ module OKF
     # an addon shows up in help *without the CLI knowing it exists*.
     PLUGIN_FILE = "okf/plugin.rb"
 
-    # Only gems named `okf-*` are loaded. `require` runs whatever it loads, and
-    # while the trust boundary in Ruby is `gem install` rather than `require`,
-    # that holds fully only for native extensions — those run `extconf.rb` at
-    # install time. A **pure-Ruby** gem executes nothing until required, so
-    # loading by convention alone would hand code a way to run that it did not
-    # otherwise have.
-    #
-    # The prefix closes the case where the user chose nothing: a transitive
-    # dependency shipping this file is discovered and skipped rather than run.
-    # It cannot close a package deliberately installed under an `okf-` name —
-    # `gem install` has already run by then, and no loader rule undoes that.
+    # Only gems named `okf-*` are loaded — the namespacing convention Jekyll
+    # (`jekyll-*`) and Vagrant (`vagrant-*`) use, which is the reason the rule is
+    # here: it makes what counts as an okf extension explicit and stops an
+    # unrelated gem claiming the `okf/plugin.rb` path. It guards a little too,
+    # since `require` runs what it loads, but that window is nearly empty and
+    # overselling it would be worse than having no rule. The argument in full is
+    # at #plugin_paths.
     PLUGIN_GEM_PREFIX = "okf-"
+
+    # What #plugin_gem_name answers when it cannot work out a path's owning gem
+    # at all — deliberately distinct from nil, which means "belongs to no gem"
+    # and is trusted. See #plugin_gem_name for why the two must not merge.
+    UNKNOWN_GEM = :unknown
 
     # The map's shape: the order the groups print in, and the heading each one
     # carries. Only extensions get a heading — the built-in groups are separated
@@ -203,16 +204,19 @@ module OKF
       # load it. See `plugin_gem_name` below, and
       # .okf/design/extension-points.md for the argument in full.
       def plugin_paths
+        # Cleared first, so the rescue below cannot return "found nothing" while
+        # leaving an earlier call's refusals standing to be reported again.
+        @untrusted_plugins = []
         found = if Gem.respond_to?(:find_latest_files)
                   Gem.find_latest_files(PLUGIN_FILE)
                 else
                   Gem.find_files(PLUGIN_FILE)
                 end
 
-        @untrusted_plugins = []
         found.select do |path|
           name = plugin_gem_name(path)
-          next true if name.nil? || name.start_with?(PLUGIN_GEM_PREFIX)
+          next true if name.nil?
+          next true if name != UNKNOWN_GEM && name.start_with?(PLUGIN_GEM_PREFIX)
 
           @untrusted_plugins << [ path, name ]
           false
@@ -221,10 +225,22 @@ module OKF
         []
       end
 
-      # The gem a discovered path belongs to, or nil when it belongs to none —
-      # a bare $LOAD_PATH entry, which is how a checkout and the suite's own
-      # fixtures appear. Resolved from the spec's full_gem_path rather than by
-      # loading anything: naming an extension must never mean running it.
+      # Three answers, and the third has to stay distinct from the second: a gem
+      # name; nil when the path belongs to no gem at all — a bare $LOAD_PATH
+      # entry, which is how a checkout, `ruby -I`, a Gemfile `path:` and the
+      # suite's own fixtures appear, and which stays trusted because someone put
+      # it there; and UNKNOWN_GEM when the lookup itself failed.
+      #
+      # Answering nil for that last case is fail-open, and worth spelling out
+      # because it reads as harmless: Gem::Specification enumerates every
+      # installed spec, so one corrupt gemspec anywhere on the machine raises
+      # here — and every discovered path would come back "belongs to no gem" and
+      # load. A rule that quietly switches itself off under failure is the false
+      # confidence this one is deliberately modest to avoid, so a name that
+      # cannot be read is refused and reported like any other.
+      #
+      # Resolved from the spec's full_gem_path rather than by loading anything:
+      # naming an extension must never mean running it.
       def plugin_gem_name(path)
         found = Gem::Specification.find do |spec|
           full = spec.full_gem_path
@@ -232,7 +248,7 @@ module OKF
         end
         found&.name
       rescue ::StandardError
-        nil
+        UNKNOWN_GEM
       end
 
       # Paths discovered but refused for their gem's name, as [ path, gem ]
@@ -273,7 +289,11 @@ module OKF
       def reset_plugins!
         Array(@loaded_plugins).each { |path| $LOADED_FEATURES.delete(path) }
         @loaded_plugins = []
-        @commands = builtins.dup
+        # Only once there is a seal to roll back to. Before it, `builtins` is
+        # empty and this would not restore the registry but erase it — every
+        # verb gone, `okf help` blank, and no error saying why. Leaving the
+        # registry alone is strictly better than emptying it.
+        @commands = builtins.dup unless @builtins.nil?
         @plugins_loaded = false
         @plugin_failures = []
         @untrusted_plugins = []
@@ -357,8 +377,13 @@ module OKF
         @err.puts "okf: extension at #{path} failed to load (#{error.class}: #{error.message})"
       end
       self.class.untrusted_plugins.each do |path, gem_name|
-        @err.puts "okf: ignoring an extension shipped by `#{gem_name}` (#{path})"
-        @err.puts "  extensions are loaded only from gems named #{PLUGIN_GEM_PREFIX}*, since loading one runs its code"
+        if gem_name == UNKNOWN_GEM
+          @err.puts "okf: ignoring the extension at #{path} — its owning gem could not be determined"
+          @err.puts "  extensions are loaded only from gems named #{PLUGIN_GEM_PREFIX}*, and a name that cannot be read cannot be checked"
+        else
+          @err.puts "okf: ignoring an extension shipped by `#{gem_name}` (#{path})"
+          @err.puts "  extensions are loaded only from gems named #{PLUGIN_GEM_PREFIX}*, since loading one runs its code"
+        end
       end
     end
 

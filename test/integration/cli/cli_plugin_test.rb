@@ -159,6 +159,31 @@ class CLIPluginTest < CLIIntegrationCase
     end
   end
 
+  # The other half of the nil case above, and the one that decides whether the
+  # rule holds under failure. "Belongs to no gem" is trusted; "I could not find
+  # out" must not be, or one corrupt gemspec anywhere on the machine turns the
+  # prefix off for every discovered path — a rule that silently switches itself
+  # off is worse than no rule, which is the whole argument for keeping this one
+  # modest and honest.
+  test "an extension whose owning gem cannot be determined is refused, not trusted" do
+    # A working verb, not a stub: if the refusal fails the run must answer 0 and
+    # say "pong", which is a clean wrong answer to assert against. A plugin that
+    # raises on dispatch would fail this test for its own reason and prove
+    # nothing about the rule.
+    sentinel = File.join(@plugin_root, "it-ran")
+    plugin("File.write(#{sentinel.inspect}, \"x\")\n#{PING}")
+
+    # What a broken gemspec in the gem home does to the lookup.
+    Gem::Specification.stub(:find, ->(*) { raise Gem::Exception, "invalid gemspec" }) do
+      OKF::CLI.reset_plugins!
+      result = okf("ping")
+
+      assert_equal 2, result.status, "an unanswerable name must refuse, not fall through to trusted"
+      refute File.exist?(sentinel), "and the file must not have run"
+      assert_match(/owning gem could not be determined/, result.err)
+    end
+  end
+
   test "naming the gem behind a path never loads it" do
     plugin("raise 'resolving a name must not run me'")
 

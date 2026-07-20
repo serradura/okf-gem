@@ -131,7 +131,7 @@ The contract every verb keeps:
 |------|---------|
 | `0` | success — including a bundle with lint findings (`lint` is advisory) |
 | `1` | a non-conformant bundle (`validate`) or a `lint --fail-on warn` threshold crossed |
-| `2` | usage error — unknown command, missing directory, bad flag, a bad `-o` path, or a *second* bundle |
+| `2` | usage error — unknown command, missing directory, bad flag, a bad `-o` path, or a *second* positional |
 
 That last one is the subtle member: only [`search`](capabilities/search.md) merges
 several bundles and only `server` mounts them, so a second bundle handed to any
@@ -139,6 +139,15 @@ other verb is a question it cannot answer. Reading the first and dropping the re
 would answer confidently about a bundle nobody asked about, which is why it is a
 usage error rather than a convenience — the same reason a bad `-o` path is exit 2
 and not a backtrace.
+
+It is a rule about the **positional**, not about bundles, and stating it the
+narrow way is how it came to be broken. `skill` takes a destination rather than a
+`<dir>`, so it read as outside the rule, hand-rolled its own argument shift, and
+accepted a second destination — installing into the first, ignoring the second,
+exiting 0. It goes through the same shared pair as every other single-positional
+verb now (`positional` for the value, `no_extras?` for what must not follow it),
+because a guarantee that lives in a helper is only as wide as the verbs that
+call it.
 
 # Best-effort reads
 

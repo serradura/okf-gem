@@ -46,7 +46,11 @@ module OKF
           rescue SystemCallError => e
             return usage_error("cannot write #{options[:output]}: #{e.message}")
           end
-          count = folder.graph(minimal: true).nodes.size
+          # Off the bundle, not a second graph: Graph.build maps one node per
+          # concept, so the counts are identical — and Folder#graph is not
+          # memoized, so asking for one here would parse every concept a second
+          # time (Render::Graph.static already built one) to print one number.
+          count = folder.bundle.concepts.size
           @out.puts "wrote #{count} #{pluralize(count, "concept")} to #{options[:output]}"
         else
           @out.print html

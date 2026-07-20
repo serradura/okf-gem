@@ -31,12 +31,14 @@ module OKF
           o.on("--force", "overwrite a non-empty destination") { options[:force] = true }
           help_flag(o)
         end
-        parser.parse!(argv)
-        dest = argv.shift
-        if dest.nil?
-          @err.puts parser.banner
-          return 2
-        end
+        # Through the shared pair like every other verb that takes one positional:
+        # `positional` for the value, `no_extras?` for what must not follow it.
+        # Hand-rolling the shift is how this one came to accept a second
+        # destination, install into the first and exit 0 — the silent-wrong-answer
+        # shape the <dir> verbs are guarded against, on the one verb whose
+        # positional is not a <dir>.
+        dest = positional(parser, argv) or return 2
+        no_extras?(argv) or return 2
 
         skill = OKF::Skill.new(dest, force: options[:force], nest: options[:nest])
         files = skill.install
@@ -44,9 +46,6 @@ module OKF
         files.each { |f| @out.puts "  #{f}" }
         @out.puts "your agent picks it up from #{skill.dest} (needs the `okf` CLI, which you already have)."
         0
-      rescue OptionParser::ParseError => e
-        @err.puts e.message
-        2
       rescue OKF::Skill::Error => e
         @err.puts "error: #{e.message}"
         2

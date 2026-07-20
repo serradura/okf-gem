@@ -73,8 +73,10 @@ module OKF
           o.on("--default", "put it first — the bundle a bare `okf server` opens") { options[:default] = true }
           help_flag(o)
         end
+        # No no_extras? here: positional_dir has already refused a trailing
+        # argument. The sibling subcommands need the call because they take their
+        # positional through `positional`, which does not check.
         dir = positional_dir(parser, argv) or return 2
-        no_extras?(argv) or return 2
 
         reg = OKF::Registry.load
         # Said before the upsert: after it, an update is indistinguishable from an
