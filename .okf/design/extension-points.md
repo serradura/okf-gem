@@ -89,10 +89,24 @@ that:
    failure. Closing the door costs every extension on the machine at once, and
    "its owning gem could not be determined" on its own names no gem to fix and
    no reason to look — trading a silent wrong answer for an undiagnosable right
-   one. The exception is reported with the refusal it caused. The lookup is also
-   a single pass per discovery rather than one per path, so it has one outcome:
-   it answers for every path or fails for every path, never for some and not
-   others depending on which spec matched first.
+   one. The exception is reported with the refusal it caused.
+
+   Three failure modes, then, and each had to be closed on its own. A path whose
+   name is *refused* was the first. A lookup that *cannot answer* was the second.
+   The third is the search itself failing, which has no path to hang a refusal on
+   at all: `Gem.find_latest_files` raising once answered `[]` in silence, which
+   reads exactly like a machine with nothing installed — the same fail-open as
+   the second, one frame up, and it survived the fix to the second because the
+   fix was aimed at the frame below it. It is reported on its own terms now.
+
+   The lookup is also a single pass per discovery rather than one per path, and
+   the failure memoizes with the result. Both halves are needed for the property:
+   one outcome per discovery, so every path gets the same answer. Per-path
+   enumeration made it a lottery — a failure that cleared between paths, a
+   gemspec rewritten by a concurrent `gem install`, would refuse one path and
+   trust the next in the same run. Caching only the success would have left that
+   lottery standing in the one branch the change was written for. A test counts
+   the passes, because "unlikely" and "unreachable" are not the same claim.
 
 What the prefix cannot do is save anyone from a package they deliberately
 installed under an `okf-` name. A typosquat is a `gem install` that already

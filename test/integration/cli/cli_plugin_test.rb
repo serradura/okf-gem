@@ -192,6 +192,53 @@ class CLIPluginTest < CLIIntegrationCase
     end
   end
 
+  # The same rule one frame up. Refusing a path whose name cannot be read is
+  # only half of holding under failure: the *search itself* can fail, and then
+  # there is no path to refuse and nothing to hang a message on. Silence there
+  # reads exactly like "nothing is installed", which is the fail-open the
+  # refusal below it was written to close.
+  test "a discovery that fails wholesale says so, rather than reading as an empty machine" do
+    plugin(PING)
+
+    Gem.stub(:find_latest_files, ->(*) { raise Gem::Exception, "gem home is unreadable" }) do
+      OKF::CLI.reset_plugins!
+      result = okf("ping")
+
+      assert_equal 2, result.status, "nothing loaded, so the verb is unknown"
+      assert_match(/could not look for installed extensions \(Gem::Exception: gem home is unreadable\)/, result.err,
+        "every extension on the machine is off; saying nothing leaves that indistinguishable from having none")
+    end
+  end
+
+  # One discovery, one outcome. A per-path lookup makes the rule a lottery: a
+  # failure that clears between paths — a gemspec being rewritten by a
+  # concurrent `gem install`, a filesystem blip — refuses the first path and
+  # trusts the second, in the same run, for no reason the user can see. The
+  # count is the assertion that makes the transient case unreachable rather
+  # than merely unlikely.
+  test "a lookup failure is one outcome for the whole discovery, not one per path" do
+    plugin(PING)
+    passes = 0
+    enumerate = lambda do |*|
+      passes += 1
+      raise Gem::Exception, "invalid gemspec"
+    end
+    paths = [ "/a/okf/plugin.rb", "/b/okf/plugin.rb", File.join(@plugin_root, "okf", "plugin.rb") ]
+
+    Gem.stub(:find_latest_files, paths) do
+      Gem::Specification.stub(:each, enumerate) do
+        OKF::CLI.reset_plugins!
+        result = okf("ping")
+
+        assert_equal 2, result.status
+        assert_equal 3, result.err.scan("owning gem could not be determined").length,
+          "all three paths share the one failure, so all three are refused"
+        assert_equal 1, passes,
+          "the specs are enumerated once per discovery, not once per discovered path"
+      end
+    end
+  end
+
   test "naming the gem behind a path never loads it" do
     plugin("raise 'resolving a name must not run me'")
 

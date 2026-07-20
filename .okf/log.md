@@ -1,5 +1,41 @@
 # Update Log
 
+## 2026-07-20
+* **Correction**: the fail-open fixed yesterday **survived one frame above the
+  fix**. `plugin_gem_name` learned to refuse a name it could not read; the
+  `rescue ::StandardError` in `plugin_paths` still answered `[]` and threw its
+  exception away, so `Gem.find_latest_files` raising turned every installed
+  extension off in total silence — indistinguishable from a machine with none.
+  That is the same defect, in the same file, closed one layer too low: the fix
+  was aimed at the frame the bug was *found* in rather than at the shape of the
+  bug. The search failing is reported on its own terms now, since there is no
+  discovered path to hang a refusal on. Three failure modes, each closed
+  separately; the entry below claimed the second was the last of them.
+* **Correction**: the entry below asserts *"one pass has one outcome, so the
+  lookup either answers for every path or fails for every path"* — and the code
+  it describes **did not do that**. `@gem_index ||=` caches a value, not an
+  outcome, so a raising enumeration ran again for every discovered path (three
+  paths, three passes, counted). A failure clearing between paths — a gemspec
+  rewritten by a concurrent `gem install` — would refuse one and trust the next
+  in the same run: the very lottery the entry says was eliminated, still open in
+  the one branch the change existed for. The failure memoizes with the result
+  now, and a test counts the passes rather than trusting the sentence.
+  Second time in two days a comment stated a mechanism from intent rather than
+  from reading the code, both times in prose about *why* — the part no test
+  covers, and so the part that needs the evidence gathered *first*.
+* **Change**: the prefix test reads as a named question — `trusted_gem?`, with
+  `nil` (belongs to no gem, trusted) and `UNKNOWN_GEM` (lookup failed, refused)
+  as written branches. It was `name.is_a?(::String) && name.start_with?(…)`,
+  which excluded the sentinel by type-testing around it and needed four lines of
+  comment to say what one line now says. The type test also mis-stated its own
+  stakes: dropping it would not have raised NoMethodError *instead of refusing*,
+  it would have raised inside `plugin_paths`' own rescue and returned `[]`.
+* **Note**: the `gem_index` comment sold the change as a saving. It is not one —
+  it replaced a `find` that short-circuits on the first match with a `map` over
+  all 282 specs (1.0 ms), so on the ordinary one-path discovery it is strictly
+  more work. The failure-shape argument was always the real one and now stands
+  alone.
+
 ## 2026-07-19
 * **Correction**: the Note below justified its own change with a **mechanism
   that does not exist**. It said a second `folder.graph` call would leave "every

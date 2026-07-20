@@ -208,6 +208,7 @@ module OKF
         # leaving an earlier call's refusals standing to be reported again.
         @untrusted_plugins = []
         @plugin_gem_error = nil
+        @plugin_discovery_error = nil
         @gem_index = nil
         found = if Gem.respond_to?(:find_latest_files)
                   Gem.find_latest_files(PLUGIN_FILE)
@@ -217,17 +218,18 @@ module OKF
 
         found.select do |path|
           name = plugin_gem_name(path)
-          # nil is trusted (belongs to no gem); a name is trusted when it carries
-          # the prefix. Asking the *type* rather than comparing against
-          # UNKNOWN_GEM is deliberate: the sentinel is a Symbol and has no
-          # #start_with?, so the check cannot be dropped as redundant without the
-          # corrupt-gemspec path raising NoMethodError instead of refusing.
-          next true if name.nil? || (name.is_a?(::String) && name.start_with?(PLUGIN_GEM_PREFIX))
+          next true if trusted_gem?(name)
 
           @untrusted_plugins << [ path, name ]
           false
         end
-      rescue ::StandardError
+      rescue ::StandardError => e
+        # The *search* failing is its own report, and the reason is the one
+        # `plugin_gem_name` already answers to one frame down: an empty list and
+        # no message is indistinguishable from a machine with nothing installed.
+        # There is no path left to hang a refusal on here, so the failure has to
+        # carry itself or it is not reported at all.
+        @plugin_discovery_error = e
         []
       ensure
         # Only a snapshot for the length of one discovery — a long-lived copy of
@@ -253,26 +255,52 @@ module OKF
       # Resolved from the spec's full_gem_path rather than by loading anything:
       # naming an extension must never mean running it.
       def plugin_gem_name(path)
-        found = gem_index.find { |prefix, _name| path.start_with?(prefix) }
+        index = gem_index
+        return UNKNOWN_GEM if index.equal?(UNKNOWN_GEM)
+
+        found = index.find { |prefix, _name| path.start_with?(prefix) }
         found&.last
-      rescue ::StandardError => e
-        @plugin_gem_error ||= e
-        UNKNOWN_GEM
       end
 
-      # Every installed gem's path with the name that owns it, built once per
-      # discovery rather than re-walked per path. The saving is small — the cost
-      # is `full_gem_path` recomputed per spec per path — but the shape is the
-      # point: one pass has one outcome, so the lookup either answers for every
-      # path or fails for every path. Per-path enumeration made that a lottery,
-      # where an early match could hide the corrupt spec a later path trips over.
+      # Whether a name clears the prefix rule. Three answers in, two out, and
+      # the middle one is the whole point: nil belongs to no gem — a checkout,
+      # `ruby -I`, a Gemfile `path:` — and stays trusted because someone put it
+      # there deliberately, while UNKNOWN_GEM is the lookup itself failing and is
+      # refused, because a rule that switches itself off when it cannot get an
+      # answer is the false confidence this one is deliberately modest to avoid.
+      def trusted_gem?(name)
+        return true if name.nil?
+        return false if name.equal?(UNKNOWN_GEM)
+
+        name.start_with?(PLUGIN_GEM_PREFIX)
+      end
+
+      # Every installed gem's path with the name that owns it, or UNKNOWN_GEM if
+      # the specs could not be walked. Not a saving — it replaces a `find` that
+      # short-circuited on the first match with a `map` over all of them, so on
+      # the ordinary one-path discovery it is strictly more work (1.0ms for 282
+      # specs). It buys a shape instead: **one pass has one outcome**, so every
+      # path in a discovery gets the same answer. Per-path enumeration made that
+      # a lottery — a failure that cleared between paths, a gemspec rewritten by
+      # a concurrent `gem install`, would refuse one path and trust the next in
+      # the same run.
+      #
+      # Which is why the failure memoizes too. `||=` over a raising expression
+      # caches nothing, so the second path would try again and could get a
+      # different answer — the lottery back, in the branch the whole thing was
+      # written for.
       #
       # Built lazily, so the ordinary run — nothing discovered — never walks the
       # specs at all.
       def gem_index
-        @gem_index ||= Gem::Specification.map do |spec|
-          full = spec.full_gem_path
-          [ full.end_with?(File::SEPARATOR) ? full : "#{full}#{File::SEPARATOR}", spec.name ]
+        @gem_index ||= begin
+          Gem::Specification.map do |spec|
+            full = spec.full_gem_path
+            [ full.end_with?(File::SEPARATOR) ? full : "#{full}#{File::SEPARATOR}", spec.name ]
+          end
+        rescue ::StandardError => e
+          @plugin_gem_error = e
+          UNKNOWN_GEM
         end
       end
 
@@ -280,6 +308,11 @@ module OKF
       # refusal it caused: "could not be determined" on its own names no gem to
       # fix and no reason to look.
       attr_reader :plugin_gem_error
+
+      # Why the search for extensions could not run at all, when it could not.
+      # Distinct from the above: that one refuses paths it found, this one found
+      # none — so there is nothing to refuse and the error is the only witness.
+      attr_reader :plugin_discovery_error
 
       # Paths discovered but refused for their gem's name, as [ path, gem ]
       # pairs. Kept so the refusal can be *reported*: an extension that is
@@ -329,6 +362,7 @@ module OKF
         @plugins_loaded = false
         @plugin_failures = []
         @plugin_gem_error = nil
+        @plugin_discovery_error = nil
         @untrusted_plugins = []
         @declined = []
       end
@@ -406,6 +440,10 @@ module OKF
       return if @plugin_notes_reported
 
       @plugin_notes_reported = true
+      if (error = self.class.plugin_discovery_error)
+        @err.puts "okf: could not look for installed extensions (#{error.class}: #{error.message})"
+        @err.puts "  none were loaded, so a verb an extension provides will read as unknown"
+      end
       Array(failures).each do |path, error|
         @err.puts "okf: extension at #{path} failed to load (#{error.class}: #{error.message})"
       end
