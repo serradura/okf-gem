@@ -4,7 +4,7 @@ title: The okf command-line front end
 description: The only layer that parses argv, prints, writes files, and decides exit codes.
 resource: lib/okf/cli.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-19T18:00:00Z
+timestamp: 2026-07-20T12:00:00Z
 ---
 
 # Overview
@@ -35,13 +35,19 @@ gem shipping `okf/plugin.rb` adds a verb with no edit here, and it appears in th
 map under `installed extensions:`. Discovery is lazy — a built-in never scans —
 and a broken addon is reported on stderr rather than being fatal.
 
-The built-in verbs fall into three groups:
+A verb's group is now something it *declares* — `.group`, one of the four
+questions a command answers about itself — and `CLI::GROUPS` fixes the order they
+print in. So this is the map `okf help` builds, not an editorial arrangement of
+it; a group here that no command returns is a group nobody sees.
 
 | Group | Verbs | Notes |
 |-------|-------|-------|
-| Judge | `validate`, `lint`, `loose` | [validate](capabilities/validator.md) and [lint](capabilities/linter.md) answer different questions and stay separate. |
-| Read | `search`, `index`, `catalog`, `files`, `types`, `tags`, `stats`, `graph` | the [browser views as text](capabilities/read-views.md), plus the `index` map and [ranked search](capabilities/search.md). |
-| Act | `server`, `render`, `registry`, `skill` | boot the [graph server](capabilities/graph-server.md) or write it as a [static file](capabilities/render.md); curate the [bundle registry](registry.md); install the [agent skill](capabilities/agent-skill.md). |
+| `:act` | `skill`, `server`, `render` | boot the [graph server](capabilities/graph-server.md) or write it as a [static file](capabilities/render.md); install the [agent skill](capabilities/agent-skill.md). |
+| `:registry` | `registry` | one umbrella verb over five subcommands — curate the [bundle registry](registry.md). |
+| `:judge` | `lint`, `loose`, `validate` | [validate](capabilities/validator.md) and [lint](capabilities/linter.md) answer different questions and stay separate. |
+| `:read` | `search`, `index`, `stats`, `types`, `tags`, `files`, `catalog` | the [browser views as text](capabilities/read-views.md), plus the `index` map and [ranked search](capabilities/search.md). |
+| `:graph` | `graph` | its own group because it is the whole model at once, not a view onto part of it. |
+| `:extension` | *(whatever is installed)* | the only group with a printed heading — "where did this come from?" is a question only an addon raises. |
 
 Plus `version` / `--version` / `-v` and `help` / `--help` / `-h`.
 
@@ -65,8 +71,8 @@ one persistent file, and `$OKF_HOME` points every one of them at a different
 registry, which is what keeps the tests off the real `~/.okf`.
 
 One lever, not two. An earlier design also carried a `--home DIR` flag, which had
-to be remembered on the three verbs that offered it and forgotten on the eleven
-that did not — a flag whose whole job was to name a location the env var already
+to be remembered on the three verbs that offered it and forgotten on every other
+one — a flag whose whole job was to name a location the env var already
 named. `$OKF_HOME` composes where a flag cannot: it reaches every verb at once
 without being typed, it survives into a subprocess, and if the directory ever
 holds more than `registry.json` it keeps meaning the same thing.

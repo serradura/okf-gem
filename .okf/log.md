@@ -1,6 +1,27 @@
 # Update Log
 
 ## 2026-07-20
+* **Correction**: a sweep for stale prose before merge, and the two that mattered
+  had **nothing to do with this branch**. `overview.md` still said "exactly two
+  runtime dependencies" — `minifts` made it three at 1.9.0, and this log records
+  fixing that same count in other files *twice* while overview.md was missed both
+  times. Its read-view list was also missing `types`. A count stated in five
+  places drifts in the one nobody edits; the lesson is to grep the claim rather
+  than fix the instance, which is exactly what the two earlier entries failed to
+  do.
+* **Correction**: `cli.md` grouped the verbs into "three groups" — a harmless
+  editorial arrangement when the map was a heredoc, and **wrong the moment
+  `.group` became something a command declares**. `CLI::GROUPS` has five built-in
+  groups plus `:extension`, and the table put `graph` under Read and `registry`
+  under Act when both return their own. The table matches the code now. A doc can
+  go stale by the code growing a real version of what the doc was approximating.
+* **Change**: the prefix rule's own [design note](design/extension-points.md)
+  described itself, in its `description:` frontmatter, as loading only `okf-*`
+  gems *"because requiring one runs its code"* — the trust-first framing the body
+  spent two commits retiring. Third instance of the same reframe, found the same
+  way: fixing the sentence in front of you rather than searching for its copies.
+  The description is what `search` and `index` surface, so it was the one most
+  read and the last corrected.
 * **Correction**: the fail-open fixed yesterday **survived one frame above the
   fix**. `plugin_gem_name` learned to refuse a name it could not read; the
   `rescue ::StandardError` in `plugin_paths` still answered `[]` and threw its

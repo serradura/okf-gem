@@ -15,13 +15,21 @@
     pays the ~11ms `Gem.find_latest_files` costs on the 2.4 floor. A one-shot CLI
     that will not build a search index for a single query should not pay for
     discovery to answer a verb it shipped with.
-  - **Extensions must be gems named `okf-*`**, the convention Jekyll and Vagrant
-    use for the same job: it makes what counts as an okf extension explicit and
-    stops an unrelated gem claiming the `okf/plugin.rb` path by accident. One
-    that is not so named is discovered, skipped, and reported on stderr. It is a
+  - **Extensions must come from gems named `okf-*`**, the convention Jekyll and
+    Vagrant use for the same job: it makes what counts as an okf extension
+    explicit and stops an unrelated gem claiming the `okf/plugin.rb` path by
+    accident. One that is not so named is discovered, skipped, and reported on
+    stderr. A path belonging to *no* gem — a checkout, `ruby -I`, a Gemfile
+    `path:` — stays trusted, because someone put it there deliberately. It is a
     mild guard too — loading a plugin runs its code — but the naming convention
     is the reason, not the threat model, which is thin: under Bundler discovery
     is bundle-scoped anyway, so the Gemfile is already an allowlist.
+  - **The rule holds when it cannot get an answer**, which is a separate promise
+    from the rule itself. A gem name that cannot be read — one corrupt gemspec
+    anywhere on the machine — is refused rather than treated as "belongs to no
+    gem", and the refusal names the exception that caused it. A discovery that
+    fails outright is reported too, since an empty list and no message is
+    indistinguishable from a machine with nothing installed.
   - **A broken addon is skipped and reported, never fatal** — the same
     best-effort posture the reader takes with an unparseable file. The note goes
     to stderr, so a `--json` run's stdout stays a clean machine substrate.
@@ -31,6 +39,11 @@
   unchanged — every existing test passes untouched — but `okf help` is now
   composed from what the commands say about themselves rather than from a
   heredoc that had to be remembered separately.
+- **Fixed: `okf skill <a> <b>` installed into `<a>` and exited 0.** It hand-rolled
+  its own argument handling instead of using the shared pair every `<dir>` verb
+  goes through, so a second destination was silently dropped — the user named two
+  places and the tool wrote one, saying nothing. It is a usage error now (exit 2),
+  refused before anything is written.
 
 ## [1.9.0] - 2026-07-19
 

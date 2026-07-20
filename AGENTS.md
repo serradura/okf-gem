@@ -165,6 +165,7 @@ test/integration/cli/
   by_registry/              `okf lint @handbook`   — named through the registry
   across_bundles/           `okf search @a @b`     — several at once
   cli_help_test.rb …        the commands that name no bundle (help, version, skill)
+  cli_plugin_test.rb        the extension seam — a plugin on the load path
 ```
 
 Same command, same flags, three identities — because the identity is where the
@@ -197,7 +198,7 @@ bundle exec rake test:integration   # integration only + coverage/integration/
 
 Read the result as a map, not a score. Low coverage in `bundle/writer.rb` or
 `concept/file.rb` is *expected* — no CLI verb writes a bundle, so those are the
-library API's to prove. Low coverage in `cli.rb`, `registry.rb`, or `server/` is
+library API's to prove. Low coverage in `cli/`, `registry.rb`, or `server/` is
 a **hole**: it means a path a user can reach that no user-shaped test walks.
 Chase those, and let the residue tell you honestly which code the CLI cannot
 reach at all.

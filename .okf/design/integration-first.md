@@ -4,7 +4,7 @@ title: Integration tests are the critical layer
 description: The CLI is the product, so the suite that drives it end to end outranks the unit tests — and its coverage is measured alone, because the full number flatters.
 resource: test/integration/cli
 tags: [testing, cli, architecture]
-timestamp: 2026-07-17T04:00:00Z
+timestamp: 2026-07-20T12:00:00Z
 ---
 
 # Overview
