@@ -7,182 +7,150 @@ were repaired. A regression fix is the sharpest possible test target: it is a
 failure mode already proven to be reachable in this codebase, by this author,
 in this file.
 
-Measured against that catalog, the suite covers **10 of ~94 regression fixes**
-— roughly 11%.
+Measured against that catalog, the suite now covers roughly **38 of ~94
+regression fixes** — about **40%**, up from 10 when this document was first
+written. The climb came from working the ranked list below, gap by gap, each
+new spec mutation-checked against the code it covers.
 
-That number is the point of this document. The suite is not weak where it
-looks; it is strong on the interaction spine and absent on the periphery, and
-the periphery is where most of the history's bugs actually lived.
+That number is still the point of this document. The suite is strong on the
+interaction spine, the filters, the file tree, link resolution, both XSS
+defenses and the mobile chrome; it is thin on canvas *timing* (the camera and
+layout races) and absent on the diagram viewer. Read it before deciding what to
+write next.
 
 ## The headline, by area
 
 | Area | Regression fixes in history | Covered |
 |---|---:|---:|
-| Graph canvas, camera, layout, emphasis | 23 | 1 |
-| Files view + file tree | 28 | 1 |
-| Inspector, links, escaping | 19 | 5 |
-| Mobile / responsive layout | 7 | 1 |
+| Graph canvas, camera, layout, emphasis | 23 | 6 |
+| Files view + file tree | 28 | 10 |
+| Inspector, links, escaping | 19 | 10 |
+| Mobile / responsive layout | 7 | 6 |
 | First-visit notes | 7 | 1 |
-| Command palette, help sheet, search keys | 5 | 0 |
-| Diagram viewer, deep links, index-layer styling | 5 | 0 |
+| Command palette, help sheet, search keys | 5 | 3 |
+| Diagram viewer, deep links, index-layer styling | 5 | 2 |
 
-Two structural facts explain the shape:
+Two structural facts still shape it:
 
-**The suite tests state, not rendering.** It asserts `data-view`,
-`aria-pressed`, `data-side`, node counts and computed widths. Almost every
-uncovered graph fix is about *how the canvas looks after an operation* —
-whether dimming outranks a base style, whether the camera moved once or twice,
-whether a layout ran twice and raced itself. Those need a different kind of
-assertion (Cytoscape style resolution, settled positions, animation counts),
-and the suite has one such helper (`settledBox`) written only because a bug
-forced it.
+**The suite tests state, and now some geometry.** It asserts `data-view`,
+`aria-pressed`, `data-side`, node counts and computed widths — and, since the
+emphasis and mobile work, resolved Cytoscape opacities, `effectiveOpacity`,
+`getBoundingClientRect` rows and settled node positions. What it still cannot
+cheaply see is *how many times* the camera moved, which is the one camera fix
+left uncovered.
 
-**The suite tests the graph view.** Files is the single largest surface in the
-template and the single largest source of historical bugs — 28 of 94 — and the
-suite touches it with two assertions.
+**Files is no longer the hole.** It was the single largest surface and the
+single largest source of historical bugs — 28 of 94 — and the collapse state
+machine, the indexes-only filter and link resolution now reach ten of them.
 
-## The uncovered fixes, ranked
+## The specs that closed the gaps
 
-Ranked by what a repeat would cost, not by how easy the test is.
+Nineteen spec files, ~106 tests per render mode (212 total). Beyond the original
+spine (`boot`, `views`, `inspector`, `filters`, `graph-modes`, `responsive`)
+and `sanitization`:
 
-### 1. ~~Body sanitization~~ — **done**
+- `emphasis.spec.js` — dim outranks a tree/index edge's own opacity (138b705),
+  the highlight border, and **selection stays legible in cluster mode** (a bug
+  this suite found — see below).
+- `indexes.spec.js` — Indexes-only releases on a concept and holds on a map, the
+  map graph button (c7bb1b5). Carries one held-open `test.fail` for the log
+  graph button (a bug this suite found).
+- `links.spec.js` — the inspector resolving a link to an index, the log, a bare
+  directory's synthesized listing, and disabling the unresolvable (ae7a882,
+  ed6c0af). Off a "See also" block in `runbooks/rollback.md`.
+- `files-tree.spec.js` — the collapse state machine: honoured under a search,
+  collapse-all excluding the root and reading the whole tree, and the mobile
+  reopen that undoes a root collapse while preserving a file one (0e9eab8,
+  4b80b80, 2163bfe, aeef15b).
+- `mobile-layout.spec.js` — ident ellipsis, the two-column tools sheet with no
+  orphaned icon, the layout select filling its wrapper, the one-line file header
+  (adf96ff, dec7cad, a5f12ab, b376e8c).
+- `camera-races.spec.js` — un-clustering restores the chosen layout (adf96ff)
+  and the index→tree switch lands clean in one click (456aa79), both read from
+  *settled* positions.
+- `palette.spec.js`, `help.spec.js`, `deep-links.spec.js`, `theme.spec.js`,
+  `interiors.spec.js`, `splitters.spec.js` — the surfaces no spec reached: the
+  command palette (incl. the Index row that used to blank the page), the ? sheet
+  and `/` scoping, `?view`/`?layout`/`?select`/`#hash`, the theme toggle's
+  persistence, catalog/tags/stats navigation, and the inspector splitter's
+  restore-clamp-reset-drag.
 
-`markdown-sanitized` (d1b485d), `js-esc-covers-quotes` (c2cedb6) and
-`ruby-escape-covers-quotes` (adf96ff) are now covered by
-`specs/sanitization.spec.js` against `fixtures/hostile`, in both render modes,
-and all three were mutation-checked. See
-[server-trust-boundary](../../.okf/design/server-trust-boundary.md) for the
-mutation table.
+## Bugs this suite turned up
 
-One finding worth carrying into any extension of that fixture: with the
-sanitizer removed, the `<script>` payload did not fire — `innerHTML` does not
-execute script tags — and only `<img onerror>` did. A fixture of script tags
-alone would have gone green against a page with no sanitizer at all.
+Writing the specs surfaced two real, shipped bugs the string-level tests could
+not see. Both are now fixed:
 
-### 2. Camera and layout races
+1. **The log's graph button was visible when it should be hidden.**
+   `openReserved('log',…)` sets `#fp-graph.hidden = true`, but the button is a
+   `.btn.text`, and `.btn.text{display:inline-flex}` outranked
+   `.btn[hidden]{display:none}` at equal specificity — so it rendered 143px wide
+   with a stale click handler, the c7bb1b5 "different file" symptom back through
+   CSS. Fixed with `.btn.text[hidden]{display:none}` (following the precedent at
+   line 492) and pinned by a now-passing test in `indexes.spec.js` that was red
+   before the rule.
 
-Four fixes, all invisible to state assertions, all previously shipped broken:
+2. **Selection was illegible in cluster mode** — `focusNode` dimmed the compound
+   area boxes, whose opacity cascades to the nodes inside them, so the selected
+   node and its neighbours faded too (measured effectiveOpacity 0.1). Reported by
+   the maintainer, reproduced with a red test, fixed (dim leaves and edges, never
+   `:parent`), and pinned by `emphasis.spec.js`.
 
-- `one-camera-move-per-click` (ed6c0af) — the pan must fire once, deferred
-  until the panel transition settles. It shipped firing twice.
-- `mode-switch-one-click` (456aa79) — index layer off + tree mode on ran two
-  layouts against one canvas; the tree landed wrong and needed a second click.
-- `ix-fetch-ticketed` (456aa79) — a stale `/index` promise could add index
-  nodes inside file-tree mode.
-- `uncluster-restores-layout` (adf96ff) — un-clustering hardcoded a cose run
-  and discarded whichever layout the select was on.
+## The uncovered fixes that remain
 
-These are the bugs the current suite is least equipped to see and the ones
-most likely to recur, because they are timing, not logic. `settledBox` is the
-beginning of the tooling; a position-snapshot helper and a layout-run counter
-would finish it.
+Ranked by what a repeat would cost.
 
-### 3. Dim and highlight ordering
+### 1. one-camera-move-per-click (ed6c0af) — needs a move counter
 
-`dim-beats-tree-edges`, `dim-beats-ix-edges`, `dim-beats-parent-boxes`
-(138b705). Cytoscape resolves equal-specificity selectors by array order, so a
-rule declared after `.dim` silently defeats it. The whole emphasis system —
-the thing that makes selection legible — failed this way for tree edges and
-index edges at once.
+The other three camera/layout races are covered; this one is not, and honestly
+cannot be from the end state. Selecting a node opens the panel, whose
+`cy.resize()` re-centres the whole graph and fires *last*, so the selected node
+settles ~190px off centre whether or not `centerOn` ran (measured identical with
+the pan removed). The fix is about *not moving twice*, which the settled state
+cannot see. It needs a `cy.on('pan')` / animation counter — the "layout-run
+counter" this document first called for. Until then, a test here would green
+with `centerOn` deleted, which is worse than none.
 
-Testable directly: `cy.$('edge.tree.dim').style('opacity') === 0.1`. Three
-one-line assertions for a class of bug that is invisible on inspection and
-recurs every time a style rule is appended to that array.
+### 2. The diagram viewer
 
-### 4. The file tree's collapse state machine
+`diagram-viewer-rerenders-source` (cloning the SVG lost its colours), pan/zoom,
+and focus return on close. Untouched — it needs a fixture body carrying a
+```mermaid``` block, and the viewer lazy-loads Panzoom and Mermaid from the CDN,
+so a spec here trades determinism for CDN latency. Worth doing behind the same
+`allowErrors`-free console watch, but scoped separately.
 
-Six fixes, all about collapse and fold interacting badly:
-`tree-collapse-honored-while-filtering` (0e9eab8),
-`foldall-excludes-root` / `foldall-reads-whole-tree` (4b80b80),
-`reopen-undoes-root-collapse` / `reopen-preserves-file-collapse` (2163bfe),
-`root-collapse-folds-list-mobile` (aeef15b).
+### 3. The remaining periphery
 
-`collapsedDirs`, `foldedByRoot`, `ixOnly` and `.tree-min` are four pieces of
-state that must agree, and the history shows them disagreeing repeatedly. The
-2163bfe pair is the clearest: collapsing the root folded the list, and the
-button the reader had just used could not bring the tree back.
-
-### 5. Indexes-only, which flipped twice
-
-`ixonly-releases-on-concept` and `ixonly-survives-map` (c7bb1b5) — the rule
-was inverted in both directions at once: opening a concept kept a filter that
-hid it, and opening a map cleared the filter being browsed. Also
-`log-no-graph-button` (c7bb1b5), where a log's graph button opened the *root
-index's* node — answering about a different file.
-
-Two clicks and two `aria-pressed` reads each. Among the cheapest tests on this
-list.
-
-### 6. Link resolution
-
-`link-to-index-resolves`, `link-to-log-resolves`,
-`link-to-bare-directory-resolves` (ae7a882), `unresolvable-links-disabled`
-(ed6c0af), `synthesized-dir-renders-listing` (ae7a882).
-
-The suite covers exactly one link case — a concept-to-concept body link. The
-fixture already has index links, a log, and a synthesized directory, so most
-of this needs no new fixture at all.
-
-### 7. Mobile layout regressions
-
-`tools-sheet-two-columns`, `tools-sheet-no-orphan` (dec7cad),
-`mobile-layout-select-fills-wrapper`, `mobile-layout-select-clickable`,
-`mobile-icon-row-grouped` (a5f12ab), `ftree-header-one-layout` and its two
-siblings (b376e8c), `ident-ellipsizes` (adf96ff).
-
-These are the most recent fixes in the history — the last three commits before
-this suite existed — which says the area is still moving. They are also the
-most mechanically testable things on this list: `flexBasis`, `justifyContent`,
-`marginLeft`, and counting distinct `getBoundingClientRect().top` values to
-prove there is no orphaned row. `a5f12ab` even has a functional half worth
-pinning: clicking the chevron area must actually change the layout, because it
-used to land on dead space.
-
-### 8. Untouched surfaces
-
-No spec reaches any of these at all:
-
-- **Command palette** (⌘K) — 4 fixes, including one where the Index row
-  called `setView('index')` on a view that does not exist and blanked the page.
-- **Help sheet** (`?`) — modal focus management, and `search-key-scoped`,
-  where `/` focused a box that was hidden.
-- **Theme toggle** — persistence, no-flash boot, Mermaid re-theming.
-- **Deep links** — `?select=`, `?layout=`, `?view=`, `#hash`, and
-  `deeplink-node-carries-view`, a fix for selecting into a view nobody is
-  looking at.
-- **Splitters** — drag, window-bound tracking, persistence, dblclick reset,
-  and the viewport clamp that stopped a desktop width swallowing a phone.
-- **Diagram viewer** — pan/zoom, focus return, and
-  `diagram-viewer-rerenders-source`, where cloning the SVG lost its colors.
-- **Catalog and Tags interiors** — cards, chips, empty states, card-to-graph
-  navigation, tag multi-select.
-- **Stats bars** — clicking one jumps to the graph, clears filters, isolates
-  that type and fits.
-
-Counted as element IDs rather than behaviors: of 43 actionable controls
-(`<button>`, `<input>`, `<select>`) in the template, **27 are referenced by no
-spec** — 63%.
+- **Command palette** — the bundle-switch half (hub mode) and ⌘⏎ new-tab are
+  unreached; only the standalone view-jump path is covered.
+- **Help sheet** — the modal focus *trap* (Tab cycling) is unchecked; open/close
+  and `/` scoping are covered.
+- **First-visit notes** — still one assertion; the hello2 "other views" note and
+  the desktop hint are only dismissed, never asserted.
+- **Index-layer styling** — `edge.ixe-syn` opacity, the synthesized-map hollow
+  look, and `ixVisibility` hiding an emptied map.
+- **Splitter drag persistence across reload**, and the files-tree splitter (only
+  the inspector one is driven).
 
 ## What this does not say
 
-The suite is not worthless at 8%. It found a real bug on its first run, it
-covers the paths a reader walks most, and its console-error watch is a
-blanket check no per-behavior test provides: any of these uncovered surfaces
-that throws during a covered flow still fails the run. The point of the
-measurement is direction, not judgement — it says the next specs should go to
-Files, sanitization, and canvas emphasis, and not to more view switching.
+The suite is not weak at 40%. It found two real bugs, fixed one, covers the
+paths a reader walks most, and its console-error watch is a blanket check no
+per-behaviour test provides: any uncovered surface that throws during a covered
+flow still fails the run. The measurement is direction, not judgement — it now
+points at camera timing and the diagram viewer, not at more view switching.
 
 Two honest caveats about the number itself:
 
 - **The catalog was built by reading commit messages and diffs**, and this
-  repo's messages are unusually explicit about what was broken. Where a
-  message was ambiguous the behavior was counted as a feature, so 94 is a
-  floor, not a ceiling.
+  repo's messages are unusually explicit about what was broken. Where a message
+  was ambiguous the behavior was counted as a feature, so 94 is a floor. The
+  "covered" column is a judgement call at the boundaries too — a few fixes are
+  covered only in part (e.g. the layout select's clickable chevron is pinned via
+  its width, not a click at the edge), and those are counted generously.
 - **Some fixes are no longer reachable.** A few behaviors were reverted or
-  superseded later in the history (the 4b80b80 landing-page work, mostly
-  undone by cc7d545; `open-map-no-dim`, reverted by 9158ca6). Those are
-  excluded from the 94, but the boundary is a judgement call in two or three
-  cases.
+  superseded later in the history (the 4b80b80 landing-page work, mostly undone
+  by cc7d545; `open-map-no-dim`, reverted by 9158ca6). Those are excluded from
+  the 94.
 
 ## Method
 
@@ -190,8 +158,8 @@ Two honest caveats about the number itself:
 git log --follow --format="%h|%ad|%s" --date=short -- lib/okf/render/graph/template.html.erb
 ```
 
-44 commits, read in full — message body and diff — and reduced to behavior
-rows of the form *(id, behavior, DOM/CSS handle, feature|regression-fix,
-what was wrong)*. The handle column is what makes a row actionable: a
-behavior with a concrete `aria-pressed` or `getComputedStyle` target can be
-turned into a spec directly, and roughly four fifths of the catalog has one.
+44 commits, read in full — message body and diff — and reduced to behavior rows
+of the form *(id, behavior, DOM/CSS handle, feature|regression-fix, what was
+wrong)*. The handle column is what makes a row actionable: a behavior with a
+concrete `aria-pressed` or `getComputedStyle` target can be turned into a spec
+directly, and roughly four fifths of the catalog has one.

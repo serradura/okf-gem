@@ -77,13 +77,24 @@ yields ~230 behavioral contracts, ~94 of them fixes for bugs that actually
 shipped. A regression fix is the sharpest test target there is: a failure mode
 already proven reachable in this file.
 
-The suite covers 10 of those 94. It is strong on the interaction spine and on
-both XSS defenses; it is absent on the periphery — the Files view alone
-accounts for 28 of the 94 and is touched by two assertions.
-`test/browser/COVERAGE.md` carries the ranked gap list. Its top entry used to
-be body sanitization, which no suite checked at all; that one is now closed
-and mutation-verified, and the [trust boundary](server-trust-boundary.md)
-carries the table.
+The suite covers roughly 38 of those 94 (~40%), up from 10 — worked gap by gap
+down `test/browser/COVERAGE.md`'s ranked list, each new spec mutation-checked.
+It is strong on the interaction spine, the filters, the file tree, link
+resolution, both XSS defenses and the mobile chrome; it is thin on canvas
+*timing* (the camera races) and absent on the diagram viewer.
+
+Two dividends of the work land here. Writing the specs turned up two real,
+shipped bugs no string assertion could see, both now fixed: cluster-mode
+selection faded the whole graph (a compound parent's opacity cascades to its
+nodes); and a log's "Open in graph" button stayed visible though the code hides
+it, because `.btn.text{display:inline-flex}` outranked `.btn[hidden]` at equal
+specificity (fixed by a `.btn.text[hidden]` rule, the precedent already used for
+`.fp-head`). Both are the assert-the-collapsible rule below paying out: a defect
+invisible on inspection, caught by reading computed state, red before the fix and
+green after.
+`COVERAGE.md` carries the full ranked list and what remains — chiefly
+one-camera-move-per-click (which needs a move counter the end state cannot
+supply) and the diagram viewer.
 
 # Writing a spec: read the page, then assert
 

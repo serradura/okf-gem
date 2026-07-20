@@ -130,6 +130,10 @@
  .btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
  .btn[hidden]{display:none}
  .btn.text{width:auto;display:inline-flex;align-items:center;padding:0 12px;gap:7px;font-size:13px;font-weight:500;color:var(--ink)}
+ /* `.btn.text` sets display, which outranks `.btn[hidden]` above at equal
+    specificity — so hiding a text button (e.g. #fp-graph on a log) needs its own
+    [hidden] rule to win, same as .fp-head[hidden] does below. */
+ .btn.text[hidden]{display:none}
  .btn .fbadge{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--accent);
   color:#fff;font-size:10px;font-weight:600;display:none;place-items:center;line-height:1}
  .btn.on-filter .fbadge{display:grid}

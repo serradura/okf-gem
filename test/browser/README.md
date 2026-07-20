@@ -84,6 +84,19 @@ specs/
   filters.spec.js      chips, badge, search, and how they compose
   graph-modes.spec.js  cluster / tree / index layers, layouts, fit
   responsive.spec.js   the ≤768px drawer and sheet, in computed CSS
+  sanitization.spec.js the two XSS defenses, driven by a hostile bundle
+  emphasis.spec.js     dim/highlight ordering, and cluster-mode legibility
+  indexes.spec.js      Indexes-only, and the reserved files' graph button
+  links.spec.js        the inspector resolving index / log / dir / dead links
+  files-tree.spec.js   the collapse state machine (desktop + mobile)
+  mobile-layout.spec.js the ≤768px tools sheet and file header, in geometry
+  camera-races.spec.js un-cluster restore + index→tree, from settled positions
+  palette.spec.js      the ⌘K command palette
+  help.spec.js         the ? sheet and the / search key
+  deep-links.spec.js   ?view / ?layout / ?select / #hash
+  theme.spec.js        the theme toggle and its persistence
+  interiors.spec.js    catalog / tags / stats navigation into the graph
+  splitters.spec.js    the inspector splitter: restore, clamp, reset, drag
 ```
 
 `helpers.js` sits beside the config rather than inside `specs/` on purpose —
@@ -110,6 +123,10 @@ other way in to:
 - Tags that span areas (`core` on four concepts in three areas), so a tag
   filter cannot be mistaken for an area filter.
 - `log.md`, so the Files view has a history entry to open.
+- a "See also" block in `runbooks/rollback.md` linking to `/index.md`,
+  `/log.md`, a bare directory and a non-existent one, so the inspector's four
+  link resolutions each have a real link to follow. All four keep validate and
+  lint clean (directory and reserved-file links are not cross-links).
 
 Add to it rather than bending a spec toward what it already makes easy. Check
 edits with `ruby -Ilib exe/okf validate test/browser/fixtures/bundle` and
@@ -120,17 +137,36 @@ tolerate one.
 
 [COVERAGE.md](COVERAGE.md) measures the suite against the page's own history:
 44 commits, ~230 behavioral contracts, ~94 of them fixes for bugs that really
-shipped. The suite covers **10 of those 94**. It is strong on the interaction
-spine (view switching, filters, inspector, the mobile drawer) and on both XSS
-defenses; it is absent on the periphery — Files, canvas emphasis and camera
-timing — which is where most of the history's bugs lived. Read it before
-deciding what to write next.
+shipped. The suite covers roughly **38 of those 94** (~40%), up from 10 — the
+climb came from working COVERAGE's ranked gap list, each new spec
+mutation-checked. It is strong on the interaction spine, the filters, the file
+tree, link resolution, both XSS defenses and the mobile chrome; it is thin on
+canvas *timing* (the camera races) and absent on the diagram viewer. Read it
+before deciding what to write next.
 
 `sanitization.spec.js` is the one to copy the shape of. It runs against
 `fixtures/hostile`, a conformant bundle whose content attacks the page, and
 its payloads set flags on `window` — so it asserts *the script did not run*
 rather than *the markup looks clean*. All three defenses it covers were
 mutation-checked by breaking them and watching it go red.
+
+## Bugs this suite found
+
+Writing the coverage turned up two real, shipped bugs no string assertion could
+see. Both are now fixed.
+
+`emphasis.spec.js` pins the first: selecting a node in cluster mode used to fade
+the whole graph. `focusNode` dimmed the compound area boxes, and a compound
+parent's opacity cascades to the nodes inside it, so the selection and its
+neighbours faded too (measured `effectiveOpacity` 0.1). The fix dims leaves and
+edges, never `:parent`.
+
+`indexes.spec.js` pins the second: a **log's "Open in graph" button stayed
+visible** though the code sets `hidden=true`, because `.btn.text{display:
+inline-flex}` outranked `.btn[hidden]{display:none}` at equal specificity — the
+c7bb1b5 "different file" symptom back through CSS. Fixed with
+`.btn.text[hidden]{display:none}` (the precedent at line 492); the test was red
+before the rule and green after.
 
 ## Known bug, held open by a spec
 

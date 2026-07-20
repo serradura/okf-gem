@@ -48,33 +48,19 @@ test.describe("indexes-only filter + reserved graph button", () => {
     await expect(app.locator("#side-body")).toContainText("services/");
   });
 
-  // KNOWN BUG — a real one this suite just turned up, held open like the
-  // graph-collapse case in views.spec.js so the baseline stays green while the
-  // bug stays on the record. Playwright flags it as an unexpected pass the
-  // moment it is fixed; delete the marker then.
-  //
-  // A log is a chronology, not a place in the graph, so openReserved('log',…)
-  // sets `#fp-graph.hidden = true` — the fix for c7bb1b5, where a log's graph
-  // button opened the *root index's* node (a log's directory is the root),
-  // answering about a different file.
-  //
-  // The attribute is set, but the button stays visible: it is a `.btn.text`, and
-  // `.btn.text{display:inline-flex}` (template line 132) outranks
-  // `.btn[hidden]{display:none}` (line 131) — equal specificity (0,2,0), so the
-  // later rule wins. Measured: hidden attribute present, computed display flex,
-  // 143px wide on screen. Worse, openReserved for a log never re-points the
-  // button's onclick, so the visible button fires whatever the last map or
-  // concept set — the exact "different file" symptom the fix removed.
-  //
-  // The maintainer already hit this `[hidden]`-loses-to-a-display-rule gotcha
-  // once, at line 492 (`.fp-head[hidden]{display:none}`, with a comment naming
-  // it); `#fp-graph` was missed. The one-line fix follows that precedent:
-  // `.btn.text[hidden]{display:none}` (specificity 0,3,0, so it wins).
-  test.fail("a log hides the graph button", async ({ app }) => {
+  test("a log hides the graph button", async ({ app }) => {
+    // A log is a chronology, not a place in the graph, so openReserved('log',…)
+    // sets `#fp-graph.hidden = true` (the c7bb1b5 fix — a log's graph button used
+    // to open the root index's node, answering about a different file).
+    //
+    // This suite found that the attribute alone did not hide it: #fp-graph is a
+    // `.btn.text`, and `.btn.text{display:inline-flex}` outranked
+    // `.btn[hidden]{display:none}` at equal specificity, so it rendered 143px
+    // wide with a stale click handler. Fixed by adding `.btn.text[hidden]`, and
+    // toBeHidden reads computed visibility — not the attribute — so it holds the
+    // fix, not just the intent.
     await app.locator('.file[data-res="log"][data-path="log.md"]').click();
     await expect(app.locator("#fp-title")).toHaveText("log.md");
-    // toBeHidden reads computed visibility, not the attribute — which is the
-    // whole point: the attribute is set and the button shows anyway.
     await expect(app.locator("#fp-graph")).toBeHidden();
   });
 });
