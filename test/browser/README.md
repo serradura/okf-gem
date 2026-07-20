@@ -120,11 +120,17 @@ tolerate one.
 
 [COVERAGE.md](COVERAGE.md) measures the suite against the page's own history:
 44 commits, ~230 behavioral contracts, ~94 of them fixes for bugs that really
-shipped. The suite covers **7 of those 94**. It is strong on the interaction
-spine (view switching, filters, inspector, the mobile drawer) and absent on
-the periphery — Files, sanitization, canvas emphasis and camera timing — which
-is where most of the history's bugs lived. Read it before deciding what to
-write next.
+shipped. The suite covers **10 of those 94**. It is strong on the interaction
+spine (view switching, filters, inspector, the mobile drawer) and on both XSS
+defenses; it is absent on the periphery — Files, canvas emphasis and camera
+timing — which is where most of the history's bugs lived. Read it before
+deciding what to write next.
+
+`sanitization.spec.js` is the one to copy the shape of. It runs against
+`fixtures/hostile`, a conformant bundle whose content attacks the page, and
+its payloads set flags on `window` — so it asserts *the script did not run*
+rather than *the markup looks clean*. All three defenses it covers were
+mutation-checked by breaking them and watching it go red.
 
 ## Known bug, held open by a spec
 

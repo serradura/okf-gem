@@ -11,14 +11,22 @@
   with every resize path deleted. A test that cannot fail is worse than none,
   because it is counted; mutation-check a new spec or it is not proven.
 * **Correction**: [server trust boundary](design/server-trust-boundary.md)
-  claimed both XSS paths were closed. They are *implemented*, but nothing asserts
-  either: the tests check that the string `DOMPurify` appears and that it is a
-  function at boot, both of which a render path skipping the sanitizer passes.
-  Measuring the browser suite against the page's own 44-commit history — ~230
-  behaviors, ~94 of them fixes for bugs that really shipped, 7 covered — is what
+  claimed both XSS paths were closed. They were *implemented*, but nothing
+  asserted either: the tests checked that the string `DOMPurify` appears and that
+  it is a function at boot, both of which a render path skipping the sanitizer
+  passes. Measuring the browser suite against the page's own 44-commit history —
+  ~230 behaviors, ~94 of them fixes for bugs that really shipped — is what
   surfaced it. The lesson repeats the overview.md one below at a different
   altitude: a claim nobody checks drifts from the code, and "we sanitize" is a
   claim, not a test.
+* **Update**: both guards are now asserted, against a hostile fixture bundle
+  whose payloads set flags on `window` — so the test says *the script did not
+  run*, not *the markup looks clean*. Each was mutation-checked. The one worth
+  remembering: with the sanitizer removed, the `<script>` payload did **not**
+  fire, because `innerHTML` does not execute script tags; only `<img onerror>`
+  did. A fixture of script tags alone would have gone green against a page with
+  no sanitizer at all — the security-test version of the same trap as the
+  `cy.width()` test above, where the assertion was incapable of failing.
 * **Correction**: a sweep for stale prose before merge, and the two that mattered
   had **nothing to do with this branch**. `overview.md` still said "exactly two
   runtime dependencies" — `minifts` made it three at 1.9.0, and this log records

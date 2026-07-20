@@ -36,21 +36,34 @@ body cannot break out of its `<script>`), and it is still
 same two defenses, now both on the one path — a static file is no laxer than the
 server, and the embedded description stays server-escaped exactly as above.
 
-# Both guards are asserted by nobody
+# Both guards are asserted, against a bundle that attacks them
 
-Neither defense has a test. `test/integration/render/` checks that the string
-`DOMPurify` appears in the emitted page, and [the browser
-suite](browser-tests.md) checks that `typeof DOMPurify === "function"` at boot
-— both of which a render path that skipped the sanitizer would still pass.
-Nothing feeds a hostile body through and asserts the script did not survive.
-
-That is the largest gap the browser suite's coverage review turned up, and it
-is worth stating plainly here rather than only in a test README: this page
-claims a security property it does not verify. The fix is small — a fixture
-concept carrying `<img src=x onerror=…>` and a `<script>` tag, asserted absent
-from `#body` and `#fp-body` in both render modes — and until it exists, the
-table above describes intent rather than a checked contract.
+`test/browser/specs/sanitization.spec.js` drives
+`test/browser/fixtures/hostile` — a conformant OKF bundle whose content is
+trying to execute script in the page rendering it — in both render modes. The
+payloads set flags on `window`, so the assertion is not "the markup looks
+clean" but *the script did not run*.
 <!-- rule:okf-verify-the-sanitizer -->
+
+This was a gap the browser suite's coverage review turned up: for a long time
+the only checks were that the string `DOMPurify` appeared in the emitted page
+and that it was a function at boot, both of which a render path skipping the
+sanitizer passes cleanly. The table above described intent, not a contract.
+
+Each guard was then mutation-checked, because a security test that cannot fail
+is worse than none:
+
+| Mutation | Result |
+|---|---|
+| `DOMPurify.sanitize(marked.parse(…))` → `marked.parse(…)` | 4 body specs red; `__xssImg` **fired** — real code execution |
+| `esc()` back to `&<>` only (pre-c2cedb6) | the tag breakout spec red; a live `onmouseover` in the DOM |
+| `json_for_script` without its `<` escape | all 14 red — the `</script>` in a title closes the block and the page never boots |
+
+The first of those carries a lesson for anyone extending the fixture: with the
+sanitizer removed, the `<script>` payload did **not** fire, because `innerHTML`
+does not execute script tags. Only the `<img onerror>` did. A fixture carrying
+script tags alone would have gone green against a page with no sanitizer at
+all — proving the defense while the hole stood open.
 
 # What sanitizing does not cover
 

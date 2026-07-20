@@ -7,8 +7,8 @@ were repaired. A regression fix is the sharpest possible test target: it is a
 failure mode already proven to be reachable in this codebase, by this author,
 in this file.
 
-Measured against that catalog, the suite as it stands covers **7 of ~94
-regression fixes — under 10%**.
+Measured against that catalog, the suite covers **10 of ~94 regression fixes**
+— roughly 11%.
 
 That number is the point of this document. The suite is not weak where it
 looks; it is strong on the interaction spine and absent on the periphery, and
@@ -20,7 +20,7 @@ the periphery is where most of the history's bugs actually lived.
 |---|---:|---:|
 | Graph canvas, camera, layout, emphasis | 23 | 1 |
 | Files view + file tree | 28 | 1 |
-| Inspector, links, escaping | 19 | 2 |
+| Inspector, links, escaping | 19 | 5 |
 | Mobile / responsive layout | 7 | 1 |
 | First-visit notes | 7 | 1 |
 | Command palette, help sheet, search keys | 5 | 0 |
@@ -45,22 +45,19 @@ suite touches it with two assertions.
 
 Ranked by what a repeat would cost, not by how easy the test is.
 
-### 1. Body sanitization — the security one
+### 1. ~~Body sanitization~~ — **done**
 
-`markdown-sanitized` (d1b485d). Every fetched body must pass through
-`DOMPurify.sanitize(marked.parse(...))` before `innerHTML`. This is one of the
-two XSS defenses AGENTS.md names as load-bearing, it was a real hole once, and
-**nothing in any test suite checks it** — the browser suite only asserts
-`typeof DOMPurify === "function"`, which a broken render path would still pass.
+`markdown-sanitized` (d1b485d), `js-esc-covers-quotes` (c2cedb6) and
+`ruby-escape-covers-quotes` (adf96ff) are now covered by
+`specs/sanitization.spec.js` against `fixtures/hostile`, in both render modes,
+and all three were mutation-checked. See
+[server-trust-boundary](../../.okf/design/server-trust-boundary.md) for the
+mutation table.
 
-The fixture would need a concept whose body carries `<img src=x onerror=...>`
-and a `<script>` tag; the test asserts neither survives into `#body` or
-`#fp-body`. Cheap, and it closes the largest exposure on this list.
-
-Its two siblings are also uncovered: `js-esc-covers-quotes` (c2cedb6) and
-`ruby-escape-covers-quotes` (adf96ff), both about a quote in bundle data
-breaking out of an attribute. Same fixture, one more concept with a quote and
-an angle bracket in its title and tags.
+One finding worth carrying into any extension of that fixture: with the
+sanitizer removed, the `<script>` payload did not fire — `innerHTML` does not
+execute script tags — and only `<img onerror>` did. A fixture of script tags
+alone would have gone green against a page with no sanitizer at all.
 
 ### 2. Camera and layout races
 

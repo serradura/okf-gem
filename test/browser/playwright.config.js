@@ -1,5 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
-import { repoRoot, bundleDir, staticPage, PORT } from "./paths.js";
+import { repoRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT } from "./paths.js";
+
+const serve = (dir, port) => ({
+  command: `bundle exec ruby -Ilib exe/okf server ${JSON.stringify(dir)} -p ${port}`,
+  cwd: repoRoot,
+  url: `http://127.0.0.1:${port}/`,
+  reuseExistingServer: !process.env.CI,
+  stdout: "pipe",
+  stderr: "pipe",
+});
 
 // The template renders in two modes and they diverge in one load-bearing way:
 // served live it fetches /node, /catalog, /index, /log on demand, while a
@@ -40,17 +49,10 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    // Through bundler, not a bare `ruby`. `okf server` needs rack and webrick,
-    // and a CI setup-ruby with bundler-cache installs them under a BUNDLE_PATH
-    // that a bare `ruby -Ilib` would not search. Locally it resolves the same
-    // gems either way, so this costs nothing and removes an environment
-    // assumption.
-    command: `bundle exec ruby -Ilib exe/okf server ${JSON.stringify(bundleDir)} -p ${PORT}`,
-    cwd: repoRoot,
-    url: `http://127.0.0.1:${PORT}/`,
-    reuseExistingServer: !process.env.CI,
-    stdout: "pipe",
-    stderr: "pipe",
-  },
+  // Two servers: the ordinary fixture every spec runs against, and the hostile
+  // bundle sanitization.spec.js points at. `serve()` above goes through
+  // bundler rather than a bare `ruby` — `okf server` needs rack and webrick,
+  // and a CI setup-ruby with bundler-cache puts them under a BUNDLE_PATH that
+  // `ruby -Ilib` would not search.
+  webServer: [ serve(bundleDir, PORT), serve(hostileDir, HOSTILE_PORT) ],
 });

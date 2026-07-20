@@ -77,12 +77,13 @@ yields ~230 behavioral contracts, ~94 of them fixes for bugs that actually
 shipped. A regression fix is the sharpest test target there is: a failure mode
 already proven reachable in this file.
 
-The suite covers 7 of those 94. It is strong on the interaction spine and
-absent on the periphery — the Files view alone accounts for 28 of the 94 and
-is touched by two assertions. `test/browser/COVERAGE.md` carries the ranked
-gap list; the top of it is body sanitization, which is one of the two XSS
-defenses the maintainer guide calls load-bearing and which no suite checks at
-all.
+The suite covers 10 of those 94. It is strong on the interaction spine and on
+both XSS defenses; it is absent on the periphery — the Files view alone
+accounts for 28 of the 94 and is touched by two assertions.
+`test/browser/COVERAGE.md` carries the ranked gap list. Its top entry used to
+be body sanitization, which no suite checked at all; that one is now closed
+and mutation-verified, and the [trust boundary](server-trust-boundary.md)
+carries the table.
 
 # Writing a spec: read the page, then assert
 

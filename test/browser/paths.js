@@ -16,3 +16,11 @@ export const repoRoot = path.resolve(here, "..", "..");
 export const bundleDir = path.join(here, "fixtures", "bundle");
 export const staticPage = path.join(here, ".tmp", "graph.html");
 export const PORT = Number(process.env.OKF_TEST_PORT || 8899);
+
+// The hostile bundle gets its own server and its own static page rather than
+// joining the main fixture: every count assertion in boot.spec.js and
+// filters.spec.js is written against those 8 concepts, and a bundle carrying
+// XSS payloads is a different thing to read anyway.
+export const hostileDir = path.join(here, "fixtures", "hostile");
+export const hostilePage = path.join(here, ".tmp", "hostile.html");
+export const HOSTILE_PORT = PORT + 1;
