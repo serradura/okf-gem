@@ -12,3 +12,9 @@ either lands entirely or not at all.
 
 A document store would have meant reconciling the two afterwards, which is a
 job nobody would own.
+
+```mermaid
+graph LR
+  Invoice --> Postgres[(Postgres)]
+  OrderRow[Order] --> Postgres
+```

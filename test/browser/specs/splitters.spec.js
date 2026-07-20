@@ -1,4 +1,4 @@
-import { test, expect, bootGraph } from "../helpers.js";
+import { test, expect, bootGraph, showView } from "../helpers.js";
 
 // The inspector splitter: drag to resize, persisted, double-click to reset, and
 // a restore clamped to the viewport so a width dragged on a desktop cannot
@@ -43,5 +43,54 @@ test.describe("inspector splitter (1280px)", () => {
 
     const w = await app.locator("#side").evaluate((el) => Math.round(el.getBoundingClientRect().width));
     expect(w, "dragging the handle left should widen the inspector").toBeGreaterThan(500);
+  });
+
+  // The panel width transitions over .22s, so read it only once it has settled.
+  const settledWidth = async (app) => {
+    let prev = -1;
+    for (let i = 0; i < 25; i++) {
+      await app.waitForTimeout(80);
+      const w = await app.locator("#side").evaluate((el) => Math.round(el.getBoundingClientRect().width));
+      if (w === prev) return w;
+      prev = w;
+    }
+    return prev;
+  };
+
+  test("a dragged width persists across a reload", async ({ app }) => {
+    await app.locator("#btn-panel").click();
+    await expect(app.locator("#side")).toHaveCSS("width", "380px");
+
+    const h = await app.locator("#side-resizer").boundingBox();
+    await app.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+    await app.mouse.down();
+    await app.mouse.move(h.x - 160, h.y + h.height / 2, { steps: 6 });
+    await app.mouse.up();
+    const dragged = await settledWidth(app);
+    expect(dragged).toBeGreaterThan(500);
+
+    // the drag end wrote okf-side-w; the reloaded page restores it
+    await app.reload();
+    await bootGraph(app);
+    await app.locator("#btn-panel").click();
+    const restored = await settledWidth(app);
+    expect(Math.abs(restored - dragged), "the reloaded width should match the dragged one").toBeLessThan(3);
+  });
+});
+
+test.describe("file-tree splitter (1280px)", () => {
+  test("dragging the handle widens the tree column", async ({ app }) => {
+    await showView(app, "files");
+    await expect(app.locator("#ftree-list")).toContainText("orders.md");
+
+    const before = await app.locator(".ftree").evaluate((el) => Math.round(el.getBoundingClientRect().width));
+    const h = await app.locator("#ftree-resizer").boundingBox();
+    await app.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+    await app.mouse.down();
+    await app.mouse.move(h.x + 140, h.y + h.height / 2, { steps: 6 }); // drag right = wider
+    await app.mouse.up();
+
+    const after = await app.locator(".ftree").evaluate((el) => Math.round(el.getBoundingClientRect().width));
+    expect(after, "dragging the handle right should widen the tree column").toBeGreaterThan(before + 80);
   });
 });
