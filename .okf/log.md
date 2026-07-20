@@ -1,6 +1,24 @@
 # Update Log
 
 ## 2026-07-20
+* **Addition**: [browser tests](design/browser-tests.md) — the graph page is now
+  driven in real Chromium, every spec in both render modes, with any thrown error
+  failing the run. Two findings worth more than the suite itself. The page has a
+  real bug: dwell ~300ms on another view, return to Graph, and the graph redraws
+  at a tenth of its size; both resize paths run and neither is sufficient. And
+  the first version of the test for it **could not fail** — it read `cy.width()`,
+  which reports the live container while the render is collapsed, so it passed
+  with every resize path deleted. A test that cannot fail is worse than none,
+  because it is counted; mutation-check a new spec or it is not proven.
+* **Correction**: [server trust boundary](design/server-trust-boundary.md)
+  claimed both XSS paths were closed. They are *implemented*, but nothing asserts
+  either: the tests check that the string `DOMPurify` appears and that it is a
+  function at boot, both of which a render path skipping the sanitizer passes.
+  Measuring the browser suite against the page's own 44-commit history — ~230
+  behaviors, ~94 of them fixes for bugs that really shipped, 7 covered — is what
+  surfaced it. The lesson repeats the overview.md one below at a different
+  altitude: a claim nobody checks drifts from the code, and "we sanitize" is a
+  claim, not a test.
 * **Correction**: a sweep for stale prose before merge, and the two that mattered
   had **nothing to do with this branch**. `overview.md` still said "exactly two
   runtime dependencies" — `minifts` made it three at 1.9.0, and this log records

@@ -83,6 +83,16 @@ edits with `ruby -Ilib exe/okf validate test/browser/fixtures/bundle` and
 `lint` — both must stay clean, since a warning here would teach the suite to
 tolerate one.
 
+## How much of the page this actually covers
+
+[COVERAGE.md](COVERAGE.md) measures the suite against the page's own history:
+44 commits, ~230 behavioral contracts, ~94 of them fixes for bugs that really
+shipped. The suite covers **7 of those 94**. It is strong on the interaction
+spine (view switching, filters, inspector, the mobile drawer) and absent on
+the periphery — Files, sanitization, canvas emphasis and camera timing — which
+is where most of the history's bugs lived. Read it before deciding what to
+write next.
+
 ## Known bug, held open by a spec
 
 `views.spec.js` carries one `test.fail()` — the graph collapses on return.

@@ -36,6 +36,22 @@ body cannot break out of its `<script>`), and it is still
 same two defenses, now both on the one path — a static file is no laxer than the
 server, and the embedded description stays server-escaped exactly as above.
 
+# Both guards are asserted by nobody
+
+Neither defense has a test. `test/integration/render/` checks that the string
+`DOMPurify` appears in the emitted page, and [the browser
+suite](browser-tests.md) checks that `typeof DOMPurify === "function"` at boot
+— both of which a render path that skipped the sanitizer would still pass.
+Nothing feeds a hostile body through and asserts the script did not survive.
+
+That is the largest gap the browser suite's coverage review turned up, and it
+is worth stating plainly here rather than only in a test README: this page
+claims a security property it does not verify. The fix is small — a fixture
+concept carrying `<img src=x onerror=…>` and a `<script>` tag, asserted absent
+from `#body` and `#fp-body` in both render modes — and until it exists, the
+table above describes intent rather than a checked contract.
+<!-- rule:okf-verify-the-sanitizer -->
+
 # What sanitizing does not cover
 
 DOMPurify removes the code, not the content. The page still fetches and shows the
