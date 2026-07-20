@@ -49,21 +49,29 @@ test.describe("emphasis (dim + highlight)", () => {
     expect(dim.max).toBeCloseTo(0.1, 5);
   });
 
-  test("dim reaches the cluster area boxes too", async ({ app }) => {
-    // :parent sets no opacity of its own, so this one pins behaviour rather than
-    // ordering — a selected concept's other-area boxes must fade with the rest.
+  test("selection stays legible in cluster mode", async ({ app }) => {
+    // The subtle one, and a real bug this caught: in cluster mode every concept
+    // lives inside a compound area box, and a compound parent's opacity cascades
+    // to the nodes inside it. Dimming the boxes therefore fades the whole graph —
+    // including the selected node and its neighbours, which were deliberately
+    // un-dimmed. So emphasis must read the *effective* (on-screen) opacity, which
+    // includes the parent's, not the node's own: the selection and its
+    // neighbourhood have to stay bright while only the rest recedes.
     await app.locator("#btn-cluster").click();
     await expect(app.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => app.evaluate(() => cy.nodes(":parent").length)).toBeGreaterThan(0);
 
     await clickNode(app, "services/gateway");
     await expect.poll(() => app.evaluate(() => cy.getElementById("services/gateway").hasClass("hl"))).toBe(true);
 
-    const boxes = await app.evaluate(() => {
-      const dim = cy.nodes(":parent").filter((n) => n.hasClass("dim"));
-      return { n: dim.length, max: dim.length ? Math.max(...dim.map((n) => parseFloat(n.style("opacity")))) : null };
-    });
-    expect(boxes.n, "area boxes away from the selection should be dimmed").toBeGreaterThan(0);
-    expect(boxes.max).toBeCloseTo(0.1, 5);
+    const op = await app.evaluate(() => ({
+      selected: cy.getElementById("services/gateway").effectiveOpacity(),
+      neighbour: cy.getElementById("services/billing").effectiveOpacity(), // linked to gateway
+      unrelated: cy.getElementById("datasets/customers").effectiveOpacity(), // a different area
+    }));
+    expect(op.selected, "the selected node must not be faded by its own area box").toBeGreaterThan(0.9);
+    expect(op.neighbour, "a neighbour must stay lit").toBeGreaterThan(0.9);
+    expect(op.unrelated, "an unrelated concept still recedes").toBeLessThan(0.2);
   });
 
   test("the selected node carries the highlight border", async ({ app }) => {

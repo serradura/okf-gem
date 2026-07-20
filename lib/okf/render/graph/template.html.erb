@@ -1185,7 +1185,13 @@ function centerOn(ele,delay){clearTimeout(centerTimer);
    whatever was selected, and it used to mean three things — a concept dimmed the
    rest, a map did nothing, a folder node did nothing either. */
 function focusNode(ele,opened){if(!ele||!ele.length)return;
- cy.elements().removeClass('hl').addClass('dim');
+ /* Dim the leaves and edges, never the compound area boxes: a parent's opacity
+    cascades to the nodes inside it (effectiveOpacity), so dimming the boxes fades
+    the whole graph — the selection and its neighbourhood included — and emphasis
+    reads as nothing at all in cluster mode. The boxes stay put; the leaves carry
+    the state. (Outside cluster mode there are no :parent nodes, so this is a
+    no-op there.) */
+ cy.elements().removeClass('hl');cy.elements().not(':parent').addClass('dim');
  ele.closedNeighborhood().removeClass('dim');ele.addClass('hl');
  centerOn(ele,opened);}
 function select(id){const ele=cy.getElementById(id);if(!ele.length)return;const opened=show(id);
