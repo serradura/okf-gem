@@ -15,8 +15,17 @@ bundle exec rake browser:report   # last run's traces and screenshots
 bundle exec rake serve            # the same fixture, yours to poke by hand
 ```
 
-Not part of `rake`. It needs node, which has no place on the Ruby 2.4 CI
-matrix, and the gem gains no dependency from it.
+Not part of the default `rake` task — it needs node, which has no place on the
+Ruby 2.4 matrix, and the gem gains no dependency from it. CI runs it in a
+separate **non-blocking** job (`continue-on-error`), because the page boots
+against a CDN and a jsdelivr hiccup should not gate a merge. The job still
+shows red and uploads `.tmp/` (traces, screenshots, report) on failure, which
+is how you tell a regression from a network blip.
+
+Both the `webServer` command and the static render run through `bundle exec`.
+A CI `setup-ruby` with `bundler-cache` installs rack and webrick under a
+`BUNDLE_PATH` that a bare `ruby -Ilib` would not search; locally it resolves
+the same gems either way.
 
 ## Two projects, every spec
 

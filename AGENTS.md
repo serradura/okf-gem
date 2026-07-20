@@ -263,12 +263,19 @@ threw. **Every spec runs twice**, once against `okf server` and once against a
 `file://` static `okf render`, because the two modes diverge (fetched
 endpoints vs. baked `EMBED`) and a pass in one proves nothing about the other.
 
-It is deliberately outside `rake` and outside CI: it needs node and a ~120MB
+It is deliberately outside the default `rake` task: it needs node and a ~120MB
 Chromium, neither of which belongs on the 2.4 matrix, and the gem takes on no
-dependency from it. That makes running it a maintainer obligation — **a change
-to the template is not done until `rake test:browser` is green**, and a bug in
-the page earns a red spec there before it earns a patch, the same rule
-`test/integration/cli/` already carries.
+dependency from it. CI runs it in a **separate, non-blocking job** — the page
+boots against a CDN (Cytoscape, marked, DOMPurify), so a jsdelivr hiccup must
+not gate a merge. `continue-on-error` keeps the run green while still showing
+the job red, and traces upload on failure so a real regression is
+distinguishable from a network blip.
+
+Non-blocking means it is still a maintainer obligation, not an automated gate:
+**a change to the template is not done until `rake test:browser` is green**,
+and a bug in the page earns a red spec there before it earns a patch — the same
+rule `test/integration/cli/` already carries. A red browser job that nobody
+reads is worth nothing.
 
 Both halves of the template open with a section map, and the JS one also names
 the three seams that actually couple the sections (`applyGraphFilter`,

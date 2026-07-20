@@ -48,14 +48,25 @@ quietly stopped rendering" is exactly the failure this file keeps producing.
 It is also the only thing giving the suite reach into surfaces it does not
 otherwise test.
 
-# Outside rake, and why
+# Outside the default task, and non-blocking in CI
 
 It needs node and a ~120MB Chromium, neither of which belongs on the
-[Ruby 2.4 floor](ruby-floor.md) CI matrix, and the gem takes on no
-[runtime dependency](runtime-dependencies.md) from it. So it is opt-in
-(`rake test:browser`) and CI does not run it — which makes running it a
-maintainer obligation rather than an automated gate: a change to the template
-is not done until it is green.
+[Ruby 2.4 floor](ruby-floor.md) matrix, and the gem takes on no
+[runtime dependency](runtime-dependencies.md) from it. So it is opt-in locally
+(`rake test:browser`) and runs in CI as a separate job marked
+`continue-on-error`.
+
+Non-blocking is a judgement about *what the signal is worth*, not a hedge. The
+page loads Cytoscape, marked and DOMPurify from a CDN at boot — a dependency
+the [trust boundary](server-trust-boundary.md) already names — so a red job can
+mean a regression or can mean jsdelivr was slow, and a check that cries wolf on
+someone else's PR gets muted within a month. The job stays visibly red and
+uploads its traces; the run passes anyway.
+
+Which leaves the obligation where it was: a change to the template is not done
+until the suite is green locally. An automated gate nobody trusts is weaker
+than a rule the maintainer keeps.
+<!-- rule:okf-browser-suite-before-merge -->
 
 # Coverage is measured against the page's own history
 

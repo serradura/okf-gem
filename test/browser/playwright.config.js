@@ -33,7 +33,12 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: `ruby -Ilib exe/okf server ${JSON.stringify(bundleDir)} -p ${PORT}`,
+    // Through bundler, not a bare `ruby`. `okf server` needs rack and webrick,
+    // and a CI setup-ruby with bundler-cache installs them under a BUNDLE_PATH
+    // that a bare `ruby -Ilib` would not search. Locally it resolves the same
+    // gems either way, so this costs nothing and removes an environment
+    // assumption.
+    command: `bundle exec ruby -Ilib exe/okf server ${JSON.stringify(bundleDir)} -p ${PORT}`,
     cwd: repoRoot,
     url: `http://127.0.0.1:${PORT}/`,
     reuseExistingServer: !process.env.CI,

@@ -8,9 +8,11 @@ import { repoRoot, bundleDir, staticPage } from "./paths.js";
 // template as it is on disk right now, not a copy that went stale.
 export default function globalSetup() {
   fs.mkdirSync(path.dirname(staticPage), { recursive: true });
+  // Through bundler for the same reason the webServer command is — see
+  // playwright.config.js.
   execFileSync(
-    "ruby",
-    [ "-Ilib", "exe/okf", "render", bundleDir, "-o", staticPage, "-t", "Checkout Platform" ],
+    "bundle",
+    [ "exec", "ruby", "-Ilib", "exe/okf", "render", bundleDir, "-o", staticPage, "-t", "Checkout Platform" ],
     { cwd: repoRoot, stdio: [ "ignore", "ignore", "inherit" ] }
   );
 }
