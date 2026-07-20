@@ -24,6 +24,53 @@ namespace :test do
     t.test_files = FileList["test/integration/**/*_test.rb"]
     t.warning = false
   end
+
+  # The graph page is ~1,300 lines of inline JS and CSS in one ERB template,
+  # and the things that break there — a view that returns with a collapsed
+  # canvas, a filter that stops composing, the ≤768px block folding the wrong
+  # element — are invisible to a string assertion over the rendered HTML. This
+  # task drives the real page in a real Chromium: DOM, computed CSS, media
+  # queries, and any error the page throws while a spec is running.
+  #
+  # Deliberately outside the default task. It needs node and a ~120MB Chromium,
+  # neither of which belongs on the Ruby 2.4 CI matrix, and the gem itself
+  # gains no dependency from it.
+  desc "Run the browser suite against the graph page (needs node; `rake browser:setup` first)"
+  task :browser do
+    dir = File.expand_path("test/browser", __dir__)
+    unless File.directory?(File.join(dir, "node_modules"))
+      abort "browser suite not installed: run `bundle exec rake browser:setup`"
+    end
+    Dir.chdir(dir) { sh "npx playwright test" }
+  end
+end
+
+namespace :browser do
+  desc "Install the browser suite's node dependencies and Chromium"
+  task :setup do
+    Dir.chdir(File.expand_path("test/browser", __dir__)) do
+      sh "npm install"
+      sh "npx playwright install chromium"
+    end
+  end
+
+  desc "Open the browser suite's interactive runner (pick specs, watch them drive a real page)"
+  task :ui do
+    Dir.chdir(File.expand_path("test/browser", __dir__)) { sh "npx playwright test --ui" }
+  end
+
+  desc "Show the last browser run's HTML report (traces, screenshots, timings)"
+  task :report do
+    Dir.chdir(File.expand_path("test/browser", __dir__)) { sh "npx playwright show-report .tmp/report" }
+  end
+end
+
+# Boot the graph page on the same fixture the browser suite drives, for poking
+# at by hand. `rake test:browser` boots its own server on 8899; this one is
+# yours to leave running.
+desc "Serve the browser suite's fixture bundle at http://127.0.0.1:8808"
+task :serve do
+  sh "ruby -Ilib exe/okf server test/browser/fixtures/bundle"
 end
 
 task "test:integration" => :set_integration_coverage_dir

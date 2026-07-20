@@ -27,6 +27,26 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
+/* ═══ CSS sections, in file order ═══════════════════════════════════════════
+   Each is opened by a `── name ──` banner; `grep -n '── ' template.html.erb`
+   prints this list with current line numbers, which is the reliable version.
+
+     app shell: rail + main        main column
+     shared controls               section head
+     chips / badges                graph view
+     filters slide-over            inspector content
+     markdown body                 fullscreen diagram viewer
+     bundle switcher (hub)         the ? sheet
+     bundle-count badge (hub)      mobile nav + first-visit note
+     catalog                       files
+     tags                          stats
+     type autocomplete             synthesized-map listing
+     ≤768px compact chrome         ≥769px pane folding
+
+   The last two rebuild the layout at a breakpoint and are checked by
+   test/browser/specs/responsive.spec.js — computed style at a real viewport
+   width, which is the only way that block can be checked at all.
+   ═════════════════════════════════════════════════════════════════════════ */
  :root{
   --bg:#ffffff; --panel:#ffffff; --panel-2:#f6f7f8; --canvas:#f4f5f7; --ink:#1f2328; --ink-soft:#333333;
   --muted:#63697a; --faint:#9298a4; --line:#e6e8eb; --line-2:#eef0f2;
@@ -816,6 +836,48 @@
 </div>
 
 <script>
+/* ═══ JS sections, in file order ════════════════════════════════════════════
+   Same `── name ──` banners as the CSS above; same grep prints them with live
+   line numbers.
+
+     payload + derived indexes     Cytoscape (style, instance)
+     Mermaid (lazy)                fullscreen diagram viewer
+     inspector                     drag-resize splitters
+     graph filters                 layout
+     cluster by area               file-tree mode
+     the authored layer            fit to screen
+     view switching                full-text search
+     catalog                       files
+     tags                          stats
+     theme / fullscreen            §6 map payload · §7 log payload
+     command palette               mobile drawer + sheet
+     keyboard                      deep links · first visit
+
+   ── What actually couples these ──────────────────────────────────────────
+   The sections are tidy lexically and entangled at runtime, which is why a
+   change in one breaks another. Three seams carry almost all of it:
+
+   1. `applyGraphFilter()` is the shared sink. The search box, the three chip
+      groups in the slide-over, the inspector's focus chips and cluster mode
+      all funnel into it, and it reads `q.graph`, `hiddenTypes`, `activeTags`,
+      `activeAreas` and `ftMatch()` together. Touching any one caller can
+      change what the other four produce.
+   2. `setView()` reaches into nearly every section — it toggles the tool
+      groups, seeds a view on first entry via `inited`, and has to
+      `cy.resize()` on the way back to the graph, because Cytoscape measures a
+      hidden container as 0×0 and returns collapsed without it.
+   3. The lazy caches — `CATALOG`, `INDEX`, `LOGS`, `ftIndex` — are each
+      filled by one section and read by three or four. A stale one is
+      invisible until an unrelated view renders wrong.
+
+   The mode flags (`clustered`, `treeMode`, `ixNodes`, `ixOnly`, `view`) are
+   read across boundaries too: each rebuilds the graph's elements and must
+   undo itself exactly, or its nodes leak into the plain view.
+
+   All of the above is pinned by test/browser/ — `bundle exec rake
+   test:browser`. Run it before and after editing this file; it drives the
+   real page in Chromium and fails on any error the page throws.
+   ═════════════════════════════════════════════════════════════════════════ */
 const NODES=<%= nodes_json %>, EDGES=<%= edges_json %>, TYPES=<%= types_json %>, TAGS=<%= tags_json %>;
 const NODE_ENDPOINT=<%= @node_endpoint.to_json %>, META_ENDPOINT=<%= @meta_endpoint.to_json %>;
 const BUNDLE=<%= name_json %>;

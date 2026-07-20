@@ -17,3 +17,18 @@ Gemfile.lock
 
 /.claude/*
 !/.claude/CLAUDE.md
+
+# The browser suite's node toolchain and its scratch output (the rendered
+# static page, traces, screenshots, the HTML report). The specs and the
+# fixture bundle are committed; nothing under these is.
+#
+# playwright-report/ and test-results/ are Playwright's *defaults*, which the
+# config redirects into .tmp/. They are still ignored, because anything run
+# outside `rake test:browser` — a bare `npx playwright test --reporter=html`,
+# an editor plugin, a `-c` pointing elsewhere — writes to the default names
+# and would otherwise stage a few dozen build artifacts.
+/test/browser/node_modules/
+/test/browser/.tmp/
+/test/browser/playwright-report/
+/test/browser/test-results/
+/test/browser/package-lock.json
