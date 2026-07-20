@@ -24,6 +24,18 @@ test.describe("keyboard help sheet", () => {
     await expect(app.locator("#kb")).toBeHidden();
   });
 
+  test("the sheet manages focus — close on open, opener on close", async ({ app }) => {
+    // Modal focus management: opening focuses the close button, closing returns
+    // focus to the control that opened it.
+    await app.locator("#btn-help").click();
+    await expect(app.locator("#kb")).toBeVisible();
+    await expect(app.locator("#kb-x")).toBeFocused();
+
+    await app.locator("#kb-x").click();
+    await expect(app.locator("#kb")).toBeHidden();
+    await expect(app.locator("#btn-help")).toBeFocused();
+  });
+
   test("/ focuses the search where the view has one, and does nothing on stats", async ({ app }) => {
     await app.keyboard.press("/");
     await expect(app.locator("#search")).toBeFocused();

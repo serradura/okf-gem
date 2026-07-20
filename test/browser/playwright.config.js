@@ -1,10 +1,23 @@
 import { defineConfig, devices } from "@playwright/test";
-import { repoRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT } from "./paths.js";
+import { repoRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, HUB_PORT } from "./paths.js";
 
 const serve = (dir, port) => ({
   command: `bundle exec ruby -Ilib exe/okf server ${JSON.stringify(dir)} -p ${port}`,
   cwd: repoRoot,
   url: `http://127.0.0.1:${port}/`,
+  reuseExistingServer: !process.env.CI,
+  stdout: "pipe",
+  stderr: "pipe",
+});
+
+// Two dirs behind one server is hub mode: each bundle mounts at /b/<slug>/ and
+// carries the other as a sibling, which is the only way SIBLINGS is populated —
+// so the command palette's bundle-switch half only exists here. Ready when the
+// mounted bundle answers.
+const serveHub = (dirs, port) => ({
+  command: `bundle exec ruby -Ilib exe/okf server ${dirs.map((d) => JSON.stringify(d)).join(" ")} -p ${port}`,
+  cwd: repoRoot,
+  url: `http://127.0.0.1:${port}/b/bundle/`,
   reuseExistingServer: !process.env.CI,
   stdout: "pipe",
   stderr: "pipe",
@@ -54,5 +67,5 @@ export default defineConfig({
   // bundler rather than a bare `ruby` — `okf server` needs rack and webrick,
   // and a CI setup-ruby with bundler-cache puts them under a BUNDLE_PATH that
   // `ruby -Ilib` would not search.
-  webServer: [ serve(bundleDir, PORT), serve(hostileDir, HOSTILE_PORT) ],
+  webServer: [ serve(bundleDir, PORT), serve(hostileDir, HOSTILE_PORT), serveHub([ bundleDir, hostileDir ], HUB_PORT) ],
 });
