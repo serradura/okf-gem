@@ -30,3 +30,24 @@ test.describe("theme", () => {
     await bootGraph(app);
   });
 });
+
+// With no stored choice the boot script falls back to the system preference:
+// localStorage.getItem('okf-theme') || (matchMedia(prefers-color-scheme:dark) …).
+// The app fixture seeds okf-hello but never okf-theme, so each fresh context
+// resolves purely from the emulated colour scheme — the dark case is the
+// discriminating one, since a bug that ignored the query would boot light.
+test.describe("boot follows the system preference when nothing is stored", () => {
+  test.describe("a dark system preference", () => {
+    test.use({ colorScheme: "dark" });
+    test("boots dark", async ({ app }) => {
+      expect(await theme(app)).toBe("dark");
+    });
+  });
+
+  test.describe("a light system preference", () => {
+    test.use({ colorScheme: "light" });
+    test("boots light", async ({ app }) => {
+      expect(await theme(app)).toBe("light");
+    });
+  });
+});

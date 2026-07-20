@@ -50,4 +50,26 @@ test.describe("command palette — hub (bundle switch)", () => {
     await hub.locator("#sw-list a[data-path]").click();
     await expect(hub).toHaveURL(/\/b\/hostile\//);
   });
+
+  test("the ⌘⏎ chord opens the sibling in a new tab instead of navigating", async ({ hub }) => {
+    // A bundle is a real navigation, so it honours the new-tab chord: Enter with
+    // meta/ctrl held calls window.open(t,'_blank') rather than setting
+    // location.href. Catch the popup on the browser context, and confirm the
+    // current tab did NOT navigate — the whole point of the chord is that this
+    // one stays put.
+    await hub.keyboard.press("Control+k");
+    await expect(hub.locator("#sw-list a[data-path]")).toBeVisible();
+
+    const [ popup ] = await Promise.all([
+      hub.context().waitForEvent("page"),
+      hub.locator("#sw-input").press("Control+Enter"),
+    ]);
+    expect(popup.url()).toMatch(/\/b\/hostile\//);
+    await popup.close();
+
+    // still on bundle — the chord opened a tab, it did not move this one
+    await expect(hub).toHaveURL(/\/b\/bundle\//);
+    // and the palette closed itself after firing
+    await expect(hub.locator("#sw")).toBeHidden();
+  });
 });

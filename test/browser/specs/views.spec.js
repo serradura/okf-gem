@@ -57,30 +57,30 @@ test.describe("view switching", () => {
     await expect(app.locator("#search")).toHaveValue("4");
   });
 
-  // KNOWN BUG — marked expected-to-fail so the suite's baseline stays green.
-  // Playwright reports it loudly if it ever passes, which is the signal that
-  // the fix landed; delete this marker then.
+  // KNOWN BUG — held open, but as `fixme`, not `fail`. The distinction is
+  // load-sensitivity: the collapse is a race between setView's return-resize
+  // rAF and the container getting its size back, and whether it lands depends
+  // on how contended the event loop is. Run alone it reproduces every time; run
+  // under the full suite's five parallel workers the rAF is delayed enough that
+  // the container is already sized when it fires, so the graph comes back fine
+  // and a `test.fail` reports an *unexpected pass*. That is the same flake a
+  // held-open marker is supposed to remove, not add — a coin-flip red teaches
+  // the maintainer to ignore the signal it exists to raise.
   //
-  // Dwell ~300ms or more on any other view and come back, and the graph
-  // returns drawn at about a tenth of its size — a few dots in the top-left
-  // corner. Reproduced in both render modes and confirmed by screenshot, so
-  // it is what a reader sees, not an artifact of the measurement.
+  // So this is `fixme`: the bug stays on the record and in the report, the body
+  // below documents exactly how to reproduce it (flip to `test.fail` and run
+  // this file alone to watch it go red), and the suite stays deterministically
+  // green. It joins one-camera-move as a real defect with no external observable
+  // stable enough to gate on — both wait on the same fix: instrumentation in the
+  // page, or the resize race closed at the source. Delete this marker then.
   //
-  // Both resize paths run and neither is sufficient: setView's
-  // requestAnimationFrame(cy.resize()) fires while the container is still
-  // 0×0, and the canvas ResizeObserver's 240ms debounce has already cached
-  // the collapsed viewport by then. Dwell 0 passes because the observer never
-  // got to fire — which is why this went unnoticed: clicking through the rail
-  // quickly never triggers it.
-  test.fail("leaving and returning to the graph redraws it at full size", async ({ app }, testInfo) => {
-    // Held-open known bug. Its repro is a race — the ResizeObserver's 240ms
-    // debounce has to cache the 0×0 viewport during the dwell and the return
-    // resize has to fire before the container is back — and that race only lands
-    // deterministically in the static bake. Served live, the /catalog and /stats
-    // fetches shift the timing and the collapse reproduces perhaps one run in
-    // five, so a test.fail there is itself flaky (an intermittent unexpected
-    // pass). Assert it where it is deterministic; the bug is the same in both.
-    test.skip(testInfo.project.name === "server", "collapse repro is timing-flaky in live-fetch mode — deterministic only in the static bake");
+  // The defect itself: dwell ~300ms or more on any other view and come back, and
+  // the graph returns drawn at about a tenth of its size — a few dots in the
+  // top-left corner, confirmed by screenshot. Both resize paths run and neither
+  // is sufficient: setView's requestAnimationFrame(cy.resize()) fires while the
+  // container is still 0×0, and the canvas ResizeObserver's 240ms debounce has
+  // already cached the collapsed viewport by then.
+  test.fixme("leaving and returning to the graph redraws it at full size", async ({ app }) => {
     // Cytoscape measures a hidden container as 0×0 and keeps that as its
     // renderer viewport; without a resize() on the way back the graph returns
     // drawn into a few dozen pixels at the origin.
