@@ -72,7 +72,15 @@ test.describe("view switching", () => {
   // the collapsed viewport by then. Dwell 0 passes because the observer never
   // got to fire — which is why this went unnoticed: clicking through the rail
   // quickly never triggers it.
-  test.fail("leaving and returning to the graph redraws it at full size", async ({ app }) => {
+  test.fail("leaving and returning to the graph redraws it at full size", async ({ app }, testInfo) => {
+    // Held-open known bug. Its repro is a race — the ResizeObserver's 240ms
+    // debounce has to cache the 0×0 viewport during the dwell and the return
+    // resize has to fire before the container is back — and that race only lands
+    // deterministically in the static bake. Served live, the /catalog and /stats
+    // fetches shift the timing and the collapse reproduces perhaps one run in
+    // five, so a test.fail there is itself flaky (an intermittent unexpected
+    // pass). Assert it where it is deterministic; the bug is the same in both.
+    test.skip(testInfo.project.name === "server", "collapse repro is timing-flaky in live-fetch mode — deterministic only in the static bake");
     // Cytoscape measures a hidden container as 0×0 and keeps that as its
     // renderer viewport; without a resize() on the way back the graph returns
     // drawn into a few dozen pixels at the origin.
