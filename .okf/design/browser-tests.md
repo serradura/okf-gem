@@ -77,8 +77,11 @@ yields ~230 behavioral contracts, ~94 of them fixes for bugs that actually
 shipped. A regression fix is the sharpest test target there is: a failure mode
 already proven reachable in this file.
 
-The suite covers roughly 50 of those 94 (~53%), up from 10 — worked gap by gap
-down `test/browser/COVERAGE.md`'s ranked list, each new spec mutation-checked.
+`test/browser/COVERAGE.md` now enumerates every contract per-commit and marks
+each covered / partial / uncovered: of 182 net-live contracts, 115 (63%) are
+covered, with a ranked worklist of what remains. By the narrower
+regression-fix-only lens that is roughly 50 of 94, up from 10 — worked gap by gap,
+each new spec mutation-checked.
 It is strong on the interaction spine, the filters, the file tree, link
 resolution, both XSS defenses, the mobile chrome, the first-visit notes, the
 index layer, the diagram viewer and both halves of the command palette (the hub

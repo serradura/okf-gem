@@ -141,11 +141,13 @@ tolerate one.
 
 ## How much of the page this actually covers
 
-[COVERAGE.md](COVERAGE.md) measures the suite against the page's own history:
-44 commits, ~230 behavioral contracts, ~94 of them fixes for bugs that really
-shipped. The suite covers roughly **50 of those 94** (~53%), up from 10 — the
-climb came from working COVERAGE's ranked gap list, each new spec
-mutation-checked. It is strong on the interaction spine, the filters, the file
+[COVERAGE.md](COVERAGE.md) is the per-contract map — every user-visible behavior
+the page introduced across its 49-commit history, each marked covered / partial /
+uncovered against a named spec, with a ranked worklist of what is still missing.
+Of **182 net-live contracts** it covers **115 (63%)**, 16 partially, 51 not yet;
+by the narrower regression-fix-only lens that is ~50 of ~94. Read COVERAGE.md
+before writing a spec — the ✗ rows are the to-do list. It is strong on the
+interaction spine, the filters, the file
 tree, link resolution, both XSS defenses, the mobile chrome, the first-visit
 notes, the index layer, the diagram viewer and both halves of the command
 palette (down to the ⌘⏎ new-tab chord, the Mermaid re-theme and the
