@@ -19,16 +19,21 @@ Reading the 49 commits yielded **204 raw behavioral contracts**, **54** of them
 regression-fixes. After removing the superseded ones (reverted or replaced later
 in history — the Index-view→tabs→tree arc, the reverted landing page, the
 index-layer accent flip-flop, the 5× number-key remaps, the `#mnote` note folded
-into `#hello2`), **208 net-live contracts are rowed** in the area tables below
+into `#hello2`), **208 net-live contracts were rowed** in the area tables below
 (superseded micro-contracts are summarised, not individually rowed; A7-10 is kept
 as a rowed ⊘ because it read as a live gap until the history was checked).
 
-**Coverage of those 208 net-live contracts (tallied from the tables, they sum
+Work landed since then is rowed the same way, with `(name)` in the commit column
+rather than a hash — the search bridge (A3-20…29), the Bundles panel (A8-17…33)
+and the touch preview card (A6-15…33) — which brings the map to **227 rowed
+contracts**. A feature is not done here until its rows are in this table.
+
+**Coverage of those 227 net-live contracts (tallied from the tables, they sum
 exactly):**
 
 | | Count | % |
 |---|---:|---:|
-| ✓ covered | **203** | 98% |
+| ✓ covered | **222** | 98% |
 | ~ partial | 1 | <1% |
 | ✗ uncovered | 4 | 2% |
 
@@ -58,11 +63,11 @@ map-visibility observable A2-24 already owns.
 | 3 — Filters & search | 29 | 0 | 0 | 29 |
 | 4 — Inspector, links, escaping/sanitization | 20 | 0 | 0 | 20 |
 | 5 — Files view, file tree, reserved files | 28 | 0 | 0 | 28 |
-| 6 — Mobile / responsive | 14 | 0 | 0 | 14 |
+| 6 — Mobile / responsive, touch preview | 33 | 0 | 0 | 33 |
 | 7 — First-visit notes | 9 | 0 | 0 | 9 |
 | 8 — Command palette, hub, help, keyboard sheet | 31 | 0 | 2 | 33 |
 | 9 — Deep links, theme, splitters, diagram, static/server, interiors | 26 | 0 | 0 | 26 |
-| **Total** | **203** | **1** | **4** | **208** |
+| **Total** | **222** | **1** | **4** | **227** |
 
 **Every area but 2 and 8 is now fully covered** (0 ✗, 0 ~). The 4 remaining ✗ sit
 in just those two: **Area 2 (2 ✗)** — A2-26 (absence-proof) and A2-37 (node
@@ -258,7 +263,7 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A5-27 | 05b2bbb | FEAT | Reserved files re-fetch fresh on open (a new log entry shows) | `LOGS=null` before getLogs | ✓ | files-tree › a log re-reads on every open, so a new entry shows (route flips the flag; server-only) |
 | A5-28 | 05b2bbb | FEAT | Folder sections fold/unfold; state ignored while filtering | `.ffolder.closed`, filtering guard | ✓ | files-tree › a collapsed folder stays collapsed |
 
-## Area 6 — Mobile / responsive
+## Area 6 — Mobile / responsive, touch preview
 
 | ID | Commit | Type | Behavior | Handle | Cov | Spec / reason |
 |---|---|---|---|---|---|---|
@@ -276,6 +281,25 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A6-12 | ??/mobile | REG | The ident ellipsizes instead of overflowing the bar | `.ident` ellipsis | ✓ | mobile-layout › the ident ellipsizes |
 | A6-13 | f00cb66 | REG | Persisted splitter width clamped to 70% of viewport on restore | `Math.min(w,innerWidth*.7)` | ✓ | splitters › a stored width wider than the viewport is clamped |
 | A6-14 | adf96ff | FEAT | ≤768px collapsing root also folds the stacked list to header | `treeMin(true)` | ✓ | files-tree (mobile reopen path) |
+| A6-15 | (preview) | REG | A touch-width node tap no longer opens `#side` — `#stage` keeps its full width instead of measuring 0 | `openPanel()` refusal | ✓ | mobile-preview › a tap fills the card and the graph keeps every pixel it had |
+| A6-16 | (preview) | FEAT | The card carries the concept's head: type chip, title, lazy description, `N links out · N in` | `#pv-head-in` | ✓ | mobile-preview › a tap fills the card… (title + `.pv-meta`) |
+| A6-17 | (preview) | FEAT | The camera aims at the middle of the visible band, not the canvas centre, so the selection is never under the card | `panToBand` | ✓ | mobile-preview › the selected node is above the card |
+| A6-18 | (preview) | REG | Dot → dot swaps the card's contents in place; one element, reused | `fill()` without `raise()` | ✓ | mobile-preview › dot to dot swaps the card in place |
+| A6-19 | (preview) | REG | A miss on bare canvas does **not** dismiss the card (the misses are constant at this size, and each dismissal replayed the entrance) | no `close()` on canvas tap | ✓ | mobile-preview › a miss on bare canvas leaves the card up |
+| A6-20 | (preview) | REG | Nothing animates: the card takes exactly one transform value for its whole life on screen, across open / swap / close / reopen | no `transition:transform` | ✓ | mobile-preview › the card wears exactly one transform for its whole life on screen |
+| A6-21 | (preview) | FEAT | Three snap points (peek / half / full); at full the card's own body scrolls and the drag surface does not extend over it | `snapH`, `touch-action` | ✓ | mobile-preview › at full the card's own body scrolls and the card stays put |
+| A6-22 | (preview) | FEAT | A neighbourhood row walks to that concept in place — the card never closes, and the snap point is kept | `[data-go]` → `select` | ✓ | mobile-preview › a Links to row walks to that concept without closing the card |
+| A6-23 | (preview) | FEAT | Dismissal is explicit: ✕, Esc, or a downward drag past 55% of peek | `close()`, `upEv` | ✓ | mobile-preview › ✕ and Esc both dismiss it · a downward drag on the grip throws it away |
+| A6-24 | (preview) | FEAT | The grip is a slider: ↑/↓ resize, ↓ at peek closes, Enter/Space toggles | `#pv-grip[role=slider]` | ✓ | mobile-preview › at full the card's own body scrolls (↑↑ to full) |
+| A6-25 | (preview) | FEAT | A short, still press on the head toggles peek ↔ half | `d.moved<8` | ✓ | mobile-preview › tapping the head toggles peek and half |
+| A6-26 | (preview) | REG | Folder, area and index taps fill the card too — they used to write into an invisible `#side-body` and do nothing visible at all | `fillDir`/`fillLog` | ✓ | mobile-preview › a folder tap fills the card too |
+| A6-27 | (preview) | FEAT | The canvas hint stands down under the card rather than sitting behind it | `#app.preview-up .ghint` | ✓ | mobile-preview › the canvas hint stands down under the card |
+| A6-28 | (preview) | FEAT | The branch is ≤768px **or** ≤1024px portrait, so a portrait tablet runs the card and a landscape window of the same size keeps the inspector | `MOBILE_MQ` | ✓ | mobile-preview › the card runs here too (820×1180) · the desktop is untouched (1600×1000) |
+| A6-29 | (preview) | FEAT | On a portrait tablet the card insets past the 76px rail, which is still on screen there | `#preview{left:76px}` | ✓ | mobile-preview › the card runs here too, but starts where the rail ends |
+| A6-30 | (preview) | REG | On the card branch `#btn-panel` is hidden and `\` is inert — the inspector they toggled could only ever show its placeholder | `setSide()` pinned to hidden | ✓ | mobile-preview › the inspector toggle is gone, rather than opening an empty panel |
+| A6-31 | (preview) | FEAT | Off the branch the card is `display:none`: no layout, no widened document | `#preview.up` only in the MQ | ✓ | mobile-preview › a click still opens the side inspector and the card never appears |
+| A6-32 | (preview) | FEAT | The card is a second render path over the same authored strings, and holds both defenses: heads through `esc()`, bodies through `renderMarkdown` | `fill()`, `loadBody()` | ✓ | mobile-preview › a title of markup is shown as text, and the body is sanitized (fixtures/hostile, phone width) |
+| A6-33 | (preview) | FEAT | No horizontal overflow with the card up, at 375 / 820 / 1600 | `documentElement.scrollWidth` | ✓ | mobile-preview › nothing the card does makes the page scroll sideways · no sideways scroll at tablet width either |
 
 ## Area 7 — First-visit notes
 

@@ -278,6 +278,50 @@ class, which is why rotation is a re-evaluation rather than a one-way door: the
 same tablet crosses back over `769px` in landscape and gets the desktop layout,
 and `orientationchange` refits the graph to its new box.
 
+## On a touch screen a tap opens a card, not the inspector
+
+"Panels go full-bleed" was the takeover, and it cost the graph outright. At this
+width `.graph-body[data-side=default]` is `grid-template-columns:0 1fr`, so the
+moment a dot was tapped `#stage` measured **0 px wide**: the graph was not
+covered by the inspector, it was gone. Exploring a phone became open → read →
+close → tap the next dot, and there was no way to see a concept and its
+neighbourhood at once — which is the one thing a graph is for.
+
+So on a touch screen a node tap raises a **preview card** at the bottom edge
+instead. It carries the concept's head — type, title, description, `N links out ·
+N in` — over a graph that keeps every pixel and stays pannable, zoomable and
+tappable. Drag it up for the neighbourhood lists and the body; tap a row in one
+and the card's contents swap **in place** while the camera walks to the new node.
+Three snap points, reachable by drag, flick, tap or arrow key.
+
+Two behaviours are the point of it, and both are subtractions:
+
+* **Nothing animates.** The card had a 0.26 s entrance. Exploring a graph is
+  dozens of taps, and every one of them charged that wait. It was removed
+  outright — no transition, no `requestAnimationFrame` staging, no close timer —
+  so the card takes exactly **one transform value for its whole life on screen**.
+  Dragging still moves it directly; that was never a transition.
+* **A miss on bare canvas does not dismiss it.** It used to, on the reasoning
+  that the gesture means "never mind". The dots are small at this size and the
+  misses are constant, so the card kept vanishing by accident and the next dot
+  replayed the entrance from scratch. That pairing is what turned exploring into
+  a slideshow, and it also explains why the same code felt fine on a tablet:
+  dots far enough apart that the miss rarely fired. Dismissing is explicit — `✕`,
+  a downward swipe, or `Esc`.
+
+The camera aims at the middle of the **visible band** — canvas top to card top —
+rather than at the canvas centre, which would park the selected node underneath
+the card describing it, and it skips the move entirely when that band is under
+140 px, so the view never jerks for a node nobody can see.
+
+The card's branch is deliberately **wider than the chrome's**: `≤768px`, *or*
+`≤1024px` in portrait. A portrait tablet keeps the rail and the desktop topbar —
+it has the room — but zero-width-stage is its bug too, and a bottom card is the
+right gesture on any touch screen held upright. Rotate it to landscape and the
+inspector comes back. The rail only folds at 768 px, so on that tablet the card
+starts at `left:76px`: one that buried the Stats rail item under itself would be
+the takeover again, just shorter.
+
 # The graph opens the page, and a note says the index is there
 
 A bundle read as documentation has to answer "where do I start?", and a field of

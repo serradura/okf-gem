@@ -685,6 +685,59 @@
  .ix-listing a:hover{text-decoration:underline}
  .ix-listing .d{color:var(--muted)}
 
+ /* ── concept preview (touch) ────────────────────────────────────────────────
+    Deliberately not a third "sheet": the ⚙ tools sheet and the ? sheet already
+    own that word, and a third would make every `grep -n sheet` on this file
+    ambiguous. This is the preview card — what a tap on a dot opens on a touch
+    screen, in place of the inspector.
+
+    In place of it because at this width the inspector *is* the viewport:
+    `grid-template-columns:0 1fr` below measures #stage at width 0, so tapping a
+    dot did not cover the graph, it deleted it, and exploring a phone became
+    open → read → close → tap the next dot. The card puts the concept's head at
+    the bottom edge and leaves the graph every pixel it had, live above it.
+
+    The element is the whole band from under the topbar to the bottom edge, so a
+    snap point is only a translateY: visible height H ⇒ translateY(FULL - H).
+    Hidden is translateY(100%); display:none off the touch branch keeps the
+    desktop DOM inert — no layout, no width, nothing to widen the document,
+    which is the lesson the Bundles panel above already paid for. ── */
+ #preview{position:fixed;left:0;right:0;top:var(--pv-top,56px);bottom:0;z-index:70;display:none;flex-direction:column;
+  background:var(--panel);border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+  box-shadow:0 -10px 34px rgba(0,0,0,.30),0 -1px 0 var(--line);
+  /* No transition on transform, and that is the feature. The card used to rise
+     over 0.26s, so every one of the dozens of taps that exploring a graph takes
+     cost the same wait — and a miss on bare canvas dismissed it, which meant the
+     next dot replayed the entrance from scratch. Dragging still moves the card
+     directly; that was never a transition, so it survived. Nothing else may
+     animate here: mobile-preview.spec.js counts the distinct transform values
+     the element wears while it is on screen, and the contract is exactly one. */
+  transform:translateY(100%);overscroll-behavior:contain}
+ /* the grip and the head are the drag surface, so the browser must not claim
+    the gesture for a scroll — but only here, or the card's own body stops
+    scrolling at `full` */
+ #pv-grip{flex:none;padding:9px 0 4px;display:flex;justify-content:center;touch-action:none;cursor:grab}
+ #pv-grip:active{cursor:grabbing}
+ #pv-grip .pill{display:block;width:40px;height:4px;border-radius:3px;background:var(--line-2);border:1px solid var(--line)}
+ #pv-grip:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;border-radius:10px}
+ #pv-head{flex:none;position:relative;touch-action:none;padding:2px 16px 12px;border-bottom:1px solid var(--line)}
+ /* a tablet is not a stretched phone: the column stops at a readable measure and
+    centres, while the card still spans the screen */
+ #pv-head>.col,#pv-body>.col{max-width:720px;margin:0 auto;width:100%}
+ #pv-x{position:absolute;top:0;right:10px;width:30px;height:30px;z-index:2}
+ #preview .pv-title{font-size:17px;font-weight:600;margin:.45em 0 0;line-height:1.32;letter-spacing:-.01em;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ #preview .pv-desc{color:var(--muted);margin:7px 0 0;font-size:13.5px;line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ #preview[data-snap=half] .pv-desc,#preview[data-snap=full] .pv-desc{-webkit-line-clamp:4}
+ #preview .pv-meta{margin:9px 0 0;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+ #pv-head .type{max-width:calc(100% - 38px)}
+ #pv-body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 30px}
+ #pv-body .rel:first-child{margin-top:0}
+ #pv-body .body{font-size:14.5px}
+ /* the canvas hint sits exactly where the card lands */
+ #app.preview-up .ghint{display:none}
+
  /* ── compact chrome for ≤768px (phones and portrait tablets): the rail becomes
     a drawer behind ☰ and every topbar tool collapses into the ⚙ sheet. Wider
     viewports — a rotated tablet included — fall back to the desktop layout;
@@ -741,6 +794,25 @@
   #ftree-min{display:inline-grid}
   .files-grid.tree-min{grid-template-rows:auto minmax(0,1fr)}
   .files-grid.tree-min .ftree-list{display:none}
+ }
+ /* The card's branch is wider than the chrome's above. A portrait tablet keeps
+    the rail and the desktop topbar — it has the room — but 0-width-stage is its
+    bug too, and a bottom card is the right gesture on any touch screen held
+    upright. Landscape at the same size matches neither and keeps the inspector.
+    Written twice, here and as MOBILE_MQ in the JS, because neither language can
+    read the other: they are one decision, so keep them identical. */
+ @media (max-width:768px),(max-width:1024px) and (orientation:portrait){
+  #preview.up{display:flex}
+  /* the inspector's controls have no job on this branch — the panel they toggle
+     can only ever show its "Select a concept…" placeholder, because show() is
+     what fills it and show() never runs here */
+  #btn-panel,#side-widen,#side-resizer{display:none}
+ }
+ /* on a portrait tablet the rail is still on screen (it only folds at 768px), so
+    the card starts where the rail ends — one that buried Stats under itself
+    would be the takeover again, just shorter */
+ @media (min-width:769px) and (max-width:1024px) and (orientation:portrait){
+  #preview{left:76px;border-top-left-radius:16px}
  }
  /* ── tablet and up: the panes stay side-by-side, but the same chevron folds
     the whole list column into a slim strip so the reader takes the width ── */
@@ -859,6 +931,19 @@
         <svg class="narrow" viewBox="0 0 24 24" style="display:none"><path d="M11 6l6 6-6 6M5 6l6 6-6 6"/></svg></button>
        <button class="btn" id="side-close" type="button" aria-label="Hide panel" title="Hide panel"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
       <div id="side-body"><p class="empty">Select a concept — <b>click a node</b> in the graph, or search above — to read its full markdown here.</p></div>
+     </aside>
+     <!-- the touch preview card. Non-modal on purpose: the graph behind it stays
+          live, pannable and tappable, which is the whole point — so role=region
+          and not dialog, because a dialog promises a focus trap this interaction
+          must not have. -->
+     <aside id="preview" role="region" aria-label="Concept preview" data-snap="peek" aria-hidden="true">
+      <div id="pv-grip" role="slider" tabindex="0" aria-label="Preview size — arrow keys resize"
+           aria-valuemin="1" aria-valuemax="3" aria-valuenow="1" aria-valuetext="peek"><span class="pill"></span></div>
+      <div id="pv-head">
+       <button class="btn" id="pv-x" type="button" aria-label="Close preview" title="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+       <div class="col" id="pv-head-in"></div>
+      </div>
+      <div id="pv-body"><div class="col" id="pv-body-in"></div></div>
      </aside>
     </div>
    </section>
@@ -1020,8 +1105,8 @@
      tags                          stats
      theme / fullscreen            §6 map payload · §7 log payload
      command palette               the search bridge
-     mobile drawer + sheet         keyboard
-     deep links · first visit
+     concept preview (touch)       mobile drawer + sheet
+     keyboard                      deep links · first visit
 
    ── What actually couples these ──────────────────────────────────────────
    The sections are tidy lexically and entangled at runtime, which is why a
@@ -2629,6 +2714,226 @@ function bridgeReport(v,shown,total){if(bridge)bridge.report(v,shown,total);}
  function say(message,bad){
   flash.textContent=message||'';flash.classList.toggle('err',!!bad);flash.hidden=!message;
   clearTimeout(flashT);flashT=setTimeout(()=>{flash.hidden=true;},6000);}
+})();
+
+/* ── concept preview (touch): how a phone inspects a dot ─────────────────────
+   The desktop inspector is a column beside the graph. On a touch-sized viewport
+   the same panel is the *whole* viewport (grid-template-columns:0 1fr), so a tap
+   on a node measured #stage at width 0 and the graph was simply gone — read,
+   close, tap the next dot, repeat. There is no exploring in that loop.
+
+   So on this branch a tap never opens #side. It fills the card instead: the head
+   (type · title · description · link counts) rides at the bottom of a graph that
+   keeps every pixel and stays pannable, zoomable and tappable. Drag it up for
+   the neighbourhood lists and the body; tap a row in one and the card's contents
+   swap in place while the camera walks to the new node. Three snaps — dragged,
+   flicked, tapped or arrowed.
+
+   Four seams with the rest of the page, and they stay this narrow on purpose:
+   · openPanel() returns false here, which is the whole of what suppresses the
+     takeover — data-side stays "hidden" for show(), showDir() and showLog()
+     alike, so the grid is `1fr 0px` and #stage keeps the screen.
+   · select() is wrapped, not rewritten: cy's tap handler, goToGraph, the hash
+     deep-link and the palette all reach the card through the same door.
+   · centerOn() aims at a band rather than the centre — cy.center() would park
+     the selected node underneath the card describing it.
+   · setSide() is pinned to "hidden", so `\` cannot raise an inspector that
+     show() never fills. ── */
+(function(){
+ const card=document.getElementById('preview'),grip=document.getElementById('pv-grip'),
+       head=document.getElementById('pv-head'),body=document.getElementById('pv-body'),
+       headIn=document.getElementById('pv-head-in'),bodyIn=document.getElementById('pv-body-in'),
+       app=document.getElementById('app'),bar=document.getElementById('topbar');
+ /* identical to the CSS branch — one decision, written twice because neither
+    language can read the other */
+ const MOBILE_MQ=matchMedia('(max-width:768px),(max-width:1024px) and (orientation:portrait)');
+ const isTouch=()=>MOBILE_MQ.matches;
+ const SNAPS=[ 'peek','half','full' ];
+ /* the card hangs off the bottom of the topbar, and the bar is not the same
+    height on every branch — measure it rather than carry a constant that a
+    padding change would quietly falsify, and hand the CSS the same number */
+ let TOPBAR=56;
+ function measure(){TOPBAR=Math.round(bar.getBoundingClientRect().height);
+  root.style.setProperty('--pv-top',TOPBAR+'px');}
+ measure();
+ const fullH=()=>Math.max(220,innerHeight-TOPBAR);
+ function snapH(s){const vh=innerHeight;
+  if(s==='half')return Math.round(vh*.62);
+  if(s==='full')return fullH();
+  return Math.min(fullH(),Math.max(150,Math.round(vh*.34)));}
+ const yFor=h=>Math.max(0,fullH()-h);
+ let snap='peek', up=false, shown=null, bodyLoaded=null, aimed=null;
+
+ /* ---- snap + visibility ------------------------------------------------- */
+ function apply(h){card.style.transform='translateY('+yFor(h)+'px)';}
+ function setSnap(s,quiet){snap=s;card.setAttribute('data-snap',s);
+  grip.setAttribute('aria-valuenow',String(SNAPS.indexOf(s)+1));grip.setAttribute('aria-valuetext',s);
+  apply(snapH(s));
+  if(s!=='peek')loadBody();
+  if(!quiet)panToBand();}
+ /* Shown and hidden with no frame in between: no rAF dance to give a slide
+    something to slide from, and no timer waiting for one to finish. The class
+    comes off before the hiding transform goes on, so the card takes exactly one
+    transform value for the whole time it is on screen — which is the only
+    external evidence that nothing animates. */
+ function raise(){if(up)return;up=true;card.classList.add('up');card.setAttribute('aria-hidden','false');
+  app.classList.add('preview-up');
+  setSnap('peek',true);
+  if(aimed)panToBand(aimed);}
+ function close(){if(!up)return;up=false;card.classList.remove('dragging');
+  card.classList.remove('up');card.style.transform='translateY(100%)';
+  card.setAttribute('aria-hidden','true');
+  app.classList.remove('preview-up');
+  shown=null;aimed=null;
+  try{cy.elements().removeClass('dim hl');}catch(e){}
+  try{if(location.hash)history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
+ document.getElementById('pv-x').addEventListener('click',close);
+
+ /* ---- content ----------------------------------------------------------- */
+ /* Every string here goes through esc(); the only innerHTML that is not escaped
+    is the markdown body, and that one goes through renderMarkdown — i.e.
+    DOMPurify.sanitize(marked.parse(...)) — like every other body on the page. A
+    second render path that skipped either defense would reopen the hole the
+    template closed once, which is why mobile-preview.spec.js runs the hostile
+    bundle's payloads through this card too. */
+ function fill(id){const n=byId[id];if(!n)return false;
+  const ty=typeOf[id]||'Untyped', c=color[ty]||'#64748b';
+  const out=(outL[id]||[]).length, inn=(inL[id]||[]).length;
+  shown=id;bodyLoaded=null;body.scrollTop=0;
+  headIn.innerHTML='<span class="type"><span class="dot" style="background:'+esc(c)+'"></span>'+esc(ty)+'</span>'+
+   '<h2 class="pv-title">'+esc(n.title||id)+'</h2>'+
+   '<p class="pv-desc loading" id="pv-desc">loading…</p>'+
+   '<p class="pv-meta">'+out+' link'+(out===1?'':'s')+' out · '+inn+' in</p>';
+  bodyIn.innerHTML=relList('Links to',outL[id]||[])+relList('Linked from',inL[id]||[])+'<div class="body" id="pv-md"></div>';
+  bodyIn.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
+  getNodeMeta(id).then(h=>{const d=document.getElementById('pv-desc');
+   if(d&&shown===id){d.innerHTML=h||'<span class="empty">no description</span>';d.classList.remove('loading');}}).catch(()=>{});
+  if(snap!=='peek')loadBody();
+  return true;}
+ /* lazy: the body is markdown nobody can see at peek, and on a phone peek is the
+    state the card spends most of its life in */
+ function loadBody(){const id=shown;if(!id||bodyLoaded===id)return;bodyLoaded=id;
+  const el=document.getElementById('pv-md');if(!el)return;
+  el.innerHTML='<span class="loading">loading…</span>';
+  getNodeBody(id).then(md=>{if(el.isConnected&&shown===id)renderMarkdown(el,md);}).catch(()=>{});}
+ /* The authored layer needs its own filler for the same reason concepts do:
+    showDir and showLog write into #side-body, and on this branch that is a panel
+    nobody can see — so a folder in tree mode, an area box in cluster mode and an
+    index node all did nothing visible at all. Not a crash, which is exactly why
+    it survived: the tap looked ignored. */
+ function fillHead(kind,title,meta){shown=null;bodyLoaded=null;body.scrollTop=0;
+  headIn.innerHTML='<span class="type">'+esc(kind)+'</span>'+
+   '<h2 class="pv-title">'+esc(title)+'</h2>'+
+   '<p class="pv-meta">'+esc(meta)+'</p>';
+  bodyIn.innerHTML='<div class="body" id="pv-md"></div>';
+  return document.getElementById('pv-md');}
+ function fillDir(dir){getIndex().then(function(dirs){const d=dirs.find(x=>x.dir===dir);if(!d)return;
+  const types=Object.entries(d.types||{}).map(([t,n])=>(t||'Untyped')+' '+n).join(' · ');
+  const el=fillHead(d.present?'index.md':'no index.md · synthesized',
+   d.dir==='.'?BUNDLE:d.dir+'/',
+   d.count+' concept'+(d.count===1?'':'s')+(types?' · '+types:''));
+  if(d.present)renderMarkdown(el,d.body||'');else el.innerHTML=listingHtml(d.listing);
+  bodyIn.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
+  raise();}).catch(function(){});}
+ function fillLog(path){LOGS=null;getLogs().then(function(logs){const l=logs.find(x=>x.path===path);if(!l)return;
+  renderMarkdown(fillHead('update log · §7',path,'the §7 history'),l.content||'');
+  raise();}).catch(function(){});}
+
+ /* ---- the camera -------------------------------------------------------- */
+ /* cy.center() puts the node in the middle of the canvas, which here is behind
+    the card describing it. Aim at the middle of the *visible band* instead — the
+    strip between the top of the canvas and the card's edge — and skip the move
+    outright when the card leaves no band worth aiming at. The bump into
+    centerCommits is the same counter centerOn uses: a band-pan is a committed
+    camera move like any other, and one-move-per-selection is the invariant
+    camera-races.spec.js pins (at a desktop width, where this branch is off). */
+ function panToBand(ele){
+  if(!up||!isTouch())return;
+  const e=ele||(shown?cy.getElementById(shown):null);
+  if(!e||!e.length)return;
+  const r=cy.container().getBoundingClientRect();
+  const top=innerHeight-snapH(snap);
+  const band=Math.min(r.bottom,top)-r.top;
+  if(band<140)return; /* at full there is nothing to see; do not jerk the view */
+  const rp=e.renderedPosition(), p=cy.pan();
+  const dx=r.width/2-rp.x, dy=band/2-rp.y;
+  if(Math.abs(dx)<1&&Math.abs(dy)<1)return;
+  cy.stop();window.__camCenters=++centerCommits;
+  cy.animate({pan:{x:p.x+dx,y:p.y+dy},duration:420,easing:'ease-in-out-cubic'});}
+
+ /* ---- gestures ---------------------------------------------------------- */
+ /* One pointer stream for the grip and the head. A short, still press is a tap
+    (peek↔half); anything longer follows the finger and lands on the nearest
+    snap, one step further when it was flicked. Below peek a downward flick means
+    "go away", which is the gesture people already have. */
+ let drag=null;
+ function down(e){if(!up||e.target.closest('button,a'))return;
+  drag={y0:e.clientY,h0:snapH(snap),h:snapH(snap),ly:e.clientY,lt:performance.now(),v:0,moved:0,t0:performance.now()};
+  card.classList.add('dragging');
+  try{e.currentTarget.setPointerCapture(e.pointerId);}catch(err){}
+  addEventListener('pointermove',move);addEventListener('pointerup',upEv);addEventListener('pointercancel',upEv);}
+ function move(e){if(!drag)return;
+  const dy=e.clientY-drag.y0;drag.moved=Math.max(drag.moved,Math.abs(dy));
+  const now=performance.now(),dt=now-drag.lt;
+  if(dt>0){drag.v=(e.clientY-drag.ly)/dt;drag.ly=e.clientY;drag.lt=now;}
+  drag.h=Math.min(fullH(),Math.max(20,drag.h0-dy));apply(drag.h);}
+ function upEv(){if(!drag)return;const d=drag;drag=null;
+  removeEventListener('pointermove',move);removeEventListener('pointerup',upEv);removeEventListener('pointercancel',upEv);
+  card.classList.remove('dragging');
+  if(d.moved<8&&performance.now()-d.t0<500){setSnap(snap==='peek'?'half':'peek');return;}
+  let i=0,best=Infinity;
+  SNAPS.forEach((s,k)=>{const g=Math.abs(snapH(s)-d.h);if(g<best){best=g;i=k;}});
+  /* 0.9 px/ms is where a flick stops being a drag. Measured lower (0.55), a
+     deliberate ~150ms pull already read as a flick and overshot its target by a
+     whole snap — the difference between a card you place and one that argues. */
+  if(d.v>.9)i--;else if(d.v<-.9)i++;
+  if(i<0||d.h<snapH('peek')*.55){close();return;}
+  setSnap(SNAPS[Math.min(SNAPS.length-1,i)]);}
+ grip.addEventListener('pointerdown',down);head.addEventListener('pointerdown',down);
+ grip.addEventListener('keydown',e=>{const i=SNAPS.indexOf(snap);
+  if(e.key==='ArrowUp'){e.preventDefault();setSnap(SNAPS[Math.min(2,i+1)]);}
+  else if(e.key==='ArrowDown'){e.preventDefault();if(i===0)close();else setSnap(SNAPS[i-1]);}
+  else if(e.key==='Enter'||e.key===' '){e.preventDefault();setSnap(snap==='peek'?'half':'peek');}});
+ /* Esc closes what is on top, and the card is the bottom-most thing it can
+    reach — it is not modal, so every overlay above it answers first. */
+ const covered=()=>!dgv.hidden||!kb.hidden||(swModal&&!swModal.hidden)||
+  document.getElementById('ws').classList.contains('open')||
+  document.getElementById('filters').classList.contains('open');
+ addEventListener('keydown',e=>{if(up&&e.key==='Escape'&&!covered())close();});
+ /* a rotation, or a phone's address bar sliding away, changes what the snaps mean */
+ addEventListener('resize',()=>{measure();if(up)apply(snapH(snap));});
+ MOBILE_MQ.addListener&&MOBILE_MQ.addListener(()=>{if(!isTouch())close();});
+
+ /* ---- the seams --------------------------------------------------------- */
+ const _openPanel=openPanel;
+ openPanel=function(){if(isTouch())return false;return _openPanel();};
+ const _setSide=setSide;
+ setSide=function(s){return _setSide(isTouch()?'hidden':s);};
+ const _centerOn=centerOn;
+ /* remembered, because a folder tap centres before its index has been fetched —
+    the card raises afterwards and re-aims at the band it now leaves */
+ centerOn=function(ele,delay){if(!isTouch())return _centerOn(ele,delay);aimed=ele;panToBand(ele);};
+ const _showDir=showDir, _showLog=showLog;
+ showDir=function(dir){if(!isTouch())return _showDir(dir);fillDir(dir);};
+ showLog=function(path){if(!isTouch())return _showLog(path);fillLog(path);};
+ const _select=select;
+ select=function(id){
+  if(!isTouch())return _select(id);
+  const ele=cy.getElementById(id);if(!ele||!ele.length)return;
+  if(!fill(id))return;
+  /* raise first: the card is already at its snap by the time focusNode pans, so
+     the band is measured once and the camera moves once */
+  raise();
+  focusNode(ele,false);
+  try{if(decodeURIComponent((location.hash||'').slice(1))!==id)location.hash=encodeURIComponent(id);}catch(e){}};
+ /* A bare-canvas tap deliberately does NOT dismiss the card. It used to, on the
+    reasoning that the gesture means "never mind" — but the dots are small, the
+    misses constant, and the card kept closing by accident, which is what made
+    the *next* dot replay the whole entrance. Exploring turned into a slideshow.
+    (It also explains why a tablet felt fine and a phone did not: the same code,
+    with dots far enough apart that the miss rarely fired.) The card is a preview
+    of the last dot you touched, so it survives a miss and swaps in place on a
+    hit; dismissing stays explicit — ✕, swipe down, or Esc. */
 })();
 
 /* ── mobile: the rail as a drawer, the topbar controls as a sheet, and a

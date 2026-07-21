@@ -38,7 +38,7 @@ const firedFlags = (page, flags) =>
 
 test.describe("body sanitization", () => {
   test("a concept body's scripts are stripped and the prose survives", async ({ hostile }) => {
-    await hostile.evaluate(() => cy.getElementById("payload").emit("tap"));
+    await hostile.evaluate(() => { cy.getElementById("payload").emit("tap"); });
 
     // The prose assertion is load-bearing: without it, a body that failed to
     // render at all would pass every "no script ran" check below and look
@@ -51,7 +51,7 @@ test.describe("body sanitization", () => {
   });
 
   test("event-handler attributes do not survive into the DOM", async ({ hostile }) => {
-    await hostile.evaluate(() => cy.getElementById("payload").emit("tap"));
+    await hostile.evaluate(() => { cy.getElementById("payload").emit("tap"); });
     await expect(hostile.locator("#side-body #body")).toContainText("SAFE-MARKER-9F3A");
 
     // Present-but-inert is not good enough: an onerror that DOMPurify left on
@@ -65,7 +65,7 @@ test.describe("body sanitization", () => {
   });
 
   test("javascript: URLs are stripped from links", async ({ hostile }) => {
-    await hostile.evaluate(() => cy.getElementById("payload").emit("tap"));
+    await hostile.evaluate(() => { cy.getElementById("payload").emit("tap"); });
     await expect(hostile.locator("#side-body #body")).toContainText("SAFE-MARKER-9F3A");
 
     expect(await hostile.evaluate(() =>
@@ -100,7 +100,7 @@ test.describe("inlined data escaping", () => {
     // esc() escapes quotes as well as angle brackets because it feeds
     // attributes: `data-focus-tag="${esc(t)}"`. The fixture's tag is the
     // classic breakout, `evil"onmouseover="…`.
-    await hostile.evaluate(() => cy.getElementById("attributes").emit("tap"));
+    await hostile.evaluate(() => { cy.getElementById("attributes").emit("tap"); });
     await expect(hostile.locator("#side-body")).toContainText("apostrophes");
 
     const handlers = await hostile.evaluate(() =>
@@ -115,7 +115,7 @@ test.describe("inlined data escaping", () => {
   });
 
   test("the title renders as text, with its markup visible rather than parsed", async ({ hostile }) => {
-    await hostile.evaluate(() => cy.getElementById("attributes").emit("tap"));
+    await hostile.evaluate(() => { cy.getElementById("attributes").emit("tap"); });
     // The literal characters are what a reader should see — proof it went
     // through a text path and not an HTML one.
     await expect(hostile.locator("#side-body .title")).toContainText("</script>");

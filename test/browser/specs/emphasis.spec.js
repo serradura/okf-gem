@@ -85,7 +85,7 @@ test.describe("emphasis (dim + highlight)", () => {
     await expect(app.locator("#btn-tree")).toHaveAttribute("aria-pressed", "true");
     await expect.poll(() => app.evaluate(() => cy.getElementById("dir::services").length)).toBe(1);
 
-    await app.evaluate(() => cy.getElementById("dir::services").emit("tap"));
+    await app.evaluate(() => { cy.getElementById("dir::services").emit("tap"); });
     await expect.poll(() => app.evaluate(() => cy.getElementById("dir::services").hasClass("hl"))).toBe(true);
 
     const op = await app.evaluate(() => ({
@@ -101,7 +101,7 @@ test.describe("emphasis (dim + highlight)", () => {
     await expect(app.locator("#btn-ix")).toHaveAttribute("aria-pressed", "true");
     await expect.poll(() => app.evaluate(() => cy.getElementById("ix::services").length)).toBe(1);
 
-    await app.evaluate(() => cy.getElementById("ix::services").emit("tap"));
+    await app.evaluate(() => { cy.getElementById("ix::services").emit("tap"); });
     await expect.poll(() => app.evaluate(() => cy.getElementById("ix::services").hasClass("hl"))).toBe(true);
 
     const op = await app.evaluate(() => ({

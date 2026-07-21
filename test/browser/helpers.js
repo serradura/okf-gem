@@ -106,6 +106,10 @@ export async function settledBox(page, { step = 150, tries = 24 } = {}) {
 // Click a concept through Cytoscape rather than at a screen coordinate: the
 // canvas has no DOM node to target, and a synthetic tap is what the page's own
 // handlers listen for.
+// The braces are not style: emit() returns the Cytoscape collection, and an
+// arrow with an expression body hands that back to Playwright to serialize —
+// a cyclic object graph with the whole cy instance hanging off it, which cost
+// ~5s per call. Returning nothing makes the same tap effectively free.
 export const clickNode = async (page, id) => {
-  await page.evaluate((nodeId) => cy.getElementById(nodeId).emit("tap"), id);
+  await page.evaluate((nodeId) => { cy.getElementById(nodeId).emit("tap"); }, id);
 };

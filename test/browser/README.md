@@ -95,6 +95,7 @@ specs/
   files-tree-deeppath.spec.js  a long reserved-row path ellipsizes, badge on-screen (own deep-path fixture)
   graph-zoomfloor.spec.js    the zoom floor relaxing on a graph bigger than the viewport (own 100-node ring)
   mobile-layout.spec.js the ≤768px tools sheet and file header, in geometry
+  mobile-preview.spec.js the touch preview card: the ended takeover, the band-pan, and the one transform it is allowed
   camera-races.spec.js un-cluster restore, index→tree, and one-camera-move (via the __camCenters counter)
   palette.spec.js      the ⌘K command palette (standalone: jump to a view)
   palette-hub.spec.js  the ⌘K palette in hub mode (switch bundle)
@@ -270,3 +271,22 @@ first green run were all cases of asserting what the code looked like it did:
 - Eight nodes fit at `maxZoom`, so a correct "fit" can leave the zoom
   unchanged. Assert the rendered bounding box is inside the viewport, which is
   what fit actually promises.
+- **`cose` seeds itself from `Math.random`.** Anything read off the boot layout
+  varies run to run, so a threshold with a thin margin is a coin flip wearing a
+  test's clothes. `graph-zoomfloor` asserted `minZoom < 0.2` against a spread
+  that landed between 0.135 and 0.2 across ten runs, and failed roughly two in
+  five — for no reason connected to the code. It now drives a deterministic
+  `circle` layout, which reaches the same `layoutstop → relaxZoom` road with a
+  reproducible extent. Prefer a chosen layout over the boot one whenever the
+  assertion is numeric.
+
+**Never let an `evaluate` return a Cytoscape object.** `clickNode` was written
+as `page.evaluate(() => cy.getElementById(id).emit("tap"))` — an arrow with an
+expression body, so it handed `emit`'s return value (the collection, with the
+whole `cy` instance hanging off it through `_private`) back to Playwright to
+deep-serialize. That cost **5.0s per tap**; with braces around the body it is
+**6ms**, and the eleven call sites across five specs were most of the suite's
+wall clock. The trap is that it is invisible — the spec passes, only slowly, so
+nothing points at it until a test with three taps in it hits the 30s timeout.
+Read the same way, `cy.nodes().map(n => n.id())` is fine and `cy.nodes()` is not:
+return ids, positions and numbers, never elements.

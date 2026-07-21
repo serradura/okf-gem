@@ -1,6 +1,29 @@
 # Update Log
 
 ## 2026-07-21
+* **Fix**: on a touch screen, tapping a concept destroyed the graph. At `≤768px`
+  the inspector is `grid-template-columns:0 1fr`, so a tap measured `#stage` at
+  **0 px wide** — the graph was not covered, it was gone, and exploring became
+  open → read → close → tap the next dot. A **preview card** now rises at the
+  bottom edge instead, carrying the concept's head over a graph that keeps every
+  pixel and stays live; drag it up for the neighbourhood and the body, tap a row
+  and it swaps in place while the camera walks. Two subtractions are the point:
+  the 0.26 s entrance is gone outright — the card takes exactly one transform
+  value for its whole life on screen — and a miss on bare canvas no longer
+  dismisses it, because the misses are constant at that size and each one made
+  the next dot replay the entrance. Together those two were the slideshow. The
+  camera aims at the visible band rather than the canvas centre, or the selected
+  node parks under the card describing it. The branch is wider than the chrome's
+  (`≤768px` **or** `≤1024px` portrait): a portrait tablet has the same bug and
+  wants the same gesture, while landscape at that size keeps the inspector.
+  Folder and index taps fill the card too — they used to write into an invisible
+  `#side-body`, so tree and cluster modes were silently dead on touch.
+* **Note**: `clickNode` in the browser suite returned Cytoscape's collection
+  from its `evaluate`, so Playwright deep-serialized the whole `cy` instance
+  hanging off it — **5.0 s per tap**, against 6 ms with braces round the body.
+  Eleven call sites across five specs; the full suite went 3.0m → 1.4m. The trap
+  is that it never fails, only costs, so nothing points at it until a spec with
+  three taps in it hits the 30 s timeout.
 * **Feature**: the graph page stops hiding what it can do. The topbar box said
   "search concepts…", *filtered* the current view, emptied the graph in silence
   when nothing matched, and never mentioned the ⌘K palette that searches every

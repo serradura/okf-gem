@@ -308,8 +308,11 @@ _The graph server on this repo's own [`.okf`](.okf) bundle, with the
 
 The page is one template from a phone to a desktop: on small screens the
 navigation rail becomes a drawer, the toolbar folds into a `⚙` sheet, and the
-panels go full-bleed — rotate a tablet and the layout re-evaluates. It is
-keyboard-first too: `⌘/Ctrl-K` opens a command palette in every mode (views
+panels go full-bleed — rotate a tablet and the layout re-evaluates. On a touch
+screen a tap opens a preview card at the bottom edge rather than a panel over
+the whole viewport, so the graph stays on screen and live while you read: drag
+the card up for the neighbourhood, tap a link in it and it walks there in place.
+It is keyboard-first too: `⌘/Ctrl-K` opens a command palette in every mode (views
 always; bundles too when a [hub](#one-registry-many-bundles) is serving), `/`
 jumps to the current view's search, and `?` answers with a sheet of every
 shortcut.

@@ -285,7 +285,7 @@ test.describe("graph modes", () => {
     await app.locator("#btn-tree").click();
     await expect.poll(() => app.evaluate(() => cy.getElementById("dir::services").length)).toBe(1);
 
-    await app.evaluate(() => cy.getElementById("dir::services").emit("tap"));
+    await app.evaluate(() => { cy.getElementById("dir::services").emit("tap"); });
     await expect.poll(() => app.evaluate(() => cy.getElementById("dir::services").hasClass("hl"))).toBe(true);
     expect(await app.evaluate(() => location.hash)).toBe("");
 
