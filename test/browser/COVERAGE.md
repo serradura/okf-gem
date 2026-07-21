@@ -23,10 +23,10 @@ the page (see below), because no external observable could pin it.
 
 The suite is strong on the interaction spine, the filters, the file tree, link
 resolution, both XSS defenses, the mobile chrome, the first-visit notes, the
-index layer, the diagram viewer and both halves of the command palette. What is
-left in the camera area is chiefly the graph-collapse-on-return, held as a
-`fixme` — a real defect whose repro is load-sensitive, waiting on the race being
-closed at the source or a page-side signal, not on a cleverer test. Read this
+index layer, the diagram viewer and both halves of the command palette. The
+graph-collapse-on-return that used to sit here as a held-open `fixme` is now
+**fixed and pinned** — its cause was the boot fit landing on a hidden canvas, not
+the resize race the note had assumed (see the bugs section below). Read this
 before deciding what to write next.
 
 ## The headline, by area
@@ -59,8 +59,8 @@ machine, the indexes-only filter and link resolution now reach ten of them.
 
 ## The specs that closed the gaps
 
-Twenty-three spec files, 125 tests per render mode (250 total, of which one —
-the held-open graph-collapse repro — is `fixme` in both modes). Beyond the
+Twenty-three spec files, 125 tests per render mode (250 total, all passing — the
+held-open graph-collapse `fixme` is now a normal test since the fix). Beyond the
 original spine (`boot`, `views`, `inspector`, `filters`, `graph-modes`,
 `responsive`) and `sanitization`:
 
@@ -112,10 +112,25 @@ original spine (`boot`, `views`, `inspector`, `filters`, `graph-modes`,
 
 ## Bugs this suite turned up
 
-Writing the specs surfaced two real, shipped bugs the string-level tests could
-not see. Both are now fixed:
+Writing the specs surfaced three real, shipped bugs the string-level tests could
+not see. All three are now fixed:
 
-1. **The log's graph button was visible when it should be hidden.**
+1. **The graph collapsed on return, and the cause was misdiagnosed for months.**
+   Dwell on another view, come back, and the graph redrew at a tenth of its size.
+   The held-open note blamed a resize race; tracing the one zoom animation that
+   actually ran showed it was a **fit**. `fitGraph` computes the zoom from the
+   container's own width, and the boot fit (`setTimeout(fitGraph, 400)` after
+   load) fires on whatever view is up by then — leave the graph inside that
+   window and it fits a hidden 0×0 canvas, `(w-2*pad)/bb.w` goes negative, and the
+   zoom clamps to minZoom, staying there on return. Fixed by guarding `fitGraph`
+   to skip a canvas with no size (the template already guarded the `?view=`
+   deep-link start for this exact reason, just not the navigate-away case), and
+   pinned by a deterministic `views.spec.js` test that fires the hidden fit by
+   hand and asserts the zoom is untouched — red before the guard, green after,
+   both modes. The lesson is in "the last camera fixes" below: the load-sensitive
+   flake was the symptom of a *timer racing boot*, not noise to route around.
+
+2. **The log's graph button was visible when it should be hidden.**
    `openReserved('log',…)` sets `#fp-graph.hidden = true`, but the button is a
    `.btn.text`, and `.btn.text{display:inline-flex}` outranked
    `.btn[hidden]{display:none}` at equal specificity — so it rendered 143px wide
@@ -124,13 +139,13 @@ not see. Both are now fixed:
    line 492) and pinned by a now-passing test in `indexes.spec.js` that was red
    before the rule.
 
-2. **Selection was illegible in cluster mode** — `focusNode` dimmed the compound
+3. **Selection was illegible in cluster mode** — `focusNode` dimmed the compound
    area boxes, whose opacity cascades to the nodes inside them, so the selected
    node and its neighbours faded too (measured effectiveOpacity 0.1). Reported by
    the maintainer, reproduced with a red test, fixed (dim leaves and edges, never
    `:parent`), and pinned by `emphasis.spec.js`.
 
-## The last camera fixes: one closed by instrumentation, one held open
+## The last camera fixes: one closed by instrumentation, one by reading the animation
 
 ### 1. one-camera-move-per-click (ed6c0af) — closed, but only by a page-side counter
 
@@ -164,16 +179,28 @@ now exists for a test to read. Weigh that trade before reaching for it elsewhere
 instrumentation earns its keep when the contract is a sub-frame timing the end
 state erases, and not otherwise.
 
-### 1b. graph-collapse-on-return — a `fixme`, the sibling still open
+### 1b. graph-collapse-on-return — closed by reading the animation, not the mechanism
 
-Its sibling. The graph returns from another view drawn at a tenth of its size
-when the return-resize rAF loses its race with the container getting sized back
-(`views.spec.js`, fully documented there). The repro is deterministic run alone
-but *load-sensitive* under the full suite's parallel workers, so a `test.fail`
-flips to an unexpected pass often enough to be a coin-flip red. It is held as a
-`test.fixme` — on the record, reproducible by flipping it back and running the
-file alone — rather than a flaky gate. Like one-camera-move, closing it for real
-needs the race pinned at the source or a page-side signal, not a cleverer test.
+Its sibling, and the more instructive close. It was held as a `test.fixme` on the
+theory that the collapse was a resize race — `setView`'s return rAF firing at
+0×0, the ResizeObserver's 240ms debounce — with a repro that was deterministic
+run alone but load-sensitive under parallel workers. Both halves of that were
+wrong. Trapping every zoom change through the round trip showed a *single* smooth
+animation to minZoom, and trapping `cy.animate` showed its caller was `fitGraph`,
+not any resize. The real bug: the boot fit (`setTimeout(fitGraph, 400)` after
+load) fires on whatever view is up by then, and `fitGraph` reads the container's
+own width — so leaving the graph inside that 400ms window fits a hidden 0×0
+canvas and the zoom clamps to minZoom. The load-sensitivity was the tell all
+along: under load, boot ran past 400ms and the fit landed while the graph was
+still *visible*, so it fit correctly and the bug "vanished" — a timer racing
+boot, not a resize racing layout.
+
+Fixed by guarding `fitGraph` to skip a zero-size canvas, and re-pinned as a
+normal (no longer `fixme`) `views.spec.js` test that fires the hidden fit
+directly and asserts the zoom is untouched — deterministic in both modes because
+it triggers the fit itself instead of racing the boot timer. No instrumentation
+needed: unlike one-camera-move, this bug leaves a stable end-state signal (the
+clamped zoom) once you know to read it.
 
 ### 2. The remaining periphery
 
@@ -194,13 +221,15 @@ either a product change or an unbuilt feature:
 
 ## What this does not say
 
-The suite is not weak at 53%. It found two real bugs and fixed both, covers the
-paths a reader walks most, and its console-error watch is a blanket check no
-per-behaviour test provides: any uncovered surface that throws during a covered
-flow still fails the run. The measurement is direction, not judgement — what is
-left points almost entirely at sub-frame camera timing, and the one piece of it
-now covered (one-camera-move) shows the cost: a page-side counter, not more view
-switching. The graph-collapse sibling waits on the same kind of move.
+The suite is not weak at 53%. It found three real bugs and fixed all three,
+covers the paths a reader walks most, and its console-error watch is a blanket
+check no per-behaviour test provides: any uncovered surface that throws during a
+covered flow still fails the run. The measurement is direction, not judgement —
+what is left points almost entirely at sub-frame camera timing, and the one piece
+of it that needed a page-side counter (one-camera-move) shows the honest cost of
+that. Its former sibling, the graph-collapse-on-return, turned out not to need
+one at all — once read as a fit rather than a resize, it left a stable signal and
+was fixed at the source.
 
 Two honest caveats about the number itself:
 

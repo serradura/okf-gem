@@ -79,7 +79,7 @@ helpers.js             the `app` fixture, the console-error watch, the DOM reade
 fixtures/bundle/       an OKF bundle shaped to reach the page's branches
 specs/
   boot.spec.js         what the page owes on arrival
-  views.spec.js        the rail, the number keys, canvas resize on return
+  views.spec.js        the rail, the number keys, no collapse from a hidden fit
   inspector.spec.js    open/close/widen, content, link following, focus chips
   filters.spec.js      chips, badge, search, and how they compose
   graph-modes.spec.js  cluster / tree / index layers, layouts, fit
@@ -152,9 +152,10 @@ palette (down to the ⌘⏎ new-tab chord, the Mermaid re-theme and the
 `prefers-color-scheme` boot). The last regression it closed —
 one-camera-move-per-click — cost a **product change**: a test-only counter added
 to the page (`window.__camCenters`), because no external observable could tell
-the fix from the bug. What is left is its sibling, the graph-collapse-on-return,
-held as a `fixme` and waiting on the same kind of page-side signal or a fix at
-the source. Read it before deciding what to write next.
+the fix from the bug. The graph-collapse-on-return that used to sit here as a
+`fixme` is now **fixed** — its cause turned out to be the boot fit landing on a
+hidden canvas, not the resize race the note assumed — and pinned by a
+deterministic spec. Read it before deciding what to write next.
 
 `sanitization.spec.js` is the one to copy the shape of. It runs against
 `fixtures/hostile`, a conformant bundle whose content attacks the page, and
@@ -164,8 +165,8 @@ mutation-checked by breaking them and watching it go red.
 
 ## Bugs this suite found
 
-Writing the coverage turned up two real, shipped bugs no string assertion could
-see. Both are now fixed.
+Writing the coverage turned up three real, shipped bugs no string assertion could
+see. All three are now fixed.
 
 `emphasis.spec.js` pins the first: selecting a node in cluster mode used to fade
 the whole graph. `focusNode` dimmed the compound area boxes, and a compound
@@ -180,31 +181,27 @@ c7bb1b5 "different file" symptom back through CSS. Fixed with
 `.btn.text[hidden]{display:none}` (the precedent at line 492); the test was red
 before the rule and green after.
 
-## Known bug, held open by a spec
+`views.spec.js` pins the third — and it is the one whose cause was **misdiagnosed
+for months**. The graph collapsed on return: dwell on another view, come back,
+and the graph redrew at a tenth of its size, a few dots in the top-left. The
+held-open note blamed a resize race (setView's rAF firing at 0×0, the
+ResizeObserver's 240ms debounce). Tracing it with the browser tools told a
+different story: the single zoom animation that ran was a **fit**, not a resize.
+`fitGraph` reads the container's own width to compute the zoom, and the one-shot
+boot fit scheduled 400ms after load (`setTimeout(fitGraph, 400)`) fires on
+whatever view you are on by then. Leave the graph inside that window and it fits
+a hidden 0×0 canvas, where `(w-2*pad)/bb.w` goes negative and the zoom clamps to
+minZoom — and stays there on return. The fix guards `fitGraph` to skip a canvas
+with no size (the template already knew the hazard: it excluded the `?view=`
+deep-link start for exactly this reason, just not the navigate-away case). The
+spec fires that hidden fit by hand and asserts the zoom is untouched — red before
+the guard, green after, in both render modes.
 
-`views.spec.js` carries one `test.fixme()` — the graph collapses on return.
-Dwell ~300ms or more on any other view, come back to Graph, and the graph
-redraws at about a tenth of its size: a few dots in the top-left corner.
-Confirmed by screenshot.
-
-Both resize paths run and neither is sufficient. `setView`'s
-`requestAnimationFrame(() => cy.resize())` fires while `#cy` is still 0×0, and
-the canvas `ResizeObserver`'s 240ms debounce has already cached the collapsed
-viewport by the time the container is back. A dwell of 0 passes because the
-observer never fired — which is why the bug survived: clicking through the
-rail quickly never reaches it.
-
-It is `fixme`, not `fail`, because the repro is **load-sensitive**. Run the file
-alone and the collapse lands every time; run it under the full suite's five
-parallel workers and the return-resize rAF is delayed enough that the container
-is already sized when it fires, so the graph comes back fine and a `test.fail`
-reports an *unexpected pass* — a coin-flip red that trains the reader to ignore
-the very signal the marker exists to raise. `fixme` keeps the bug on the record
-and in the report, the spec body documents exactly how to reproduce it (flip to
-`test.fail` and run this file alone), and the suite stays deterministically
-green. It sits beside one-camera-move in COVERAGE.md: a real defect with no
-external observable stable enough to gate on. Delete the marker when the fix
-lands.
+The misdiagnosis is the lesson: the old repro's load-sensitivity (deterministic
+alone, flaky under parallel workers) was not noise to route around with a
+`fixme` — it was the symptom pointing at a *timer racing boot*, not a resize
+racing layout. Reading the actual animation, not the plausible mechanism, is what
+found it.
 
 ## Writing a spec
 

@@ -57,56 +57,53 @@ test.describe("view switching", () => {
     await expect(app.locator("#search")).toHaveValue("4");
   });
 
-  // KNOWN BUG — held open, but as `fixme`, not `fail`. The distinction is
-  // load-sensitivity: the collapse is a race between setView's return-resize
-  // rAF and the container getting its size back, and whether it lands depends
-  // on how contended the event loop is. Run alone it reproduces every time; run
-  // under the full suite's five parallel workers the rAF is delayed enough that
-  // the container is already sized when it fires, so the graph comes back fine
-  // and a `test.fail` reports an *unexpected pass*. That is the same flake a
-  // held-open marker is supposed to remove, not add — a coin-flip red teaches
-  // the maintainer to ignore the signal it exists to raise.
+  // Once a held-open bug (a `test.fixme` for months), now fixed and pinned. The
+  // defect: dwell on another view and return to Graph, and the graph came back
+  // drawn at a tenth of its size — a few dots in the top-left corner, confirmed
+  // by screenshot. The cause was misdiagnosed for a long time as a resize race;
+  // it was actually the boot fit. `fitGraph` reads the container's own width to
+  // compute the zoom, and the one-shot fit scheduled 400ms after load
+  // (setTimeout(fitGraph,400)) fires on whatever view you are on by then — leave
+  // the graph inside that window and it fits a hidden 0×0 canvas, where
+  // (w-2*pad)/bb.w goes negative and the zoom clamps to minZoom. The graph then
+  // *stays* zoomed all the way out when you come back. The fix guards fitGraph to
+  // skip a canvas with no size.
   //
-  // So this is `fixme`: the bug stays on the record and in the report, the body
-  // below documents exactly how to reproduce it (flip to `test.fail` and run
-  // this file alone to watch it go red), and the suite stays deterministically
-  // green. It joins one-camera-move as a real defect with no external observable
-  // stable enough to gate on — both wait on the same fix: instrumentation in the
-  // page, or the resize race closed at the source. Delete this marker then.
-  //
-  // The defect itself: dwell ~300ms or more on any other view and come back, and
-  // the graph returns drawn at about a tenth of its size — a few dots in the
-  // top-left corner, confirmed by screenshot. Both resize paths run and neither
-  // is sufficient: setView's requestAnimationFrame(cy.resize()) fires while the
-  // container is still 0×0, and the canvas ResizeObserver's 240ms debounce has
-  // already cached the collapsed viewport by then.
-  test.fixme("leaving and returning to the graph redraws it at full size", async ({ app }) => {
-    // Cytoscape measures a hidden container as 0×0 and keeps that as its
-    // renderer viewport; without a resize() on the way back the graph returns
-    // drawn into a few dozen pixels at the origin.
-    //
-    // Assert the *rendered* bounding box, not cy.width() and not the #cy
-    // element's box: both of those read the live container and stay correct
-    // even while the render is collapsed, so a test on either passes with
-    // every resize path disabled — it can never fail, which makes it worse
-    // than no test.
+  // This pins it deterministically by invoking that exact trigger — a fit while
+  // the canvas is hidden — instead of racing the boot timer (which is what made
+  // the old repro load-sensitive: under parallel load boot ran past 400ms, the
+  // fit landed while the graph was still visible, and the bug did not reproduce).
+  test("a fit fired while the graph is hidden does not collapse it on return", async ({ app }) => {
     const before = await settledBox(app);
     expect(before.w).toBeGreaterThan(300);
+    const zoomBefore = await app.evaluate(() => +cy.zoom().toFixed(3));
 
     await showView(app, "stats");
-    // Two preconditions, both required, neither assumable. The container has
-    // to actually reach 0×0, *and* the canvas ResizeObserver's 240ms debounce
-    // has to fire while it is there — that is what caches the 0×0 viewport.
-    // A faster round trip leaves the graph fine no matter what the view
-    // switch does, so a test without this dwell passes with every resize path
-    // deleted.
-    await app.waitForFunction(() => document.getElementById("cy").getBoundingClientRect().width === 0);
-    await app.waitForTimeout(600);
+    // Wait for Cytoscape's *own* width to reach 0, not the container's bounding
+    // box. fitGraph computes the zoom from cy.width(), and that only collapses to
+    // 0 once the canvas ResizeObserver's 240ms debounce has fired on the hidden
+    // container — call fitGraph before that and cy.width() is still the old full
+    // value, so nothing clamps and the bug hides. The RO resize is unguarded, so
+    // this reaches 0 in both the fixed and the buggy build; the poll just waits.
+    await expect.poll(() => app.evaluate(() => cy.width()), { timeout: 4000 }).toBe(0);
+    // Fire the boot fit's exact call by hand, while genuinely hidden. Deterministic:
+    // no dependence on when the 400ms timer lands relative to boot.
+    await app.evaluate(() => fitGraph());
+    await app.waitForTimeout(600); // let any (buggy) zoom-to-minZoom animation finish
+
+    // The deterministic assertion, mode-independent: the hidden fit must NOT have
+    // touched the zoom. Without the guard fitGraph clamps it to minZoom here (the
+    // (w-2*pad)/bb.w term goes negative at cy.width()===0), and the graph is
+    // already collapsed — this is what the guard prevents, in both render modes.
+    // The rendered-box check below is the user-facing symptom, but it self-heals
+    // in server mode when the pending boot-fit timer re-fits on return, so it is
+    // the confirmation, not the guard.
+    const zoomHidden = await app.evaluate(() => +cy.zoom().toFixed(3));
+    expect(zoomHidden, "a fit on a hidden canvas must not clamp the zoom to minZoom").toBe(zoomBefore);
 
     await showView(app, "graph");
-
-    // settledBox, not a first-good-reading poll: the collapse takes ~200ms to
-    // show, so an eager poll would accept the pre-collapse value and pass.
+    // settledBox, not a first-good-reading poll: a collapse animates in over
+    // ~200ms, so an eager poll would accept the pre-collapse value and pass.
     const after = await settledBox(app);
     expect(after.w).toBeGreaterThan(300);
     expect(after.h).toBeGreaterThan(200);

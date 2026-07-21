@@ -1,6 +1,25 @@
 # Update Log
 
 ## 2026-07-20
+* **Fix**: the graph no longer collapses on return from another view — and the
+  cause was misdiagnosed for months. The [browser suite](design/browser-tests.md)
+  held it open as a `test.fixme` on the theory it was a resize race (setView's rAF
+  firing at 0×0, the ResizeObserver's 240ms debounce). Tracing it with the
+  browser tools — trapping every zoom change, then `cy.animate`'s caller — showed
+  the one animation that ran was a *fit*, not a resize: `fitGraph` reads the
+  container's own width, and the one-shot boot fit (`setTimeout(fitGraph, 400)`
+  after load) fires on whatever view is up by then. Leave the graph inside that
+  window and it fits a hidden 0×0 canvas, `(w-2*pad)/bb.w` goes negative, and the
+  zoom clamps to minZoom — staying there on return. Fixed by guarding `fitGraph`
+  to skip a zero-size canvas (the template already guarded the `?view=` deep-link
+  start for this exact reason, just not the navigate-away case). The `fixme` is
+  now a normal `views.spec.js` test that fires the hidden fit by hand and asserts
+  the zoom is untouched — deterministic in both modes, red before the guard, green
+  after. The lesson: the old repro's load-sensitivity (deterministic alone, flaky
+  under parallel workers) was not noise to route around with a `fixme` — it was
+  the symptom of a timer racing boot. Under load, boot ran past 400ms and the fit
+  landed while the graph was still visible, so it fit correctly and the bug
+  "vanished." Reading the actual animation, not the plausible mechanism, found it.
 * **Update**: `one-camera-move-per-click` (ed6c0af) is now covered — the #1
   uncovered regression fix, pushing [browser coverage](design/browser-tests.md)
   to ~50 of 94. It could not be closed with a cleverer test: every end-state

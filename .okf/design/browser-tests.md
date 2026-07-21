@@ -91,23 +91,27 @@ from the fix — was closed only by making the page observable: a test-only coun
 (`window.__camCenters`) the spec reads at the synchronous instant after the tap,
 0 when the pan is deferred and 1 when it fires immediately. That is the honest
 cost of a sub-frame timing contract, and it is deliberately the exception, not
-the pattern. Its sibling, the graph-collapse-on-return, is deterministic run
-alone but load-sensitive under parallel workers, so it is held as a `test.fixme`
-rather than a coin-flip `test.fail`, waiting on the same kind of signal or a fix
-at the source.
+the pattern. Its sibling, the graph-collapse-on-return, needed no counter at all:
+once traced it turned out not to be a resize race but the boot fit landing on a
+hidden 0×0 canvas and clamping the zoom to minZoom, and it left a stable
+end-state signal (the clamped zoom) that closed it deterministically at the
+source.
 
-Two dividends of the work land here. Writing the specs turned up two real,
-shipped bugs no string assertion could see, both now fixed: cluster-mode
-selection faded the whole graph (a compound parent's opacity cascades to its
-nodes); and a log's "Open in graph" button stayed visible though the code hides
-it, because `.btn.text{display:inline-flex}` outranked `.btn[hidden]` at equal
-specificity (fixed by a `.btn.text[hidden]` rule, the precedent already used for
-`.fp-head`). Both are the assert-the-collapsible rule below paying out: a defect
+Three dividends of the work land here. Writing the specs turned up three real,
+shipped bugs no string assertion could see, all now fixed: cluster-mode selection
+faded the whole graph (a compound parent's opacity cascades to its nodes); a
+log's "Open in graph" button stayed visible though the code hides it, because
+`.btn.text{display:inline-flex}` outranked `.btn[hidden]` at equal specificity
+(fixed by a `.btn.text[hidden]` rule, the precedent already used for `.fp-head`);
+and the graph collapsed on return, whose cause was misdiagnosed as a resize race
+for months until the browser tools showed the one animation running was a *fit*
+of a hidden canvas (fixed by guarding `fitGraph` against a zero-size container).
+All three are the assert-the-collapsible rule below paying out: a defect
 invisible on inspection, caught by reading computed state, red before the fix and
-green after.
+green after. The third also earns its own lesson — a load-sensitive flake was the
+symptom of a timer racing boot, not noise to route around with a `fixme`.
 `COVERAGE.md` carries the full ranked list and what remains — now chiefly the
-graph-collapse-on-return `fixme`, one-camera-move-per-click having been closed by
-the counter it always needed.
+sub-frame periphery, both named camera defects having been closed.
 
 # Writing a spec: read the page, then assert
 

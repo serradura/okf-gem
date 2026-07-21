@@ -1480,7 +1480,13 @@ function relaxZoom(){const bb=fitBox(),w=cy.width(),h=cy.height();
 // and let the handler take every layout after it.
 cy.on('layoutstop',relaxZoom);relaxZoom();
 
-function fitGraph(){relaxZoom();const bb=fitBox();if(!bb)return;
+/* A fit reads the container's own width to compute the zoom, so fitting a hidden
+   0×0 canvas clamps straight to minZoom — and the graph then returns from another
+   view as a few dots in the corner. The boot fit (setTimeout after load, below)
+   is the caller that reaches this hidden: leave the graph inside its 400ms window
+   and it lands on nothing. Skip the fit when the canvas has no size — the graph
+   keeps its last good zoom across the round trip. */
+function fitGraph(){if(!cyEl.clientWidth||!cyEl.clientHeight)return;relaxZoom();const bb=fitBox();if(!bb)return;
  /* padding scales with the canvas — 60px is right on a desktop but eats a third
     of a phone's width */
  const w=cy.width(),h=cy.height(),pad=Math.min(60,Math.max(16,Math.round(w*.06)));
