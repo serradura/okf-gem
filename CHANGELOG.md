@@ -237,6 +237,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   names this same min-zoom clamp — it was the navigate-away case that went
   uncovered.
 
+- `okf help`'s map advertised `search … [-e|--fuzzy]`, pairing a shorthand
+  it never expanded with an unrelated flag, so the one hint that an engine is
+  selectable read as though `-e` might *be* the engine switch. The row now says
+  `[--regexp|--fuzzy]`, which is what the command's own banner says; `-e` still
+  works and `search --help` still spells it out.
 - **`okf skill <a> <b>` installed into `<a>` and exited 0.** It hand-rolled
   its own argument handling instead of using the shared pair every `<dir>` verb
   goes through, so a second destination was silently dropped — the user named two

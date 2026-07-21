@@ -27,7 +27,7 @@ module OKF
 
       def self.help_rows
         [
-          [ "search    <dir|@slug…|@all> <term…> [-e|--fuzzy] [...]", "find concepts by text or regexp, ranked (@all: every bundle)" ]
+          [ "search    <dir|@slug…|@all> <term…> [--regexp|--fuzzy]", "find concepts by text or regexp, ranked (@all: every bundle)" ]
         ]
       end
 

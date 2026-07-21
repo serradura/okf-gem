@@ -15,7 +15,7 @@ module OKF
 
       def self.help_rows
         [
-          [ "graph     <dir|@slug> [--json] [--minimal] [--no-body] [--hubs]", "print the knowledge graph" ]
+          [ "graph     <dir|@slug> [--json] [--minimal] [--hubs]", "print the knowledge graph" ]
         ]
       end
 
