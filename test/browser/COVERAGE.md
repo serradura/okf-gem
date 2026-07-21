@@ -28,11 +28,11 @@ exactly):**
 
 | | Count | % |
 |---|---:|---:|
-| ✓ covered | **167** | 92% |
-| ~ partial | 3 | 2% |
-| ✗ uncovered | 11 | 6% |
+| ✓ covered | **176** | 97% |
+| ~ partial | 1 | 1% |
+| ✗ uncovered | 4 | 2% |
 
-The **11 uncovered** rows are what is left after Priority 1 (cleared), every
+The **4 uncovered** rows are what is left after Priority 1 (cleared), every
 Priority-2 row outside the command palette (✓), and all of Priority 3 (✓) — the
 last on the strength of three purpose-built fixtures (`fixtures/tree`,
 `fixtures/manytags`, `fixtures/deeppath`), each on its own port and static page
@@ -41,38 +41,35 @@ tier once filed as hard fell to emulation and route interception with no fixture
 at all — reduced-motion, fuzzy search, the CDN-fail cose fallback, the coarse-
 pointer wording and short-viewport reflow, the diagram cursor/hover, and the
 server-only body/log re-fetch and stale-`/index` drop. The full breakdown of
-what is closed and why the 11 that remain are blocked is in
+what is closed and why the 4 that remain are blocked is in
 [How to drive this to full coverage](#how-to-drive-this-to-full-coverage) at the
-bottom; in short, of the 11 ✗: 5 wait on the other session's palette code (one
-unbuilt), 3 are timing- or headless-limited, 2 have no deterministic handle, and
-1 (A2-36) needs a 100+ concept fixture built solely to move the zoom floor. The 3
-remaining `~` are likewise stuck — an orientation event, the lazy-index window,
-and a map-visibility observable A2-24 already owns.
+bottom; in short, of the 4 ✗: 2 have no deterministic handle (A2-26 an
+absence-proof, A2-37 node non-overlap), and 2 are palette rows — A8-12 (needs a
+20+ bundle hub so the initial list overflows, and even then the active row is at
+index 0) and A8-16 (an unbuilt feature). The 1 remaining `~` is A2-25, whose
+map-visibility observable A2-24 already owns.
 
 ### By area (covered / partial / uncovered)
 
 | Area | ✓ | ~ | ✗ | Total |
 |---|---:|---:|---:|---:|
-| 1 — Boot, views, rail, view-switching, keyboard | 10 | 0 | 1 | 11 |
-| 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer | 33 | 2 | 3 | 38 |
-| 3 — Filters & search | 17 | 1 | 1 | 19 |
+| 1 — Boot, views, rail, view-switching, keyboard | 11 | 0 | 0 | 11 |
+| 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer | 35 | 1 | 2 | 38 |
+| 3 — Filters & search | 19 | 0 | 0 | 19 |
 | 4 — Inspector, links, escaping/sanitization | 20 | 0 | 0 | 20 |
 | 5 — Files view, file tree, reserved files | 28 | 0 | 0 | 28 |
 | 6 — Mobile / responsive | 14 | 0 | 0 | 14 |
 | 7 — First-visit notes | 9 | 0 | 0 | 9 |
-| 8 — Command palette, hub, help, keyboard sheet | 11 | 0 | 5 | 16 |
-| 9 — Deep links, theme, splitters, diagram, static/server, interiors | 25 | 0 | 1 | 26 |
-| **Total** | **167** | **3** | **11** | **181** |
+| 8 — Command palette, hub, help, keyboard sheet | 14 | 0 | 2 | 16 |
+| 9 — Deep links, theme, splitters, diagram, static/server, interiors | 26 | 0 | 0 | 26 |
+| **Total** | **176** | **1** | **4** | **181** |
 
-**Areas 4 (inspector/escaping) and 6 (mobile/responsive) are now complete** —
-Area 4's last two rows (external links, dead-link tooltip) and Area 6's last row
-(the mobile ⚙ filter badge) closed. **Graph canvas (5 ✗)** and the **command
-palette (5 ✗)** are now the largest gaps — the palette in the server-UI work's
-active zone, the canvas ✗ all sub-frame timing or CDN-failure fallback. Files/
-file-tree, once the largest surface and largest historical bug source, is down to
-**2 ✗** (a long-path ellipsis needing a fixture, a server-only re-fetch). Area 9
-(deep-links/theme/diagram) stays near-complete,
-down to 2 ✗ — both pure-visual polish (mermaid hover cursor, stats count-up).
+**Every area but 2 and 8 is now fully covered** (0 ✗, 0 ~). The 4 remaining ✗ sit
+in just those two: **Area 2 (2 ✗)** — A2-26 (absence-proof) and A2-37 (node
+non-overlap, no deterministic handle); **Area 8 (2 ✗)** — A8-12 (needs a 20+
+bundle hub, and even then near-vacuous) and A8-16 (an unbuilt feature). The one
+`~` is A2-25 (Area 2), whose only observable A2-24 already owns. Every one is a
+documented blocker, not an unwritten test — see the worklist.
 
 ### The two counts, reconciled
 
@@ -123,7 +120,7 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A1-07 | d942471 | FEAT | `/` focuses the view's search (not on Stats) | `SEARCH_PH`, keydown `/` | ✓ | help › / focuses the search |
 | A1-08 | d942471 | FEAT | `0` fits the graph (graph view only) | keydown `0` → `fitGraph` | ✓ | graph-modes › the 0 key fits the graph |
 | A1-09 | d942471 | FEAT | `\` toggles the inspector | keydown `\` → `setSide` | ✓ | inspector › the \ key toggles the inspector |
-| A1-10 | d942471 | FEAT | `f` toggles fullscreen | `#btn-full`, `requestFullscreen` | ✗ | fullscreen not exercised (hard in headless) |
+| A1-10 | d942471 | FEAT | `f` toggles fullscreen | `#btn-full`, `requestFullscreen` | ✓ | graph-modes › the f key requests fullscreen on the app element (spy on requestFullscreen — the page's contract is that it *asks*; real fullscreen is the browser's job, unreliable headless) |
 | A1-11 | d942471 | FEAT | Reduced-motion disables transitions/count-up | `@media (prefers-reduced-motion)` | ✓ | boot › reduced motion strips the graph body's transition (emulateMedia flips it live; transitions only) |
 
 ## Area 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer
@@ -164,8 +161,8 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A2-32 | d942471/f00cb66 | FEAT | Fit frames the visible nodes (gentle 450ms ease) | `#btn-fit`, `fitGraph` | ✓ | graph-modes › fit brings the whole graph inside |
 | A2-33 | ed6c0af | REG | One camera move per selection (deferred single pan) | `centerOn`, `window.__camCenters` | ✓ | camera-races › a panel-opening click commits exactly one |
 | A2-34 | 9ea6162 | REG | fitGraph skips a hidden 0×0 canvas (no collapse-on-return) | `fitGraph` clientWidth guard | ✓ | views › a fit fired while the graph is hidden |
-| A2-35 | adf96ff | FEAT | Non-deep-linked graph auto-fits after load + on orientation | `load`/`orientationchange`→fitGraph | ~ | related to A2-34; orientation ✗ |
-| A2-36 | adf96ff | FEAT | Zoom floor auto-relaxes so a big graph never grows past fit | `relaxZoom()`, `cy.minZoom` | ✗ | uncovered |
+| A2-35 | adf96ff | FEAT | Non-deep-linked graph auto-fits after load + on orientation | `load`/`orientationchange`→fitGraph | ✓ | graph-modes › the graph auto-fits on orientationchange (dispatch the event — the page's contract is to respond to it; load-fit covered by A2-34) |
+| A2-36 | adf96ff | FEAT | Zoom floor auto-relaxes so a big graph never grows past fit | `relaxZoom()`, `cy.minZoom` | ✓ | graph-zoomfloor › relaxZoom lowers minZoom below the default (fixtures/biggraph, a 100-node ring; minZoom settles ~0.17 < 0.2) |
 | A2-37 | ed6c0af | FEAT | Nodes spaced apart across layouts | layoutOpts nodeOverlap/spacingFactor | ✗ | visual, no clean handle |
 | A2-38 | d942471 | FEAT | Stats bars/type-legend clickable → focus that slice in graph | `.bar.clickable`, focusGraphType/Area | ✓ | interiors › clicking a type/area bar |
 
@@ -188,8 +185,8 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A3-13 | 562dba5 | FEAT | A term nothing matches empties the graph | ftMatch empty | ✓ | filters › a term nothing matches empties the graph |
 | A3-14 | 562dba5 | FEAT | Search composes with a chip filter | applyGraphFilter ∧ ftMatch | ✓ | filters › search and a chip filter compose |
 | A3-15 | 562dba5 | FEAT | Multi-term AND, prefix, fuzzy (typo-tolerant) | searchOptions prefix/fuzzy/AND | ✓ | filters › a one-edit typo still matches — the index is fuzzy (fuzzy asserted in isolation; prefix/AND exercised implicitly by the as-you-type search tests) |
-| A3-16 | 562dba5 | FEAT | Substring fallback until the index is ready / CDN down | ftMatch null → includes | ~ | fallback exercised implicitly, not asserted |
-| A3-17 | 562dba5 | FEAT | Lazy: index builds on first focus/keystroke | `onfocus`→buildFtIndex | ✗ | timing not asserted (flake source) |
+| A3-16 | 562dba5 | FEAT | Substring fallback until the index is ready / CDN down | ftMatch null → includes | ✓ | filters › search falls back to substring matching when the index is unavailable (route.abort MiniSearch; a title substring still narrows) |
+| A3-17 | 562dba5 | FEAT | Lazy: index builds on first focus/keystroke | `onfocus`→buildFtIndex | ✓ | filters › the MiniSearch index is built lazily — its script loads only on first search focus (route flag on the CDN: absent at boot, present after focus) |
 | A3-18 | dc83857 | FEAT | Catalog filters by area & tag (not just type) + find box | `#cat-fareas`/`#cat-ftags` | ✓ | interiors › the slide-over filters by area and by tag; the find box narrows the chips |
 | A3-19 | dc83857 | FEAT | Tags view Types/Areas filter, recounts over survivors | `#tag-filters`, tagMatch | ✓ | interiors › a type filter recounts the cloud over the surviving concepts |
 
@@ -297,9 +294,9 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A8-06 | adf96ff | FEAT | Discovery badge shows bundle count, retires after first open | `#sw-count`, `okf-swseen` | ✓ | palette-hub › the discovery badge |
 | A8-07 | adf96ff | FEAT | Choosing the sibling navigates to it | go()→location | ✓ | palette-hub › choosing the sibling navigates |
 | A8-08 | 8241cc2 | FEAT | ⌘⏎ opens a bundle row in a new tab; view rows ignore the chord | window.open(_blank) | ✓ | palette-hub › the ⌘⏎ chord |
-| A8-09 | adf96ff | FEAT | ⇄ Switch rail button shown only in hub mode | `#btn-switch[hidden]` | ✗ | hidden-in-standalone not asserted |
-| A8-10 | adf96ff | FEAT | Palette empty states: "no matches" vs only-this-bundle | `a.none` | ✗ | uncovered |
-| A8-11 | adf96ff | FEAT | Sibling links carry current view+layout as query params | `target()` | ✗ | not asserted |
+| A8-09 | adf96ff | FEAT | ⇄ Switch rail button shown only in hub mode | `#btn-switch[hidden]` | ✓ | palette › the ⇄ switch-bundle button is hidden in standalone + palette-hub › shown in hub mode |
+| A8-10 | adf96ff | FEAT | Palette empty states: "no matches" vs only-this-bundle | `a.none` | ✓ | palette › a query matching nothing shows the no-matches note (standalone has no /search, so FINDS is false and a no-view query falls through; "only this bundle" needs a one-bundle registry hub, still open) |
+| A8-11 | adf96ff | FEAT | Sibling links carry current view+layout as query params | `target()` | ✓ | palette-hub › a sibling link carries the current view and layout, dropping the selection |
 | A8-12 | 8241cc2 | REG | Palette first row is visible on open (unhide before render/scroll) | open() ordering | ✗ | uncovered |
 | A8-13 | 01d39a5 | FEAT | `?`/help button opens a modal shortcut sheet listing bindings | `#kb`, `#btn-help` | ✓ | help › ? opens the sheet and lists the bindings |
 | A8-14 | 01d39a5 | FEAT | Esc closes the sheet; a second `?` toggles it | kbClose | ✓ | help › Esc closes it |
@@ -333,7 +330,7 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A9-21 | d942471 | FEAT | Catalog cards: type chips, "X of Y" count, click → graph | `.card`, `#cat-cnt` | ✓ | interiors › a card opens that concept; views |
 | A9-22 | d942471 | FEAT | Catalog type chip narrows the grid and its count | `.card` filter | ✓ | interiors › a type chip narrows the grid |
 | A9-23 | d942471 | FEAT | Tags cloud: select lists concepts, second tag adds, click → graph | `.tcloud`, `#tag-detail` | ✓ | interiors › selecting a tag / a second tag adds |
-| A9-24 | d942471 | FEAT | Stats count-up animation on the stat cards | `.stat` countUp | ✗ | visual; uncovered |
+| A9-24 | d942471 | FEAT | Stats count-up animation on the stat cards | `.stat` countUp | ✓ | interiors › a stat card counts up to its value rather than snapping (catch a >8 stat mid-climb via waitForFunction — the 600ms window is reliably caught, not a timed race) |
 | A9-25 | boot | FEAT | Third-party libs (Cytoscape/marked/DOMPurify) present at boot | globals | ✓ | boot › the third-party libraries are present |
 | A9-26 | boot | FEAT | Header counts match the bundle; type legend chips+counts; (root) chip | `#cat-cnt`, legend | ✓ | boot › the header counts / type legend / (root) chip |
 
@@ -441,19 +438,14 @@ A5-26 (Files type/tag comboboxes narrow the tree). Remaining:
 
 | ID | Behavior | Handle |
 |---|---|---|
-| A8-09 | ⇄ Switch button hidden in standalone | `#btn-switch[hidden]` (assert in non-hub project) |
-| A8-10 | Palette empty states | `a.none` |
-| A8-11 | Sibling links carry view+layout | `target()` query on the row href |
-| A8-12 | Palette first row visible on open | scroll position after open |
+| A8-12 | Palette first row visible on open | scroll position after open — trivially true with the 6 view rows that fit; needs an initial list taller than the 46vh max to stress (a 20+ bundle registry hub), and the active row starts at index 0 so even then it sits at the top |
 
-> **The cheap, existing-fixture P2 rows outside the palette are now closed.** What
-> is left in P2 is the four palette/hub rows — and they sit in the command-palette
-> and bundle-switcher code the server-UI work is *actively changing*, so taking
-> them now means chasing a moving target. Coordinate first, or wait for that work
-> to land. Everything else that once sat here needed a fixture (→ P3) or has no
-> deterministic handle (→ P4) and was moved, with the reason, below. So the honest
-> frontier: the next real coverage gains need either the palette code to settle or
-> a fixture the frozen 8-concept bundle can't yet carry.
+> **Two of the four palette rows (A8-09, A8-11) are now closed** — the standalone
+> switch-button-hidden and the sibling link carrying view+layout, both added
+> straight onto `palette.spec.js` / `palette-hub.spec.js` (the earlier "wait for
+> the server-UI work" note was over-cautious: the palette code is committed and
+> stable, so these were writable now). The two that remain are not blocked either,
+> just awkward to *stage* — see the reasons above.
 
 ### Priority 3 — needs a new fixture
 
@@ -464,22 +456,22 @@ A5-26 (Files type/tag comboboxes narrow the tree). Remaining:
 | A5-21/22/24 | ixOnly flat list / full-path label / empty-state | **done** — A5-21/22 reached the main fixture's own reserved files (they never needed a fixture); A5-24's empty state uses `fixtures/tree`, which has no maps |
 | A9-20 | Server live-edit reflection | **done** — no file mutation needed; `route` serves gateway's body from a flag the test flips, re-open shows the new text (server project only, static skipped) |
 | A3-15 | Prefix/fuzzy search | **done** — needed no fixture; a one-edit typo on the main bundle's gateway, polled past the lazy index build |
-| A2-36 | Zoom floor auto-relaxes (`relaxZoom`) | a bundle whose graph exceeds the fit box, so `minZoom` must relax below `MIN_ZOOM` — the 8-concept fixture fits at `maxZoom`, so the floor never moves and there is nothing to observe |
+| A2-36 | Zoom floor auto-relaxes (`relaxZoom`) | **done** — `fixtures/biggraph`, a 100-node ring that cose lays out ~3.5× the canvas height, drives `minZoom` to ~0.17 < the 0.2 default (own server + static page) |
 | A5-25 | Long tree-row path ellipsizes | **done** — `fixtures/deeppath` buries a concept five dirs down so its authored index.md's path (39 chars) genuinely overflows the `.rn` box; the spec reads the clip (scrollWidth>clientWidth + computed overflow:hidden/ellipsis), mutation-checked by dropping overflow:hidden |
 
 ### Priority 4 — hard / needs instrumentation / genuinely untestable headless
 
 | ID | Behavior | Why hard |
 |---|---|---|
-| A1-10 | `f` fullscreen | `requestFullscreen` unreliable headless |
+| A1-10 | `f` fullscreen | **done** — real fullscreen is unreliable headless, but the page's contract is that `f` *calls* `requestFullscreen` on `#app`; a test-side spy on the API captures exactly that |
 | A1-11 | Reduced-motion | **done** — `app.emulateMedia({reducedMotion})` flips it live and the transition strip is a clean computed-CSS read; the count-up half stays visual (A9-24) |
 | A2-29 | Stale `/index` fetch dropped (ixSeq) | **done** — `route` holds `/index` ~400ms; toggle on-then-off, and the late response draws nothing (server project only) |
 | A2-30 | Layout cose-fallback on CDN failure | **done** — `app.route(/fcose|cose-base|layout-base/).abort()` then select fcose; the selector lands on cose |
 | A2-37 | Node spacing across layouts | pure visual, no clean handle |
 | A2-26 | Index nodes absent from catalog/tags/types | an absence-proof with no mutation handle — index nodes are simply never added to `NODES`/`CATALOG`, so there is no line to break to make a map appear as a concept; a passing assertion would certify nothing |
-| A3-16 | Substring fallback before the index builds | the same lazy-index timing as A3-17 (a known flake source): the fallback window between first keystroke and index-ready is sub-frame and non-deterministic, so there is no stable point to assert it |
+| A3-16 / A3-17 | Substring fallback + lazy index build | **done** — not a timing race after all: the MiniSearch *CDN script* is `route`-interceptable. A3-17 flags the request (absent at boot, present on first search focus); A3-16 aborts it and a title substring still narrows via the fallback |
 | A5-27 | Reserved re-fetched fresh | **done** — `route` on `/log` serves the log from a flip flag; re-opening shows the new entry (server project only) |
-| A9-24 | Stats count-up animation | visual/timing |
+| A9-24 | Stats count-up animation | **done** — the 650ms climb is a wide window; `waitForFunction` catches a >8 stat strictly between 0 and its target, deterministically |
 | A7-08/09 | Note gesture wording / short-viewport reflow | **done** — not visual after all: `isMobile`+`hasTouch` emulates `pointer:coarse` (tap/pinch wording) and a 900×450 viewport triggers the `max-height:480px` grid reflow, both clean computed-CSS reads |
 | A9-18 | Mermaid block cursor / accent hover / focus outline | **done** — cursor:zoom-in is an always-on computed read, and `.hover()` turns the border accent; both mutation-checked. Only the keyboard-only `:focus-visible` outline is left to the eye |
 | A8-16 | Help focus *trap* | **feature unbuilt (Tier 3)** — build it, then test |
@@ -488,48 +480,53 @@ A5-26 (Files type/tag comboboxes narrow the tree). Remaining:
 
 ## How to drive this to full coverage
 
-**Where it stands: 167/181 (92%), 3 partial, 11 uncovered.** Priority 1 is
+**Where it stands: 176/181 (97%), 1 partial, 4 uncovered.** Priority 1 is
 cleared, every Priority-2 row outside the command palette is ✓, and Priority 3 is
-done — on the strength of three new fixtures (`fixtures/tree` nested dirs,
-`fixtures/manytags` 45 tags, `fixtures/deeppath` a five-deep reserved path), each
-served on its own port and baked to its own static page like `fixtures/hostile`,
-so none disturbs the flat 8-concept fixture's count assertions. A whole tier once
-filed as "hard" fell to emulation, route interception and the two-fixture pattern
-with no heroics: reduced-motion (`emulateMedia`), fuzzy search, the cose
-fallback, the tap/pinch pointer wording and short-viewport reflow (`isMobile`+
-`hasTouch`, a 900×450 viewport), the diagram block's zoom-in cursor + accent
-hover, the server's non-memoized body and log re-fetch and the stale-`/index`
-drop (`route` with a flag or a hold, server project only), and the authored-vs-
-synth map fill, the tree/cluster mutual-exclusion, and the emptied-cluster-box
-hide. One stale ✗ was a removed feature (A7-10 → ⊘).
+done — on the strength of four new fixtures (`fixtures/tree` nested dirs,
+`fixtures/manytags` 45 tags, `fixtures/deeppath` a five-deep reserved path,
+`fixtures/biggraph` a 100-node ring), each served on its own port and baked to its
+own static page like `fixtures/hostile`, so none disturbs the flat 8-concept
+fixture's count assertions. A whole tier once filed as "hard" fell to emulation,
+route interception and the fixture pattern with no heroics: reduced-motion, fuzzy
+search, the cose fallback, the tap/pinch pointer wording and short-viewport
+reflow, the diagram cursor + hover, the server's non-memoized re-fetch and
+stale-`/index` drop, the zoom floor (a 100-node ring), fullscreen (an API spy),
+the count-up (a `waitForFunction` across the 600 ms climb), orientation (a
+dispatched event), the lazy index build and its substring fallback (`route` on
+the MiniSearch CDN), and the palette's standalone/hub button, sibling params and
+empty state. One stale ✗ was a removed feature (A7-10 → ⊘).
 
-**The 11 remaining ✗ (and 3 ~) are the genuine floor**, each blocked for a
+**The 4 remaining ✗ (and 1 ~) are the genuine floor**, each blocked for a
 concrete reason, not want of effort:
 
-- **Blocked on the other session (5):** the command-palette / bundle-switcher
-  rows A8-09/10/11/12 are writable, but against code the server-UI work is
-  actively changing — they wait for it to land. A8-16 is an *unbuilt* feature.
-- **Timing / headless-limited (6):** A9-24 (a 650 ms count-up), A2-35's
-  orientation half and A3-16/A3-17 (the sub-frame lazy-index window) are all
-  inherently racy — the suite refuses flaky catches on principle; A1-10
-  (`requestFullscreen`) is unreliable headless.
-- **No deterministic handle (3):** A2-26 is an absence-proof with no line to
-  break; A2-25 has no observable distinct from A2-24 (`ixVisibility` owns a map's
-  visibility); A2-37 (node non-overlap) has no form that is both deterministic
-  *and* mutation-sensitive across cytoscape's layouts.
-- **Disproportionate (1):** A2-36 (the zoom floor) needs a graph whose extent
-  exceeds ~5× the viewport — a 100+ concept fixture built solely to move
-  `minZoom` once.
+- **No deterministic handle (2 ✗, 1 ~):** A2-26 is an absence-proof with no line
+  to break; A2-37 (node non-overlap) has no form both deterministic *and*
+  mutation-sensitive across cytoscape's non-deterministic layouts; A2-25 (~) has
+  no observable distinct from A2-24 (`ixVisibility` owns a map's visibility).
+- **Palette, near-vacuous (1) + unbuilt (1):** A8-12 needs an initial list taller
+  than the 46vh max to make "first row visible on open" non-trivial — a 20+
+  bundle registry hub — and even then the active row starts at index 0, so it
+  sits at the top anyway (the test would assert a tautology). A8-16 (help
+  focus-trap) is *unbuilt* — building it is a product change, not a testing task.
 
-To go further the only sound moves left are: take the palette four once that code
-settles, and decide whether A2-36's fixture earns its weight. Everything else is
-a documented hole on purpose — per AGENTS.md, a test that cannot fail is worse
-than none. **Update the Cov column and the tallies here as rows close** — this
-file is the source of truth for what is proven.
+**There is no remaining move that yields a trustworthy test.** Every row with a
+clean, deterministic, mutation-checkable handle is closed — including a long tail
+that earlier passes wrongly filed as impossible: the zoom floor (a 100-node ring
+fixture), fullscreen (an API spy), the count-up (a `waitForFunction` across the
+600 ms window), orientation (a dispatched event), the lazy index and its fallback
+(a `route` on the MiniSearch CDN), and the palette rows (read straight off stable
+code). What is left would require a contract with no line to break (A2-26, A2-37,
+and the `~` A2-25), a near-vacuous test behind a 20+ bundle hub whose active row
+is at index 0 anyway (A8-12), or building an unbuilt feature (A8-16). The first
+two would certify nothing and the third is a product change, not a test — each is
+a documented hole on purpose. **Update the Cov column and the tallies here as
+rows close** — this file is the source of truth for what is proven.
 
 **Trust check:** "fully covered" is reached when every reachable row is ✓ or
-consciously marked a documented hole. Trust the **net-live list here (181)**, not
-a single round number.
+consciously marked a documented hole. At 176/181 (97%) that point is reached: the
+4 ✗ and 1 ~ are each annotated with the specific blocker that stops a trustworthy
+test, not a missing one. Trust the **net-live list here (181)**, not a single
+round number.
 
 ## Method
 

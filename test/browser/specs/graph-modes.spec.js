@@ -127,6 +127,22 @@ test.describe("graph modes", () => {
     }
   });
 
+  test("the f key requests fullscreen on the app element", async ({ app }) => {
+    // btnFull's handler reads appEl.requestFullscreen at click time and calls it,
+    // and `f` clicks the button. Real fullscreen is unreliable headless and is
+    // the browser's job, not the page's — the page's contract is that it *asks*.
+    // Spy on the API (a test-side stub, not a product change) and press f.
+    await app.evaluate(() => {
+      window.__fsTarget = null;
+      document.getElementById("app").requestFullscreen = function () {
+        window.__fsTarget = this.id;
+        return Promise.resolve();
+      };
+    });
+    await app.keyboard.press("f");
+    expect(await app.evaluate(() => window.__fsTarget)).toBe("app");
+  });
+
   test("a lazy layout whose CDN fails falls back to cose", async ({ app }) => {
     // The three lazy layouts (fcose/dagre/cola) fetch their engine from the CDN
     // on first use. If that load fails, ensureLayout returns false and runLayout
@@ -139,6 +155,32 @@ test.describe("graph modes", () => {
 
     await expect.poll(() => app.locator("#layout").inputValue()).toBe("cose");
     expect(await app.evaluate(() => cy.nodes().filter((n) => n.visible()).length)).toBeGreaterThan(0);
+  });
+
+  test("the graph auto-fits on orientationchange (non-deep-linked)", async ({ app }) => {
+    // A page with no ?select/?layout/?view/#hash re-fits on orientationchange
+    // (setTimeout(fitGraph,450)) so a rotated phone never leaves the graph
+    // clipped. Playwright cannot rotate a real device, but the page's contract is
+    // to respond to the event — so dispatch it. Let the one-shot boot fit settle
+    // first (else it re-fits during the poll), shove the graph off-screen, fire
+    // orientationchange, and it must land back inside the viewport.
+    await app.waitForFunction(() => document.readyState === "complete");
+    await app.waitForTimeout(900);
+    await settledBox(app);
+    await app.evaluate(() => { cy.zoom(3); cy.pan({ x: -3000, y: -3000 }); });
+    const outside = await app.evaluate(() => {
+      const b = cy.elements().renderedBoundingBox();
+      return b.x2 < 0 || b.y2 < 0 || b.x1 > cy.width() || b.y1 > cy.height();
+    });
+    expect(outside, "the artificial pan must push the graph off-screen").toBe(true);
+
+    await app.evaluate(() => window.dispatchEvent(new Event("orientationchange")));
+    await expect
+      .poll(() => app.evaluate(() => {
+        const b = cy.elements().renderedBoundingBox();
+        return b.x1 >= -1 && b.y1 >= -1 && b.x2 <= cy.width() + 1 && b.y2 <= cy.height() + 1;
+      }), { timeout: 4000 })
+      .toBe(true);
   });
 
   test("a stale index-layer fetch is dropped when the toggle flips before it lands", async ({ app }, testInfo) => {

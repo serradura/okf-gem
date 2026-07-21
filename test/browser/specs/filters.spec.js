@@ -150,4 +150,32 @@ test.describe("search", () => {
       expect(id, `${id} is outside the runbooks area filter`).toMatch(/^runbooks\//);
     }
   });
+
+  test("the MiniSearch index is built lazily — its script loads only on first search focus", async ({ app }) => {
+    // The full-text index is not built at boot: searchInput.onfocus calls
+    // buildFtIndex, which loadScript-loads MiniSearch from the CDN. Route its
+    // script with a flag: nothing requests it until the box is focused, then it
+    // is. (route.continue lets the real load through, so no console error.)
+    let loaded = false;
+    await app.route(/minisearch@7\.2\.0/, (route) => { loaded = true; return route.continue(); });
+
+    await app.waitForTimeout(300);
+    expect(loaded, "MiniSearch is not loaded before any search interaction").toBe(false);
+    expect(await app.evaluate(() => typeof window.MiniSearch)).toBe("undefined");
+
+    await app.locator("#search").focus();
+    await expect.poll(() => loaded).toBe(true);
+  });
+
+  test("search falls back to substring matching when the index is unavailable", async ({ app }) => {
+    // Until the index is ready (or if the CDN is down), ftMatch returns null and
+    // applyGraphFilter falls back to a substring test on title/type/tags/desc.
+    // Block MiniSearch outright so the index can never build, then search a title
+    // substring: the graph still narrows to the match.
+    app.allowErrors(); // the blocked MiniSearch <script> logs a resource error
+    await app.route(/minisearch@7\.2\.0/, (route) => route.abort());
+
+    await app.locator("#search").fill("gateway");
+    await expect.poll(() => visibleNodeIds(app)).toEqual([ "services/gateway" ]);
+  });
 });

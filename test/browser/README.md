@@ -92,6 +92,7 @@ specs/
   files-tree-nested.spec.js  the nested-dir tree: only-subdir folders, last-segment headers, depth (own fixture)
   filters-manytags.spec.js   the filter finder's top-40 tag-chip cap (own 45-tag fixture)
   files-tree-deeppath.spec.js  a long reserved-row path ellipsizes, badge on-screen (own deep-path fixture)
+  graph-zoomfloor.spec.js    the zoom floor relaxing on a graph bigger than the viewport (own 100-node ring)
   mobile-layout.spec.js the ≤768px tools sheet and file header, in geometry
   camera-races.spec.js un-cluster restore, index→tree, and one-camera-move (via the __camCenters counter)
   palette.spec.js      the ⌘K command palette (standalone: jump to a view)
@@ -153,7 +154,7 @@ tolerate one.
 [COVERAGE.md](COVERAGE.md) is the per-contract map — every user-visible behavior
 the page introduced across its 49-commit history, each marked covered / partial /
 uncovered against a named spec, with a ranked worklist of what is still missing.
-Of **181 net-live contracts** it covers **167 (92%)**, 3 partially, 11 not yet;
+Of **181 net-live contracts** it covers **176 (97%)**, 1 partially, 4 not yet;
 by the narrower regression-fix-only lens that is ~60 of ~94. Read COVERAGE.md
 before writing a spec — the ✗ rows are the to-do list. It is strong on the
 interaction spine, the filters, the file

@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { repoRoot, bundleDir, staticPage, hostileDir, hostilePage, workspaceHome, workspaceDir, treeDir, treePage, manytagsDir, manytagsPage, deeppathDir, deeppathPage } from "./paths.js";
+import { repoRoot, bundleDir, staticPage, hostileDir, hostilePage, workspaceHome, workspaceDir, treeDir, treePage, manytagsDir, manytagsPage, deeppathDir, deeppathPage, biggraphDir, biggraphPage } from "./paths.js";
 
 // Bake the static page the `static` project loads over file://. Rendering it
 // here rather than committing it keeps the suite honest: every run tests the
@@ -13,6 +13,7 @@ export default function globalSetup() {
   render(treeDir, treePage, "Tree Fixture");
   render(manytagsDir, manytagsPage, "Many Tags");
   render(deeppathDir, deeppathPage, "Deep Path");
+  render(biggraphDir, biggraphPage, "Big Graph");
   seedWorkspace();
 }
 

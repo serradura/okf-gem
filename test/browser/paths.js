@@ -63,3 +63,11 @@ export const MANYTAGS_PORT = PORT + 5;
 export const deeppathDir = path.join(here, "fixtures", "deeppath");
 export const deeppathPage = path.join(here, ".tmp", "deeppath.html");
 export const DEEPPATH_PORT = PORT + 6;
+
+// A 100-node ring: cose lays it out as a large circle whose extent runs several
+// times the viewport, the one shape that drives the fit-zoom below MIN_ZOOM and
+// makes relaxZoom lower the floor. No small fixture can reach that branch. Own
+// server + static page, as the rest.
+export const biggraphDir = path.join(here, "fixtures", "biggraph");
+export const biggraphPage = path.join(here, ".tmp", "biggraph.html");
+export const BIGGRAPH_PORT = PORT + 7;

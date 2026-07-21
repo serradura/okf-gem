@@ -72,4 +72,28 @@ test.describe("command palette — hub (bundle switch)", () => {
     // and the palette closed itself after firing
     await expect(hub.locator("#sw")).toBeHidden();
   });
+
+  test("the ⇄ switch-bundle button is shown in hub mode", async ({ hub }) => {
+    // The counterpart to palette.spec's standalone assertion: with a hub behind
+    // it, #btn-switch un-hides (setup: `if(btn&&HUB)btn.hidden=false`).
+    await expect(hub.locator("#btn-switch")).toBeVisible();
+  });
+
+  test("a sibling link carries the current view and layout, dropping the selection", async ({ hub }) => {
+    // target() folds the bundle-agnostic page state into the sibling href so a
+    // switch lands on the same view and layout — but the node selection and hash
+    // are bundle-specific and deliberately dropped. Pick a non-default layout on
+    // the graph, then go to catalog, then open the palette: the sibling row's
+    // href carries both. (Set the layout first — its selector lives in the graph
+    // controls, hidden on other views.)
+    await hub.locator("#layout").selectOption("grid");
+    await hub.locator('.rail-item[data-view="catalog"]').click();
+    await expect(hub.locator("#app")).toHaveAttribute("data-view", "catalog");
+
+    await hub.keyboard.press("Control+k");
+    const href = await hub.locator("#sw-list a[data-path]").getAttribute("href");
+    expect(href, "the sibling link carries the view").toContain("view=catalog");
+    expect(href, "and the layout").toContain("layout=grid");
+    expect(href, "but not the bundle-specific selection").not.toContain("select=");
+  });
 });

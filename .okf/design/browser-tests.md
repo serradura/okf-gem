@@ -78,7 +78,7 @@ shipped. A regression fix is the sharpest test target there is: a failure mode
 already proven reachable in this file.
 
 `test/browser/COVERAGE.md` now enumerates every contract per-commit and marks
-each covered / partial / uncovered: of 181 net-live contracts, 167 (92%) are
+each covered / partial / uncovered: of 181 net-live contracts, 176 (97%) are
 covered, with a ranked worklist of what remains — its Priority 1 (regression
 fixes reachable from the existing fixtures) is cleared, and Priority-2 is well
 underway. By the narrower

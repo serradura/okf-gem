@@ -52,6 +52,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   three fixes below are what writing it turned up: shipped defects invisible to
   a string assertion over the rendered HTML, each reproduced red and pinned
   green.
+  - **Coverage is mapped per-contract, not guessed.** `test/browser/COVERAGE.md`
+    enumerates every behavioral contract the page introduced across its history
+    and marks each covered / partial / uncovered against a named spec — **176 of
+    181 net-live (97%)**. The five that remain are each a documented blocker, not
+    a missing test: an absence-proof with no line to break, a node-overlap check
+    no cytoscape layout makes both deterministic *and* mutation-sensitive, a
+    map-visibility observable another contract already owns, a palette scroll
+    whose observable is a tautology, and an unbuilt focus-trap. Reaching the
+    branches the flat 8-concept fixture cannot took four further purpose-built
+    bundles beside the hostile one, each served on its own port and baked to its
+    own static page so the main fixture's count assertions stay put — nested
+    directories, forty-five tags, a five-directory-deep reserved path, and a
+    hundred-node ring that drives the graph past its own fit box. Every new spec
+    is mutation-checked: break the code it covers, confirm it goes red for the
+    predicted reason, restore. The map also caught one of its own stale rows — a
+    note listed as an uncovered gap had in fact been deleted from the page, and is
+    now marked superseded rather than owed.
 
 ### Changed
 

@@ -104,4 +104,33 @@ test.describe("stats interior", () => {
     await expect(app.locator("#app")).toHaveAttribute("data-view", "graph");
     await expect.poll(() => visibleNodeIds(app)).toEqual([ "runbooks/deploy", "runbooks/rollback" ]);
   });
+
+  test("a stat card counts up to its value rather than snapping to it", async ({ app }) => {
+    // countUp animates any stat above 8 from 0 to its target over 650ms (values
+    // ≤8 and reduced-motion snap instantly). Open stats fresh so the animation
+    // starts here, catch a large stat strictly between 0 and its target — a snap
+    // would never show an in-between value — then watch it land. The 650ms ease
+    // against ~16ms polling makes the mid-climb window wide (~600ms): a reliable
+    // catch, not a timed race.
+    await showView(app, "stats");
+    const bigTo = await app.evaluate(() => {
+      // Cross-links (EDGES.length) is the stat that clears the 8-snap threshold.
+      const el = [ ...document.querySelectorAll("#stat-grid .n") ].find((n) => +n.dataset.to > 8);
+      return el ? +el.dataset.to : null;
+    });
+    expect(bigTo, "a stat above the snap threshold exists").toBeGreaterThan(8);
+
+    await app.waitForFunction((v) => {
+      const el = [ ...document.querySelectorAll("#stat-grid .n") ].find((n) => +n.dataset.to === v);
+      const cur = el ? +el.textContent : -1;
+      return cur > 0 && cur < v;
+    }, bigTo, { timeout: 3000 });
+
+    await expect
+      .poll(() => app.evaluate((v) => {
+        const el = [ ...document.querySelectorAll("#stat-grid .n") ].find((n) => +n.dataset.to === v);
+        return el ? +el.textContent : -1;
+      }, bigTo))
+      .toBe(bigTo);
+  });
 });
