@@ -73,6 +73,26 @@ module OKF
              repeats it — the number belongs to what you are filtering. */
           .s-cnt{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--faint);
            font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+          /* ── the bridge, verbatim from the graph page ──
+             The dead end is the same event here as there — the box in the topbar
+             came up empty and there is somewhere else to look — so it is the same
+             component in the same place, under the box that disappointed you,
+             rather than a second dialect of the same idea two pages apart. ── */
+          .s-bridge{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;background:var(--panel);
+           border:1px solid var(--line);border-radius:11px;box-shadow:0 10px 30px rgba(0,0,0,.16);
+           padding:11px 13px;font-size:12.5px}
+          .s-bridge[hidden]{display:none}
+          .sb-msg{color:var(--muted);margin-bottom:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .sb-msg b{color:var(--ink);font-weight:600}
+          .sb-row{display:flex;gap:8px;flex-wrap:wrap}
+          .sb-act{cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:inherit;font-size:12px;
+           padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:var(--line-2);color:var(--muted);
+           transition:color .15s,border-color .15s}
+          .sb-act:hover{color:var(--ink);border-color:var(--accent)}
+          .sb-act:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+          .sb-act.primary{color:var(--accent-ink);border-color:var(--accent);background:var(--accent-soft)}
+          .sb-act kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--faint);
+           border:1px solid var(--line);border-radius:4px;padding:1px 4px;background:var(--panel);line-height:1.3}
           .btn{cursor:pointer;display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);
            background:var(--panel);color:var(--muted);transition:color .15s,border-color .15s,background .15s;font-family:inherit}
           .btn:hover{color:var(--ink);border-color:var(--accent)}
@@ -80,44 +100,105 @@ module OKF
           .btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
           #btn-theme .sun{display:none} :root[data-theme=dark] #btn-theme .sun{display:block} :root[data-theme=dark] #btn-theme .moon{display:none}
 
-          /* ── the message column ── */
+          /* ── the column ──
+             Left-anchored under the rail and the bar, never centred: a card
+             floating in the middle would read as a different page's chrome, and
+             the two things this page shares with every other view are anchored
+             hard left. 880px because the rows below carry a right-aligned fact
+             column, and at 620 those columns had nowhere to be. ── */
           #views{flex:1;min-height:0;position:relative;background:var(--bg);overflow:auto;display:flex;flex-direction:column}
-          #col{width:100%;max-width:620px;padding:44px 28px 24px;flex:1}
-          /* the same 3px accent rule the graph page draws under a section head */
-          h1{font-size:22px;font-weight:600;letter-spacing:-.015em;margin:0 0 18px;position:relative;padding-bottom:9px}
-          h1::after{content:"";position:absolute;left:0;bottom:0;width:34px;height:3px;border-radius:3px;background:var(--accent)}
-          .fact{margin:0 0 6px;color:var(--ink-soft)}
-          .slug-chip{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:var(--line-2);
-           border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--ink)}
-          /* The one place this page raises its voice: the guess that saves the trip. */
-          #didyoumean{margin:14px 0 0;font-size:14px;color:var(--muted)}
-          #didyoumean a{color:var(--accent-ink);text-decoration:none;font-weight:600}
-          #didyoumean a:hover{text-decoration:underline}
-          .lbl{margin:26px 0 8px;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+          #col{width:100%;max-width:880px;padding:40px 28px 28px;flex:1}
 
-          /* ── the list: the palette's row anatomy, so a bundle looks the same here
-                as it does under ⌘K on the graph page ── */
+          /* ── what was asked for ──
+             The heading and the path swap the usual sizes. A reader arrives here
+             already knowing they are lost — the URL bar said so — so "not found"
+             is the small word and the path they typed is the large one. Setting
+             it in mono at 27px is what makes a dropped slash or a truncated slug
+             legible as a *shape*, which is the one thing this page can do that
+             the address bar cannot. ── */
+          .eyebrow{margin:0 0 6px;font-size:11px;font-weight:600;text-transform:uppercase;
+           letter-spacing:.08em;color:var(--faint)}
+          h1{font-size:27px;font-weight:600;letter-spacing:-.02em;margin:0;padding-bottom:12px;position:relative;
+           font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);
+           overflow-wrap:anywhere;line-height:1.25}
+          h1::after{content:"";position:absolute;left:0;bottom:0;width:34px;height:3px;border-radius:3px;background:var(--accent)}
+          .fact{margin:14px 0 0;color:var(--muted);font-size:13.5px}
+          .fact code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--ink-soft)}
+
+          /* ── the near miss ──
+             The one place this page raises its voice, and it earns it by being
+             the whole answer when it is right. A sentence in muted grey asks the
+             reader to read, parse and then aim; a row asks them to press Enter.
+             So the guess wears the same anatomy as the list below it, one step
+             brighter, and the keyboard already points at it. ── */
+          .miss{margin:24px 0 0}
+          .miss[hidden]{display:none}
+          .miss .lbl{margin:0 0 6px}
+
+          .lbl{margin:30px 0 8px;font-size:10.5px;font-weight:600;text-transform:uppercase;
+           letter-spacing:.06em;color:var(--faint)}
+
+          /* ── the rows: the /b/ list's anatomy, which carries the folder ──
+             The folder is not decoration here. A server hosting `site/.okf`,
+             `minifts/.okf` and `okf-core/.okf` has three bundles whose titles are
+             nearly the same word, and the directory they came from is the only
+             thing that tells them apart. The old row omitted exactly that. ── */
           #blist{list-style:none;margin:0;padding:0}
           #blist li[hidden]{display:none}
-          #blist a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:13.5px}
-          #blist a:hover,#blist a.active{background:var(--line-2)}
-          #blist a:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-          #blist .b-title{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-          #blist .slug{color:var(--faint);font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-          #blist .dbadge{padding:1px 7px;border-radius:99px;background:var(--line-2);color:var(--muted);font-size:11px}
-          #blist .b-meta{margin-left:auto;display:flex;align-items:center;gap:12px;flex:none}
-          #blist .b-cnt{color:var(--faint);font-size:12px;font-variant-numeric:tabular-nums}
-          /* health carries a word in every state — colour is the echo, never the message */
-          #blist .b-health{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-          #blist .b-health .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
-          #blist .b-health.ok{color:var(--ok)} #blist .b-health.warn{color:var(--warn)} #blist .b-health.error{color:var(--accent-ink)}
-          #bnone{margin:10px 0 0;padding:0 10px;color:var(--muted);font-size:13px}
-          #bnone[hidden]{display:none}
+          .brow{list-style:none}
+          .brow a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 20px;align-items:center;
+           padding:9px 13px;border-radius:10px;text-decoration:none;color:var(--ink);
+           box-shadow:inset 3px 0 0 var(--edge,transparent);transition:background .12s}
+          .brow a:hover{background:var(--line-2)}
+          /* The cursor is one look wherever it stands — on the near miss, on a
+             filtered bundle, on a concept hit — because ↑↓ walks all three as
+             one list. The guess is not styled at all: it is simply where the
+             cursor starts, which is why it is lit on arrival and stops being lit
+             the moment you type. */
+          /* The palette's own selection is this neutral fill, so the cursor
+             matches it rather than inventing a louder one; the accent *edge* is
+             what makes the move visible, and it is already this page's device
+             for saying which row to look at. */
+          .brow a.active{--edge:var(--accent);background:var(--line-2)}
+          .brow a.active .dbadge{background:rgba(128,128,128,.22)}
+          .brow a:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+          /* No edge at all on a healthy row. A rule per bundle is six marks
+             saying "nothing to report", and a page where everything is marked
+             is a page where the one thing that matters is not. */
+          .brow[data-health=warn] a{--edge:var(--warn)}
+          .brow[data-health=error] a{--edge:var(--accent)}
+          .brow[data-health=missing] a{--edge:var(--faint)}
+          .b-id{grid-column:1;grid-row:1;display:flex;align-items:baseline;gap:9px;min-width:0}
+          .b-title{font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .slug{color:var(--faint);font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;flex:none}
+          .dbadge{padding:1px 7px;border-radius:99px;background:var(--line-2);color:var(--muted);font-size:10.5px;flex:none}
+          /* Truncate a long path from the *left*: the tail (…/repo/.okf) is what
+             identifies it, and clipping the tail identifies nothing. An rtl box
+             puts the ellipsis at the front, and the inner <bdi> keeps the path
+             itself one ltr run so a leading "/" cannot reorder to the far end. */
+          .b-dir{grid-column:1;grid-row:2;font-size:11.5px;color:var(--faint);
+           font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+           overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left}
+          .b-dir bdi{direction:ltr}
+          /* fixed slots, right-aligned: read down the page as much as across,
+             and a ragged column of numbers is a column nobody scans */
+          .b-meta{grid-column:2;grid-row:1/3;display:flex;align-items:baseline;gap:20px;flex:none;
+           font-size:12px;color:var(--faint)}
+          .b-cnt{min-width:6.5rem;text-align:right;font-variant-numeric:tabular-nums}
+          /* Colour marks the exception only. Six green "no problems" spends the
+             page's whole palette on nothing to report — and makes the one real
+             warning harder to find, which is the opposite of the job. */
+          .b-health{min-width:7rem;color:var(--muted)}
+          .brow[data-health=warn] .b-health{color:var(--warn)}
+          .brow[data-health=error] .b-health{color:var(--accent-ink)}
+          .brow[data-health=missing] .b-title{color:var(--faint);font-weight:400}
+          #hits[hidden]{display:none}
+          #hitlist{list-style:none;margin:0;padding:0}
+          #hitnote{margin:10px 0 0;padding:0 13px;color:var(--faint);font-size:12px}
+          /* a snippet is prose, so it drops the path row's mono and rtl clipping */
+          .hit-s{font-family:inherit;direction:ltr;color:var(--muted);font-size:12.5px}
           #bnone code{background:var(--line-2);border-radius:5px;padding:1px 5px;
            font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
-          /* under the list, not pinned to the viewport floor: the keys act on
-             the list, and a hint stranded 600px below it reads as unrelated */
-          .ghint{margin:0;padding:18px 10px 0;color:var(--faint);font-size:11.5px}
 
           /* ≤768px: the rail is a whole drawer on the graph page; a 404 has
              nothing to put in one, so it folds away and the mark moves into the bar. */
@@ -127,9 +208,12 @@ module OKF
            #main{grid-column:1}
            .bar-brand{display:block}
            .search{flex-basis:140px}
-           #col{padding:30px 18px 20px}
-           #blist a{flex-wrap:wrap;gap:6px 9px}
-           #blist .b-meta{margin-left:0;width:100%}
+           #col{padding:28px 16px 20px}
+           h1{font-size:20px}
+           /* the fact columns stop being columns and become a third line */
+           .brow a{grid-template-columns:minmax(0,1fr)}
+           .b-meta{grid-column:1;grid-row:3;margin-top:3px;gap:14px}
+           .b-cnt,.b-health{min-width:0}
           }
           @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
         CSS
@@ -146,6 +230,9 @@ module OKF
 
         # Filter, count and keyboard — the three things a static document cannot
         # do. Every row is already in the DOM; this only hides some of them.
+        # Filter, count, keyboard, and the fallback to searching every bundle —
+        # the four things a static document cannot do. Everything else on this
+        # page is already in the DOM before this runs.
         SCRIPT = <<~JS
           (function(){
            'use strict';
@@ -158,47 +245,145 @@ module OKF
 
            var q=document.getElementById('q');
            if(!q) return;
-           var list=document.getElementById('blist'), none=document.getElementById('bnone'),
-               chip=document.getElementById('bar-count'), total=list.children.length, cursor=-1;
+           var list=document.getElementById('blist'),
+               chip=document.getElementById('bar-count'), total=list.children.length,
+               missBox=document.querySelector('.miss'),
+               miss=missBox?missBox.querySelector('a'):null,
+               hits=document.getElementById('hits'), hitList=document.getElementById('hitlist'),
+               hitNote=document.getElementById('hitnote'), goBtn=document.getElementById('go-search'),
+               bridge=document.getElementById('s-bridge'),
+               bridgeMsg=bridge.querySelector('.sb-msg'),
+               goBtn=document.getElementById('sb-go'), clearBtn=document.getElementById('sb-clear'),
+               endpoint=q.getAttribute('data-search'), mount=q.getAttribute('data-mount'),
+               searched=null;
 
-           function rows(){
+           /* Moving through the list is Tab's job, and Tab already does it: every
+              row is an <a href>, a filtered-out row is display:none and drops out
+              of the order on its own, and Shift-Tab goes back. A hand-rolled ↑↓
+              cursor was a second, worse focus model living beside the real one —
+              it lit rows the browser did not consider focused, it was invisible
+              to a screen reader, and keeping the two in step is what left two
+              rows highlighted at once.
+              What is left is not a cursor: one row is marked, it is whatever ⏎
+              would open *right now*, and it never moves on its own. It stands
+              down the moment the caret leaves the box, because past that point ⏎
+              belongs to whatever Tab has focused. */
+           function shownRows(){
             return Array.prototype.filter.call(list.children,function(li){return !li.hidden;});
+           }
+           function target(){
+            if(miss&&q.value.trim()==='') return miss;
+            var first=shownRows()[0];
+            if(first) return first.firstChild;
+            return hitList.children.length ? hitList.children[0].firstChild : null;
+           }
+           function unmark(){
+            Array.prototype.forEach.call(document.querySelectorAll('a.active'),function(a){a.classList.remove('active');});
+           }
+           function mark(){
+            unmark();
+            var t=target();
+            if(t) t.classList.add('active');
            }
            /* Total while the box is empty, matched/total once it is filtering —
               the same grammar the graph page's own count chip uses. */
            function count(shown){
             chip.textContent = q.value.trim()==='' ? String(total) : shown+'/'+total;
            }
-           function paint(){
-            var vis=rows();
-            if(cursor>=vis.length) cursor=vis.length-1;
-            Array.prototype.forEach.call(list.querySelectorAll('a.active'),function(a){a.classList.remove('active');});
-            if(cursor>=0&&vis[cursor]){
-             var a=vis[cursor].firstChild;
-             a.classList.add('active');
-             if(a.scrollIntoView) a.scrollIntoView({block:'nearest'});
-            }
-           }
            function filter(){
             var needle=q.value.trim().toLowerCase();
             Array.prototype.forEach.call(list.children,function(li){
              li.hidden = needle!=='' && li.getAttribute('data-hay').indexOf(needle)===-1;
             });
-            var vis=rows();
-            none.hidden = vis.length>0;
+            /* The guess answers "what did you *ask* for", so a query supersedes
+               it outright rather than sitting above the answer to a different
+               question. */
+            if(missBox) missBox.hidden = needle!=='';
+            var vis=shownRows();
+            /* The bridge is the graph page's own dead-end panel, doing the same
+               job for the same reason: the box came up empty and there is
+               somewhere else to look. It drops under the box rather than into
+               the list, because that is where the reader is looking when the
+               filter disappoints them. */
+            var dead = needle!=='' && vis.length===0;
+            bridge.hidden = !dead;
+            if(dead){
+             bridgeMsg.innerHTML='No bundle matches \u201c<b></b>\u201d';
+             bridgeMsg.querySelector('b').textContent=q.value.trim();
+            }
+            /* A new query invalidates the last search — the hits below belong to
+               a word nobody is looking at any more. */
+            if(needle!==searched){hits.hidden=true;hitList.innerHTML='';hitNote.textContent='';searched=null;}
             count(vis.length);
-            cursor = (needle!==''&&vis.length>0) ? 0 : -1;
-            paint();
+            mark();
            }
+
+           /* The dead end, and the way through it. A bundle list cannot answer
+              "where is the thing about decay?" — but the hub can, because it
+              searches inside every bundle it hosts. So a query that matches no
+              *bundle* is offered the search that does match, rather than being
+              told no twice. Same escalation the graph page's search box makes
+              when its own bundle comes up empty. */
+           function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+           function hitRow(c){
+            var href=mount+'/'+encodeURIComponent(c.slug)+'/?select='+encodeURIComponent(c.id);
+            return '<li class="brow"><a href="'+esc(href)+'">'+
+             '<span class="b-id"><span class="b-title">'+esc(c.title||c.id)+'</span>'+
+             (c.type?'<span class="dbadge">'+esc(c.type)+'</span>':'')+
+             '<span class="slug">@'+esc(c.slug)+'</span></span>'+
+             (c.snippet?'<span class="b-dir hit-s">'+esc(c.snippet)+'</span>':'')+
+             '</a></li>';
+           }
+           function search(){
+            var term=q.value.trim();
+            if(!term||!endpoint||searched===term.toLowerCase()) return;
+            searched=term.toLowerCase();
+            hits.hidden=false;hitList.innerHTML='';hitNote.textContent='searching every bundle…';
+            var req=new XMLHttpRequest();
+            req.open('GET',endpoint+'?q='+encodeURIComponent(term));
+            req.onload=function(){
+             if(q.value.trim().toLowerCase()!==searched) return;
+             var data;
+             try{data=JSON.parse(req.responseText);}catch(e){data=null;}
+             var found=(data&&data.results)||[];
+             hitList.innerHTML=found.map(hitRow).join('');
+             hitNote.textContent = found.length ? (data.truncated?'showing '+found.length+' of '+data.total+' — narrow the search':'')
+              : 'No concept matches either.';
+             mark();
+            };
+            req.onerror=function(){hitNote.textContent='search is unavailable right now';};
+            req.send();
+           }
+           goBtn.addEventListener('click',function(){search();q.focus();});
+           clearBtn.addEventListener('click',function(){q.value='';filter();q.focus();});
+
            q.addEventListener('input',filter);
+           /* The mark means "⏎ opens this", so it is only true while the caret is
+              in the box. Tab away and ⏎ belongs to the focus ring instead. */
+           q.addEventListener('blur',unmark);
+           q.addEventListener('focus',mark);
            q.addEventListener('keydown',function(ev){
-            var vis=rows();
-            if(ev.key==='ArrowDown'){ev.preventDefault();if(vis.length){cursor=Math.min(cursor+1,vis.length-1);paint();}}
-            else if(ev.key==='ArrowUp'){ev.preventDefault();if(vis.length){cursor=Math.max(cursor-1,0);paint();}}
-            else if(ev.key==='Enter'){if(cursor>=0&&vis[cursor]) location.href=vis[cursor].firstChild.href;}
+            if(ev.key==='Enter'){
+             ev.preventDefault();
+             var t=target();
+             /* Nothing to open means the list is the wrong place to be looking,
+                so ⏎ escalates rather than doing nothing. */
+             if(t) location.href=t.href;
+             else if(!bridge.hidden) search();
+            }
             else if(ev.key==='Escape'){q.value='';filter();}
            });
+           /* `/` reaches the box from anywhere on the page, the same key the graph
+              page binds — a reader who tabbed into the list and changed their
+              mind should not have to tab back out of it. */
+           addEventListener('keydown',function(ev){
+            if(ev.key!=='/'||ev.target===q||ev.metaKey||ev.ctrlKey||ev.altKey) return;
+            if(ev.target.matches&&ev.target.matches('input,select,textarea')) return;
+            ev.preventDefault();q.focus();q.select();
+           });
            q.focus();
+           mark();
           })();
         JS
 
@@ -219,24 +404,101 @@ module OKF
         end
 
         def page
-          body = %(<h1>No bundle here</h1>) +
-                 %(<p class="fact"><span class="slug-chip">#{escape(@path)}</span> does not match a hosted bundle.</p>) +
-                 guess + listing
-          shell(body)
+          shell(head + guess + listing)
         end
 
         private
 
+        # The heading is the path, not the verdict. A reader arrives already
+        # knowing they are lost, so "Not found" is the small word and what they
+        # actually asked for is the large one — set in mono, where a dropped
+        # slash or a truncated slug is legible as a shape rather than as prose.
+        def head
+          %(<p class="eyebrow">Not found</p>) +
+            %(<h1>#{escape(@path)}</h1>) +
+            fact
+        end
+
+        # One line, and only where it adds something the heading did not. When a
+        # missing separator explains the whole trip, say that; otherwise teach
+        # the shape, which is what someone who typed the path by hand needs.
+        def fact
+          if hosted?(segment)
+            return %(<p class="fact">That bundle is served at ) +
+                   %(<code>#{escape(@mount)}/#{escape(segment)}/</code> — the <code>#{escape(@mount)}/</code> is missing.</p>)
+          end
+          if dropped_slash
+            return %(<p class="fact">That looks like <code>#{escape(@mount)}/#{escape(dropped_slash)}/</code> ) +
+                   %(with the slash after <code>#{escape(@mount)}</code> dropped.</p>)
+          end
+
+          %(<p class="fact">Bundles are served at <code>#{escape(@mount)}/&lt;name&gt;/</code>.</p>)
+        end
+
         # The guess that saves the trip, or nothing at all. A suggestion nobody
         # can use is worse than none: it sends a reader to a second wrong page
         # and spends the trust the first one already dented.
+        #
+        # It is a row rather than a sentence because a sentence asks a reader to
+        # read it, parse it, and then go aiming; a row is already the thing they
+        # were looking for, and ⏎ is already pointed at it.
         def guess
-          best = OKF.blank?(@slug) ? nil : nearest(@slug.to_s)
+          best = nearest_row
           return "" unless best
 
-          %(<p id="didyoumean">Did you mean ) +
-            %(<a href="#{link(best[:slug])}">@#{escape(best[:slug])}</a>) +
-            %( — #{escape(best[:title])}?</p>)
+          %(<div class="miss"><p class="lbl">Closest match</p>) +
+            row_html(best, active: true) +
+            %(</div>)
+        end
+
+        def nearest_row
+          @guess = candidates.map { |c| nearest(c) }.compact.first unless defined?(@guess)
+          @guess
+        end
+
+        # What to measure the hosted slugs against. Normally the slug the router
+        # parsed out; when there was none, the path's own first segment — because
+        # the commonest way a hand-typed URL fails is the separator, and
+        # `/bnotes/` carries the answer in plain sight while the router, which
+        # only ever looks under the mount, sees nothing at all.
+        #
+        # The whole segment is tried first, so a bundle genuinely named `borders`
+        # beats `orders` reached by eating the mount letter.
+        def candidates
+          return [ @slug.to_s ] unless OKF.blank?(@slug)
+
+          return [] if segment.empty?
+
+          remainder.nil? ? [ segment ] : [ segment, remainder ]
+        end
+
+        def segment
+          @segment ||= @path.to_s.sub(%r{\A/+}, "").sub(%r{/.*\z}m, "")
+        end
+
+        # The first path segment with the mount's own letters taken off the
+        # front, or nil where that is not what the path looks like.
+        def remainder
+          bare = @mount.to_s.sub(%r{\A/+}, "")
+          return nil if bare.empty? || !segment.start_with?(bare) || segment.length <= bare.length
+
+          segment[bare.length..-1]
+        end
+
+        # A dropped separator is worth naming outright, but only on evidence that
+        # leaves no room for a second reading: the remainder has to be a hosted
+        # slug *exactly*, and the whole segment must not be one — a bundle really
+        # called `borders` is reached by adding `/b/`, not by moving a slash.
+        # Everything short of that gets the general sentence, which points at the
+        # same fix without claiming to know what happened.
+        def dropped_slash
+          return nil if hosted?(segment)
+
+          hosted?(remainder) ? remainder : nil
+        end
+
+        def hosted?(name)
+          !OKF.blank?(name) && @rows.any? { |row| row[:slug].to_s == name }
         end
 
         # Edit distance, with a shortcut for a shared prefix. Truncation is the
@@ -249,6 +511,8 @@ module OKF
         # everything (`a` is one edit from `b`) and a long one is not held to an
         # absolute that means nothing at its size.
         def nearest(asked)
+          return nil if OKF.blank?(asked)
+
           lower = asked.downcase
           best = nil
           score = nil
@@ -297,22 +561,32 @@ module OKF
                    %(Register one with <code>okf registry set &lt;dir&gt;</code>, then restart <code>okf server</code>.</p>)
           end
 
-          %(<p class="lbl">Bundles on this server</p><ul id="blist">) +
-            @rows.map { |row| row_html(row) }.join +
-            %(</ul><p id="bnone" hidden>No bundle matches.</p>) +
-            %(<p class="ghint">↑↓ move · ⏎ open · esc clear</p>)
+          %(<p class="lbl">Bundles on this server</p><ul id="blist">#{@rows.map { |row| row_html(row) }.join}</ul>) +
+            %(<div id="hits" hidden><p class="lbl">Concepts, across every bundle</p>) +
+            %(<ul id="hitlist"></ul><p id="hitnote"></p></div>)
         end
 
-        def row_html(row)
+        # One row, used twice: in the list, and as the near miss above it. The
+        # guess being the *same object* as a list entry is the whole point —
+        # whatever a reader learns to read here reads the same there.
+        def row_html(row, active: false)
           badge = row[:default] ? %(<span class="dbadge">default</span>) : ""
           hay = "#{row[:slug]} #{row[:title]} #{row[:dir]}".downcase
-          %(<li data-hay="#{escape(hay)}">) +
-            %(<a href="#{link(row[:slug])}">) +
-            %(<span class="b-title">#{escape(row[:title])}</span>) +
-            %(<span class="slug">@#{escape(row[:slug])}</span>#{badge}) +
-            %(<span class="b-meta"><span class="b-cnt">#{escape(concepts(row[:count]))}</span>) +
-            %(<span class="b-health #{escape(row[:health])}"><span class="dot"></span>#{escape(row[:word])}</span>) +
-            %(</span></a></li>)
+          here = active ? %( class="active") : ""
+          %(<li class="brow" data-health="#{escape(row[:health])}" data-hay="#{escape(hay)}">) +
+            %(<a href="#{link(row[:slug])}"#{here}>) +
+            %(<span class="b-id"><span class="b-title">#{escape(row[:title])}</span>) +
+            %(<span class="slug">@#{escape(row[:slug])}</span>#{badge}</span>) +
+            %(<span class="b-dir" title="#{escape(row[:dir])}"><bdi>#{escape(row[:dir])}</bdi></span>) +
+            %(<span class="b-meta"><span class="b-cnt">#{escape(count_word(row[:count]))}</span>) +
+            %(<span class="b-health">#{escape(row[:word])}</span></span>) +
+            %(</a></li>)
+        end
+
+        def count_word(count)
+          return "—" if count.nil?
+
+          concepts(count)
         end
 
         def concepts(count)
@@ -363,8 +637,14 @@ module OKF
         def search_box(total)
           %(<label class="search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>) +
             %(<input id="q" class="field" type="text" placeholder="find a bundle…" autofocus ) +
-            %(autocomplete="off" spellcheck="false" aria-label="Find a bundle">) +
-            %(<span class="s-cnt" id="bar-count">#{total}</span></label>)
+            %(autocomplete="off" spellcheck="false" aria-label="Find a bundle" ) +
+            %(data-search="#{escape(@base)}/search" data-mount="#{escape(@base)}#{@mount}">) +
+            %(<span class="s-cnt" id="bar-count">#{total}</span>) +
+            %(<div id="s-bridge" class="s-bridge" role="status" hidden><div class="sb-msg"></div>) +
+            %(<div class="sb-row">) +
+            %(<button type="button" class="sb-act primary" id="sb-go">Search every bundle <kbd>⏎</kbd></button>) +
+            %(<button type="button" class="sb-act" id="sb-clear">Clear <kbd>esc</kbd></button>) +
+            %(</div></div></label>)
         end
 
         def theme_button

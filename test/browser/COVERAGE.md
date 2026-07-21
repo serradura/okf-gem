@@ -24,16 +24,16 @@ into `#hello2`), **208 net-live contracts were rowed** in the area tables below
 as a rowed ⊘ because it read as a live gap until the history was checked).
 
 Work landed since then is rowed the same way, with `(name)` in the commit column
-rather than a hash — the search bridge (A3-20…29), the Bundles panel (A8-17…33)
-and the touch preview card (A6-15…33) — which brings the map to **227 rowed
-contracts**. A feature is not done here until its rows are in this table.
+rather than a hash — the search bridge (A3-20…29), the Bundles panel (A8-17…33),
+the touch preview card (A6-15…33) and the 404's script half (A8-34…46) — which
+brings the map to **241 rowed contracts**. A feature is not done here until its rows are in this table.
 
-**Coverage of those 227 net-live contracts (tallied from the tables, they sum
+**Coverage of those 241 net-live contracts (tallied from the tables, they sum
 exactly):**
 
 | | Count | % |
 |---|---:|---:|
-| ✓ covered | **222** | 98% |
+| ✓ covered | **236** | 98% |
 | ~ partial | 1 | <1% |
 | ✗ uncovered | 4 | 2% |
 
@@ -60,14 +60,14 @@ map-visibility observable A2-24 already owns.
 |---|---:|---:|---:|---:|
 | 1 — Boot, views, rail, view-switching, keyboard | 11 | 0 | 0 | 11 |
 | 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer | 35 | 1 | 2 | 38 |
-| 3 — Filters & search | 29 | 0 | 0 | 29 |
+| 3 — Filters & search | 30 | 0 | 0 | 30 |
 | 4 — Inspector, links, escaping/sanitization | 20 | 0 | 0 | 20 |
 | 5 — Files view, file tree, reserved files | 28 | 0 | 0 | 28 |
 | 6 — Mobile / responsive, touch preview | 33 | 0 | 0 | 33 |
 | 7 — First-visit notes | 9 | 0 | 0 | 9 |
-| 8 — Command palette, hub, help, keyboard sheet | 31 | 0 | 2 | 33 |
+| 8 — Command palette, hub, help, keyboard sheet, the 404 | 44 | 0 | 2 | 46 |
 | 9 — Deep links, theme, splitters, diagram, static/server, interiors | 26 | 0 | 0 | 26 |
-| **Total** | **222** | **1** | **4** | **227** |
+| **Total** | **236** | **1** | **4** | **241** |
 
 **Every area but 2 and 8 is now fully covered** (0 ✗, 0 ~). The 4 remaining ✗ sit
 in just those two: **Area 2 (2 ✗)** — A2-26 (absence-proof) and A2-37 (node
@@ -317,7 +317,7 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A7-09 | 3ce2284 | FEAT | `#hello` reflows for short & landscape-phone viewports | `@media (max-height:480px)` | ✓ | first-visit › the welcome note reflows to a two-column grid when the viewport is short (900×450) |
 | A7-10 | adf96ff | FEAT | A "best on desktop" `#mnote` shows on small screens, dismiss/persist | `#mnote`, `okf-mnote` | ⊘ | **superseded** — cc7d545 deleted `#mnote`/`okf-mnote` and folded the mobile note into `#hello2` (A7-05/A7-07), pinned by a `refute_includes` render test. Not a gap; the feature is gone. |
 
-## Area 8 — Command palette, hub, help, keyboard sheet
+## Area 8 — Command palette, hub, help, keyboard sheet, the 404
 
 | ID | Commit | Type | Behavior | Handle | Cov | Spec / reason |
 |---|---|---|---|---|---|---|
@@ -350,6 +350,19 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A8-27 | (panel) | FEAT | Save renames and the list re-reads from the server, mount and all | POST registry/rename | ✓ | bundles-panel › Rename saves, and the whole list comes back knowing the new name |
 | A8-28 | (panel) | FEAT | Make default moves the badge, and `/` agrees on the next request | POST registry/default | ✓ | bundles-panel › Make default moves the badge, and the server agrees |
 | A8-29 | (panel) | FEAT | Remove confirms in the row, naming what does *not* happen to the folder | `.ws-confirm` | ✓ | bundles-panel › Remove states what it will and will not do · Remove removes, and the bundle stops being served |
+| A8-34 | (404) | FEAT | The 404's box is autofocused, filters the rows live, and the chip counts n/total | `#q`, `#bar-count` | ✓ | hub-404 › the box has the cursor on arrival · typing narrows the rows and the chip counts what survived |
+| A8-35 | (404) | FEAT | The filter reaches the folder, not only the title and slug | `data-hay` | ✓ | hub-404 › the filter reaches the folder, not only the name |
+| A8-36 | (404) | FEAT | A query nothing matches says so rather than showing an empty list; esc restores | `#bnone` | ✓ | hub-404 › a query nothing matches says so · esc clears the box and brings every row back |
+| A8-37 | (404) | REG | Tab walks the rows and Shift+Tab returns — no hand-rolled cursor beside the browser's own | `<a href>` rows | ✓ | hub-404 › Tab walks the rows and Shift+Tab comes back · a filtered-out row drops out of the tab order |
+| A8-38 | (404) | REG | Exactly one row is marked, it is what ⏎ would open, and it stands down when the caret leaves | `a.active`, blur | ✓ | hub-404 › exactly one row is marked · the mark stands down once the caret leaves the box · ⏎ with nothing typed · ⏎ after a query opens the first match |
+| A8-39 | (404) | FEAT | The near miss is the list's row anatomy, not a sentence — folder and count included | `.miss .brow` | ✓ | hub-404 › the near miss is the same row anatomy as the list, not a sentence |
+| A8-40 | (404) | REG | A healthy row draws no verdict edge, so a warning is the only marked thing | `--edge` unset at ok | ✓ | hub-404 › a healthy row carries no verdict edge |
+| A8-41 | (404) | FEAT | No horizontal overflow at a phone width or a desktop one | `.brow` grid reflow | ✓ | hub-404 › nothing overflows sideways |
+| A8-42 | (404) | REG | Exactly one row is lit, ever — the guess, the bundles and the hits are one cursor | document-wide clear in `paint()` | ✓ | hub-404 › exactly one row is ever lit, and it is the one ↑↓ is standing on |
+| A8-43 | (404) | FEAT | A query supersedes the guess, which answered a different question | `.miss[hidden]` | ✓ | hub-404 › typing supersedes the guess |
+| A8-44 | (404) | FEAT | A query no bundle matches raises the graph page's own bridge panel, under the box | `#s-bridge`, `#sb-go`, `#sb-clear` | ✓ | hub-404 › a query nothing matches raises the graph page's own bridge · Clear empties the box |
+| A8-46 | (404) | FEAT | `/` reaches the search box from anywhere on the page, as it does on the graph | global keydown | ✓ | hub-404 › / reaches the box from anywhere on the page |
+| A8-45 | (404) | FEAT | ⏎ at the dead end runs it; hits render as rows in the same cursor and open in place | `/search`, `?select=` | ✓ | hub-404 › ⏎ at the dead end runs that search · a search that finds nothing either says so |
 | A8-30 | (panel) | REG | An empty list says so and names the way out, rather than rendering nothing | `.ws-empty` | ✓ | bundles-panel › with nothing left, the panel says so and names the way out |
 | A8-31 | (panel) | FEAT | Read-only keeps every fact, drops every control, and explains which and how | `.ws-ro-note`, `MANAGE_TOKEN` null | ✓ | bundles-panel › read-only › every fact stays, and every control goes · and a sentence says why, and how · the page holds no token it may not use |
 | A8-32 | (panel) | FEAT | No registry behind the page means no ⚙ at all, and no token in it | `MANAGE_ROOT` null | ✓ | bundles-panel › no registry behind the page means no ⚙ at all |

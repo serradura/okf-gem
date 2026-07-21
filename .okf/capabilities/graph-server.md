@@ -56,7 +56,35 @@ hub needs only a clean `PATH_INFO` strip and a trailing-slash redirect — no
 rewriting, no per-mount configuration. The rough edges are all navigational: a
 redirect preserves the query string (a deep link survives the hop), and an unknown
 slug answers `404` with a *page listing the hosted bundles*, so a bookmark left
-stale by a rename gets a way home instead of bare text. `/b/` itself is the
+stale by a rename gets a way home instead of bare text. That page is a directory
+reached by a wrong turn rather than an error page, and it is built that way: the
+**asked path is the heading**, set in mono where a dropped slash reads as a
+shape, with "not found" demoted to the eyebrow above it — a reader arrives
+already knowing they are lost, so the diagnosis is the least useful thing on the
+page. Where a slug nearly matches, the guess is a **row** carrying the same
+anatomy as the list under it, already marked, with `⏎` pointed at it: a sentence
+in muted grey asks a reader to read, parse and then aim. Moving through the list
+is **Tab's** job — every row is an `<a href>`, a filtered-out row leaves the tab
+order on its own, and `/` reaches the box from anywhere, the same key the graph
+binds. A hand-rolled ↑↓ cursor was tried and deleted: it was a second focus model
+beside the browser's own, invisible to a screen reader, and the two falling out
+of step is what left two rows lit at once. And when the filter finds no bundle,
+the page raises the **same bridge panel** the graph page's search box raises —
+same component, same place, same two buttons — because it is the same event, and
+a second dialect of one idea two pages apart is how a product stops feeling like
+one. Rows carry the folder,
+because a hub hosting `site/.okf`, `minifts/.okf` and `okf-core/.okf` has three
+titles that read alike and the directory is all that tells them apart. Colour
+marks only the exception — a healthy row draws no verdict edge at all, since a
+rule on every row is a page where the one that matters cannot be found.
+
+The guess reads the path, not only the slug the router parsed. `/bokf-tui/` is
+`/b/okf-tui/` with one slash missing, which is the likeliest way a hand-typed URL
+fails when every bundle lives at `/b/<name>/` — and the router, which only looks
+*under* the mount, hands back no slug at all there. The dropped separator is
+named outright only on evidence with no second reading (the remainder is a hosted
+slug exactly, and the whole segment is not one); everything short of that gets a
+sentence teaching the shape instead of guessing at the mistake. `/b/` itself is the
 [bundles list](bundles-manager.md) — a hub is navigable without the
 switcher, and the empty registry lands on a page that says so rather than
 redirecting nowhere. Those pages are self-contained and theme-aware like the graph

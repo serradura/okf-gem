@@ -61,20 +61,27 @@ class OKF::Server::Hub404Test < OKF::TestCase
 
   # -- what it says
 
-  test "the asked path is named, as a mono chip" do
+  test "the asked path is the heading, and the verdict is the small word above it" do
+    # The sizes are swapped on purpose. A reader arrives already knowing they
+    # are lost — the URL bar said so — so the diagnosis is the eyebrow and what
+    # they actually asked for is the display line, set in mono where a dropped
+    # slash or a truncated slug reads as a shape.
     get "/b/ghost/"
 
-    assert_includes last_response.body, %(<span class="slug-chip">/b/ghost/</span>)
-    assert_includes last_response.body, "does not match a hosted bundle"
+    assert_includes last_response.body, %(<h1>/b/ghost/</h1>)
+    assert_includes last_response.body, %(<p class="eyebrow">Not found</p>)
+    assert_includes last_response.body, "Bundles are served at", "and it teaches the shape of a URL that works"
   end
 
   test "a near-miss slug earns a did-you-mean carrying the bundle's own title" do
     get "/b/odrers/"
 
     assert_equal 404, last_response.status
-    assert_includes last_response.body, %(<a href="/b/orders/">@orders</a>), "the guess is a link, not a suggestion to retype"
-    assert_includes last_response.body, "Orders", "and it says which bundle it means"
-    assert_includes last_response.body, "Did you mean"
+    assert_includes last_response.body, "Closest match"
+    # The guess is the same row anatomy as the list below it, so what a reader
+    # learns to read in one place reads the same in the other — and ⏎ is already
+    # pointed at it, which a sentence in muted grey never was.
+    assert_match(%r{<div class="miss">.*?<a href="/b/orders/" class="active">.*?Orders}m, last_response.body)
   end
 
   test "a shared prefix is a near miss however long the tail" do
@@ -83,7 +90,35 @@ class OKF::Server::Hub404Test < OKF::TestCase
     # makes `/b/ord/` guess @orders rather than shrug.
     get "/b/ord/"
 
-    assert_includes last_response.body, %(<a href="/b/orders/">@orders</a>)
+    assert_match(%r{<div class="miss">.*?href="/b/orders/"}m, last_response.body)
+  end
+
+  test "a path that dropped the mount separator still finds the bundle inside it" do
+    # /bnotes/ is /b/notes/ with one slash missing, which is the likeliest way a
+    # hand-typed URL comes out wrong when every bundle lives at /b/<name>/. The
+    # splitter sees nothing under the mount and hands back no slug at all, so a
+    # guess that only ever looks at the slug is silent on the commonest typo
+    # there is — and this page's whole job is the guess.
+    get "/bnotes/"
+
+    assert_equal 404, last_response.status
+    assert_match(%r{<div class="miss">.*?href="/b/notes/"}m, last_response.body)
+    assert_includes last_response.body, "with the slash after", "and it names what actually went wrong"
+  end
+
+  test "a bundle really named for the mount letter beats the same name without it" do
+    # The other side of the fallback. /borders/ must not resolve to @orders by
+    # eating the `b` when a bundle called @borders is right there — the whole
+    # segment is read first, and a dropped slash is claimed only on evidence
+    # that leaves no second reading.
+    @app = OKF::Server::Hub.new([ bundle("borders", "Borders"), bundle("orders", "Orders") ])
+
+    get "/borders/"
+
+    assert_match(%r{<div class="miss">.*?href="/b/borders/"}m, last_response.body)
+    refute_includes last_response.body, "with the slash after"
+    assert_includes last_response.body, "the <code>/b/</code> is missing",
+      "the mistake is a missing prefix, not a moved slash, and it says which"
   end
 
   test "a slug that resembles nothing gets no guess rather than a wrong one" do
@@ -94,27 +129,41 @@ class OKF::Server::Hub404Test < OKF::TestCase
     assert_includes last_response.body, "/b/orders/", "the list is still the way home"
   end
 
-  test "the list carries every fact the manager's rows carry" do
+  test "the list carries every fact the /b/ rows carry, the folder included" do
     get "/b/ghost/"
 
     assert_includes last_response.body, %(<a href="/b/orders/"), "title links to the bundle"
     assert_includes last_response.body, "@orders"
     assert_includes last_response.body, "1 concept"
-    # The word carries the verdict and the class only tints it, so a reader who
-    # cannot see the colour loses nothing. (These one-file bundles link nowhere,
-    # which the linter warns about — the fixture's own honest health.)
-    assert_includes last_response.body, %(<span class="b-health warn"><span class="dot"></span>1 warning</span>)
+    # The folder is the fact the old row dropped, and the one that matters most
+    # on a real server: a hub hosting site/.okf, minifts/.okf and okf-core/.okf
+    # has three titles that read almost alike, and the directory is all that
+    # tells them apart.
+    assert_match(%r{<span class="b-dir" title="[^"]*orders"><bdi>[^<]*orders</bdi></span>}, last_response.body)
+    # The verdict rides on the row, so the word and the 3px edge come from one
+    # source. (These one-file bundles link nowhere, which the linter warns
+    # about — the fixture's own honest health.)
+    assert_includes last_response.body, %(<li class="brow" data-health="warn")
+    assert_includes last_response.body, %(<span class="b-health">1 warning</span>)
     assert_includes last_response.body, %(<span class="dbadge">default</span>)
   end
 
-  test "the filter box is autofocused, counts what it is filtering, and states its keys" do
+  test "the filter box is the graph page's own, count, bridge and all" do
     get "/b/ghost/"
 
     assert_includes last_response.body, %(id="q"), "the same .search component the graph page's box is"
     assert_includes last_response.body, "autofocus"
     assert_includes last_response.body, %(<span class="s-cnt" id="bar-count">2</span>),
       "the total while idle; script swaps in n/total once it filters"
-    assert_includes last_response.body, "↑↓ move"
+    # The dead end is the same event here as on the graph page — the box came up
+    # empty and there is somewhere else to look — so it is the same component in
+    # the same place, rather than a second dialect of one idea two pages apart.
+    assert_includes last_response.body, %(<div id="s-bridge" class="s-bridge" role="status" hidden>)
+    assert_includes last_response.body, %(id="sb-go">Search every bundle <kbd>⏎</kbd>)
+    assert_includes last_response.body, %(id="sb-clear">Clear <kbd>esc</kbd>)
+    # No key hints under the list: Tab moves through it natively, and a page
+    # that has to teach Tab has invented something it did not need to.
+    refute_includes last_response.body, "move ·"
   end
 
   # -- which failure it is
@@ -126,8 +175,10 @@ class OKF::Server::Hub404Test < OKF::TestCase
 
     assert_equal 404, last_response.status
     assert_includes last_response.body, "No bundles are registered on this server"
-    refute_includes last_response.body, "No bundle matches",
-      "that sentence answers a query; there was no query, and no data either"
+    # The markup, not the bare word: the stylesheet is inlined on every one of
+    # these pages, so asserting the token would only ever prove the CSS exists.
+    refute_includes last_response.body, %(id="s-bridge"),
+      "the bridge answers a query; there was no query, and nothing to filter either"
     refute_includes last_response.body, %(id="q"), "and nothing to filter is nothing to offer a filter for"
   end
 

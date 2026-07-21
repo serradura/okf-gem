@@ -1,6 +1,46 @@
 # Update Log
 
 ## 2026-07-21
+* **Change**: the hub's 404 stopped leading with the apology. It is a directory
+  reached by a wrong turn, not an error page, so the **asked path is now the
+  heading** — mono, 27px, where a dropped slash reads as a shape — and "not
+  found" is the eyebrow above it. A reader arrives already knowing they are
+  lost; the URL bar told them. The near miss became a **row** instead of a
+  sentence, wearing the same anatomy as the list under it and already lit, with
+  `⏎` wired to it before a character is typed. Rows gained the folder, which is
+  the fact that actually distinguishes bundles on a real server (`site/.okf`,
+  `minifts/.okf`, `okf-core/.okf` are three titles that read alike). And colour
+  went back to marking exceptions only: a healthy row draws no verdict edge,
+  because six rules saying "nothing to report" is a page where the one that
+  matters cannot be found by looking.
+* **Fix**: the 404's ↑↓ keys are gone, and moving through the list is Tab's job
+  again. The hand-rolled cursor was a second focus model living beside the real
+  one — it lit rows the browser did not consider focused, it was invisible to a
+  screen reader, and keeping the two in step is what left the near miss and a
+  list row highlighted at once, which made ↑↓ read as doing nothing at all. Every
+  row is an `<a href>`, a filtered-out row is `display:none` and leaves the tab
+  order on its own, and Shift-Tab goes back: all of it free, none of it ours to
+  maintain. What is left is one mark meaning "⏎ opens this", which never moves
+  and stands down the moment the caret leaves the box — past that point `⏎`
+  belongs to whatever Tab focused. `/` reaches the box from anywhere, the same
+  key the graph page binds, so a reader who tabbed into the list and changed
+  their mind does not have to tab back out of it.
+* **Feature**: the 404's box escalates the way the graph page's does, through the
+  **same component**. A bundle list cannot answer "where is the thing about
+  decay?" — but the hub can, since `/search` reads inside every bundle it hosts.
+  So a query matching no *bundle* drops the graph page's own bridge panel under
+  the box — `No bundle matches "…"`, then `Search every bundle ⏎` and
+  `Clear esc` — rather than saying no twice or inventing a second dialect of one
+  idea two pages apart. The hits land under the list, each opening its concept in
+  place (`/b/<slug>/?select=<id>`).
+* **Fix**: the 404's guess only ever looked at the slug the router parsed, so it
+  was silent on the commonest typo there is. `/bokf-tui/` is `/b/okf-tui/` minus
+  one slash, and the router — which only looks *under* the mount — hands back no
+  slug at all. The guess now falls back to the path's own first segment, whole
+  first so a bundle really named `borders` beats `orders` reached by eating the
+  mount letter. The dropped separator is named outright only on evidence with no
+  second reading; short of that the page teaches the URL shape rather than
+  guessing at the mistake.
 * **Fix**: the graph's Filters panel had three chip groups and two grammars.
   Areas and tags were additive — nothing selected means everything, a click
   narrows, a second click undoes — while **types were subtractive**: every type
