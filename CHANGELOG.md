@@ -39,6 +39,46 @@
   unchanged — every existing test passes untouched — but `okf help` is now
   composed from what the commands say about themselves rather than from a
   heredoc that had to be remembered separately.
+- **The graph page is proven in a real browser.** `test/browser/` drives the
+  page `okf server` and `okf render` share in Chromium, asserting DOM state and
+  computed CSS at real viewport widths, and failing any test where the page
+  threw. Every spec runs twice — once served, once against a `file://` static
+  render — because the two modes diverge on fetched endpoints vs. a baked
+  `EMBED`, and a pass in one proves nothing about the other. It is opt-in
+  (`rake test:browser`, outside the default task) and non-blocking in CI, since
+  the page boots against a CDN and a slow jsdelivr must not gate a merge. The
+  three fixes below are what writing it turned up: shipped defects invisible to
+  a string assertion over the rendered HTML, each reproduced red and pinned
+  green.
+- Fixed: selecting a node in cluster mode faded the entire graph rather than
+  emphasising the selection. Dimming set opacity on the unrelated elements, but
+  in cluster mode those include the compound area boxes — and a parent's opacity
+  cascades to the nodes inside it, so dimming the boxes faded the very leaves
+  being highlighted. The highlight was real in each node's own opacity and
+  invisible on screen: measured parent-inclusive, the selection sat at 0.1
+  against an unrelated node's 0.01. `focusNode` now dims the leaves and edges
+  and never the `:parent` boxes, which is a no-op outside cluster mode where
+  there are no parents. After: selection and neighbours at 1, the rest at 0.1.
+- Fixed: a log's "Open in graph" button stayed visible, carrying a stale
+  `onclick` from the last map or concept — the "answers about a different file"
+  symptom, returning through CSS. The code hides it correctly
+  (`#fp-graph.hidden = true`), but `.btn.text{display:inline-flex}` outranks
+  `.btn[hidden]{display:none}` at equal specificity (0,2,0), so the later rule
+  won and the button rendered 143px wide with the attribute present. A
+  `.btn.text[hidden]` rule settles it, the same fix the sibling `.fp-head[hidden]`
+  already carried.
+- Fixed: leaving the graph for another view and returning redrew it at a
+  fraction of its size, and stayed that way. The cause was misdiagnosed as a
+  resize race for months; tracing `cy.animate`'s caller showed the one animation
+  running was a *fit*. `fitGraph` computes zoom from the container's own width,
+  and the one-shot boot fit (`setTimeout(fitGraph, 400)`) fires on whatever view
+  is up by then — so leaving the graph inside that window fits a hidden 0×0
+  canvas, `(w-2*pad)/bb.w` goes negative, and the zoom clamps to `minZoom`.
+  `fitGraph` now returns early on a zero-size canvas and the graph keeps its last
+  good zoom. The hazard was already known at the other end: the boot fit is not
+  registered at all for a `?view=`/`?select=`/`#hash` deep link, whose comment
+  names this same min-zoom clamp — it was the navigate-away case that went
+  uncovered.
 - **Fixed: `okf skill <a> <b>` installed into `<a>` and exited 0.** It hand-rolled
   its own argument handling instead of using the shared pair every `<dir>` verb
   goes through, so a second destination was silently dropped — the user named two
