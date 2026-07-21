@@ -5,6 +5,7 @@ require "securerandom"
 require "uri"
 
 require "okf/server/app"
+require "okf/server/hub/not_found"
 
 module OKF
   module Server
@@ -23,8 +24,9 @@ module OKF
     #                       (when writable) the forms that manage the registry
     #   GET /b/<slug>       301 -> /b/<slug>/      (query string preserved)
     #   GET /b/<slug>/...   delegated to that bundle's App (the prefix stripped)
-    #   GET (unknown slug)  404 as a page listing the hosted bundles — a stale
-    #                       bookmark after a rename gets a way home, not bare text
+    #   GET (unknown slug)  404 on the app shell (Hub::NotFound) — the asked
+    #                       path, a did-you-mean, and the hosted bundles, so a
+    #                       stale bookmark after a rename gets a way home
     #   POST /registry/<verb>  default | rename | remove | add — the only routes
     #                       that change anything, gated three ways (see #write)
     #
@@ -81,10 +83,6 @@ module OKF
         font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
         main{max-width:34rem;width:calc(100% - 4rem);padding:2rem}h1{font-size:1.3rem;margin:0 0 .5rem}
         code{background:var(--line);padding:.15rem .4rem;border-radius:.35rem}
-        ul.bundles{list-style:none;margin:1rem 0 0;padding:0}
-        ul.bundles li{padding:.45rem 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:1rem;align-items:baseline}
-        ul.bundles a{color:inherit;font-weight:600;text-decoration:none}ul.bundles a:hover{text-decoration:underline}
-        .meta{color:var(--muted);font-size:.85rem;white-space:nowrap}
         .def{margin-left:.5rem;padding:.05rem .45rem;border-radius:99px;background:var(--line);font-size:.75rem}
 
         /* ── the workspace manager ── */
@@ -270,7 +268,7 @@ module OKF
 
         slug, rest = split(path)
         app = slug && @apps[slug]
-        return html(404, missing_page(base, path)) unless app
+        return html(404, missing_page(base, path, slug)) unless app
         return redirect("#{base}#{MOUNT}/#{slug}/", 301, query) if rest.empty?
 
         app.call(mounted(env, slug, rest))
@@ -720,22 +718,14 @@ module OKF
         "#{count} #{count == 1 ? noun : "#{noun}s"}"
       end
 
-      # The 404 for a slug the hub does not host: name what was asked for, then
-      # list what exists — a stale bookmark after a rename gets a way home.
-      def missing_page(base, path)
-        body = "<h1>No bundle here</h1><p><code>#{escape(path)}</code> does not match a hosted bundle.</p>"
-        body += bundle_list(base) unless @bundles.empty?
-        page("OKF · not found", body)
-      end
-
-      def bundle_list(base)
-        rows = @bundles.map do |bundle|
-          count = counts[bundle.slug]
-          badge = bundle.equal?(@default) ? %(<span class="def">default</span>) : ""
-          %(<li><a href="#{escape(base)}#{MOUNT}/#{escape(bundle.slug)}/">#{escape(bundle.title)}</a>) +
-            %(<span class="meta">#{escape(bundle.slug)} · #{count} concepts#{badge}</span></li>)
-        end
-        %(<ul class="bundles">#{rows.join}</ul>)
+      # The 404 for a slug the hub does not host: name what was asked for, guess
+      # what was meant, then list what exists — a stale bookmark after a rename
+      # gets a way home rather than a dead end. Built on the app shell, in
+      # NotFound; the rows are the manager's own, so a bundle reads the same
+      # here as it does there.
+      def missing_page(base, path, slug)
+        rows = @bundles.map { |bundle| hosted_row(bundle, bundle.slug) }
+        NotFound.page(path, slug, rows, base, MOUNT)
       end
 
       def page(title, body, body_class = "")
