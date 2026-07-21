@@ -71,9 +71,10 @@ module OKF
       # +siblings+/+self_slug+/+hub_path+ carry the hub's bundle switcher into the
       # page (server mode only). nil — the standalone-server and `okf render`
       # default — injects an empty SIBLINGS, so the switcher never appears in a
-      # single bundle or a static file.
+      # single bundle or a static file. +search_endpoint+ rides along with them:
+      # the hub's cross-bundle /search, which only a hub can answer.
       def initialize(graph, title: nil, link: nil, layout: "cose", node_endpoint: "node", meta_endpoint: "node/meta", embed: nil,
-                     siblings: nil, self_slug: nil, hub_path: nil)
+                     siblings: nil, self_slug: nil, hub_path: nil, search_endpoint: nil)
         @graph = graph
         @title = title
         @link = link
@@ -84,6 +85,7 @@ module OKF
         @siblings = siblings
         @self_slug = self_slug
         @hub_path = hub_path
+        @search_endpoint = search_endpoint
       end
 
       def render
@@ -156,6 +158,13 @@ module OKF
 
       def hub_path_json
         json_for_script(@hub_path)
+      end
+
+      # The hub's cross-bundle /search, mount-relative — null everywhere else, and
+      # that null is the gate: a standalone server and a static file have no set
+      # of bundles to search, so the palette never offers concepts there.
+      def search_endpoint_json
+        json_for_script(@search_endpoint)
       end
 
       # JSON-encode for safe embedding in an inline <script>: escaping every `<` to

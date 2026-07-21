@@ -317,6 +317,41 @@ module AcrossBundles
       refute_match(/example\.test/, page, "the ignored --link reaches no app behind the hub")
     end
 
+    # -- --allow-edit: who may change the registry from the browser
+
+    test "a loopback bind manages the registry from the browser without a flag" do
+      _result, booted = with_registry("conformant", "rooted") { okf_server }
+
+      assert_match(/action="\/registry\/rename"/, manager(booted_app(booted.first)),
+        "the audience this page was built for should not need a flag to use it")
+    end
+
+    test "a non-loopback bind is read-only until --allow-edit says otherwise" do
+      # --bind 0.0.0.0 is how a personal tool becomes a public one. The manager
+      # still *reads* — the page is worth having either way — but it offers
+      # nothing that writes.
+      _result, booted = with_registry("conformant", "rooted") { okf_server("--bind", "0.0.0.0") }
+      page = manager(booted_app(booted.first))
+
+      assert_match(/fixtures\/conformant/, page, "the list is still worth reading")
+      refute_match(/<form/, page, "and nothing on it changes anything")
+
+      _opted, booted = with_registry("conformant", "rooted") { okf_server("--bind", "0.0.0.0", "--allow-edit") }
+      assert_match(/<form/, manager(booted_app(booted.first)), "the flag is the opt-in")
+    end
+
+    test "an ephemeral hub offers no management, loopback or not" do
+      _result, booted = okf_server(fixture("conformant"), fixture("minimal"))
+      page = manager(booted_app(booted.first))
+
+      refute_match(/<form/, page, "there is no registry behind these dirs to change")
+      assert_match(/not registered/, page, "and the page says so rather than leaving it a mystery")
+    end
+
+    test "--allow-edit shows up in the verb's own help" do
+      assert_match(/--allow-edit/, okf("server", "--help").out)
+    end
+
     test "a plain dir and a ref mount side by side, each under its own name" do
       okf("registry", "set", fixture("rooted"), "--as", "steered")
 
@@ -380,6 +415,12 @@ module AcrossBundles
     # Drive a booted (unwrapped) Rack app the way a browser would, no socket:
     # returns [ status, headers, body ]. App and Hub both answer with an array
     # body, so joining it is the whole response.
+    # The /b/ manager as a booted hub renders it — where every question about
+    # who may change what has a visible answer.
+    def manager(hub)
+      get_page(hub, "/b/").last
+    end
+
     def get_page(app, path = "/")
       status, headers, body = app.call(
         "REQUEST_METHOD" => "GET", "PATH_INFO" => path, "QUERY_STRING" => "", "rack.input" => StringIO.new("")

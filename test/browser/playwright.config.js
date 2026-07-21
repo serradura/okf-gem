@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
-import { repoRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, HUB_PORT } from "./paths.js";
+import { repoRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, HUB_PORT,
+  workspaceHome, WORKSPACE_PORT } from "./paths.js";
 
 const serve = (dir, port) => ({
   command: `bundle exec ruby -Ilib exe/okf server ${JSON.stringify(dir)} -p ${port}`,
@@ -19,6 +20,22 @@ const serveHub = (dirs, port) => ({
   cwd: repoRoot,
   url: `http://127.0.0.1:${port}/b/bundle/`,
   reuseExistingServer: !process.env.CI,
+  stdout: "pipe",
+  stderr: "pipe",
+});
+
+// Zero dirs is the *registry* hub — the only mode whose /b/ manager can change
+// anything, because it is the only one with a registry behind it. It gets its
+// own $OKF_HOME (seeded in global-setup.js) so a spec that renames an entry
+// cannot reach the developer's real one. reuseExistingServer stays off here:
+// this server holds registry state in memory and rebuilds it on every write, so
+// a leftover process from the last run would answer with the last run's world.
+const serveWorkspace = (port) => ({
+  command: `bundle exec ruby -Ilib exe/okf server -p ${port}`,
+  cwd: repoRoot,
+  env: { ...process.env, OKF_HOME: workspaceHome },
+  url: `http://127.0.0.1:${port}/b/`,
+  reuseExistingServer: false,
   stdout: "pipe",
   stderr: "pipe",
 });
@@ -67,5 +84,10 @@ export default defineConfig({
   // bundler rather than a bare `ruby` — `okf server` needs rack and webrick,
   // and a CI setup-ruby with bundler-cache puts them under a BUNDLE_PATH that
   // `ruby -Ilib` would not search.
-  webServer: [ serve(bundleDir, PORT), serve(hostileDir, HOSTILE_PORT), serveHub([ bundleDir, hostileDir ], HUB_PORT) ],
+  webServer: [
+    serve(bundleDir, PORT),
+    serve(hostileDir, HOSTILE_PORT),
+    serveHub([ bundleDir, hostileDir ], HUB_PORT),
+    serveWorkspace(WORKSPACE_PORT),
+  ],
 });

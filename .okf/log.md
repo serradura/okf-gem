@@ -1,5 +1,35 @@
 # Update Log
 
+## 2026-07-21
+* **Feature**: the server reaches what the TUI reaches, through a browser. Three
+  pieces, shipped in order. **Cross-bundle search**: the hub answers
+  `GET /search?q=`, `Search.across` over every hosted bundle on one shared index,
+  and the ⌘K palette gains a **Concepts** group that fetches as you type. The
+  group comes last because it is the only one that arrives asynchronously, and a
+  group landing above the cursor moves the row under the reader's fingers between
+  the keystroke and the Enter. The engine is *named* `:index` rather than left to
+  route off `fuzzy: true` — that worked only because nothing else declares the
+  capability, and it is also the right engine here for a reason the CLI's default
+  does not share: a long-lived server amortizes an index build over every
+  keystroke, and the browser's own MiniSearch is a port of it, so a palette hit
+  and an in-page search rank alike. **The [workspace
+  manager](capabilities/workspace-manager.md)**: `/b/` went from a bare list to
+  the browser counterpart of the TUI's bundles view — size, health verdict,
+  default marker, and the entries the hub *cannot* host shown muted rather than
+  omitted, because leaving them off answers "where did my bundle go?" with
+  silence. **Registry writes**: four `POST` routes behind three gates
+  (loopback-or-`--allow-edit`, a registry to write to, same-origin plus a
+  per-boot token), each rebuilding the hub's served set from disk — a write that
+  leaves the running server on the old set is a lie the next click believes.
+* **Note**: the manager page carries no script, deliberately. Rename and Remove
+  are `<details>` disclosures, Add is a text field for an absolute path — a
+  browser cannot hand over a filesystem path at all (the File System Access API
+  yields an opaque handle, and is Chromium-only), so there was never a picker to
+  choose over typing. The first browser run of the new specs paid for itself: an
+  HTML `pattern` whose character class is a valid Ruby regexp and invalid under
+  the `v` flag a browser compiles it with, throwing on every keystroke where no
+  integration assertion could see it.
+
 ## 2026-07-20
 * **Fix**: the graph no longer collapses on return from another view — and the
   cause was misdiagnosed for months. The [browser suite](design/browser-tests.md)

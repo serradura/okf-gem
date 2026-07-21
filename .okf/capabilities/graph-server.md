@@ -56,14 +56,30 @@ hub needs only a clean `PATH_INFO` strip and a trailing-slash redirect — no
 rewriting, no per-mount configuration. The rough edges are all navigational: a
 redirect preserves the query string (a deep link survives the hop), and an unknown
 slug answers `404` with a *page listing the hosted bundles*, so a bookmark left
-stale by a rename gets a way home instead of bare text. `/b/` itself is a browsable
-index with the default marked — a hub is navigable without the switcher, and the
-empty registry lands on a page that says so rather than redirecting nowhere. Those
-pages are self-contained and theme-aware like the graph page: no external requests.
+stale by a rename gets a way home instead of bare text. `/b/` itself is the
+[workspace manager](workspace-manager.md) — a hub is navigable without the
+switcher, and the empty registry lands on a page that says so rather than
+redirecting nowhere. Those pages are self-contained and theme-aware like the graph
+page: no external requests.
 
-The hub reads its bundles **at boot**. Registering or editing one is not picked up
-by a running server — restart it. That is the honest tradeoff for a hub that never
-re-scans disk per request.
+The hub loads its bundles **at boot** and rebuilds them after any registry write
+it serves, so a rename made on the manager page takes effect on the next click.
+What it never does is re-scan disk per request: an edit made *elsewhere* while it
+runs — `okf registry set` in another terminal — still wants a restart to be
+served, though the manager page itself reads the file fresh and will show it.
+
+# One search box for every bundle
+
+The hub answers `GET /search?q=…`, which is the only route in the server that
+knows about more than one bundle. It is
+[`OKF::Bundle::Search.across`](search.md) over every hosted bundle at once —
+one shared index, so BM25 weighs a term against the whole corpus and the merged
+ranking is comparable by construction rather than by stapling per-bundle lists
+together. The engine is **named**, not inferred: `:index`, because a long-lived
+server amortizes a build over every keystroke where a one-shot CLI cannot, and
+because the browser's own MiniSearch is a port of it, so a palette hit and an
+in-page search rank alike. Results are capped at 50 and the answer reports its
+own `total`, so a truncated list never reads as a complete one.
 
 # One palette, every mode
 
@@ -74,7 +90,22 @@ palette at all; now the palette is universal and *bundles* are the group that
 comes and goes. Under a hub, each `App` is built carrying the *other* bundles as
 siblings: bundles lead the list and own the empty box, `Cmd/Ctrl-Enter` opens
 one in a new tab, and a count badge advertises the palette until it has been
-opened once. Views ride underneath, each carrying the rail's own icon and label
+opened once.
+
+Where the hub also answers `/search`, a third group appears: **Concepts**, every
+match in every hosted bundle, fetched as you type and shown with its bundle, its
+type, and a snippet with the matched terms marked. It comes **last** on purpose.
+It is the one group that arrives asynchronously, and a group that lands above the
+cursor moves the row under the reader's fingers between the keystroke and the
+Enter; last means results can only ever appear below what is already selected. A
+hit in another bundle is a page load carrying `?select=<id>` and nothing else —
+the view and layout a bundle switch preserves are exactly what naming a node has
+to override — while a hit in the bundle already open is selected in place, since
+a page load to arrive where you already are throws away the camera and the
+filters for nothing. Standalone and static have no `SEARCH_ENDPOINT` at all, so
+the group does not exist there rather than existing empty.
+
+Views ride underneath, each carrying the rail's own icon and label
 — read from the rail, so the two cannot drift — and where there is no hub, views
 become the whole list. What never appears is a dead end: a standalone page
 injects an empty sibling list, so the palette offers a bundle only where its
@@ -351,8 +382,14 @@ sequenceDiagram
 | `/log` | every `log.md`, read live from disk for the Log |
 
 Under a hub every path above keeps its shape, mounted under its bundle's prefix
-(`/b/<slug>/node?id=`), plus the hub's own `/` (redirect to the default) and `/b/`
-(the bundle index).
+(`/b/<slug>/node?id=`), plus the hub's own:
+
+| Path | Serves |
+|------|--------|
+| `/` | redirect to the default bundle (empty-state page when none) |
+| `/search?q=` | ranked concepts across every hosted bundle (JSON) |
+| `/b/` | the [workspace manager](workspace-manager.md) |
+| `POST /registry/{default,rename,remove,add}` | the manager's four writes |
 
 # Responses are gzipped on the wire
 

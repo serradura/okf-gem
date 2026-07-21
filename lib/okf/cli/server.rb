@@ -24,7 +24,7 @@ module OKF
         require "okf/server/app"
         require "rack/deflater"
 
-        options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose" }
+        options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose", allow_edit: false }
         parser = OptionParser.new do |o|
           o.banner = "Usage: okf server [DIR|@slug…] [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url]"
           o.on("-p", "--port PORT", Integer, "port to serve on (default #{options[:port]})") { |v| options[:port] = v }
@@ -32,6 +32,7 @@ module OKF
           o.on("-t", "--title TITLE", "graph title, single bundle only (default: parent/bundle dir name)") { |v| options[:title] = v }
           o.on("-l", "--link URL", "source URL shown in the header, single bundle only") { |v| options[:link] = v }
           o.on("--layout NAME", OKF::Render::Graph::LAYOUTS, "initial layout (#{OKF::Render::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
+          o.on("--allow-edit", "manage the registry from the browser on a non-loopback bind") { options[:allow_edit] = true }
           help_flag(o)
         end
         dirs = positional_dirs(parser, argv) or return 2
@@ -75,15 +76,22 @@ module OKF
       def run_hub(dirs, options)
         require "okf/server/hub"
         require "okf/registry"
+        reg = nil
         if dirs.empty?
           # A malformed registry raises OKF::Error, which `server` rescues into a
           # usage error — no guarded load needed on this path.
           reg = OKF::Registry.load
-          bundles = reg.map { |entry| load_registered(entry) }.compact
+          # The hub's own loader, so the set it rebuilds after a browser-side
+          # write is built exactly the way this one was.
+          bundles = OKF::Server::Hub.bundles_for(reg) { |entry| skip_registered(entry) }
+          bundles.each { |bundle| report_skipped(bundle.folder) }
         else
           bundles = ephemeral_bundles(dirs)
         end
-        hub = OKF::Server::Hub.new(bundles, layout: options[:layout])
+        # The hub keeps the registry so its /b/ manager can report on entries it
+        # could not host — a folder deleted out from under one is the question
+        # "where did my bundle go?", and only the registry can answer it.
+        hub = OKF::Server::Hub.new(bundles, layout: options[:layout], registry: reg, writable: writable?(options))
         concepts = bundles.inject(0) { |sum, bundle| sum + bundle.folder.graph(minimal: true).nodes.size }
         @out.puts "serving #{bundles.size} #{pluralize(bundles.size,
           "bundle")}, #{concepts} #{pluralize(concepts, "concept")} at http://#{options[:bind]}:#{options[:port]} (Ctrl-C to stop)"
@@ -140,19 +148,20 @@ module OKF
         end
       end
 
-      # Load one registered bundle; a path that has gone missing or no longer reads
-      # drops to nil with a note (to stderr) rather than sinking the whole run. The
-      # directory check is explicit — the Reader maps a nonexistent directory to an
-      # empty bundle, so nothing would raise for the common "dir was deleted" case.
-      # Method-level rescue (not a `do…end`-block rescue — a 2.6 feature).
-      def load_registered(entry)
-        return skip_registered(entry) unless File.directory?(entry.path)
+      # May the browser change the registry? On a loopback bind, yes: the server
+      # is reachable only from this machine, and the audience this was built for
+      # should not need a flag to use the page they were pointed at. Anywhere
+      # else it takes --allow-edit, because `--bind 0.0.0.0` is how a personal
+      # tool becomes a public one and a write surface must not follow it there by
+      # accident. 0.0.0.0 is *not* loopback — it is every interface, which is the
+      # exact case this guards.
+      def writable?(options)
+        options[:allow_edit] || loopback?(options[:bind])
+      end
 
-        folder = OKF::Bundle::Folder.load(entry.path)
-        report_skipped(folder)
-        OKF::Server::Hub::Bundle.new(entry.slug, folder, entry.title)
-      rescue SystemCallError, OKF::Error
-        skip_registered(entry)
+      def loopback?(bind)
+        address = bind.to_s
+        address == "localhost" || address == "::1" || address.start_with?("127.")
       end
     end
 

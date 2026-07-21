@@ -137,6 +137,14 @@ what turns registering from "tell the server" into "give this bundle a name":
 [`search`](capabilities/search.md) crosses several of them in one query, and no
 verb needs a path once the bundle has a slug.
 
+It is also no longer terminal-only. The hub's
+[workspace manager](capabilities/workspace-manager.md) drives the same four
+operations — `default`, `rename`, `remove`, `add` — from a browser, through this
+class and its messages rather than around them. The file stays the record: every
+write goes through here, and the manager re-reads it per request rather than
+trusting a snapshot, so an `okf registry rename` in another terminal shows on a
+refresh.
+
 # It tolerates a world that changes underneath it
 
 A registry entry is a bet that a directory still exists, and the registry never

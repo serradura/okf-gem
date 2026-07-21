@@ -303,6 +303,24 @@
  #sw-list a.cur:hover{background:none}
  #sw-list a.none{color:var(--muted);cursor:default;font-size:13px}
  .sw-def{margin-left:7px;padding:1px 7px;border-radius:99px;background:var(--line-2);color:var(--muted);font-size:11px;vertical-align:1px}
+ /* A concept hit is the one two-line row in the palette: a bundle or a view is
+    a destination you already know the name of, a concept is one you are being
+    shown evidence for. The snippet is that evidence, so it gets its own line
+    rather than being squeezed onto the first. */
+ #sw-list a.sw-hit{display:block;padding:8px 10px}
+ #sw-list a.sw-hit .hit-top{display:flex;align-items:baseline;gap:8px}
+ #sw-list a.sw-hit .hit-t{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ #sw-list a.sw-hit .hit-type{color:var(--faint);font-size:11.5px;white-space:nowrap}
+ #sw-list a.sw-hit .slug{margin-left:auto;flex:none}
+ #sw-list a.sw-hit .hit-s{display:block;margin-top:2px;color:var(--muted);font-size:12.5px;line-height:1.45;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ /* The matched terms, marked where they landed. This is the only place the
+    palette says *why* a row is here, so it takes the accent — muted enough to
+    read as text, not as a highlighter pen. */
+ #sw-list a.sw-hit mark{background:var(--accent-soft);color:var(--accent-ink);border-radius:3px;padding:0 1px}
+ /* The async group: results arrive after the keystroke that asked for them, so
+    the header carries the state instead of the list jumping to a spinner. */
+ #sw-list .sw-grp .sw-state{margin-left:6px;font-weight:400;text-transform:none;letter-spacing:0}
 
  /* ── the ? sheet — same overlay shape as the palette, one row per binding ── */
  #kb{position:fixed;inset:0;z-index:91;background:rgba(0,0,0,.34);display:flex;align-items:flex-start;justify-content:center;padding-top:14vh}
@@ -889,6 +907,9 @@ const CATALOG_ENDPOINT="catalog",INDEX_ENDPOINT="index",LOG_ENDPOINT="log";
 /* The hub's bundle switcher (⌘/Ctrl-K). SIBLINGS is empty for a standalone
    server and for `okf render`, so a single bundle or a static file offers none. */
 const SIBLINGS=<%= siblings_json %>, SELF_SLUG=<%= self_slug_json %>, HUB_PATH=<%= hub_path_json %>;
+/* The hub's cross-bundle search, mount-relative — null for a standalone server
+   and for `okf render`, where there is no set of bundles to search. */
+const SEARCH_ENDPOINT=<%= search_endpoint_json %>;
 /* null when served live (`okf server`) — the getters below fetch the endpoints
    above. `okf render` injects a payload {catalog,index,logs,bodies}, and every
    getter resolves from it instead (the /node/meta fragment derived from the
@@ -1938,20 +1959,33 @@ function listingHtml(items){if(!items||!items.length)return '<p class="empty" st
 let LOGS=null;
 function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LOG_ENDPOINT).then(r=>r.json()).then(d=>d.logs));}
 
-/* ── command palette: jump to a view always, and to a sibling bundle when a hub
-   is serving one. It began as the bundle switcher, gated on HUB_PATH — which
-   meant ⌘K did not exist at all under a standalone `okf server` or in `okf
-   render` output, the two modes most people meet first. Views are what earn the
-   palette a place in every mode; bundles are the group that comes and goes.
-   The two are grouped rather than merged because the actions differ: a view is
+/* ── command palette: jump to a view always, to a sibling bundle when a hub is
+   serving one, and to any concept in any hosted bundle when that hub answers
+   /search. It began as the bundle switcher, gated on HUB_PATH — which meant ⌘K
+   did not exist at all under a standalone `okf server` or in `okf render`
+   output, the two modes most people meet first. Views are what earn the palette
+   a place in every mode; bundles and concepts are the groups that come and go.
+   The three are grouped rather than merged because the actions differ: a view is
    in-page and instant, a bundle is a page load that carries the view and layout
-   across and deliberately drops the selected node. ── */
+   across and deliberately drops the selected node, and a concept is the opposite
+   of that — it is *only* a node, so it carries ?select= and nothing else.
+
+   Concepts come last, and not because they matter least. They are the one group
+   that arrives asynchronously, and a group that lands above the cursor moves the
+   row under the user's fingers between the keystroke and the Enter. Last means
+   results can only ever appear below what is already selected. ── */
 (function(){
  const ov=document.getElementById('sw'),input=document.getElementById('sw-input'),list=document.getElementById('sw-list');
  const isMac=/Mac|iP/.test(navigator.platform||'');
  const layout0=layoutSel?layoutSel.value:null;
  const HUB=HUB_PATH!==null;
+ /* Only a hub can answer about every bundle at once, so this is null on a
+    standalone server and in a static file — and there the group never exists. */
+ const FINDS=SEARCH_ENDPOINT!==null;
  let active=0,lastFocus=null;
+ /* the Concepts group's state: the rows, what the whole answer counted, the
+    terms they came from (for the marks), and where the request is up to */
+ let hits=[],hitTotal=0,hitTerms=[],hitState='',hitSeq=0,hitTimer=null;
  /* The rail is the source of truth for which views exist, so read it back
     rather than keeping a second list here that a new view could fall out of. */
  const VIEWS=[ ...document.querySelectorAll('.rail-item[data-view]') ].map(b=>{
@@ -1975,6 +2009,25 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
   const qs=ps.toString();return qs?p+'?'+qs:p;}
  const grp=t=>`<li class="sw-grp">${t}</li>`;
  const opt=(i,inner)=>`<a ${inner.attrs} id="sw-opt-${i}" role="option" class="${(i===active?'active':'')+(inner.cls||'')}">${inner.html}</a>`;
+ const note=t=>`<a class="none"><span>${t}</span></a>`;
+ /* Mark the typed terms where they landed — the only thing on a hit row that
+    says *why* it is here. Built by splitting the raw text and escaping each
+    piece, never by wrapping tags around already-escaped text: a term like "amp"
+    would otherwise cut an entity in half and put a <mark> inside it. */
+ const rxEsc=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ function hilite(text,terms){const s=text==null?'':String(text);
+  if(!terms.length)return esc(s);
+  const rx=new RegExp('('+terms.map(rxEsc).join('|')+')','ig');
+  return s.split(rx).map((part,i)=>i%2?`<mark>${esc(part)}</mark>`:esc(part)).join('');}
+ /* A hit names a node, so its URL carries ?select= and nothing else — the view
+    and layout a bundle switch preserves are exactly what a node has to override.
+    A hit in *this* bundle is not a navigation at all; go() selects it in place
+    and this href only exists for ⌘-click, where a second tab is the point. */
+ const hitHref=c=>(c.slug===SELF_SLUG?'':'../'+encodeURIComponent(c.slug)+'/')+'?select='+encodeURIComponent(c.id);
+ const hitHtml=c=>`<span class="hit-top"><span class="hit-t">${hilite(c.title||c.id,hitTerms)}</span>`+
+  (c.type?`<span class="hit-type">${esc(c.type)}</span>`:'')+
+  `<span class="slug">${esc(c.slug)}</span></span>`+
+  (c.snippet?`<span class="hit-s">${hilite(c.snippet,hitTerms)}</span>`:'');
  /* Bundles lead, and on an empty box they are the only thing here: switching
     bundles is what the palette is for, and six views above them would push the
     answer below the fold to advertise a convenience. So views wait until what
@@ -1987,9 +2040,11 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
  function render(qs){const q=(qs||'').trim().toLowerCase();
   const bs=matchBundles(q);
   const vs=(q||!HUB)?matchViews(q):[];
+  const showC=FINDS&&!!q;
+  const cs=showC?hits:[];
   const showB=HUB&&(bs.length||!q);
-  const heads=showB&&vs.length>0;
-  active=Math.min(active,Math.max(0,bs.length+vs.length-1));
+  const heads=(showB?1:0)+(vs.length?1:0)+(showC?1:0)>1;
+  active=Math.min(active,Math.max(0,bs.length+vs.length+cs.length-1));
   let h='';
   if(showB){
    if(heads)h+=grp('Bundles');
@@ -2006,9 +2061,21 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
     attrs:`data-view="${esc(x.v)}"`,
     html:`<span class="sw-ico">${x.icon}</span><span>${esc(x.label)}${x.v===activeRail()?'<span class="sw-def">current</span>':''}</span>`})).join('');
   }
+  if(showC){
+   if(heads)h+=grp('Concepts');
+   h+=cs.map((c,i)=>opt(bs.length+vs.length+i,{
+    cls:' sw-hit',
+    attrs:`href="${esc(hitHref(c))}" data-hit="${esc(c.id)}" data-slug="${esc(c.slug)}"`,
+    html:hitHtml(c)})).join('');
+   /* The cap is reported, never silent: a palette that shows 50 of 214 and says
+      nothing has told the reader the answer is complete. */
+   if(hitTotal>cs.length&&cs.length)h+=note(`showing ${cs.length} of ${hitTotal} matches — narrow the search`);
+   if(!cs.length)h+=note(hitState==='error'?'search is unavailable right now':
+    hitState==='done'?'no concepts match':'searching every bundle…');
+  }
   if(!h)h='<a class="none"><span>no matches</span></a>';
   list.innerHTML=h;mark();}
- const items=()=>[ ...list.querySelectorAll('a[data-view],a[data-path]') ];
+ const items=()=>[ ...list.querySelectorAll('a[data-view],a[data-path],a[data-hit]') ];
  function mark(){const its=items();
   its.forEach((a,i)=>a.classList.toggle('active',i===active));
   input.setAttribute('aria-activedescendant',its[active]?its[active].id:'');
@@ -2016,16 +2083,43 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
  /* Unhide before rendering: mark() scrolls the active row into view, and a list
     still display:none measures zero, so the scroll lands somewhere arbitrary
     and takes the first group's header off the top of the box with it. */
- function open(){discovered();lastFocus=document.activeElement;active=0;input.value='';ov.hidden=false;render('');input.setAttribute('aria-expanded','true');input.focus();}
+ function open(){discovered();lastFocus=document.activeElement;active=0;input.value='';
+  hits=[];hitTotal=0;hitTerms=[];hitState='';hitSeq++;clearTimeout(hitTimer);
+  ov.hidden=false;render('');input.setAttribute('aria-expanded','true');input.focus();}
  function close(){ov.hidden=true;input.setAttribute('aria-expanded','false');if(lastFocus&&lastFocus.focus)lastFocus.focus();}
  /* A view switches in place, so it ignores the new-tab chord — opening this same
     bundle again in a second tab is not what ⌘⏎ was asked for. A bundle is a real
     navigation and honours it. */
  function go(a,newTab){if(!a)return;
   const v=a.dataset.view;if(v){goRail(v);close();return;}
+  const id=a.dataset.hit;
+  /* A concept in this bundle is already loaded — selecting it in place keeps the
+     camera, the filters and the layout the reader built. Only a hit in another
+     bundle is worth a page load. */
+  if(id!==undefined){const t=a.getAttribute('href');
+   if(newTab){window.open(t,'_blank');close();return;}
+   if(a.dataset.slug===SELF_SLUG){close();goToGraph(id);return;}
+   location.href=t;return;}
   const p=a.dataset.path;if(!p)return;const t=target(p);
   if(newTab){window.open(t,'_blank');close();}else{location.href=t;}}
- input.addEventListener('input',()=>{active=0;render(input.value);});
+ /* The Concepts group is the one that costs a request, so it is debounced and
+    sequenced: only the newest answer may land, and a slow one that lost the race
+    is dropped rather than overwriting what the reader is looking at now. */
+ function findLater(q){clearTimeout(hitTimer);
+  const t=q.trim();
+  hitSeq++;
+  if(!FINDS||!t){hits=[];hitTotal=0;hitTerms=[];hitState='';return;}
+  hitState='searching';
+  hitTimer=setTimeout(()=>find(t),150);}
+ function find(t){const mine=hitSeq;
+  fetch(SEARCH_ENDPOINT+'?q='+encodeURIComponent(t))
+   .then(r=>r.ok?r.json():Promise.reject(new Error('search '+r.status)))
+   .then(d=>{if(mine!==hitSeq)return;
+    hits=d.results||[];hitTotal=d.total===undefined?hits.length:d.total;
+    hitTerms=t.split(/\s+/).filter(Boolean);hitState='done';render(input.value);})
+   .catch(()=>{if(mine!==hitSeq)return;
+    hits=[];hitTotal=0;hitTerms=[];hitState='error';render(input.value);});}
+ input.addEventListener('input',()=>{active=0;findLater(input.value);render(input.value);});
  input.addEventListener('keydown',e=>{const its=items();
   if(e.key==='ArrowDown'){e.preventDefault();active=Math.min(its.length-1,active+1);}
   else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(0,active-1);}
@@ -2033,7 +2127,7 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
   else if(e.key==='Escape'){e.preventDefault();close();return;}
   else return;
   mark();});
- list.addEventListener('click',e=>{const a=e.target.closest('a[data-path]');if(!a)return;
+ list.addEventListener('click',e=>{const a=e.target.closest('a[data-path],a[data-hit]');if(!a)return;
   if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return; /* let the browser handle its own new-tab/window conventions */
   e.preventDefault();go(a,false);});
  ov.addEventListener('mousedown',e=>{if(e.target===ov)close();});
@@ -2044,21 +2138,24 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
     mode can actually do, since a standalone bundle has no bundle to switch to
     and no second tab to open one in. */
  const chord=isMac?'⌘K':'Ctrl-K';
- /* Every label names the mode's primary job and nothing else. Under a hub that
-    is switching bundles — the placeholder trails "or a view" only because a
-    convenience nobody can find is not one, and that is the whole billing views
-    get. Standalone has no bundles, so there the view is the job. */
- const label=HUB?'Switch bundle':'Jump to a view';
- input.placeholder=HUB?'switch bundle, or type a view…':'jump to a view…';
+ /* Every label names the mode's primary job and nothing else. Where the hub
+    answers /search that job is finding a concept — you type words, not names —
+    and switching bundles becomes the second billing. Where it does not, the job
+    is switching bundles. Standalone has neither, so there the view is the job.
+    The ⇄ button keeps the bundle wording in every mode: it draws a swap, and a
+    control whose tooltip disagrees with its icon teaches the wrong thing. */
+ const label=FINDS?'Search all bundles':HUB?'Switch bundle':'Jump to a view';
+ const btnLabel=HUB?'Switch bundle':label;
+ input.placeholder=FINDS?'search concepts, switch bundle, or a view…':HUB?'switch bundle, or type a view…':'jump to a view…';
  input.setAttribute('aria-label',label);
- ov.setAttribute('aria-label',HUB?'Switch bundle':'Command palette');
+ ov.setAttribute('aria-label',FINDS?label:HUB?'Switch bundle':'Command palette');
  document.getElementById('sw-hint').textContent='↑↓ move · ⏎ open · '+(HUB?(isMac?'⌘⏎':'Ctrl-⏎')+' new tab · ':'')+'Esc close';
  const gh=document.querySelector('.ghint');
- if(gh)gh.textContent+=' · '+chord+(HUB?' switches bundle':' jumps to a view');
+ if(gh)gh.textContent+=' · '+chord+(FINDS?' searches every bundle':HUB?' switches bundle':' jumps to a view');
  /* the ⇄ button is bundle-swap in both icon and meaning, so it stays with the
     bundles — a standalone page reaches the palette by the chord and the hint */
  const btn=document.getElementById('btn-switch');
- if(btn&&HUB){btn.hidden=false;btn.title=label+' ('+chord+')';btn.setAttribute('aria-label',label+' ('+chord+')');
+ if(btn&&HUB){btn.hidden=false;btn.title=btnLabel+' ('+chord+')';btn.setAttribute('aria-label',btnLabel+' ('+chord+')');
   btn.addEventListener('click',()=>{ov.hidden?open():close();});}
  /* the pulse badge (and its hamburger-dot mirror on mobile) exists to get the
     switcher discovered — once the palette has been opened it has done its job,
@@ -2135,7 +2232,9 @@ const KEYS=[
  [ '\\', 'show or hide the inspector — graph' ],
  [ '0', 'fit the graph to the screen — graph' ],
  [ 'f', 'fullscreen' ],
- [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K', HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
+ [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K',
+   SEARCH_ENDPOINT!==null?'search every bundle, switch bundle, or jump to a view':
+   HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
  [ '?', 'this list' ],
  [ 'Esc', 'close what is open, or clear the graph selection' ]
 ];

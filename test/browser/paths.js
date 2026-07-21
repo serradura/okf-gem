@@ -29,3 +29,12 @@ export const HOSTILE_PORT = PORT + 1;
 // so /b/bundle/ carries a sibling and the palette's bundle switcher exists.
 // Reached by URL directly, so it needs no Playwright project of its own.
 export const HUB_PORT = PORT + 2;
+
+// A *registry-backed* hub, which the ephemeral one above can never be: the
+// manager's forms only exist where there is a registry to change. It gets its
+// own $OKF_HOME and its own throwaway copies of a bundle, because the specs
+// that drive those forms write to both — pointing it at the committed fixtures
+// would leave a rename behind in the working tree.
+export const workspaceHome = path.join(here, ".tmp", "okfhome");
+export const workspaceDir = path.join(here, ".tmp", "workspace");
+export const WORKSPACE_PORT = PORT + 3;

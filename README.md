@@ -225,6 +225,11 @@ docker run --rm -v "$PWD:/data" ghcr.io/serradura/okf validate .
 docker run --rm -v "$PWD:/data" -p 8808:8808 ghcr.io/serradura/okf server . --bind 0.0.0.0
 ```
 
+A container has to bind `0.0.0.0` for the host to reach it at all, which is
+exactly the bind that makes the hub's workspace manager read-only. Reading the
+graph is unaffected; add `--allow-edit` only if you also want to manage the
+registry from that page, and only when you know who can reach the port.
+
 Then open <http://127.0.0.1:8808>. Images are published for `linux/amd64` and
 `linux/arm64` on
 [ghcr.io](https://github.com/serradura/okf-gem/pkgs/container/okf): `:latest`
@@ -252,7 +257,7 @@ okf lint      <dir|@slug> [--json] [--fail-on warn] [...]  # report curation-qua
 okf loose     <dir|@slug> [--json]                         # list files with no graph links, by folder
 okf search    <dir|@slug…|@all> <term…> [-e|--fuzzy] [...] # ranked retrieval; @slugs or @all span bundles
 okf index     <dir|@slug> [--json] [--area A] [--no-body]  # progressive-disclosure map (§6): bodies, rollups, listings
-okf server    [DIR|@slug…] [-p PORT] [--bind ADDR] [...]   # serve one bundle, or many behind a hub (⌘K to switch)
+okf server    [DIR|@slug…] [-p PORT] [--bind ADDR] [...]   # serve one bundle, or many behind a hub (⌘K searches every one)
 okf render    <dir|@slug> [-o FILE] [--layout NAME] [...]  # export the graph as one static, self-contained HTML file
 okf registry  list [--json]                                # list registered bundles (* marks the default)
 okf registry  set <dir|@slug> [--as SLUG] [--default]      # add or update a bundle (a bare `server` serves it)
@@ -329,10 +334,22 @@ okf server                              # no args: the whole registry behind one
 
 The first entry still on disk is the **default** — the bundle a bare `okf
 server` opens at `/` and a bare `@` names; `okf registry default @slug` moves an
-entry to the front. Behind the hub each bundle mounts at `/b/<slug>/`, `/b/` is
-a browsable index, and the `⌘/Ctrl-K` palette switches bundles without leaving
-the page. The hub reads the registry at boot, so restart it after registry
-changes; set `$OKF_HOME` to point every verb at a different registry.
+entry to the front. Behind the hub each bundle mounts at `/b/<slug>/`, and the
+`⌘/Ctrl-K` palette both switches bundles and **searches every one of them at
+once** — type a few words and the matching concepts appear with their bundle and
+a snippet, from wherever you are.
+
+`/b/` is the **workspace manager**: every bundle with its size, its health
+(conformance plus curation, so a warning is a warning and not a failure), the
+default marked, and any entry whose folder has gone missing shown rather than
+quietly dropped. On a loopback server it is also where you manage the registry
+without a terminal — make default, rename, remove, and add a bundle by pasting
+its folder path. Those controls are the one thing that does not follow you onto
+a network: bind anywhere but loopback and the page turns read-only unless you
+pass `--allow-edit`, since `--bind 0.0.0.0` is how a personal tool becomes a
+public one. Writes rebuild the hub's set as they go, so a rename takes effect on
+the next click; a registry change made *elsewhere* while it runs still wants a
+restart to be served. Set `$OKF_HOME` to point every verb at a different registry.
 
 `graph` and `server` are best-effort (§9): a file with invalid frontmatter is
 skipped (and noted on stderr), not fatal, so one bad file never breaks the rest.
