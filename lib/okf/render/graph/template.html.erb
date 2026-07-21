@@ -117,7 +117,37 @@
  .field::placeholder{color:var(--muted)}
  .search{position:relative;display:flex;align-items:center;flex:1 1 320px;min-width:130px;max-width:520px}
  .search svg{position:absolute;left:11px;width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:1.8;pointer-events:none}
- .search input{width:100%;padding-left:33px}
+ .search input{width:100%;padding-left:33px;padding-right:52px}
+ /* the count only exists while filtering, so the room for it is claimed only then */
+ .search.has-cnt input{padding-right:104px}
+ /* ── the search box's right-edge tools: the live match count, and the chip
+       that names the palette. The box filters what is on screen and the palette
+       finds across every bundle — two grammars behind one look — so the second
+       one is advertised inside the first, where the reader already is when the
+       filter disappoints them. ── */
+ .s-tools{position:absolute;right:7px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px}
+ .s-cnt{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+ .s-cnt[hidden]{display:none}
+ .s-kbd{cursor:pointer;border:1px solid var(--line);border-radius:6px;background:var(--panel-2);color:var(--muted);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;font-weight:600;letter-spacing:.02em;
+  line-height:1;padding:4px 6px;transition:color .15s,border-color .15s}
+ .s-kbd:hover{color:var(--ink);border-color:var(--accent)}
+ .s-kbd:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+ /* the bridge: the local filter came up empty, so say so and offer the way on —
+    same surface language as the palette it hands over to */
+ .s-bridge{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;background:var(--panel);border:1px solid var(--line);
+  border-radius:11px;box-shadow:var(--shadow);padding:11px 13px;font-size:12.5px}
+ .s-bridge[hidden]{display:none}
+ .sb-msg{color:var(--muted);margin-bottom:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .sb-msg b{color:var(--ink);font-weight:600}
+ .sb-row{display:flex;gap:8px;flex-wrap:wrap}
+ .sb-act{cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:inherit;font-size:12px;padding:5px 10px;
+  border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--muted);transition:color .15s,border-color .15s}
+ .sb-act:hover{color:var(--ink);border-color:var(--accent)}
+ .sb-act[hidden]{display:none}
+ .sb-act.primary{color:var(--accent-ink);border-color:var(--accent);background:var(--accent-soft)}
+ .sb-act kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--faint);
+  border:1px solid var(--line);border-radius:4px;padding:1px 4px;background:var(--panel);line-height:1.3}
  .selwrap{position:relative;display:inline-flex;flex:none}
  .selwrap::after{content:"";position:absolute;right:12px;top:50%;width:7px;height:7px;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
  select.field{appearance:none;-webkit-appearance:none;padding-right:30px;cursor:pointer}
@@ -668,7 +698,12 @@
    <span class="ident"><%= escaped_name %><span class="muted"><%= @graph.nodes.length %> concepts · <%= @graph.edges.length %> links</span><%= source_link %></span>
    <div id="bar-tools">
    <div id="search-wrap"><label class="search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-    <input id="search" class="field" placeholder="search concepts…" autocomplete="off" aria-label="Search"></label></div>
+    <input id="search" class="field" placeholder="search concepts…" autocomplete="off" aria-label="Search">
+    <span class="s-tools"><span id="s-cnt" class="s-cnt" hidden></span><button type="button" id="s-cmdk" class="s-kbd" title="Search every bundle (⌘K)" aria-label="Search every bundle (⌘K)">⌘K</button></span>
+    <div id="s-bridge" class="s-bridge" role="status" hidden>
+     <div class="sb-msg"></div>
+     <div class="sb-row"><button type="button" class="sb-act primary" id="sb-go" hidden>Search every bundle <kbd>⏎</kbd></button><button type="button" class="sb-act" id="sb-clear">Clear <kbd>esc</kbd></button></div>
+    </div></label></div>
    <div id="file-controls">
     <div class="combo" id="file-type-combo"><input id="file-type-input" class="field" placeholder="all types" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-type-list" aria-autocomplete="list" aria-label="Filter files by type"><button class="clear" id="file-type-clear" type="button" aria-label="Clear type filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-type-list" role="listbox" hidden></ul></div>
     <div class="combo" id="file-tag-combo"><input id="file-tag-input" class="field" placeholder="all tags" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-tag-list" aria-autocomplete="list" aria-label="Filter files by tag"><button class="clear" id="file-tag-clear" type="button" aria-label="Clear tag filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-tag-list" role="listbox" hidden></ul></div>
@@ -872,8 +907,9 @@
      catalog                       files
      tags                          stats
      theme / fullscreen            §6 map payload · §7 log payload
-     command palette               mobile drawer + sheet
-     keyboard                      deep links · first visit
+     command palette               the search bridge
+     mobile drawer + sheet         keyboard
+     deep links · first visit
 
    ── What actually couples these ──────────────────────────────────────────
    The sections are tidy lexically and entangled at runtime, which is why a
@@ -1258,7 +1294,8 @@ function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.gr
     out of the fit, now applied to what is drawn. */
  cy.nodes(':parent').forEach(p=>p.style('display',p.children().some(c=>c.style('display')!=='none')?'element':'none'));
  ixVisibility();
- relaxZoom();}
+ relaxZoom();
+ bridgeSync();}
 function fbadge(){const c=hiddenTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;ctlBadge();syncFacets();}
 /* mirror the active view's tool state onto the ⚙ toggle — when the sheet is
@@ -1534,7 +1571,10 @@ function setView(v){if(v===view)return;view=v;document.getElementById('app').set
  if(v==='catalog'&&!inited.catalog)initCatalog();
  if(v==='files'&&!inited.files)initFiles();
  if(v==='tags'&&!inited.tags)initTags();
- if(v==='stats'&&!inited.stats)initStats();}
+ if(v==='stats'&&!inited.stats)initStats();
+ /* the count and the dead-end offer belong to the view's own query, so they
+    re-decide on every switch — including into a view that has no box at all */
+ bridgeSync();}
 /* The Files view answers to two rail items: Files when the Files tab is up,
    Index when the Indexes tab is — the Index rail item is a shortcut into it. */
 /* Which rail item the page is standing on. It was a question of view *and*
@@ -1656,6 +1696,9 @@ function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.
   if(ids)return ids.has(c.id);
   if(s){const hay=(c.title+' '+c.description+' '+c.type+' '+c.tags.join(' ')+' '+c.id).toLowerCase();if(!hay.includes(s))return false;}return true;});
  document.getElementById('cat-cnt').textContent=rows.length+' of '+list.length+' concepts';
+ /* the catalog resolves asynchronously, so it reports its own count rather than
+    being asked for one at a moment it may not have it yet */
+ bridgeReport('catalog',rows.length,list.length);
  const g=document.getElementById('cat-grid');
  if(!rows.length){g.innerHTML='<div class="none">No concepts match — try clearing the filters.</div>';return;}
  g.innerHTML=rows.map(c=>{const cc=color[c.type]||'#64748b';
@@ -1734,6 +1777,10 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
   (LOGPATHS||[]).forEach(p=>{if(keep(p))(res[dirOfPath(p)]=res[dirOfPath(p)]||[]).push({kind:'log',path:p});});
   Object.keys(res).forEach(d=>{res[d].sort((a,b)=>a.kind===b.kind?0:(a.kind==='index'?-1:1));resCount+=res[d].length;});
  }
+ /* Reported here rather than at the end, because the ixOnly branch below
+    returns early — and a count that skips a mode is worse than no count. The
+    tree's rows are concepts *plus* the reserved files, so the total is too. */
+ bridgeReport('files',rows.length+resCount,(ixOnly?0:NODES.length)+(IXDIRS||[]).filter(d=>d.present).length+(LOGPATHS||[]).length);
  if(ixOnly){el.innerHTML=flatRes(res)||'<p class="empty" style="padding:14px">No index.md or log.md files'+(s?' match.':' yet.')+'</p>';
   lastFileDirs=[];syncFoldAll();
   el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));
@@ -1974,6 +2021,10 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
    that arrives asynchronously, and a group that lands above the cursor moves the
    row under the user's fingers between the keystroke and the Enter. Last means
    results can only ever appear below what is already selected. ── */
+/* The palette's one door from outside its IIFE. `var`, so the bridge below can
+   guard on it before this section has run; assigned at the end of the IIFE, so
+   nothing can open a palette that is only half-wired. */
+var openPalette=null;
 (function(){
  const ov=document.getElementById('sw'),input=document.getElementById('sw-input'),list=document.getElementById('sw-list');
  const isMac=/Mac|iP/.test(navigator.platform||'');
@@ -2083,9 +2134,13 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
  /* Unhide before rendering: mark() scrolls the active row into view, and a list
     still display:none measures zero, so the scroll lands somewhere arbitrary
     and takes the first group's header off the top of the box with it. */
- function open(){discovered();lastFocus=document.activeElement;active=0;input.value='';
+ /* `prefill` seeds the box and fires the concept search in the same breath: the
+    bridge under the topbar search hands its dead-end query over through this,
+    and a reader who has already typed the word must not have to type it twice. */
+ function open(prefill){const pq=prefill==null?'':String(prefill);
+  discovered();lastFocus=document.activeElement;active=0;input.value=pq;
   hits=[];hitTotal=0;hitTerms=[];hitState='';hitSeq++;clearTimeout(hitTimer);
-  ov.hidden=false;render('');input.setAttribute('aria-expanded','true');input.focus();}
+  ov.hidden=false;if(pq)findLater(pq);render(pq);input.setAttribute('aria-expanded','true');input.focus();}
  function close(){ov.hidden=true;input.setAttribute('aria-expanded','false');if(lastFocus&&lastFocus.focus)lastFocus.focus();}
  /* A view switches in place, so it ignores the new-tab chord — opening this same
     bundle again in a second tab is not what ⌘⏎ was asked for. A bundle is a real
@@ -2151,7 +2206,7 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
  ov.setAttribute('aria-label',FINDS?label:HUB?'Switch bundle':'Command palette');
  document.getElementById('sw-hint').textContent='↑↓ move · ⏎ open · '+(HUB?(isMac?'⌘⏎':'Ctrl-⏎')+' new tab · ':'')+'Esc close';
  const gh=document.querySelector('.ghint');
- if(gh)gh.textContent+=' · '+chord+(FINDS?' searches every bundle':HUB?' switches bundle':' jumps to a view');
+ if(gh)gh.textContent+=' · '+chord+(FINDS?' (or the chip in the search box) searches every bundle':HUB?' switches bundle':' jumps to a view');
  /* the ⇄ button is bundle-swap in both icon and meaning, so it stays with the
     bundles — a standalone page reaches the palette by the chord and the hint */
  const btn=document.getElementById('btn-switch');
@@ -2170,6 +2225,102 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
   if(dot&&SIBLINGS.length)dot.hidden=false;
  }
  function discovered(){if(cnt)cnt.hidden=true;if(dot)dot.hidden=true;try{localStorage.setItem('okf-swseen','1');}catch(err){}}
+ openPalette=open;
+})();
+
+/* ── the search bridge: the topbar box, told to stop pretending ──────────────
+   The box and the palette look alike and mean different things — the box
+   filters what is on screen, the palette finds across every bundle a hub hosts
+   — and the box carried neither fact. It said "search concepts…", emptied the
+   graph in silence when nothing matched, and never mentioned the palette. A
+   reader whose word lived in another bundle got a blank canvas and no exit.
+
+   Three additions, all inside the box:
+
+     the chip   names the palette where the disappointment happens, and opens it
+     the count  makes an empty result a number that reached zero, not a view
+                that went blank — the difference between "nothing here" and
+                "something broke"
+     the panel  on zero, says which bundle and which query came up empty, and
+                offers the way on (a hub) or the way back (anywhere else)
+
+   Counts come from two directions because the views do. The graph has already
+   decided by the time `applyGraphFilter` returns, so its count is read live off
+   Cytoscape with that function's own skip predicate. The catalog and the tree
+   resolve asynchronously, so they report from inside their own render — asking
+   them would read whatever the last fetch happened to leave behind.
+
+   The bridge fires rarely, and that is fine: the box's MiniSearch reaches full
+   bodies wherever the page holds them, so most real words match *something*
+   locally. It is the dead-end case that needs an exit, not the common one. ── */
+var bridge=null;
+/* Hoisted `function`s called from applyGraphFilter and renderTree, which are
+   defined far above this and could run before it — both guard on `bridge`. */
+function bridgeSync(){if(bridge)bridge.sync();}
+function bridgeReport(v,shown,total){if(bridge)bridge.report(v,shown,total);}
+(function(){
+ const label=document.querySelector('#search-wrap .search');
+ const cntEl=document.getElementById('s-cnt'),chip=document.getElementById('s-cmdk'),panel=document.getElementById('s-bridge');
+ if(!label||!cntEl||!chip||!panel)return;
+ const msgEl=panel.querySelector('.sb-msg'),goBtn=document.getElementById('sb-go'),clearBtn=document.getElementById('sb-clear');
+ const isMac=/Mac|iP/.test(navigator.platform||'');
+ const chord=isMac?'⌘K':'Ctrl-K';
+ chip.textContent=chord;
+ /* Only a hub can answer about every bundle, so only there is there anywhere to
+    escalate to. Everywhere else the panel still earns its place: it names the
+    dead end the blank canvas used to leave unexplained. */
+ const FINDS=SEARCH_ENDPOINT!==null;
+ const chipLbl=(FINDS?'Search every bundle':'Open the command palette')+' ('+chord+')';
+ chip.title=chipLbl;chip.setAttribute('aria-label',chipLbl);
+ goBtn.hidden=!FINDS;
+ /* The bundle's own name, as the topbar already says it — the ident's first
+    child is the name, before the concepts/links muted span. */
+ const identEl=document.querySelector('#topbar .ident');
+ const IDENT=identEl&&identEl.firstChild?identEl.firstChild.textContent.trim():(BUNDLE||'this bundle');
+
+ const last={};
+ /* The same skip predicate applyGraphFilter uses — parents, folder nodes and
+    map nodes are furniture, not concepts, and counting them would make the
+    denominator disagree with the graph the reader is looking at. */
+ function graphCounts(){let shown=0,total=0;
+  cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir')||n.hasClass('ix'))return;
+   total++;if(n.style('display')!=='none')shown++;});
+  return [ shown,total ];}
+ function sync(){
+  /* SEARCH_PH is the table of which views have a box at all; of those, tags
+     counts nothing (its cloud is not a list of concepts), so it is named out. */
+  const counted=SEARCH_PH[view]!==undefined&&view!=='tags';
+  const qs=(q[view]||'').trim();
+  let shown=null,total=null;
+  if(counted){const c=view==='graph'?graphCounts():last[view];if(c){shown=c[0];total=c[1];}}
+  const showCnt=counted&&!!qs&&shown!==null;
+  cntEl.hidden=!showCnt;if(showCnt)cntEl.textContent=shown+'/'+total;
+  label.classList.toggle('has-cnt',showCnt);
+  const zero=showCnt&&shown===0;
+  if(zero)msgEl.innerHTML='No matches in <b>'+esc(IDENT)+'</b> for “'+esc(qs)+'”';
+  panel.hidden=!zero;}
+ bridge={sync:sync,report:function(v,shown,total){last[v]=[ shown,total ];if(v===view)sync();}};
+
+ function clearBox(){searchInput.value='';q[view]='';applySearch();sync();}
+ function toPalette(){const qs=(q[view]||'').trim();panel.hidden=true;if(openPalette)openPalette(qs);}
+ /* A chip inside a <label> hands its click's focus to the input, which would
+    fight the palette for the cursor — swallow the mousedown, keep the click. */
+ chip.addEventListener('mousedown',e=>e.preventDefault());
+ chip.addEventListener('click',e=>{e.preventDefault();if(openPalette)openPalette();});
+ panel.addEventListener('mousedown',e=>e.preventDefault());
+ goBtn.addEventListener('click',e=>{e.preventDefault();toPalette();});
+ clearBtn.addEventListener('click',e=>{e.preventDefault();clearBox();searchInput.focus();});
+ searchInput.addEventListener('keydown',e=>{
+  if(panel.hidden)return;
+  if(e.key==='Enter'&&FINDS){e.preventDefault();toPalette();}
+  else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();clearBox();}});
+ /* The views that report nothing, and the emptied box, both land here. */
+ searchInput.addEventListener('input',sync);
+ /* The palette hands focus back when it closes. If the query is still a dead
+    end, the offer comes back with it rather than leaving the box silent again. */
+ const ov=document.getElementById('sw');
+ if(ov&&window.MutationObserver)new MutationObserver(()=>{if(ov.hidden)sync();}).observe(ov,{attributes:true,attributeFilter:[ 'hidden' ]});
+ sync();
 })();
 
 /* ── mobile: the rail as a drawer, the topbar controls as a sheet, and a

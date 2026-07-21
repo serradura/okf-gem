@@ -118,6 +118,39 @@ reachable from a rail button too, because a shortcut list you can only open with
 a shortcut helps whoever needs it least. The sheet is written against the key
 handler it documents, so it cannot drift from what the keys do.
 
+# The box filters, the palette finds — and the box now says so
+
+Two surfaces looked alike and meant different things. The topbar box *filters*
+what is on screen; `⌘/Ctrl-K` *finds* across every bundle a hub hosts. The box
+carried neither fact: it said "search concepts…", emptied the graph in silence
+when nothing matched, and never mentioned the palette — so a reader whose word
+lived in another bundle got a blank canvas and no exit. The TUI already
+escalated a local miss into a global search; the page did not.
+
+Three additions close it, all inside the box. A **chip** carrying the chord
+(`⌘K` / `Ctrl-K`, OS-aware) names the palette where the disappointment happens,
+and opens it. A **live count** (`7/8`) makes an empty result a number that
+reached zero rather than a view that went blank — the difference between
+"nothing here" and "something broke". And on zero, a **panel** says which bundle
+and which query came up empty, then offers the way on: `⏎` hands the query to
+the palette prefilled and already searching, `esc` clears the box.
+
+The counts come from two directions because the views do. The graph has already
+decided by the time `applyGraphFilter` returns, so its count is read live off
+Cytoscape with that function's own skip predicate; the catalog and the file tree
+resolve asynchronously, so each reports from inside its own render. Only the
+views with a search box are counted, and tags is named out of that set — its
+cloud is not a list of concepts.
+
+The panel is honest about where it is. Only a hub can answer about every bundle,
+so only there does "Search every bundle" exist; on a standalone server or in a
+static `okf render` file the panel still names the dead end and offers `esc`,
+which is the half of the fix that was never about hubs.
+
+The escalation fires rarely, and that is the design working rather than failing:
+the box's index reaches full bodies wherever the page holds them, so most real
+words match *something* locally. It is the dead end that needs an exit.
+
 # The search box is full-text, and client-side
 
 The one search box is backed by a full-text index —

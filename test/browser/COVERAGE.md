@@ -19,16 +19,16 @@ Reading the 49 commits yielded **204 raw behavioral contracts**, **54** of them
 regression-fixes. After removing the superseded ones (reverted or replaced later
 in history — the Index-view→tabs→tree arc, the reverted landing page, the
 index-layer accent flip-flop, the 5× number-key remaps, the `#mnote` note folded
-into `#hello2`), **181 net-live contracts are rowed** in the area tables below
+into `#hello2`), **191 net-live contracts are rowed** in the area tables below
 (superseded micro-contracts are summarised, not individually rowed; A7-10 is kept
 as a rowed ⊘ because it read as a live gap until the history was checked).
 
-**Coverage of those 181 net-live contracts (tallied from the tables, they sum
+**Coverage of those 191 net-live contracts (tallied from the tables, they sum
 exactly):**
 
 | | Count | % |
 |---|---:|---:|
-| ✓ covered | **176** | 97% |
+| ✓ covered | **186** | 97% |
 | ~ partial | 1 | 1% |
 | ✗ uncovered | 4 | 2% |
 
@@ -55,14 +55,14 @@ map-visibility observable A2-24 already owns.
 |---|---:|---:|---:|---:|
 | 1 — Boot, views, rail, view-switching, keyboard | 11 | 0 | 0 | 11 |
 | 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer | 35 | 1 | 2 | 38 |
-| 3 — Filters & search | 19 | 0 | 0 | 19 |
+| 3 — Filters & search | 29 | 0 | 0 | 29 |
 | 4 — Inspector, links, escaping/sanitization | 20 | 0 | 0 | 20 |
 | 5 — Files view, file tree, reserved files | 28 | 0 | 0 | 28 |
 | 6 — Mobile / responsive | 14 | 0 | 0 | 14 |
 | 7 — First-visit notes | 9 | 0 | 0 | 9 |
 | 8 — Command palette, hub, help, keyboard sheet | 14 | 0 | 2 | 16 |
 | 9 — Deep links, theme, splitters, diagram, static/server, interiors | 26 | 0 | 0 | 26 |
-| **Total** | **176** | **1** | **4** | **181** |
+| **Total** | **186** | **1** | **4** | **191** |
 
 **Every area but 2 and 8 is now fully covered** (0 ✗, 0 ~). The 4 remaining ✗ sit
 in just those two: **Area 2 (2 ✗)** — A2-26 (absence-proof) and A2-37 (node
@@ -189,6 +189,16 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A3-17 | 562dba5 | FEAT | Lazy: index builds on first focus/keystroke | `onfocus`→buildFtIndex | ✓ | filters › the MiniSearch index is built lazily — its script loads only on first search focus (route flag on the CDN: absent at boot, present after focus) |
 | A3-18 | dc83857 | FEAT | Catalog filters by area & tag (not just type) + find box | `#cat-fareas`/`#cat-ftags` | ✓ | interiors › the slide-over filters by area and by tag; the find box narrows the chips |
 | A3-19 | dc83857 | FEAT | Tags view Types/Areas filter, recounts over survivors | `#tag-filters`, tagMatch | ✓ | interiors › a type filter recounts the cloud over the surviving concepts |
+| A3-20 | (bridge) | FEAT | The box carries the palette's chord as a chip, OS-aware, inside `label.search` | `#s-cmdk` | ✓ | search-bridge › the box carries the palette's chord, inside the box |
+| A3-21 | (bridge) | FEAT | The chip opens the palette and does not steal the box's focus | mousedown preventDefault | ✓ | search-bridge › the chip opens the palette, and does not steal the box's focus doing it |
+| A3-22 | (bridge) | FEAT | The input reserves room for the chip, so a long query never runs under it | `.search input` padding-right | ✓ | search-bridge › the chip leaves room for itself |
+| A3-23 | (bridge) | FEAT | A live n/total count while the box has a query; nothing when it is empty | `#s-cnt`, `.has-cnt` | ✓ | search-bridge › the graph count is what the filter kept · clearing the box takes the count away again · an empty box counts nothing |
+| A3-24 | (bridge) | FEAT | Each view counts its own: the graph live off Cytoscape, catalog and files from inside their render | `bridgeSync`/`bridgeReport` | ✓ | search-bridge › the catalog and the files tree count their own rows · a view with no search box has no count either |
+| A3-25 | (bridge) | FEAT | Zero local matches raises a panel naming the bundle and the query, instead of a silently empty view | `#s-bridge`, `.sb-msg` | ✓ | search-bridge › zero matches says so, naming the bundle and the query · a match hides the panel again |
+| A3-26 | (bridge) | FEAT | Clear and esc empty the box, restore the view, and return the cursor | `#sb-clear`, clearBox | ✓ | search-bridge › Clear empties the box, restores the view, and returns the cursor · esc in the box is the same as Clear |
+| A3-27 | (bridge) | FEAT | The handoff: Enter or the primary action opens the palette prefilled and already searching; the offer returns if the palette closes on a still-dead query | `openPalette(prefill)` | ✓ | search-bridge › a dead-end query hands itself to the palette · Enter in the box is the same handoff · closing the palette on a still-dead query brings the offer back |
+| A3-28 | (bridge) | FEAT | No global-search action where there is no hub to answer one | `SEARCH_ENDPOINT`, `#sb-go[hidden]` | ✓ | search-bridge › a standalone bundle offers no global search, because it has none |
+| A3-29 | (bridge) | REG | The echoed query is escaped — the panel is a new user-text path into innerHTML | `esc()` in `.sb-msg` | ✓ | search-bridge › a query of markup is echoed as text, not as markup |
 
 ## Area 4 — Inspector, links, escaping/sanitization
 

@@ -314,6 +314,11 @@ always; bundles too when a [hub](#one-registry-many-bundles) is serving), `/`
 jumps to the current view's search, and `?` answers with a sheet of every
 shortcut.
 
+The search box says what it is doing while it does it: a live `7/8` count of
+what the filter kept, and — when a word matches nothing here — a panel naming
+the bundle and the query, offering to search every other bundle instead. The
+query carries over, so nothing is typed twice.
+
 To skip the server entirely, **`okf render <dir>`** writes that same page as one
 self-contained HTML file, the whole bundle baked in, so you can publish the
 graph on GitHub Pages or any static host.
