@@ -1179,11 +1179,20 @@ function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Unty
    container is still animating (--side-w, .22s), so pan now and the debounced
    cy.resize() would shift the view again a moment later — the double movement.
    Instead wait for the panel to settle, resize once, then pan. cy.stop() first
-   so rapid clicks replace the animation instead of queueing repeats. */
-let centerTimer;
+   so rapid clicks replace the animation instead of queueing repeats.
+
+   window.__camCenters mirrors a counter bumped just before each committed
+   centre-pan. It is test-only instrumentation, invisible to users, and it
+   exists because this fix has no other external observable: a panel-opening
+   click must commit exactly one pan, and it must be the *deferred* one — read
+   synchronously right after the tap the counter is still 0 (nothing fired), it
+   reaches 1 once the 260ms defer elapses, and it never doubles. An immediate
+   pan would read 1 on that first synchronous read.
+   test/browser/specs/camera-races.spec.js pins all three. */
+let centerTimer,centerCommits=0;window.__camCenters=0;
 function centerOn(ele,delay){clearTimeout(centerTimer);
- const go=()=>{cy.resize();cy.stop();cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});};
- if(delay)centerTimer=setTimeout(go,260);else{cy.stop();cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});}}
+ const go=()=>{cy.resize();cy.stop();window.__camCenters=++centerCommits;cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});};
+ if(delay)centerTimer=setTimeout(go,260);else{cy.stop();window.__camCenters=++centerCommits;cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});}}
 /* Emphasise a node and its immediate neighbourhood. One gesture for a concept,
    a folder and a map: selection should mean the same thing on this canvas
    whatever was selected, and it used to mean three things — a concept dimmed the

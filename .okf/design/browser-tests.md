@@ -77,11 +77,24 @@ yields ~230 behavioral contracts, ~94 of them fixes for bugs that actually
 shipped. A regression fix is the sharpest test target there is: a failure mode
 already proven reachable in this file.
 
-The suite covers roughly 38 of those 94 (~40%), up from 10 — worked gap by gap
+The suite covers roughly 50 of those 94 (~53%), up from 10 — worked gap by gap
 down `test/browser/COVERAGE.md`'s ranked list, each new spec mutation-checked.
 It is strong on the interaction spine, the filters, the file tree, link
-resolution, both XSS defenses and the mobile chrome; it is thin on canvas
-*timing* (the camera races) and absent on the diagram viewer.
+resolution, both XSS defenses, the mobile chrome, the first-visit notes, the
+index layer, the diagram viewer and both halves of the command palette (the hub
+bundle-switcher is reached through a two-bundle server the config boots, down to
+the ⌘⏎ new-tab chord it honours; the Mermaid re-theme and the
+`prefers-color-scheme` boot fallback are pinned too). The one regression that
+resisted every external observable — one-camera-move-per-click, where settled
+position, pan-event bursts and motion span all failed to tell a gutted `centerOn`
+from the fix — was closed only by making the page observable: a test-only counter
+(`window.__camCenters`) the spec reads at the synchronous instant after the tap,
+0 when the pan is deferred and 1 when it fires immediately. That is the honest
+cost of a sub-frame timing contract, and it is deliberately the exception, not
+the pattern. Its sibling, the graph-collapse-on-return, is deterministic run
+alone but load-sensitive under parallel workers, so it is held as a `test.fixme`
+rather than a coin-flip `test.fail`, waiting on the same kind of signal or a fix
+at the source.
 
 Two dividends of the work land here. Writing the specs turned up two real,
 shipped bugs no string assertion could see, both now fixed: cluster-mode
@@ -92,9 +105,9 @@ specificity (fixed by a `.btn.text[hidden]` rule, the precedent already used for
 `.fp-head`). Both are the assert-the-collapsible rule below paying out: a defect
 invisible on inspection, caught by reading computed state, red before the fix and
 green after.
-`COVERAGE.md` carries the full ranked list and what remains — chiefly
-one-camera-move-per-click (which needs a move counter the end state cannot
-supply) and the diagram viewer.
+`COVERAGE.md` carries the full ranked list and what remains — now chiefly the
+graph-collapse-on-return `fixme`, one-camera-move-per-click having been closed by
+the counter it always needed.
 
 # Writing a spec: read the page, then assert
 

@@ -61,18 +61,43 @@ test.describe("camera + layout", () => {
     }), { timeout: 8000 }).toBe(true);
   });
 
-  // Deliberately NOT here: a test for one-camera-move-per-click (ed6c0af). Three
-  // observables were built and probed against a mutation that guts centerOn
-  // (immediate pan, no defer/stop/resize coordination):
-  //   - settled node position: identical either way (~190px off centre), because
-  //     the panel's cy.resize() re-centres the whole graph and fires last.
-  //   - cy 'pan' event bursts (a >120ms gap starts a new burst): one burst both
-  //     ways — the two moves chain without a clean gap.
-  //   - the span of pan-motion: ~450ms fixed, but under mutation it only
-  //     *sometimes* stretches to ~900ms — the second move (the resize re-centre)
-  //     is itself timing-dependent and often absent, so the span test greened
-  //     against the gutted code.
-  // The fix is sub-frame smoothing the page emits no signal to observe
-  // deterministically; a test for it would green with centerOn deleted, which is
-  // worse than none. This is the one honest hole, recorded in COVERAGE.md.
+  // one-camera-move-per-click (ed6c0af). This was the suite's documented hole:
+  // three *end-state* observables were probed against a mutation that guts
+  // centerOn (immediate pan, no defer) and none discriminated — settled position
+  // is identical either way (the panel's cy.resize() re-centres last), pan-event
+  // bursts chain into one, and the motion span only sometimes stretched. The
+  // fix's contract is not where the node lands but *when and how often* the pan
+  // commits, and the end state cannot see that. So the page now carries a
+  // test-only counter (window.__camCenters), bumped just before each committed
+  // centre-pan, and this reads it at the one moment that discriminates: the
+  // synchronous instant right after the tap, before the 260ms defer could fire.
+  test("a panel-opening click commits exactly one centre-pan, and it is the deferred one", async ({ app }) => {
+    // Precondition the whole test rests on: the panel is closed, so this first
+    // click is the panel-opening one that takes centerOn's deferred branch. A
+    // click with the panel already open pans immediately by design — a different
+    // path, not this bug.
+    await expect(app.locator(".graph-body")).toHaveAttribute("data-side", "hidden");
+    const id = await app.evaluate(() => cy.nodes().filter((n) => !n.isParent())[0].id());
+
+    // Emit the tap and read the counter in the SAME evaluate, so the read lands
+    // synchronously after the tap handler ran (select → focusNode → centerOn,
+    // which only *schedules* setTimeout(go,260)). Fixed code: the pan is deferred,
+    // so nothing has committed yet and the counter is still 0. The gutted
+    // immediate-pan would already read 1 here — this is the assertion that fails
+    // against the bug, and the reason an end-state test could not.
+    const committedSynchronously = await app.evaluate((nodeId) => {
+      cy.getElementById(nodeId).emit("tap");
+      return window.__camCenters;
+    }, id);
+    expect(committedSynchronously, "the pan must be deferred, not fired on the click").toBe(0);
+
+    // The deferred pan then commits — exactly once (the ~260ms defer elapses).
+    await expect.poll(() => app.evaluate(() => window.__camCenters), { timeout: 4000 }).toBe(1);
+
+    // And it never doubles: no immediate pan the settling panel then shifts a
+    // second time. Wait past the defer and the animation and confirm it held at 1.
+    await app.waitForTimeout(700);
+    expect(await app.evaluate(() => window.__camCenters),
+      "one committed pan per click, never the double movement").toBe(1);
+  });
 });

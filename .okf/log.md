@@ -1,23 +1,51 @@
 # Update Log
 
 ## 2026-07-20
+* **Update**: `one-camera-move-per-click` (ed6c0af) is now covered — the #1
+  uncovered regression fix, pushing [browser coverage](design/browser-tests.md)
+  to ~50 of 94. It could not be closed with a cleverer test: every end-state
+  observable (settled position, pan-event bursts, motion span) failed to tell the
+  fix from a gutted `centerOn`, because the fix's contract is *when and how often*
+  the pan commits, which the end state erases. So the page was made observable
+  instead — a **product change**, deliberately the lightest kind (Tier 1): a
+  test-only counter, `window.__camCenters`, bumped just before each committed
+  centre-pan, invisible to users and there only to be read. The spec reads it at
+  the one discriminating instant — synchronously right after the tap, before the
+  260ms defer fires: 0 when the pan is correctly deferred, 1 when an immediate pan
+  fired. Mutation-checked by flipping the defer off (`if(false)`), which turns
+  that read 0→1 and reddens the test in both render modes. The honest shape of
+  the closure, and the note it leaves: instrumentation earns its keep only when
+  the contract is a sub-frame timing the end state cannot see.
 * **Update**: [browser test coverage](design/browser-tests.md) climbed from ~10
-  of the page's ~94 shipped-bug fixes to ~38, worked gap by gap down
+  of the page's ~94 shipped-bug fixes to ~46, worked gap by gap down
   `test/browser/COVERAGE.md` — dim/highlight ordering, Indexes-only, link
   resolution, the file-tree collapse machine, the mobile chrome, two layout
-  races, and the untouched surfaces (palette, help, deep links, theme,
-  catalog/tags/stats, splitters). Every new spec was mutation-checked against the
+  races, the untouched surfaces (palette, help, deep links, theme,
+  catalog/tags/stats, splitters), the first-visit notes, the index layer
+  (synthesized-vs-authored edges, ixVisibility), the fullscreen Mermaid diagram
+  viewer, and — pushed to ~49 of 94 — the command palette's hub bundle-switcher
+  (reached through a two-bundle server the config boots) and the ? sheet's focus
+  management, plus the ⌘⏎ new-tab chord a bundle row honours (window.open, not a
+  same-tab nav), the Mermaid re-theme that re-renders an inline diagram on a
+  theme toggle, and the `prefers-color-scheme` boot fallback. The graph-collapse
+  known bug is now a `test.fixme`, not a `test.fail`: its race reproduces
+  deterministically run alone but is load-sensitive under the full suite's
+  parallel workers, so a `test.fail` flipped to an intermittent *unexpected pass*
+  — a coin-flip red that trains the reader to ignore the very signal it raises.
+  `fixme` keeps the bug on the record and the suite deterministically green.
+  Every new spec was mutation-checked against the
   code it covers. Two dividends: the work found that selecting a node in cluster
   mode faded the whole graph (a compound parent's opacity cascades to its nodes)
   — reproduced red, **fixed**, pinned by `effectiveOpacity`; and that a log's
   "Open in graph" button stayed visible though the code hides it, because
   `.btn.text{display:inline-flex}` outranked `.btn[hidden]` at equal specificity
   — **fixed** with a `.btn.text[hidden]` rule, the precedent already used for
-  `.fp-head`. The camera fix `one-camera-move-per-click` is
-  left uncovered on purpose: the panel-open `cy.resize()` re-centres the graph
-  last, so the node settles identically with the pan removed, and a settled-state
-  test would green with the fix deleted. The lesson is the same one this log
-  keeps relearning — a test that cannot fail is worse than none.
+  `.fp-head`. The camera fix `one-camera-move-per-click` was left uncovered here
+  on purpose — the panel-open `cy.resize()` re-centres the graph last, so the
+  node settles identically with the pan removed, and a settled-state test would
+  green with the fix deleted (the lesson this log keeps relearning: a test that
+  cannot fail is worse than none). It was closed in a later pass, but only by a
+  product change; see below.
 * **Addition**: [browser tests](design/browser-tests.md) — the graph page is now
   driven in real Chromium, every spec in both render modes, with any thrown error
   failing the run. Two findings worth more than the suite itself. The page has a
