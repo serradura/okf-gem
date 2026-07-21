@@ -46,7 +46,9 @@ concept views skip those structural files, so only `index` renders the
 (root first) with its authored index body, a type/tag rollup over the concepts
 living directly there, its child directories, and the concept listing. `--dir`
 narrows to a directory and its subtree and repeats (`root` names the bundle
-root), `--depth N` bounds how far below the starting point that reaches, and
+root) — bringing the chain up to the root with it, marked `↑`, since orientation
+is the whole point of this view and a branch shown alone has lost it —
+`--depth N` bounds how far below the starting point that reaches, and
 `--no-body` drops the prose to a skeleton. The last two are what make the map
 usable at scale: every directory is a section, so a few hundred concepts is a map
 nobody reads whole — `--depth 1 --no-body` orients, `--dir <branch> --depth 1`
@@ -73,8 +75,13 @@ therefore its own direct count, since `.` is a prefix of nothing. The human
 table shows the second column only where some directory actually nests; a flat
 bundle would only see the first one repeated.
 
-`--dir` (repeatable) takes a subtree and `--depth N` bounds how far below the
-starting point it reaches — the `--dir` when one is given, the bundle root
+`--dir` (repeatable) takes a subtree — **and the chain up to the root with it**,
+so a branch is never shown adrift of the authored context that says what it is.
+Those rows are marked (`↑`, `ancestor: true`) and stay out of `total`, which is
+what keeps a row's `subtree` equal to the total `--dir` on that row returns;
+`--no-ancestors` drops them. A `--dir` naming nothing gains no chain, since a
+lone root row would read as a partial answer to a query that matched nothing.
+`--depth N` bounds how far below the starting point the descent reaches — the `--dir` when one is given, the bundle root
 otherwise. **Relative, not absolute**, so `--dir a/b --depth 1` reads "a/b and
 one level under it" without the caller first working out how deep `a/b` is, and
 the two compose the way a reader descending a tree actually moves. `--depth 0`

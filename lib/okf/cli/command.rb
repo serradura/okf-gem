@@ -251,9 +251,63 @@ module OKF
         usage_error("--depth takes a whole number of levels (got #{raw.inspect})")
       end
 
+      # The chain from the bundle root down to each --dir, so a branch is never
+      # shown adrift. On by default in the *directory* views (`index`, `dirs`):
+      # the map's job there is orientation, and a subtree printed with nothing
+      # above it has dropped the authored context that says what it is — the root
+      # index.md's prose first among it. Off with --no-ancestors, which restores
+      # the subtree alone.
+      #
+      # Deliberately not offered on the concept filters (search/catalog/files/…):
+      # there --dir narrows *concepts*, and a concept in `a/` is simply not in
+      # `a/b`. Same flag, one meaning, because it is asked about two different
+      # kinds of row.
+      def ancestors_flag(parser, options)
+        options[:ancestors] = true
+        parser.on("--[no-]ancestors", "with --dir, also show the chain up to the root",
+          "so the branch is placed (default: yes)") { |v| options[:ancestors] = v }
+      end
+
+      # Every proper ancestor of each --dir, root included. Empty unless --dir
+      # named something below the root: with no --dir the whole bundle is already
+      # the starting point, and `--dir .` has nothing above it.
+      #
+      # `known` is the map's own directory list, and a base outside it contributes
+      # no chain. Without that check `--dir typo` came back with the root — a
+      # chain to a place that does not exist, which reads as a partial answer to
+      # a query that in fact matched nothing.
+      #
+      # The deprecated --area gains no chain either: it is exact, and a deprecated
+      # flag that quietly answers with more than it used to is worse than one that
+      # is merely old.
+      def ancestor_dirs(options, known)
+        return [] unless options[:ancestors]
+
+        folded = known.map { |dir| fold(dir) }
+        Array(options[:dirs]).each_with_object([]) do |path, out|
+          base = fold_dir(path)
+          next unless folded.include?(base)
+
+          current = dir_parent(base)
+          while current
+            out << current
+            current = dir_parent(current)
+          end
+        end.uniq
+      end
+
+      # nil above the root, so the walk above terminates on it rather than on ".".
+      def dir_parent(dir)
+        return nil if dir == "."
+
+        slash = dir.rindex("/")
+        slash ? dir[0, slash] : "."
+      end
+
       # The directories a --dir/--depth pair selects, out of the map's own
       # ordered list. Neither flag given keeps everything — these narrow a view,
-      # they do not define one.
+      # they do not define one. The ancestor chain is unioned on top by the
+      # caller, which is also what tells a row apart from context.
       def select_dirs(dirs, options)
         bases = Array(options[:dirs]).map { |path| fold_dir(path) }
         depth = options[:depth]&.to_i
@@ -265,6 +319,9 @@ module OKF
 
         dirs.select do |dir|
           bases.any? do |base|
+            # --depth bounds the *descent*; the chain above is the ascent, and the
+            # two are separate axes. That is what keeps `--depth 0` meaning "the
+            # named directory alone" even while its chain is printed with it.
             under_dir?(dir, base) && (depth.nil? || dir_depth(dir) - dir_depth(base) <= depth)
           end
         end

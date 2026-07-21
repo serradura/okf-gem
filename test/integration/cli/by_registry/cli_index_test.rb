@@ -85,9 +85,9 @@ module ByRegistry
       with_registry("conformant", "edge-cases") do
         data = json(okf("index", "@conformant", "--dir", "TABLES", "--dir", "datasets", "--json"))
         assert_equal "conformant", data["slug"]
-        assert_equal %w[datasets tables], data["directories"].map { |row| row["dir"] }
+        assert_equal [ ".", "datasets", "tables" ], data["directories"].map { |row| row["dir"] }
 
-        subtree = json(okf("index", "@edge-cases", "--dir", "deeply", "--json"))
+        subtree = json(okf("index", "@edge-cases", "--dir", "deeply", "--no-ancestors", "--json"))
         assert_equal %w[deeply deeply/nested deeply/nested/path], subtree["directories"].map { |row| row["dir"] }
       end
     end
@@ -98,7 +98,7 @@ module ByRegistry
         assert_equal "edge-cases", top.fetch("slug")
         assert_equal %w[. deeply], top["directories"].map { |row| row["dir"] }
 
-        branch = json(okf("index", "@edge-cases", "--dir", "deeply", "--depth", "1", "--json"))
+        branch = json(okf("index", "@edge-cases", "--dir", "deeply", "--depth", "1", "--no-ancestors", "--json"))
         assert_equal %w[deeply deeply/nested], branch["directories"].map { |row| row["dir"] }
         assert_equal "edge-cases", branch.fetch("slug")
       end
@@ -170,7 +170,7 @@ module ByRegistry
 
         assert_equal 0, result.status
         data = json(result)
-        assert_equal %w[dir index_path present synthesized count types tags subdirs], data["directories"].first.keys
+        assert_equal %w[dir ancestor index_path present synthesized count types tags subdirs], data["directories"].first.keys
         assert_equal fixture("conformant"), data["bundle"]
         assert_equal "conformant", data["slug"]
         assert_operator result.out.bytesize, :<, okf("index", "@conformant", "--json").out.bytesize / 2,
@@ -192,7 +192,7 @@ module ByRegistry
       with_registry("conformant") do
         fields = okf("index", "@conformant", "--fields", "bogus")
         assert_equal 2, fields.status
-        assert_match(/error: unknown field\(s\): bogus \(available: dir, index_path, .*listing\)/, fields.err)
+        assert_match(/error: unknown field\(s\): bogus \(available: dir, ancestor, index_path, .*listing\)/, fields.err)
         assert_empty fields.out
 
         assert_equal 2, okf("index", "@conformant", "--except", "bogus").status

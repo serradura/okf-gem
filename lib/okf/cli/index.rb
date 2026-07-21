@@ -30,7 +30,7 @@ module OKF
       end
 
       def call(argv)
-        options = { json: false, body: true, dirs: nil, areas: nil, depth: nil }
+        options = { json: false, body: true, dirs: nil, areas: nil, depth: nil, ancestors: true }
         parser = OptionParser.new do |o|
           o.banner = "Usage: okf index <dir|@slug> [--dir PATH] [--depth N] [--no-body] [--json]"
           json_flags(o, options, "emit the index map as JSON")
@@ -38,6 +38,7 @@ module OKF
           o.on("--dir PATH", "only this directory and the ones below it",
             "(repeatable; `root` for the bundle root)") { |v| (options[:dirs] ||= []) << v }
           depth_flag(o, options)
+          ancestors_flag(o, options)
           o.on("--area AREA", "deprecated: use --dir (this directory exactly)") do |v|
             (options[:areas] ||= []) << v
             deprecated("--area", "--dir")
@@ -52,7 +53,7 @@ module OKF
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)
         entries = folder.directory_index
-        selected = select_directories(entries, options)
+        selected, chain = select_directories(entries, options)
         if options[:json]
           # --no-body is shorthand for --except body, so asking for the body by
           # name in the same breath is a contradiction. Letting --fields quietly
@@ -62,9 +63,9 @@ module OKF
           end
 
           options[:except] = Array(options[:except]) + [ "body" ] unless options[:body] || options[:fields]
-          return print_index_map_json(dir, selected, options)
+          return print_index_map_json(dir, selected, chain, options)
         end
-        print_index_map(dir, selected, options[:body])
+        print_index_map(dir, selected, chain, options[:body])
         0
       end
 
@@ -80,18 +81,26 @@ module OKF
       def select_directories(entries, options)
         areas = Array(options[:areas]).map { |area| fold_dir(area) }
         scoped = !options[:dirs].nil? || !options[:depth].nil?
-        return entries if areas.empty? && !scoped
+        return [ entries, [] ] if areas.empty? && !scoped
 
-        wanted = scoped ? select_dirs(entries.map { |entry| entry[:dir] }, options) : []
-        entries.select { |entry| areas.include?(fold(entry[:dir])) || wanted.include?(entry[:dir]) }
+        all_dirs = entries.map { |entry| entry[:dir] }
+        wanted = scoped ? select_dirs(all_dirs, options) : []
+        chain = ancestor_dirs(options, all_dirs) - wanted
+        selected = entries.select do |entry|
+          areas.include?(fold(entry[:dir])) || wanted.include?(entry[:dir]) || chain.include?(entry[:dir])
+        end
+        [ selected, chain ]
       end
 
-      def print_index_map(dir, entries, body)
+      def print_index_map(dir, entries, chain, body)
         noun = entries.size == 1 ? "directory" : "directories"
         @out.puts "Index map — #{bundle_label(dir)} (#{entries.size} #{noun})"
         entries.each do |entry|
           @out.puts
-          @out.puts "  #{index_dir_label(entry)}#{index_dir_meta(entry)}"
+          # ↑ marks a row the reader did not ask for: it is here to place the
+          # branch, not to answer about it.
+          up = chain.include?(entry[:dir]) ? "↑ " : ""
+          @out.puts "  #{up}#{index_dir_label(entry)}#{index_dir_meta(entry)}"
           subdirs = entry[:subdirs]
           @out.puts "    → #{subdirs.map { |sub| "#{File.basename(sub)}/" }.join("  ")}" unless subdirs.empty?
           if entry[:present]
@@ -127,13 +136,14 @@ module OKF
         end
       end
 
-      def print_index_map_json(dir, entries, options)
-        emit_list_json(dir, "directories", entries.map { |entry| index_map_entry_json(entry) }, options)
+      def print_index_map_json(dir, entries, chain, options)
+        rows = entries.map { |entry| index_map_entry_json(entry, chain.include?(entry[:dir])) }
+        emit_list_json(dir, "directories", rows, options)
       end
 
-      def index_map_entry_json(entry)
+      def index_map_entry_json(entry, ancestor)
         {
-          "dir" => entry[:dir], "index_path" => entry[:index_path],
+          "dir" => entry[:dir], "ancestor" => ancestor, "index_path" => entry[:index_path],
           "present" => entry[:present], "synthesized" => entry[:synthesized],
           "count" => entry[:count], "types" => entry[:types], "tags" => entry[:tags],
           "subdirs" => entry[:subdirs], "body" => entry[:body],

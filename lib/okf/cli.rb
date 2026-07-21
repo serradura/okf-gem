@@ -41,8 +41,8 @@ module OKF
       "matches_by_ref" => %w[slug id title type dir area tags matched score snippet],
       "concepts" => %w[id title type description tags timestamp status backlog_ref dir area links_out links_in],
       "files" => %w[path id dir type title description],
-      "directories" => %w[dir index_path present synthesized count types tags subdirs body listing],
-      "dirs" => %w[dir count subtree subdirs],
+      "directories" => %w[dir ancestor index_path present synthesized count types tags subdirs body listing],
+      "dirs" => %w[dir ancestor count subtree subdirs],
       "bundles" => %w[slug title dir mount default missing]
     }.freeze
 

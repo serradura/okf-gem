@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   whole. On one such bundle `index --no-body` went 12.5 KB → 1.3 KB at
   `--depth 1`, and `index --json` 311 KB → 2.6 KB with `--depth 1 --except
   body,listing`.
+- **`--dir` on `index` and `dirs` brings the chain up to the root with it**, so a
+  branch is never shown adrift of the authored context that says what it is —
+  the root `index.md`'s prose first among it. Those rows print with a leading
+  `↑`, carry `ancestor: true`, and stay out of `total`; `--no-ancestors` drops
+  them. Ascent and descent are separate axes, so `--depth` never bounds the
+  chain: `--dir X --depth 0` is X alone, plus how you get to X. A `--dir` that
+  names nothing gains no chain, since a lone root row would read as a partial
+  answer to a query that in fact matched nothing.
 - **`dirs` gains `--dir` (repeatable) and a `subtree` count** per row: the
   concepts at or below that directory, defined as exactly what `--dir` on the
   row returns, so the number and the flag can never disagree. Without it a

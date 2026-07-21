@@ -32,13 +32,14 @@ module OKF
       end
 
       def call(argv)
-        options = { json: false, dirs: nil, depth: nil }
+        options = { json: false, dirs: nil, depth: nil, ancestors: true }
         parser = OptionParser.new do |o|
           o.banner = "Usage: okf dirs <dir|@slug> [--dir PATH] [--depth N] [--json]"
           json_flags(o, options, "emit the dirs as JSON")
           o.on("--dir PATH", "only this directory and the ones below it",
             "(repeatable; `root` for the bundle root)") { |v| (options[:dirs] ||= []) << v }
           depth_flag(o, options)
+          ancestors_flag(o, options)
           help_flag(o)
         end
         dir = positional_dir(parser, argv) or return 2
@@ -61,9 +62,11 @@ module OKF
       # which is the only reason the column exists.
       def select_rows(entries, options)
         subtree = subtree_counts(entries)
-        wanted = select_dirs(entries.map { |entry| entry[:dir] }, options)
-        entries.select { |entry| wanted.include?(entry[:dir]) }.map do |entry|
-          { "dir" => entry[:dir], "count" => entry[:count],
+        all_dirs = entries.map { |entry| entry[:dir] }
+        wanted = select_dirs(all_dirs, options)
+        chain = ancestor_dirs(options, all_dirs) - wanted
+        entries.select { |entry| wanted.include?(entry[:dir]) || chain.include?(entry[:dir]) }.map do |entry|
+          { "dir" => entry[:dir], "ancestor" => chain.include?(entry[:dir]), "count" => entry[:count],
             "subtree" => subtree[entry[:dir]], "subdirs" => entry[:subdirs] }
         end
       end
@@ -80,8 +83,12 @@ module OKF
         end
       end
 
+      # The chain is context, not the answer, so it stays out of the total —
+      # which is what keeps a row's `subtree` equal to the total `--dir` on that
+      # row returns. `count` in the envelope is rows printed, chain included,
+      # because that is what it has always meant: how many rows came back.
       def total(rows)
-        rows.map { |row| row["count"] }.reduce(0, :+)
+        rows.reject { |row| row["ancestor"] }.map { |row| row["count"] }.reduce(0, :+)
       end
 
       # `.` is the stored value and "(root)" the human one — the same split every
@@ -90,7 +97,7 @@ module OKF
       def print_dirs(dir, rows)
         @out.puts "Dirs — #{bundle_label(dir)}"
         @out.puts
-        labels = rows.map { |row| dir_label(row["dir"]) }
+        labels = rows.map { |row| "#{"↑ " if row["ancestor"]}#{dir_label(row["dir"])}" }
         # The second column earns its place only where a dir actually nests. On a
         # flat bundle it would repeat the first one down the page.
         nested = rows.any? { |row| row["subtree"] != row["count"] }

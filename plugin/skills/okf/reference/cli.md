@@ -275,7 +275,15 @@ enumeration drift a grep can't (you can't grep for a listing entry that is *miss
 
 `--dir PATH` narrows to a directory **and everything below it**, and is
 **repeatable** — `--dir model --dir format` shows both; `root` (or `.`) names the
-bundle root. `--depth N` bounds how far below the starting point the map reaches
+bundle root. A `--dir` also brings the **chain from the root down to it**, so a branch is
+never shown adrift of the authored context that says what it is — the root
+`index.md`'s prose first among it. Those rows print with a leading `↑` and carry
+`ancestor: true`; `--no-ancestors` drops them. Ascent and descent are separate
+axes, so `--depth` never bounds the chain: `--dir X --depth 0` is X alone, plus
+how you get to X. A `--dir` that names nothing gains no chain — a lone root row
+would read as a partial answer to a query that matched nothing.
+
+`--depth N` bounds how far below the starting point the map reaches
 (the `--dir` when one is given, else the bundle root), counted **relatively**:
 `--depth 1` is the top of the tree, `--dir X --depth 1` is one branch of it, and
 the pair walks down a level at a time.
@@ -296,7 +304,8 @@ It is a **read view**: advisory, always exit 0. A synthesized directory is a
 *signal* (a map worth writing), never a defect — `index` emits no lint findings and
 never fails a bundle. JSON: `{ bundle, count, directories: [{ dir, index_path,
 present, synthesized, count, types, tags, subdirs, body, listing: [{ id, title,
-description, type, tags }] }] }`.
+description, type, tags }] }] }` — `ancestor` marks a row that is there to place
+the branch rather than to answer about it.
 
 ## dirs — the bundle's clusters and their sizes
 
@@ -316,8 +325,11 @@ nothing). Without it a truncated listing is all zeroes at the top of a deep tree
 which is where you most need to know where the mass is. The human table shows the
 second column only where some dir actually nests.
 
-`--dir PATH` (repeatable) narrows to a directory and its subtree; `--depth N`
-keeps only N levels below the starting point — the `--dir` when one is given,
+`--dir PATH` (repeatable) narrows to a directory and its subtree, and brings the
+**chain up to the root** with it so the branch is placed rather than shown
+adrift — those rows are marked `↑`, carry `ancestor: true`, and stay out of
+`total` (`--no-ancestors` drops them). `--depth N` keeps only N levels below the
+starting point — the `--dir` when one is given,
 the bundle root otherwise. Relative, not absolute, so `--dir a/b --depth 1`
 reads "a/b and one level under it" without your first working out how deep `a/b`
 is. `--depth 0` is the starting point alone. A `--depth` that is not a whole
@@ -329,8 +341,10 @@ sits; you then descend with `--dir`, one level at a time.
 
 The root prints `(root)` and stores `.` — the split every grouped view keeps, so
 a table and its `--json` never disagree about which spelling is the data. JSON:
-`{ bundle, total, count, dirs: [{ dir, count, subtree, subdirs }] }`, root first
-(`total` sums the direct counts of the rows actually shown).
+`{ bundle, total, count, dirs: [{ dir, ancestor, count, subtree, subdirs }] }`,
+root first. `count` is rows printed, chain included; `total` sums the direct
+counts of the rows you actually asked for, which is what keeps a row's `subtree`
+equal to the `total` that `--dir` on that row returns.
 
 ## catalog / files / tags / types / stats — the server views, as text
 

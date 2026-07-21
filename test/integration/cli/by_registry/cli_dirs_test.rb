@@ -47,7 +47,9 @@ module ByRegistry
           "the subtree count is read off the whole map, so truncating cannot shrink it"
 
         scoped = json(okf("dirs", "@edge-cases", "--dir", "deeply", "--depth", "0", "--json"))
-        assert_equal [ "deeply" ], scoped.fetch("dirs").map { |row| row["dir"] }
+        assert_equal [ ".", "deeply" ], scoped.fetch("dirs").map { |row| row["dir"] },
+          "depth bounds the descent; the chain that places the branch is the other axis"
+        assert_equal [ true, false ], scoped.fetch("dirs").map { |row| row["ancestor"] }
         assert_equal "edge-cases", scoped.fetch("slug")
       end
     end

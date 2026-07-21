@@ -40,7 +40,7 @@ module ByDir
       assert_equal [ ".", "datasets", "tables" ], data["directories"].map { |row| row["dir"] }
 
       root = data["directories"].first
-      assert_equal %w[dir index_path present synthesized count types tags subdirs body listing], root.keys
+      assert_equal %w[dir ancestor index_path present synthesized count types tags subdirs body listing], root.keys
       assert_equal "index.md", root["index_path"]
       assert_equal true, root["present"]
       assert_equal false, root["synthesized"]
@@ -103,7 +103,7 @@ module ByDir
     end
 
     test "--dir narrows to the named directory and everything beneath it" do
-      tables = okf("index", fixture("conformant"), "--dir", "tables")
+      tables = okf("index", fixture("conformant"), "--dir", "tables", "--no-ancestors")
 
       assert_equal 0, tables.status
       assert_match(/\(1 directory\)/, tables.out)
@@ -112,7 +112,7 @@ module ByDir
 
       # where --area named one directory exactly, --dir names a subtree: the
       # empty intermediates below `deeply` come along.
-      data = json(okf("index", fixture("edge-cases"), "--dir", "deeply", "--json"))
+      data = json(okf("index", fixture("edge-cases"), "--dir", "deeply", "--no-ancestors", "--json"))
       assert_equal %w[deeply deeply/nested deeply/nested/path], data["directories"].map { |row| row["dir"] }
 
       root = okf("index", fixture("conformant"), "--dir", "root")
@@ -120,11 +120,15 @@ module ByDir
       refute_match(%r{^  tables/}, root.out) # `.` is a prefix of nothing
     end
 
-    test "--dir is repeatable and case-insensitive" do
+    test "--dir is repeatable and case-insensitive, and two bases share one chain" do
       data = json(okf("index", fixture("conformant"), "--dir", "TABLES", "--dir", "datasets", "--json"))
 
-      assert_equal 2, data["count"]
-      assert_equal %w[datasets tables], data["directories"].map { |row| row["dir"] }
+      assert_equal 3, data["count"]
+      assert_equal [ ".", "datasets", "tables" ], data["directories"].map { |row| row["dir"] },
+        "the root is both dirs' ancestor and is listed once"
+
+      lean = json(okf("index", fixture("conformant"), "--dir", "TABLES", "--dir", "datasets", "--no-ancestors", "--json"))
+      assert_equal %w[datasets tables], lean["directories"].map { |row| row["dir"] }
     end
 
     test "--depth truncates the map, counting levels from the bundle root" do
@@ -146,10 +150,11 @@ module ByDir
       # Relative, so a reader never has to know how deep the dir they named is:
       # `--dir deeply --depth 1` is "deeply and one level under it" wherever
       # deeply happens to sit.
+      # --no-ancestors so the descent is the only thing under test here
       assert_equal %w[deeply deeply/nested],
-        map_dirs(okf("index", fixture("edge-cases"), "--dir", "deeply", "--depth", "1", "--json"))
+        map_dirs(okf("index", fixture("edge-cases"), "--dir", "deeply", "--depth", "1", "--no-ancestors", "--json"))
       assert_equal [ "deeply" ],
-        map_dirs(okf("index", fixture("edge-cases"), "--dir", "deeply", "--depth", "0", "--json"))
+        map_dirs(okf("index", fixture("edge-cases"), "--dir", "deeply", "--depth", "0", "--no-ancestors", "--json"))
       assert_equal [ "." ],
         map_dirs(okf("index", fixture("edge-cases"), "--dir", "root", "--depth", "3", "--json")),
         "`.` is a prefix of nothing, so no depth reaches out of the root"
@@ -160,6 +165,75 @@ module ByDir
 
       assert_equal [ { "dir" => ".", "count" => 3 }, { "dir" => "deeply", "count" => 0 } ], data.fetch("directories")
       assert_equal 2, data.fetch("count")
+    end
+
+    test "--dir carries the chain up to the root, so a branch is never shown adrift" do
+      # The map's whole job is orientation, and a branch shown with nothing above
+      # it has dropped the authored context that says what the branch *is* — the
+      # root index.md's prose first among it. The chain comes by default; the
+      # rows are marked, because the reader did not ask for them.
+      data = json(okf("index", fixture("edge-cases"), "--dir", "deeply/nested", "--json"))
+
+      assert_equal %w[. deeply deeply/nested deeply/nested/path],
+        data["directories"].map { |row| row["dir"] }
+      assert_equal({ "." => true, "deeply" => true, "deeply/nested" => false, "deeply/nested/path" => false },
+        data["directories"].each_with_object({}) { |row, map| map[row["dir"]] = row["ancestor"] })
+    end
+
+    test "--no-ancestors is the subtree alone" do
+      data = json(okf("index", fixture("edge-cases"), "--dir", "deeply/nested", "--no-ancestors", "--json"))
+
+      assert_equal %w[deeply/nested deeply/nested/path], data["directories"].map { |row| row["dir"] }
+      assert_equal [ false, false ], data["directories"].map { |row| row["ancestor"] }
+    end
+
+    test "the chain is an ascent, so --depth never bounds it" do
+      # --depth bounds how far *below* the starting point the map reaches; the
+      # ancestors are how you got there. Two axes, so `--depth 0` still means
+      # "the named directory alone" — plus the chain that places it.
+      data = json(okf("index", fixture("edge-cases"), "--dir", "deeply/nested", "--depth", "0", "--json"))
+
+      assert_equal %w[. deeply deeply/nested], data["directories"].map { |row| row["dir"] }
+      assert_equal [ true, true, false ], data["directories"].map { |row| row["ancestor"] }
+    end
+
+    test "a directory with no ancestors gains none, and neither does an unfiltered map" do
+      assert_equal [ "." ], map_dirs(okf("index", fixture("edge-cases"), "--dir", "root", "--json"))
+      assert_equal [ false ], json(okf("index", fixture("edge-cases"), "--dir", "root", "--json"))["directories"].map { |row| row["ancestor"] }
+
+      whole = json(okf("index", fixture("edge-cases"), "--json"))
+      assert_equal 4, whole["count"]
+      assert_equal [ false ] * 4, whole["directories"].map { |row| row["ancestor"] },
+        "nothing was asked for, so nothing is context for it"
+    end
+
+    test "a --dir that names nothing gains no chain either" do
+      # The chain is context for an answer. With no answer there is nothing to
+      # place, and a lone root row reads as a partial result to a query that in
+      # fact matched nothing.
+      result = okf("index", fixture("conformant"), "--dir", "nosuchdir")
+
+      assert_equal 0, result.status, "a filter matching nothing is still an advisory read"
+      assert_equal [], json(okf("index", fixture("conformant"), "--dir", "nosuchdir", "--json"))["directories"]
+      assert_equal "Index map — #{fixture("conformant")} (0 directories)\n", result.out
+    end
+
+    test "the deprecated --area gains no chain — a deprecated flag keeps its old answer" do
+      result = okf("index", fixture("edge-cases"), "--area", "deeply", "--json")
+
+      assert_equal [ "deeply" ], json(result)["directories"].map { |row| row["dir"] }
+      assert_match(/--area is deprecated/, result.err)
+    end
+
+    test "the human map marks an ancestor row so context is not mistaken for the answer" do
+      result = okf("index", fixture("edge-cases"), "--dir", "deeply/nested", "--no-body")
+
+      assert_equal 0, result.status
+      assert_match(/\(4 directories\)/, result.out)
+      assert_match(%r{^  ↑ \(root\)  \(no index\.md\)  ·}, result.out)
+      assert_match(%r{^  ↑ deeply/  \(no index\.md\)  ·}, result.out)
+      assert_match(%r{^  deeply/nested/  \(no index\.md\)  ·}, result.out)
+      refute_match(%r{^  ↑ deeply/nested/}, result.out)
     end
 
     test "a --depth that is not a whole number is a usage error (exit 2)" do
@@ -230,7 +304,7 @@ module ByDir
 
       assert_equal 0, result.status
       data = json(result)
-      assert_equal %w[dir index_path present synthesized count types tags subdirs], data["directories"].first.keys
+      assert_equal %w[dir ancestor index_path present synthesized count types tags subdirs], data["directories"].first.keys
       assert_equal({ "BigQuery Table" => 2 }, data["directories"].last["types"], "the rollups are what is left")
       assert_operator result.out.bytesize, :<, okf("index", fixture("conformant"), "--json").out.bytesize / 2,
         "the skeleton costs a fraction of the full map"
@@ -248,7 +322,7 @@ module ByDir
       fields = okf("index", fixture("conformant"), "--fields", "bogus")
 
       assert_equal 2, fields.status
-      assert_match(/unknown field\(s\): bogus \(available: dir, index_path, .*listing\)/, fields.err)
+      assert_match(/unknown field\(s\): bogus \(available: dir, ancestor, index_path, .*listing\)/, fields.err)
       assert_empty fields.out
 
       except = okf("index", fixture("conformant"), "--except", "bogus")

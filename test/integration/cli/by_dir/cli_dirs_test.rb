@@ -47,7 +47,7 @@ module ByDir
       assert_equal %w[bundle count dirs total], data.keys.sort
       assert_equal 3, data.fetch("count")
       assert_equal 3, data.fetch("total")
-      assert_equal({ "dir" => ".", "count" => 0, "subtree" => 0, "subdirs" => %w[datasets tables] }, data.fetch("dirs").first)
+      assert_equal({ "dir" => ".", "ancestor" => false, "count" => 0, "subtree" => 0, "subdirs" => %w[datasets tables] }, data.fetch("dirs").first)
       assert_equal [ ".", "datasets", "tables" ], data.fetch("dirs").map { |row| row["dir"] }
       assert_equal [ [], [] ], data.fetch("dirs").drop(1).map { |row| row["subdirs"] }
     end
@@ -102,18 +102,23 @@ module ByDir
     test "--dir narrows to a subtree, and --depth then counts from that dir" do
       # Relative, not absolute: `--dir deeply --depth 1` is "deeply and one level
       # under it", so a reader never has to know how deep the dir they named is.
+      # --no-ancestors here so the descent is the only thing under test; the
+      # chain that --dir also brings has its own tests below.
       assert_equal %w[deeply deeply/nested],
-        dirs_of(okf("dirs", fixture("edge-cases"), "--dir", "deeply", "--depth", "1", "--json"))
+        dirs_of(okf("dirs", fixture("edge-cases"), "--dir", "deeply", "--depth", "1", "--no-ancestors", "--json"))
       assert_equal [ "deeply" ],
-        dirs_of(okf("dirs", fixture("edge-cases"), "--dir", "deeply", "--depth", "0", "--json"))
+        dirs_of(okf("dirs", fixture("edge-cases"), "--dir", "deeply", "--depth", "0", "--no-ancestors", "--json"))
       assert_equal %w[deeply deeply/nested deeply/nested/path],
-        dirs_of(okf("dirs", fixture("edge-cases"), "--dir", "deeply", "--json"))
+        dirs_of(okf("dirs", fixture("edge-cases"), "--dir", "deeply", "--no-ancestors", "--json"))
       assert_equal [ "." ], dirs_of(okf("dirs", fixture("edge-cases"), "--dir", "root", "--json"))
     end
 
-    test "--dir is repeatable and folds case" do
+    test "--dir is repeatable and folds case, and two bases share one chain" do
+      assert_equal [ ".", "datasets", "tables" ],
+        dirs_of(okf("dirs", fixture("conformant"), "--dir", "TABLES", "--dir", "datasets", "--json")),
+        "the root is both dirs' ancestor and is listed once"
       assert_equal %w[datasets tables],
-        dirs_of(okf("dirs", fixture("conformant"), "--dir", "TABLES", "--dir", "datasets", "--json"))
+        dirs_of(okf("dirs", fixture("conformant"), "--dir", "TABLES", "--dir", "datasets", "--no-ancestors", "--json"))
     end
 
     test "every row carries a subtree count: what --dir on that row would return" do
@@ -124,13 +129,13 @@ module ByDir
       rows = json(okf("dirs", fixture("edge-cases"), "--json")).fetch("dirs")
       by_dir = rows.each_with_object({}) { |row, map| map[row["dir"]] = row }
 
-      assert_equal({ "dir" => "deeply", "count" => 0, "subtree" => 1, "subdirs" => [ "deeply/nested" ] },
+      assert_equal({ "dir" => "deeply", "ancestor" => false, "count" => 0, "subtree" => 1, "subdirs" => [ "deeply/nested" ] },
         by_dir.fetch("deeply"))
       assert_equal 3, by_dir.fetch(".").fetch("subtree"), "`.` is a prefix of nothing, so the root's subtree is its own"
       assert_equal 3, by_dir.fetch(".").fetch("count")
 
       rows.each do |row|
-        selected = json(okf("dirs", fixture("edge-cases"), "--dir", row["dir"], "--json"))
+        selected = json(okf("dirs", fixture("edge-cases"), "--dir", row["dir"], "--no-ancestors", "--json"))
         assert_equal row["subtree"], selected.fetch("total"),
           "#{row["dir"]}: the subtree count must be what --dir on it returns"
       end
@@ -148,6 +153,51 @@ module ByDir
       refute_match(/Subtree/, flat.out)
     end
 
+    test "--dir carries the chain up to the root, marked and out of the total" do
+      # Marking is not decoration: `total` counts what you asked for, so the
+      # ancestor rows have to be excludable from it — otherwise the subtree
+      # invariant below stops holding the moment a chain is prepended.
+      data = json(okf("dirs", fixture("edge-cases"), "--dir", "deeply/nested/path", "--json"))
+
+      assert_equal [ ".", "deeply", "deeply/nested", "deeply/nested/path" ], data.fetch("dirs").map { |row| row["dir"] }
+      assert_equal [ true, true, true, false ], data.fetch("dirs").map { |row| row["ancestor"] }
+      assert_equal 1, data.fetch("total"), "the root's three concepts are context, not the answer"
+      assert_equal 4, data.fetch("count"), "count is rows printed, chain included"
+    end
+
+    test "--no-ancestors is the subtree alone, exactly as before" do
+      data = json(okf("dirs", fixture("edge-cases"), "--dir", "deeply", "--no-ancestors", "--json"))
+
+      assert_equal %w[deeply deeply/nested deeply/nested/path], data.fetch("dirs").map { |row| row["dir"] }
+      assert_equal [ false, false, false ], data.fetch("dirs").map { |row| row["ancestor"] }
+      assert_equal 1, data.fetch("total")
+    end
+
+    test "a --dir that names nothing gains no chain either" do
+      data = json(okf("dirs", fixture("conformant"), "--dir", "nosuchdir", "--json"))
+
+      assert_equal [], data.fetch("dirs")
+      assert_equal 0, data.fetch("total")
+      assert_match(/^  0 dirs · 0 concepts$/, okf("dirs", fixture("conformant"), "--dir", "nosuchdir").out)
+    end
+
+    test "the chain is an ascent, so --depth never bounds it" do
+      data = json(okf("dirs", fixture("edge-cases"), "--dir", "deeply/nested", "--depth", "0", "--json"))
+
+      assert_equal [ ".", "deeply", "deeply/nested" ], data.fetch("dirs").map { |row| row["dir"] }
+      assert_equal [ true, true, false ], data.fetch("dirs").map { |row| row["ancestor"] }
+    end
+
+    test "the human table marks an ancestor row and keeps it out of the total" do
+      result = okf("dirs", fixture("edge-cases"), "--dir", "deeply/nested/path")
+
+      assert_equal 0, result.status
+      assert_match(/^  ↑ \(root\)\s+3\s+3$/, result.out)
+      assert_match(/^  ↑ deeply\s+0\s+1$/, result.out)
+      assert_match(%r{^  deeply/nested/path\s+1\s+1$}, result.out)
+      assert_match(/^  4 dirs · 1 concept$/, result.out)
+    end
+
     test "a --depth that is not a whole number is a usage error (exit 2)" do
       [ "-1", "two", "1.5", "" ].each do |value|
         result = okf("dirs", fixture("edge-cases"), "--depth", value)
@@ -161,9 +211,9 @@ module ByDir
     test "--depth and --dir compose with --json and the total follows the narrowing" do
       data = json(okf("dirs", fixture("edge-cases"), "--dir", "deeply", "--depth", "1", "--json"))
 
-      assert_equal 2, data.fetch("count")
-      assert_equal 0, data.fetch("total"), "the total sums the direct counts of the rows shown"
-      assert_equal 1, data.fetch("dirs").first.fetch("subtree"), "which is why the subtree count is there"
+      assert_equal 3, data.fetch("count"), "two rows asked for, plus the root that places them"
+      assert_equal 0, data.fetch("total"), "the total sums the direct counts of the rows asked for"
+      assert_equal 1, data.fetch("dirs").last.fetch("subtree"), "which is why the subtree count is there"
     end
 
     test "JSON names the bundle by its directory; a bundle named by path carries no slug" do
