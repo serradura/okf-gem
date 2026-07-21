@@ -38,3 +38,20 @@ export const HUB_PORT = PORT + 2;
 export const workspaceHome = path.join(here, ".tmp", "okfhome");
 export const workspaceDir = path.join(here, ".tmp", "workspace");
 export const WORKSPACE_PORT = PORT + 3;
+
+// A deliberately nested bundle — charter at the root, then platform/services/*
+// and data/warehouse/*, each intermediate dir holding only a subdirectory. It
+// gets its own server and static page like the hostile one, for the same
+// reason: the file-tree structure branches (a dir with only sub-dirs, folder
+// headers showing the last path segment, indentation by depth) have no way in
+// through the flat 8-concept fixture, whose count assertions must stay put.
+export const treeDir = path.join(here, "fixtures", "tree");
+export const treePage = path.join(here, ".tmp", "tree.html");
+export const TREE_PORT = PORT + 4;
+
+// A bundle carrying more than forty distinct tags (tag01…tag45), so the filter
+// finder's top-40 chip cap has something to hide — unreachable from the main
+// fixture's five tags. Own server + static page, same as the others.
+export const manytagsDir = path.join(here, "fixtures", "manytags");
+export const manytagsPage = path.join(here, ".tmp", "manytags.html");
+export const MANYTAGS_PORT = PORT + 5;

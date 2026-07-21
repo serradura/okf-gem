@@ -59,6 +59,30 @@ test.describe("indexes-only filter + reserved graph button", () => {
     await expect(app.locator("#ftree-foldall")).toBeDisabled();
   });
 
+  test("indexes-only renders the reserved files flat, with no folder headers", async ({ app }) => {
+    // Narrowed to the authored layer a folder owns exactly one row, so a header
+    // per map is chrome. flatRes() drops the `.ffolder` headers and lays the
+    // reserved files out flat at their folder depth — the tab's old flat list,
+    // nesting kept only in the indent.
+    await app.locator("#ftree-ixonly").click();
+    await expect(app.locator("#ftree-ixonly")).toHaveAttribute("aria-pressed", "true");
+    await expect(app.locator("#ftree-list .file[data-res]").first()).toBeVisible();
+    await expect(app.locator("#ftree-list .ffolder")).toHaveCount(0);
+  });
+
+  test("an indexes-only row carries the full path; the full tree shows the bare name", async ({ app }) => {
+    // A nested map stands in for its folder in the flat list, so it carries the
+    // whole path (services/index.md). Back in the full tree it sits under the
+    // services header and shows just the filename (index.md). resRow's label is
+    // `r.path` in flatRes, `r.path.split('/').pop()` in resIn.
+    await app.locator("#ftree-ixonly").click();
+    await expect(app.locator('.file[data-path="services/index.md"] .rn')).toHaveText("services/index.md");
+
+    await app.locator("#ftree-ixonly").click();
+    await expect(app.locator("#ftree-ixonly")).toHaveAttribute("aria-pressed", "false");
+    await expect(app.locator('.file[data-path="services/index.md"] .rn')).toHaveText("index.md");
+  });
+
   test("a map offers the graph button and it lands on that map", async ({ app }) => {
     // A directory map offers "Open in graph", and it opens *that* map: switch to
     // the graph, put the services map in the inspector labelled by its directory.
@@ -67,6 +91,21 @@ test.describe("indexes-only filter + reserved graph button", () => {
     await app.locator("#fp-graph").click();
     await expect(app.locator("#app")).toHaveAttribute("data-view", "graph");
     await expect(app.locator("#side-body")).toContainText("services/");
+  });
+
+  test("opening a map in the graph draws the index layer and emphasises the map", async ({ app }) => {
+    // openMapInGraph, outside tree mode, turns on the index layer and runs
+    // focusNode on the map node — the same full-neighbourhood emphasis a concept
+    // gets (the d0b4fed "opening a map dims nothing" behaviour was reverted by
+    // 9158ca6). So the map lights (.hl) and an unrelated concept dims.
+    await app.locator('.file[data-res="index"][data-path="services/index.md"]').click();
+    await app.locator("#fp-graph").click();
+    await expect(app.locator("#app")).toHaveAttribute("data-view", "graph");
+
+    await expect.poll(() => app.evaluate(() => cy.getElementById("ix::services").length)).toBe(1);
+    await expect.poll(() => app.evaluate(() => cy.getElementById("ix::services").hasClass("hl"))).toBe(true);
+    // a concept outside the map's neighbourhood is dimmed — focusNode ran
+    await expect.poll(() => app.evaluate(() => cy.getElementById("runbooks/deploy").hasClass("dim"))).toBe(true);
   });
 
   test("every file's graph button reads one static \"Open in graph\"", async ({ app }) => {

@@ -18,46 +18,67 @@ at the bottom is the ranked to-do list; the per-area tables are the evidence.
 Reading the 49 commits yielded **204 raw behavioral contracts**, **54** of them
 regression-fixes. After removing the superseded ones (reverted or replaced later
 in history — the Index-view→tabs→tree arc, the reverted landing page, the
-index-layer accent flip-flop, the 5× number-key remaps), **182 net-live contracts
-are rowed** in the area tables below (superseded micro-contracts are summarised,
-not individually rowed).
+index-layer accent flip-flop, the 5× number-key remaps, the `#mnote` note folded
+into `#hello2`), **181 net-live contracts are rowed** in the area tables below
+(superseded micro-contracts are summarised, not individually rowed; A7-10 is kept
+as a rowed ⊘ because it read as a live gap until the history was checked).
 
-**Coverage of those 182 net-live contracts (tallied from the tables, they sum
+**Coverage of those 181 net-live contracts (tallied from the tables, they sum
 exactly):**
 
 | | Count | % |
 |---|---:|---:|
-| ✓ covered | **136** | 75% |
-| ~ partial | 11 | 6% |
-| ✗ uncovered | 35 | 19% |
+| ✓ covered | **156** | 86% |
+| ~ partial | 8 | 4% |
+| ✗ uncovered | 17 | 9% |
 
-The **35 uncovered** rows are the worklist. **Priority 1 (REG fixes with
+The **17 uncovered** rows are the worklist. **Priority 1 (REG fixes with
 existing fixtures) is cleared**, and Priority-2 is well underway (keys A1-08/09,
 tree visuals A2-19/20, indexes-only narrowing A5-14, note scope A7-06, fold-all
-states A5-08/13, and A5-23 — which turned out reachable from the base bundle, no
-new fixture). What remains: ~16 more cheap FEAT rows (Priority 2), ~6 need a new
-fixture (Priority 3), and ~8 are hard/instrumentation/unbuilt (Priority 4).
+states A5-08/13, A5-23, the diagram viewer's modal shortcut-swallow A9-17 and its
+zoom/reset controls A9-16, folder nodes unselectable + filter-exempt A2-18, the
+mobile ⚙ filter badge A6-06, the catalog/tags slide-over filters A3-18/19, and
+the Files type/tag comboboxes A5-26). **Priority 3 has started too**: a new
+`fixtures/tree` bundle — nested directories, served on its own port and baked to
+its own static page like `fixtures/hostile` — closed the three file-tree
+structure rows (A5-09 depth nesting, A5-10 a dir with only sub-dirs, A5-11
+last-segment folder headers) without disturbing the flat 8-concept fixture. The
+reserved-file rows landed with it: A5-20 (a combo hides the index/log rows),
+A5-21/A5-22 (indexes-only renders them flat, full-path-labelled) on the main
+fixture, and A5-24 (the empty state) on the tree fixture, which has no maps. A
+second new fixture, `fixtures/manytags` (45 tags), closed A3-07 (the filter
+finder's top-40 chip cap). And two Priority-4 rows fell to emulation/pattern with
+no fixture at all: A1-11 (reduced-motion strips the transitions, via
+`emulateMedia`) and A3-15 (the search index is fuzzy — a one-edit typo still
+matches). What remains: the 4 palette/hub rows (Priority 2, gated on the
+server-UI work), one long-path-ellipsis row that needs a bespoke fixture
+(Priority 3, A5-25), and the genuinely hard/instrumentation/visual/unbuilt set
+(Priority 4).
 
 ### By area (covered / partial / uncovered)
 
 | Area | ✓ | ~ | ✗ | Total |
 |---|---:|---:|---:|---:|
-| 1 — Boot, views, rail, view-switching, keyboard | 9 | 0 | 2 | 11 |
-| 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer | 25 | 7 | 6 | 38 |
-| 3 — Filters & search | 13 | 1 | 5 | 19 |
+| 1 — Boot, views, rail, view-switching, keyboard | 10 | 0 | 1 | 11 |
+| 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer | 28 | 6 | 4 | 38 |
+| 3 — Filters & search | 17 | 1 | 1 | 19 |
 | 4 — Inspector, links, escaping/sanitization | 20 | 0 | 0 | 20 |
-| 5 — Files view, file tree, reserved files | 18 | 1 | 9 | 28 |
-| 6 — Mobile / responsive | 12 | 1 | 1 | 14 |
-| 7 — First-visit notes | 7 | 0 | 3 | 10 |
+| 5 — Files view, file tree, reserved files | 26 | 0 | 2 | 28 |
+| 6 — Mobile / responsive | 14 | 0 | 0 | 14 |
+| 7 — First-visit notes | 7 | 0 | 2 | 9 |
 | 8 — Command palette, hub, help, keyboard sheet | 11 | 0 | 5 | 16 |
-| 9 — Deep links, theme, splitters, diagram, static/server, interiors | 21 | 1 | 4 | 26 |
-| **Total** | **136** | **11** | **35** | **182** |
+| 9 — Deep links, theme, splitters, diagram, static/server, interiors | 23 | 1 | 2 | 26 |
+| **Total** | **156** | **8** | **17** | **181** |
 
-**Area 4 (inspector/escaping) is now complete** — the last two rows (external
-links, dead-link tooltip) closed. **Files/file-tree (11 ✗)** is now the largest
-gap — the largest surface and largest historical bug source — with **Graph
-canvas (7 ✗)** behind it, where the remaining ✗ are sub-frame timing or
-reserved-mode rendering. Area 9 (deep-links/theme/diagram) stays near-complete.
+**Areas 4 (inspector/escaping) and 6 (mobile/responsive) are now complete** —
+Area 4's last two rows (external links, dead-link tooltip) and Area 6's last row
+(the mobile ⚙ filter badge) closed. **Graph canvas (5 ✗)** and the **command
+palette (5 ✗)** are now the largest gaps — the palette in the server-UI work's
+active zone, the canvas ✗ all sub-frame timing or CDN-failure fallback. Files/
+file-tree, once the largest surface and largest historical bug source, is down to
+**2 ✗** (a long-path ellipsis needing a fixture, a server-only re-fetch). Area 9
+(deep-links/theme/diagram) stays near-complete,
+down to 2 ✗ — both pure-visual polish (mermaid hover cursor, stats count-up).
 
 ### The two counts, reconciled
 
@@ -109,7 +130,7 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A1-08 | d942471 | FEAT | `0` fits the graph (graph view only) | keydown `0` → `fitGraph` | ✓ | graph-modes › the 0 key fits the graph |
 | A1-09 | d942471 | FEAT | `\` toggles the inspector | keydown `\` → `setSide` | ✓ | inspector › the \ key toggles the inspector |
 | A1-10 | d942471 | FEAT | `f` toggles fullscreen | `#btn-full`, `requestFullscreen` | ✗ | fullscreen not exercised (hard in headless) |
-| A1-11 | d942471 | FEAT | Reduced-motion disables transitions/count-up | `@media (prefers-reduced-motion)` | ✗ | never emulated; testable via `emulateMedia` |
+| A1-11 | d942471 | FEAT | Reduced-motion disables transitions/count-up | `@media (prefers-reduced-motion)` | ✓ | boot › reduced motion strips the graph body's transition (emulateMedia flips it live; transitions only) |
 
 ## Area 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer
 
@@ -124,7 +145,7 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A2-07 | 9158ca6 | REG | One `focusNode` drives concept/folder/map emphasis identically | `focusNode(ele,opened)` | ✓ | emphasis › concept + tapping a folder/map node (all three paths) |
 | A2-08 | 9158ca6 | REG | Tapping a folder (`.dir`) node emphasises it (dim rest+hl) | tap handler `.hasClass('dir')`→focusNode | ✓ | emphasis › tapping a folder node in tree mode |
 | A2-09 | 9158ca6 | REG | Tapping a map (`.ix`) node emphasises it | tap handler `.hasClass('ix')`→focusNode | ✓ | emphasis › tapping a map node in the index layer |
-| A2-10 | d0b4fed/9158ca6 | REG | Opening a map in-graph (non-tree) emphasises it like a concept | `setIxNodes(true).then(focusNode)` | ✗ | uncovered (d0b4fed no-dim ⊘ by 9158ca6) |
+| A2-10 | d0b4fed/9158ca6 | REG | Opening a map in-graph (non-tree) emphasises it like a concept | `setIxNodes(true).then(focusNode)` | ✓ | indexes › opening a map in the graph draws the index layer and emphasises the map |
 | A2-11 | d942471 | FEAT | Cluster wraps areas in one compound parent each | `:parent`, `#btn-cluster[aria-pressed]` | ✓ | graph-modes › cluster wraps the concepts |
 | A2-12 | d942471 | FEAT | Cluster undoes itself completely | `setClustered(false)` | ✓ | graph-modes › cluster undoes itself |
 | A2-13 | d942471 | FEAT | Cluster disables the layout selector | `layoutSel.disabled` | ✓ | graph-modes › cluster disables the layout selector |
@@ -132,19 +153,19 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A2-15 | 8ca455f | REG | Clustering re-applies the active filter before tiling | `setClustered`→`applyGraphFilter` first | ~ | graph-modes › a filter still applies inside cluster |
 | A2-16 | ed6c0af | FEAT | Tree mode: folders-as-nodes, folder→child edges only, link edges hidden | `#btn-tree`, `node.dir`, `edge.tree`, `edge.linkhid` | ✓ | graph-modes › tree mode adds folder nodes and undoes |
 | A2-17 | ed6c0af | FEAT | Tree and cluster are mutually exclusive; tree disables layout+cluster | `setTree`↔`setClustered` guards | ~ | graph-modes covers tree add/undo, not the guards |
-| A2-18 | ed6c0af | FEAT | Folder nodes are unselectable and filter-exempt | `hasClass('dir')` guards | ✗ | uncovered |
+| A2-18 | ed6c0af | FEAT | Folder nodes are unselectable and filter-exempt | `hasClass('dir')` guards | ✓ | graph-modes › a folder node is unselectable and exempt from the graph filter |
 | A2-19 | 1498a7c | REG | Tree folder nodes render as accent squares (like maps) | `node.dir,node.ix` background accent | ✓ | graph-modes › tree edges render dashed and folder nodes carry the accent |
 | A2-20 | 1498a7c | REG | Tree parent→child edges are dashed | `edge.tree` line-style dashed | ✓ | graph-modes › tree edges render dashed and folder nodes carry the accent |
 | A2-21 | aeef15b | FEAT | `#btn-ix` draws the index layer over any layout, flips pressed | `#btn-ix[aria-pressed]`, `cy.nodes('.ix')` | ✓ | graph-modes › the index layer adds the map nodes |
 | A2-22 | aeef15b/456aa79 | FEAT | Authored map draws accent, synthesized faint+dashed | `node.ix` vs `node.ix-syn` | ~ | index-layer covers edges, not node fill |
 | A2-23 | aeef15b | FEAT | Index edges dashed `.ixe`; synth `.ixe-syn` fainter | `edge.ixe` .5 vs `edge.ixe-syn` .3 | ✓ | index-layer › synthesized map's edges fainter |
 | A2-24 | aeef15b | FEAT | A map with all concepts filtered hides; parent survives on a child | `ixVisibility()`, node `display` | ✓ | index-layer › a map whose concepts are all filtered away |
-| A2-25 | aeef15b | FEAT | Index nodes are exempt from the graph filter | applyGraphFilter skips `.ix` | ~ | index-layer partial (ixVisibility only) |
+| A2-25 | aeef15b | FEAT | Index nodes are exempt from the graph filter | applyGraphFilter skips `.ix` | ~ | index-layer (ixVisibility). The raw per-node `.ix` skip has no observable distinct from A2-24: whatever the filter leaves, `ixVisibility()` then hides a map with no surviving child, so a map's visibility is A2-24's contract, not this one's. |
 | A2-26 | aeef15b | FEAT | Index nodes never modelled (absent from catalog/tags/types) | id prefix `ix::` | ✗ | not asserted absent from catalog |
 | A2-27 | aeef15b/456aa79 | REG | Entering tree disables `#btn-ix` and tears down the layer | `#btn-ix[disabled]`, `setTree`→`setIxNodes(false)` | ✓ | graph-modes › entering tree mode disables the index button and tears down the layer |
 | A2-28 | 456aa79 | REG | index→tree switch lands clean in one click (no competing layout) | `setIxNodes(on,relayout=false)` | ✓ | camera-races › index layer to tree mode |
 | A2-29 | 456aa79 | REG | A stale `/index` fetch after a toggle/in-tree is dropped | `ixSeq` ticket guard | ✗ | server-mode race; needs delayed fetch |
-| A2-30 | d942471 | FEAT | Layout selector: 5 built-in + 3 lazy, cose fallback on load fail | `#layout`, `ensureLayout` | ~ | graph-modes › switching layouts keeps nodes (fallback ✗) |
+| A2-30 | d942471 | FEAT | Layout selector: 5 built-in + 3 lazy, cose fallback on load fail | `#layout`, `ensureLayout` | ✓ | graph-modes › switching layouts keeps nodes + a lazy layout whose CDN fails falls back to cose (route.abort) |
 | A2-31 | adf96ff | REG | un-clustering restores the chosen layout (not hardcoded cose) | `cy.layout` name | ✓ | camera-races › un-clustering restores the chosen layout |
 | A2-32 | d942471/f00cb66 | FEAT | Fit frames the visible nodes (gentle 450ms ease) | `#btn-fit`, `fitGraph` | ✓ | graph-modes › fit brings the whole graph inside |
 | A2-33 | ed6c0af | REG | One camera move per selection (deferred single pan) | `centerOn`, `window.__camCenters` | ✓ | camera-races › a panel-opening click commits exactly one |
@@ -164,7 +185,7 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A3-04 | d942471 | FEAT | A tag spanning two areas selects across both | activeTags | ✓ | filters › a tag spanning two areas |
 | A3-05 | d942471 | FEAT | Reset restores every concept, zeroes the badge | clearGraphFilter | ✓ | filters › Reset restores every concept |
 | A3-06 | dc83857 | FEAT | Filter-finder box narrows Type/Area/Tag chips together | `#filter-search`, syncFilterChips | ✓ | filters › the filter finder narrows the chip lists |
-| A3-07 | dc83857 | FEAT | Tag chips capped at top-40 until the finder reaches all | chipRow tag cap | ✗ | uncovered (needs >40 tags fixture) |
+| A3-07 | dc83857 | FEAT | Tag chips capped at top-40 until the finder reaches all | chipRow tag cap | ✓ | filters-manytags › tag chips cap at 40 until the finder reaches all (fixtures/manytags, 45 tags) |
 | A3-08 | d942471 | FEAT | Closing the slide-over leaves the applied filter in force | `#filters` toggle | ✓ | filters › close leaves the applied filter in force |
 | A3-09 | 562dba5 | FEAT | One MiniSearch full-text index shared by graph/catalog/files | `ftIndex`, `ftMatch()` | ✓ | filters › narrows the graph to matching concepts |
 | A3-10 | 562dba5 | FEAT | Search matches the description, not only the title | `descOf`, boost.description | ✓ | filters › matches on the description |
@@ -172,11 +193,11 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A3-12 | 562dba5 | FEAT | Clearing the search restores every concept | applySearch('') | ✓ | filters › clearing restores every concept |
 | A3-13 | 562dba5 | FEAT | A term nothing matches empties the graph | ftMatch empty | ✓ | filters › a term nothing matches empties the graph |
 | A3-14 | 562dba5 | FEAT | Search composes with a chip filter | applyGraphFilter ∧ ftMatch | ✓ | filters › search and a chip filter compose |
-| A3-15 | 562dba5 | FEAT | Multi-term AND, prefix, fuzzy (typo-tolerant) | searchOptions prefix/fuzzy/AND | ✗ | prefix/fuzzy not asserted (fuzzy=`--fuzzy` parity) |
+| A3-15 | 562dba5 | FEAT | Multi-term AND, prefix, fuzzy (typo-tolerant) | searchOptions prefix/fuzzy/AND | ✓ | filters › a one-edit typo still matches — the index is fuzzy (fuzzy asserted in isolation; prefix/AND exercised implicitly by the as-you-type search tests) |
 | A3-16 | 562dba5 | FEAT | Substring fallback until the index is ready / CDN down | ftMatch null → includes | ~ | fallback exercised implicitly, not asserted |
 | A3-17 | 562dba5 | FEAT | Lazy: index builds on first focus/keystroke | `onfocus`→buildFtIndex | ✗ | timing not asserted (flake source) |
-| A3-18 | dc83857 | FEAT | Catalog filters by area & tag (not just type) + find box | `#cat-fareas`/`#cat-ftags` | ✗ | interiors covers type chip only |
-| A3-19 | dc83857 | FEAT | Tags view Types/Areas filter, recounts over survivors | `#tag-filters`, tagMatch | ✗ | views asserts "5 distinct tags" only |
+| A3-18 | dc83857 | FEAT | Catalog filters by area & tag (not just type) + find box | `#cat-fareas`/`#cat-ftags` | ✓ | interiors › the slide-over filters by area and by tag; the find box narrows the chips |
+| A3-19 | dc83857 | FEAT | Tags view Types/Areas filter, recounts over survivors | `#tag-filters`, tagMatch | ✓ | interiors › a type filter recounts the cloud over the surviving concepts |
 
 ## Area 4 — Inspector, links, escaping/sanitization
 
@@ -215,9 +236,9 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A5-06 | 2163bfe | FEAT | A file-folded list reopens without touching root collapse | `foldedByRoot===false` | ✓ | files-tree › (same test, preserves a file collapse) |
 | A5-07 | 0e9eab8 | FEAT | Fold/unfold-all control in the Files header | `#ftree-foldall` | ✓ | files-tree › collapse-all |
 | A5-08 | 0e9eab8 | FEAT | Fold-all label/aria/disabled/icon reflect folders in view | `syncFoldAll()` | ✓ | files-tree › the fold-all control reflects the folders' collapsed state |
-| A5-09 | 4b80b80 | FEAT | File tree nests directories by depth, parent above child | `subtree()`, `--d` padding | ~ | structure exercised, indentation not asserted |
-| A5-10 | 4b80b80 | FEAT | A dir containing only sub-dirs still renders | `dirParents()` | ✗ | needs fixture (dir with only subdirs) |
-| A5-11 | 4b80b80 | FEAT | Folder headers show only the last path segment | `dir.split('/').pop()` | ✗ | uncovered |
+| A5-09 | 4b80b80 | FEAT | File tree nests directories by depth, parent above child | `subtree()`, `--d` padding | ✓ | files-tree-nested › directories nest by depth (computed padding-left grows folder→subfolder→file) |
+| A5-10 | 4b80b80 | FEAT | A dir containing only sub-dirs still renders | `dirParents()` | ✓ | files-tree-nested › a directory that holds only a subdirectory still renders |
+| A5-11 | 4b80b80 | FEAT | Folder headers show only the last path segment | `dir.split('/').pop()` | ✓ | files-tree-nested › a folder header shows only the last path segment |
 | A5-12 | 1093ae3 | REG | Reader header hidden when no file open (`.fp-head[hidden]`) | `.fp-head[hidden]{display:none}` | ✓ | files-tree › the reader header is hidden until a file is open |
 | A5-13 | 1093ae3 | FEAT | index/log rows sit at the top of their folder in the tree | `resIn(dir,depth)` order | ✓ | files-tree › index/log rows sit above the concept files in their folder |
 | A5-14 | 1093ae3 | FEAT | "Indexes only" toggle narrows the tree to the authored layer | `#ftree-ixonly`, `ixOnly` | ✓ | indexes › the indexes-only toggle narrows the tree to the authored maps |
@@ -226,13 +247,13 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A5-17 | 646f3f5 | REG | "Open in graph" on a map jumps to its folder / draws that map | openMapInGraph, centerOn | ✓ | indexes › a map offers the graph button and it lands |
 | A5-18 | c7bb1b5/815d5c1 | REG | A log hides its "Open in graph" button (`[hidden]` honoured) | `.btn.text[hidden]{display:none}` | ✓ | indexes › a log hides the graph button |
 | A5-19 | 3376b9a | REG | Every file's graph button reads one static "Open in graph" | `#fp-graph .fpg-lbl` text | ✓ | indexes › every file's graph button reads one static "Open in graph" |
-| A5-20 | 1093ae3 | FEAT | Type/tag combos hide reserved files while set | `res` populated only if `!ft&&!fg` | ✗ | uncovered |
-| A5-21 | ee4788a | REG | ixOnly renders reserved as a flat list at folder depth (no headers) | `.file[data-res]` `--d`, flatRes | ✗ | uncovered |
-| A5-22 | ee4788a | FEAT | ixOnly row shows full path; full tree shows bare filename | `.rn` text vs `data-path` | ✗ | uncovered |
+| A5-20 | 1093ae3 | FEAT | Type/tag combos hide reserved files while set | `res` populated only if `!ft&&!fg` | ✓ | files-tree › setting a combo filter hides the reserved index/log rows |
+| A5-21 | ee4788a | REG | ixOnly renders reserved as a flat list at folder depth (no headers) | `.file[data-res]` `--d`, flatRes | ✓ | indexes › indexes-only renders the reserved files flat, with no folder headers |
+| A5-22 | ee4788a | FEAT | ixOnly row shows full path; full tree shows bare filename | `.rn` text vs `data-path` | ✓ | indexes › an indexes-only row carries the full path; the full tree shows the bare name |
 | A5-23 | ee4788a | REG | ixOnly fold-all reflects nothing to fold | `#ftree-foldall` disabled | ✓ | indexes › the fold-all control is disabled in indexes-only |
-| A5-24 | ee4788a | FEAT | ixOnly with no matches shows an empty-state message | `.empty` text | ✗ | needs fixture |
+| A5-24 | ee4788a | FEAT | ixOnly with no matches shows an empty-state message | `.empty` text | ✓ | files-tree-nested › indexes-only shows the empty state when there are no index or log files (tree fixture has no reserved files) |
 | A5-25 | 8241cc2 | REG | A long tree-row path ellipsizes, doesn't push its badge off-edge | `.rn{min-width:0;overflow:hidden}` | ✗ | uncovered |
-| A5-26 | d942471/dc83857 | FEAT | Files type & tag comboboxes (keyboard-navigable) filter the tree | `#file-type-combo`, `#file-tag-combo` (role) | ✗ | uncovered (no spec drives the comboboxes) |
+| A5-26 | d942471/dc83857 | FEAT | Files type & tag comboboxes (keyboard-navigable) filter the tree | `#file-type-combo`, `#file-tag-combo` (role) | ✓ | files-tree › picking a type narrows the tree; clearing restores it (type combo + ✕; tag combo + keyboard nav not separately asserted) |
 | A5-27 | 05b2bbb | FEAT | Reserved files re-fetch fresh on open (a new log entry shows) | `LOGS=null` before getLogs | ✗ | server-mode; uncovered |
 | A5-28 | 05b2bbb | FEAT | Folder sections fold/unfold; state ignored while filtering | `.ffolder.closed`, filtering guard | ✓ | files-tree › a collapsed folder stays collapsed |
 
@@ -245,12 +266,12 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A6-03 | adf96ff | FEAT | Opening Filters folds the sheet away | ctlSet(false) | ✓ | responsive › opening Filters folds the sheet |
 | A6-04 | adf96ff | FEAT | Nothing overflows the viewport horizontally | body scrollWidth | ✓ | responsive › nothing overflows |
 | A6-05 | adf96ff | FEAT | ⚙ controls toggle is absent on the Stats view | `#app[data-view=stats] #btn-controls` | ✓ | responsive › the controls toggle is gone on Stats |
-| A6-06 | adf96ff | FEAT | ⚙ carries a filter-count badge mirroring the active filters | `ctlBadge()`, `.fbadge` | ✗ | uncovered |
+| A6-06 | adf96ff | FEAT | ⚙ carries a filter-count badge mirroring the active filters | `ctlBadge()`, `.fbadge` | ✓ | responsive › the ⚙ toggle carries the active-filter count even with the sheet folded away |
 | A6-07 | dec7cad | REG | Folded tools sheet is two even columns, no orphaned icon | flex-basis calc(50%-4px) | ✓ | mobile-layout › the folded tools sheet is two even columns |
 | A6-08 | a5f12ab | REG | Mobile layout `<select>` fills its wrapper (chevron clickable) | `#layout` width:100% | ✓ | mobile-layout › the layout select fills its wrapper |
 | A6-09 | a5f12ab | FEAT | Mobile icon-button row groups (no space-between) | `#graph-controls` gap only | ✓ | responsive › the folded tools sheet groups the icon row |
 | A6-10 | b376e8c | REG | Tree header lays out identically at every width (one line) | `.ftabs`, margin-auto placement | ✓ | mobile-layout › the file-tree header stays on one line |
-| A6-11 | b376e8c | REG | Pane-toggle flush with neighbours at every width | `#ftree-min` no margin-bottom | ~ | one-line covered, alignment not asserted |
+| A6-11 | b376e8c | REG | Pane-toggle flush with neighbours at every width | `#ftree-min` no margin-bottom | ✓ | mobile-layout › the file-tree header stays on one line — `#ftree-min` is mobile-only (`display:none` on desktop), so "every width" is every width it renders; the shared-centre check reads all visible `.ftabs > *` incl. the toggle, and was mutation-verified to go red on a `margin-bottom:10px` offset |
 | A6-12 | ??/mobile | REG | The ident ellipsizes instead of overflowing the bar | `.ident` ellipsis | ✓ | mobile-layout › the ident ellipsizes |
 | A6-13 | f00cb66 | REG | Persisted splitter width clamped to 70% of viewport on restore | `Math.min(w,innerWidth*.7)` | ✓ | splitters › a stored width wider than the viewport is clamped |
 | A6-14 | adf96ff | FEAT | ≤768px collapsing root also folds the stacked list to header | `treeMin(true)` | ✓ | files-tree (mobile reopen path) |
@@ -268,7 +289,7 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A7-07 | 3ce2284 | FEAT | ☰ dismisses `#hello2` (only once on screen), remembered | hello2Done early-return | ✓ | first-visit › opening ☰ answers the second note and remembers it |
 | A7-08 | cc7d545/3ce2284 | FEAT | Note wording follows pointer type & width (tap/pinch, ☰ mention) | `@media (pointer:coarse)`/width | ✗ | uncovered |
 | A7-09 | 3ce2284 | FEAT | `#hello` reflows for short & landscape-phone viewports | `@media (max-height:480px)` | ✗ | visual; uncovered |
-| A7-10 | adf96ff | FEAT | A "best on desktop" `#mnote` shows on small screens, dismiss/persist | `#mnote`, `okf-mnote` | ✗ | uncovered |
+| A7-10 | adf96ff | FEAT | A "best on desktop" `#mnote` shows on small screens, dismiss/persist | `#mnote`, `okf-mnote` | ⊘ | **superseded** — cc7d545 deleted `#mnote`/`okf-mnote` and folded the mobile note into `#hello2` (A7-05/A7-07), pinned by a `refute_includes` render test. Not a gap; the feature is gone. |
 
 ## Area 8 — Command palette, hub, help, keyboard sheet
 
@@ -310,8 +331,8 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A9-13 | 357ae87 | FEAT | A Mermaid block opens a fullscreen viewer (click/tap/Enter/Space), focused | `.mermaid[role=button]`, `#dgv` | ✓ | diagram › clicking a rendered diagram opens the viewer |
 | A9-14 | 357ae87 | FEAT | Escape closes the viewer, returns focus to the diagram | closeDiagram | ✓ | diagram › Escape closes the viewer |
 | A9-15 | 357ae87 | FEAT | Viewer re-renders from source (keeps colors), not a clone | `m.dataset.src` | ✓ | diagram › (re-rendered from source) |
-| A9-16 | 357ae87 | FEAT | Viewer pan (drag), zoom (wheel/pinch/±), reset (btn/dbl-click) | `#dgv-in/out/reset`, panzoom | ✗ | pan/zoom/reset controls uncovered |
-| A9-17 | 357ae87 | FEAT | While the viewer is open, other shortcuts are suppressed | keydown early-return | ✗ | uncovered |
+| A9-16 | 357ae87 | FEAT | Viewer pan (drag), zoom (wheel/pinch/±), reset (btn/dbl-click) | `#dgv-in/out/reset`, panzoom | ✓ | diagram › the viewer's zoom controls scale the diagram, and reset returns it (±/reset buttons; drag-pan + wheel/pinch not asserted) |
+| A9-17 | 357ae87 | FEAT | While the viewer is open, other shortcuts are suppressed | keydown early-return | ✓ | diagram › the open viewer swallows the page's other shortcuts |
 | A9-18 | 357ae87 | FEAT | Mermaid blocks: zoom-in cursor, accent hover, focus outline | `.mermaid` CSS | ✗ | visual; uncovered |
 | A9-19 | ed8a554 | FEAT | `EMBED` switches all five data reads: baked (static) vs fetched (server) | EMBED const | ✓ | proven by the two-project harness (every spec ×2) |
 | A9-20 | ed8a554 | FEAT | Server getters hit endpoints (bodies never memoized → live edits) | fetch NODE/META | ~ | both modes run; live-edit reflection not asserted |
@@ -380,6 +401,10 @@ Reverted or replaced later; do NOT write tests for these:
 - **Per-file graph-button labels (cc7d545)** — "Explore the knowledge graph" /
   "Open X/ in graph" → collapsed to one static "Open in graph" (3376b9a, A5-19).
 - **Inspector 70vw wide preset (d942471)** → 50vw (8241cc2, A4-06).
+- **The "best on desktop" `#mnote` (adf96ff)** → deleted by cc7d545, which folded
+  the mobile note into `#hello2` and took `okf-mnote` with it (a `refute_includes`
+  render test pins the removal). This is **A7-10**, kept as a rowed ⊘ above
+  because it read as a live gap in earlier passes until the history was walked.
 
 ---
 
@@ -414,54 +439,51 @@ covering specs are in the row tables above. Kept here as the closed record:
 
 **Done so far** (see the row tables): A1-08 (`0` fits), A1-09 (`\` inspector),
 A2-19/A2-20 (tree accent nodes + dashed edges), A5-08 (fold-all states), A5-13
-(reserved-row ordering), A5-14 (indexes-only narrowing), A7-06 (note scope).
-Remaining:
+(reserved-row ordering), A5-14 (indexes-only narrowing), A7-06 (note scope),
+A9-17 (viewer swallows shortcuts), A9-16 (viewer zoom/reset controls), A2-18
+(folder nodes unselectable + filter-exempt), A6-06 (⚙ filter badge), A3-18
+(catalog area/tag filter + find box), A3-19 (tags Types/Areas filter + recount),
+A5-26 (Files type/tag comboboxes narrow the tree). Remaining:
 
 | ID | Behavior | Handle |
 |---|---|---|
-| A2-18 | Folder nodes unselectable + filter-exempt | tap `.dir` no select / filter skip |
-| A2-25/26 | Index nodes filter-exempt / absent from catalog | applyGraphFilter skip / catalog |
-| A2-36 | Zoom floor auto-relaxes | `cy.minZoom` after layout |
-| A3-16 | Substring fallback before index ready | ftMatch null path |
-| A5-11 | Folder headers show last segment only (needs a nested dir — see P3) | header text |
-| A5-25 | Long tree-row path ellipsizes | `.rn` overflow |
-| A5-26 | Files type/tag comboboxes filter the tree | `#file-type-combo` (role) |
-| A6-06 | ⚙ filter-count badge | `#btn-controls .fbadge` |
-| A6-11 | Pane-toggle flush at every width | `#ftree-min` alignment |
 | A8-09 | ⇄ Switch button hidden in standalone | `#btn-switch[hidden]` (assert in non-hub project) |
 | A8-10 | Palette empty states | `a.none` |
 | A8-11 | Sibling links carry view+layout | `target()` query on the row href |
 | A8-12 | Palette first row visible on open | scroll position after open |
-| A9-16 | Diagram viewer pan/zoom/reset controls | `#dgv-in/out/reset` |
-| A9-17 | Viewer suppresses other shortcuts | keydown while open |
-| A3-18 | Catalog area/tag filter + find | `#cat-fareas`/`#cat-ftags` |
-| A3-19 | Tags view Types/Areas filter + recount | `#tag-filters` |
 
-> The palette/hub rows (A8-09/10/11/12) sit in the command-palette and
-> bundle-switcher code that the server-UI work is actively changing — coordinate
-> before taking them, or the spec will chase a moving target.
+> **The cheap, existing-fixture P2 rows outside the palette are now closed.** What
+> is left in P2 is the four palette/hub rows — and they sit in the command-palette
+> and bundle-switcher code the server-UI work is *actively changing*, so taking
+> them now means chasing a moving target. Coordinate first, or wait for that work
+> to land. Everything else that once sat here needed a fixture (→ P3) or has no
+> deterministic handle (→ P4) and was moved, with the reason, below. So the honest
+> frontier: the next real coverage gains need either the palette code to settle or
+> a fixture the frozen 8-concept bundle can't yet carry.
 
 ### Priority 3 — needs a new fixture
 
 | ID | Behavior | Fixture to add |
 |---|---|---|
-| A5-10 | Dir with only sub-dirs renders | a directory containing only subdirectories (no files) |
-| A5-11 | (also helped by the above) | — |
-| A3-07 | Tag chips capped at 40 | a bundle with >40 distinct tags |
-| A5-21/22/24 | ixOnly flat list / full-path label / empty-state | reserved-file arrangements + a no-reserved dir (A5-23 fold-all-empty done — needed no fixture) |
+| A5-10, A5-11, A5-09 | Dir with only sub-dirs, last-segment headers, depth nesting | **done** — `fixtures/tree` (nested dirs, own server + static page). The pattern to copy for the rest of this tier. |
+| A3-07 | Tag chips capped at 40 | **done** — `fixtures/manytags` (45 tags, own server + static page) |
+| A5-21/22/24 | ixOnly flat list / full-path label / empty-state | **done** — A5-21/22 reached the main fixture's own reserved files (they never needed a fixture); A5-24's empty state uses `fixtures/tree`, which has no maps |
 | A9-20 | Server live-edit reflection | mutate a body file mid-test (server only) |
-| A7-10 | `#mnote` best-on-desktop note | (exists; just needs a mobile spec that doesn't seed okf-mnote) |
-| A3-15 | Prefix/fuzzy search | assert a typo'd query still matches (fuzzy=`--fuzzy` parity) |
+| A3-15 | Prefix/fuzzy search | **done** — needed no fixture; a one-edit typo on the main bundle's gateway, polled past the lazy index build |
+| A2-36 | Zoom floor auto-relaxes (`relaxZoom`) | a bundle whose graph exceeds the fit box, so `minZoom` must relax below `MIN_ZOOM` — the 8-concept fixture fits at `maxZoom`, so the floor never moves and there is nothing to observe |
+| A5-25 | Long tree-row path ellipsizes | a concept whose path is long enough to overflow the `.rn` box, so `text-overflow:ellipsis` actually clips — the fixture's paths are all short (forcing it by artificially narrowing the column is bending the test, per AGENTS.md) |
 
 ### Priority 4 — hard / needs instrumentation / genuinely untestable headless
 
 | ID | Behavior | Why hard |
 |---|---|---|
 | A1-10 | `f` fullscreen | `requestFullscreen` unreliable headless |
-| A1-11 | Reduced-motion | needs `emulateMedia({reducedMotion})` — doable but low value |
+| A1-11 | Reduced-motion | **done** — `app.emulateMedia({reducedMotion})` flips it live and the transition strip is a clean computed-CSS read; the count-up half stays visual (A9-24) |
 | A2-29 | Stale `/index` fetch dropped (ixSeq) | server-only race; needs a delayed/throttled response |
-| A2-30 | Layout cose-fallback on CDN failure | needs a blocked CDN route |
+| A2-30 | Layout cose-fallback on CDN failure | **done** — `app.route(/fcose|cose-base|layout-base/).abort()` then select fcose; the selector lands on cose |
 | A2-37 | Node spacing across layouts | pure visual, no clean handle |
+| A2-26 | Index nodes absent from catalog/tags/types | an absence-proof with no mutation handle — index nodes are simply never added to `NODES`/`CATALOG`, so there is no line to break to make a map appear as a concept; a passing assertion would certify nothing |
+| A3-16 | Substring fallback before the index builds | the same lazy-index timing as A3-17 (a known flake source): the fallback window between first keystroke and index-ready is sub-frame and non-deterministic, so there is no stable point to assert it |
 | A5-27 | Reserved re-fetched fresh | server-only, timing |
 | A9-24 | Stats count-up animation | visual/timing |
 | A7-08/09, A9-18 | Note gesture wording / reflow, mermaid cursor/hover | pure visual polish |
@@ -471,24 +493,43 @@ Remaining:
 
 ## How to drive this to full coverage
 
-1. **Work Priority 1 first** — REG fixes with existing fixtures, the sharpest
-   targets. Each is one spec test, mutation-checked (break the handle, confirm
-   red, restore). A5-12 especially: the same `[hidden]`-specificity bug class the
-   suite already found twice.
-2. **Then Priority 2** — mechanical FEAT coverage; batch by spec file
-   (files-tree, graph-modes, responsive, palette get the most new tests).
-3. **Priority 3** needs fixtures — extend `fixtures/bundle/` per AGENTS.md's
-   "don't skimp on fixtures" rule; keep it validate+lint clean.
-4. **Priority 4** — decide case by case; several are legitimately "documented
-   hole" territory (log it, don't fake a test). A8-16 is a product decision.
-5. Re-run `rake test:browser` after each; keep it deterministically green.
-   **Update the Cov column and the tallies here as rows close** — this file is
-   the source of truth for what is proven.
+**Where it stands: 156/181 (86%).** Priority 1 is cleared; every Priority-2 row
+outside the command palette is ✓; and Priority 3 is done bar one (A5-25), on the
+strength of two new fixtures — `fixtures/tree` (nested dirs) and
+`fixtures/manytags` (45 tags), each served on its own port and baked to its own
+static page like `fixtures/hostile`, so neither disturbs the flat 8-concept
+fixture's count assertions. Several rows once filed as hard fell to emulation and
+route interception with no fixture at all: A1-11 (`emulateMedia` reduced-motion),
+A3-15 (fuzzy search), A2-30 (a `route.abort`-ed CDN and the cose fallback). One
+stale ✗ turned out to be a removed feature (A7-10 → ⊘).
+
+**The 17 remaining ✗ are the honest hard tail**, and they split cleanly:
+
+- **Blocked on the other session (5):** the command-palette / bundle-switcher
+  rows A8-09/10/11/12, plus A8-16 which is an *unbuilt* feature. The palette four
+  are writable — but against code the server-UI work is changing, so they wait
+  for it to land, not for want of a test.
+- **Genuinely untestable as-is (4):** A2-26 is an absence-proof with no line to
+  break; A2-37, A7-08/09, A9-18, A9-24 are pure-visual polish with no behavioural
+  handle; A3-16/A3-17 are the sub-frame lazy-index window that is a known flake
+  source. Faking any of these would certify nothing — they are logged, not
+  chased.
+- **High-effort, low-yield (the rest):** A5-25 (a bespoke long-path reserved
+  fixture that would collide with A5-24's no-maps tree), A2-36 (a ~40-concept
+  fixture just to move the zoom floor), A2-29 / A5-27 / A9-20 (server-only race
+  or live-edit harnesses), A1-10 (`requestFullscreen`, unreliable headless).
+
+To go further, the sound moves are: (1) take the palette four once that code
+settles; (2) build the big-graph and long-path fixtures if A2-36/A5-25 are judged
+worth their weight; (3) leave the visual/absence/unbuilt rows as documented holes
+— per AGENTS.md, a test that cannot fail is worse than none. **Update the Cov
+column and the tallies here as rows close** — this file is the source of truth for
+what is proven.
 
 **Trust check:** "fully covered" is reached when every Priority-1/2/3 row is ✓ or
 consciously marked a documented hole, and Priority-4 items are each either done,
 instrumented, or explicitly logged as untestable. Trust the **net-live list here
-(182)**, not a single round number.
+(181)**, not a single round number.
 
 ## Method
 

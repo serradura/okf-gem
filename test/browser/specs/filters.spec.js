@@ -96,6 +96,16 @@ test.describe("search", () => {
     await expect.poll(() => visibleNodeIds(app)).toContain("datasets/orders");
   });
 
+  test("a one-edit typo still matches — the index is fuzzy", async ({ app }) => {
+    // searchOptions carry fuzzy:0.2, so a typo within one edit still finds its
+    // concept: "gatway" → gateway (one deletion). It is neither a substring of
+    // any field (nothing contains "gatway") nor a prefix of "gateway" (which
+    // begins "gatew…"), so a match here is the fuzzy tolerance and nothing else,
+    // once the lazy MiniSearch index builds. Poll past the pre-index empty state.
+    await app.locator("#search").fill("gatway");
+    await expect.poll(() => visibleNodeIds(app)).toContain("services/gateway");
+  });
+
   test("body text is searchable only in the static render", async ({ app }, testInfo) => {
     // The search index covers bodies only when they are present, and they are
     // present only in a static render (EMBED); served live the page holds

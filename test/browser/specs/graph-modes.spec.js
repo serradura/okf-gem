@@ -95,6 +95,20 @@ test.describe("graph modes", () => {
     }
   });
 
+  test("a lazy layout whose CDN fails falls back to cose", async ({ app }) => {
+    // The three lazy layouts (fcose/dagre/cola) fetch their engine from the CDN
+    // on first use. If that load fails, ensureLayout returns false and runLayout
+    // resets the selector to cose instead of leaving a dead selection on a layout
+    // that never applied. Block fcose's scripts and pick it — the selector must
+    // land on cose, and the graph stays laid out.
+    app.allowErrors(); // the blocked <script> logs a resource error + the loader warns
+    await app.route(/cytoscape-fcose|cose-base|layout-base/, (route) => route.abort());
+    await app.locator("#layout").selectOption("fcose");
+
+    await expect.poll(() => app.locator("#layout").inputValue()).toBe("cose");
+    expect(await app.evaluate(() => cy.nodes().filter((n) => n.visible()).length)).toBeGreaterThan(0);
+  });
+
   test("fit brings the whole graph inside the viewport", async ({ app }) => {
     // Zoom right in on one corner, then fit. Asserting the zoom *number* would
     // be wrong: eight nodes fit at maxZoom, so a correct fit can legitimately
@@ -166,5 +180,23 @@ test.describe("graph modes", () => {
     // Cytoscape returns rgb() without spaces, the DOM with them — same colour.
     expect(res.bg.replace(/\s/g, "")).toBe(res.accent.replace(/\s/g, ""));
     expect(res.shape).toBe("round-rectangle");
+  });
+
+  test("a folder node is unselectable and exempt from the graph filter", async ({ app }) => {
+    // In tree mode the folder-as-node is chrome, not a concept. Tapping it
+    // emphasises and shows the directory but never reaches select(), so no #hash
+    // lands (a concept tap writes one — the emphasis/inspector specs pin that).
+    // And applyGraphFilter skips `.dir`, so a term nothing matches empties the
+    // concepts while the folder stands.
+    await app.locator("#btn-tree").click();
+    await expect.poll(() => app.evaluate(() => cy.getElementById("dir::services").length)).toBe(1);
+
+    await app.evaluate(() => cy.getElementById("dir::services").emit("tap"));
+    await expect.poll(() => app.evaluate(() => cy.getElementById("dir::services").hasClass("hl"))).toBe(true);
+    expect(await app.evaluate(() => location.hash)).toBe("");
+
+    await app.locator("#search").fill("zzzznotathing");
+    await expect.poll(() => app.evaluate(() => cy.getElementById("services/gateway").style("display"))).toBe("none");
+    expect(await app.evaluate(() => cy.getElementById("dir::services").style("display"))).toBe("element");
   });
 });

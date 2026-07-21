@@ -73,6 +73,19 @@ test.describe("phone (375px)", () => {
     expect(await css(app, "#btn-controls", "display")).toBe("none");
   });
 
+  test("the ⚙ toggle carries the active-filter count even with the sheet folded away", async ({ app }) => {
+    // On mobile the graph tools fold behind the ⚙; an active filter must still
+    // call out from the bar, so ctlBadge() mirrors the filter count onto
+    // #btn-controls and lights it. Open the sheet, open Filters, hide a type —
+    // the ⚙ badge reads 1 and the button carries .on-filter.
+    await expect(app.locator("#btn-controls .fbadge")).toHaveText("0");
+    await app.locator("#btn-controls").click();
+    await app.locator("#btn-filters").click();
+    await app.locator('#ftypes .chip[data-t="Service"]').click();
+    await expect(app.locator("#btn-controls .fbadge")).toHaveText("1");
+    await expect(app.locator("#btn-controls")).toHaveClass(/on-filter/);
+  });
+
   test("the folded tools sheet groups the icon row instead of flinging it edge to edge", async ({ app }) => {
     // Opening the sheet wraps #graph-controls; the icon buttons must sit as one
     // group (gap only), not spread with justify-content:space-between (a5f12ab —

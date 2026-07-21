@@ -165,3 +165,50 @@ test.describe("file tree — collapse (mobile 375px)", () => {
     await expect(services).toHaveClass(/closed/);
   });
 });
+
+test.describe("file tree — the type/tag comboboxes", () => {
+  test.beforeEach(async ({ app }) => {
+    await showView(app, "files");
+    await expect(app.locator("#ftree-list")).toContainText("orders.md");
+  });
+
+  test("picking a type narrows the tree to that type's concepts", async ({ app }) => {
+    // The Files header carries two role=combobox filters; the type one narrows
+    // the tree to concepts of that type (reserved index/log rows step aside
+    // while either combo is set). Focus opens the listbox; the option is picked
+    // on mousedown (blur closes the box 130ms later), so dispatch it directly.
+    await expect(app.locator('#ftree-list .file[data-id="runbooks/deploy"]')).toBeVisible();
+
+    await app.locator("#file-type-input").click();
+    await expect(app.locator("#file-type-list")).toBeVisible();
+    await app.locator('#file-type-list li[data-v="Service"]').dispatchEvent("mousedown");
+
+    await expect(app.locator("#file-type-combo")).toHaveClass(/has/);
+    await expect(app.locator('#ftree-list .file[data-id="services/gateway"]')).toBeVisible();
+    await expect(app.locator('#ftree-list .file[data-id="services/billing"]')).toBeVisible();
+    await expect(app.locator('#ftree-list .file[data-id="runbooks/deploy"]')).toHaveCount(0);
+  });
+
+  test("setting a combo filter hides the reserved index/log rows", async ({ app }) => {
+    // Reserved files carry neither a type nor tags, so a combo filter is a
+    // statement about concepts and they step aside for it: renderTree fills
+    // `res` only when `!ft && !fg`. Set a type and the index/log rows go.
+    await expect(app.locator("#ftree-list .file[data-res]").first()).toBeVisible();
+    await app.locator("#file-type-input").click();
+    await app.locator('#file-type-list li[data-v="Service"]').dispatchEvent("mousedown");
+    await expect(app.locator("#file-type-combo")).toHaveClass(/has/);
+    await expect(app.locator("#ftree-list .file[data-res]")).toHaveCount(0);
+  });
+
+  test("clearing the type combo restores the full tree", async ({ app }) => {
+    // The ✕ clear button drops the filter and re-renders — the concepts it hid
+    // come back. (Its own handle: #file-type-clear resets value to null.)
+    await app.locator("#file-type-input").click();
+    await app.locator('#file-type-list li[data-v="Service"]').dispatchEvent("mousedown");
+    await expect(app.locator('#ftree-list .file[data-id="runbooks/deploy"]')).toHaveCount(0);
+
+    await app.locator("#file-type-clear").click();
+    await expect(app.locator("#file-type-combo")).not.toHaveClass(/has/);
+    await expect(app.locator('#ftree-list .file[data-id="runbooks/deploy"]')).toBeVisible();
+  });
+});
