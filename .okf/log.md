@@ -1,6 +1,20 @@
 # Update Log
 
 ## 2026-07-21
+* **Addition**: the skill gained a **`refine` verb** and the CLI its two
+  evidence views. `playbooks/refine.md` is the third authoring boundary —
+  `curate` keeps the structure sound, `maintain` keeps the content true,
+  `refine` changes where knowledge lives: the directory
+  tree as a lossy projection of the link graph, cohesion over balance, concerns
+  as tags never containers, free levers (heading sectioning, tag curation,
+  extraction) before file moves, and a propose-don't-apply contract (a report
+  plus a frozen execution prompt). The evidence is mechanical now: `okf tags
+  --by` rows carry each tag's `count/total` so locality (domain vs concern)
+  reads per row, and `okf graph --hubs` ranks inbound links grouped by source
+  area — the hub origin test. The [read views](capabilities/read-views.md) and
+  [agent skill](capabilities/agent-skill.md) concepts record both; the design
+  came from evaluating a field report on a 50-concept production bundle whose
+  restructuring had to be hand-derived.
 * **Change**: the hub's 404 stopped leading with the apology. It is a directory
   reached by a wrong turn, not an error page, so the **asked path is now the
   heading** — mono, 27px, where a dropped slash reads as a shape — and "not

@@ -1,6 +1,6 @@
 ---
 description: Hand any OKF task to the okf skill — search, author, curate, or doctor a bundle
-argument-hint: "[search|produce|migrate|maintain|consume|curate|doctor|<okf-cli-verb>] [dir] [--flags]"
+argument-hint: "[search|produce|migrate|maintain|refine|consume|curate|doctor|<okf-cli-verb>] [dir] [--flags]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 

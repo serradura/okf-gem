@@ -1,8 +1,9 @@
 # Playbook: maintain — keep a bundle in sync with reality
 
 Reach for this when the project changed and the bundle's *content* must catch
-up. The modelling craft behind steps 3 and 7 lives in
-[authoring.md](../reference/authoring.md).
+up. Restructuring the bundle itself — moving concepts, adding areas — is
+[refine](refine.md), not maintain. The modelling craft behind steps 3 and 7
+lives in [authoring.md](../reference/authoring.md).
 
 1. **Orient before hunting.** Run `okf index <dir>` (the §6 map — every directory's
    index body, rollups, and listings), read `log.md` (the §7 baseline: what changed

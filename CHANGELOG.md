@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The skill gains a `refine` verb** (`playbooks/refine.md`): restructure a
+  bundle to get the most from OKF's capabilities — progressive disclosure, the
+  emergent graph, cross-cutting tags, capture-once-link-many. It is the third
+  authoring boundary: `curate` keeps the structure sound as it stands,
+  `maintain` keeps the content true, `refine` changes where knowledge lives —
+  evidence-first (tag locality, the hub origin test, a fatness alarm),
+  cohesion-over-balance, free levers before file moves, and it *proposes* (a
+  report plus a frozen execution prompt), never auto-applies.
 - **`okf graph --hubs`** — the inbound ranking: every concept with at least one
   inbound link, ranked by inbound degree, each with its links grouped by
   *source area* (`core/status  ×3   flows 2, billing 1`). This is the refine

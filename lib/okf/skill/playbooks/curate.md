@@ -9,7 +9,9 @@ reachability, backlog, completeness, hygiene. It is not `maintain`, the
 skill's workflow for when the project changed and the bundle's *content*
 must catch up with reality; reach for that one when what is written stopped
 being true. Curating can surface semantic staleness, and when it does,
-switch to `maintain` for those concepts.
+switch to `maintain` for those concepts. And it never moves knowledge: when
+the content is right but the shape underserves retrieval — fat areas,
+mis-homed hubs, an uncurated tag layer — that is [refine](refine.md).
 
 1. Locate the bundle: the directory you were given, if any; otherwise a
    `.okf/` directory or a root `index.md` whose frontmatter carries

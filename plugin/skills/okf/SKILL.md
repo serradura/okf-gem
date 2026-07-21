@@ -13,7 +13,7 @@ description: >-
   working in a repo that already carries an OKF bundle — a `.okf/` directory or a
   root `index.md` carrying `okf_version`.
 user-invocable: true
-argument-hint: "[search|produce|migrate|maintain|consume|curate|doctor|<okf-cli-verb>] [dir|@slug] [--flags]"
+argument-hint: "[search|produce|migrate|maintain|refine|consume|curate|doctor|<okf-cli-verb>] [dir|@slug] [--flags]"
 allowed-tools: Read Write Edit Grep Glob Bash
 ---
 
@@ -123,10 +123,12 @@ when you need chapter and verse.
 
 **No subcommand?** Infer intent: "document this / capture X" → `produce`;
 "convert / migrate / OKFy these existing docs into a bundle" → `migrate`; "the
-code changed, update the docs" → `maintain`; "what do we know about X / where
-is X documented" → `search`; a repo already carrying a bundle plus a task
-needing its knowledge → `consume`; "check / graph / preview it" → run the
-matching CLI verb and interpret the result. When genuinely ambiguous, ask.
+code changed, update the docs" → `maintain`; "restructure / rebalance the
+bundle / is the structure right / get more out of it" → `refine`; "what do we
+know about X / where is X documented" → `search`; a repo already carrying a
+bundle plus a task needing its knowledge → `consume`; "check / graph / preview
+it" → run the matching CLI verb and interpret the result. When genuinely
+ambiguous, ask.
 
 **Which target?** A leading `@` is a *registry ref*, not a path: `@slug` names a
 bundle registered with `okf registry set`, bare `@` the default — route it
@@ -158,15 +160,17 @@ Read the referenced playbook before executing — it *is* the procedure.
 | `produce`  | Author | create or extend a bundle | [playbooks/produce.md](playbooks/produce.md) |
 | `migrate`  | Author | convert existing docs in place: frontmatter + reserved files, bodies verbatim | [playbooks/migrate.md](playbooks/migrate.md) |
 | `maintain` | Author | sync the bundle's content with reality after a change | [playbooks/maintain.md](playbooks/maintain.md) |
+| `refine`   | Author | optimize the bundle's structure: evidence-driven, cohesion-first; proposes, never auto-applies | [playbooks/refine.md](playbooks/refine.md) |
 | `consume`  | Use    | use the bundle as context for a task | [playbooks/consume.md](playbooks/consume.md) |
 | `curate`   | Curate | structural upkeep as it stands: validate + lint + loose | [playbooks/curate.md](playbooks/curate.md) |
 | `doctor`   | Setup  | install and verify the CLI, then doctor the bundle | [playbooks/doctor.md](playbooks/doctor.md) |
 | `<okf-cli-verb>` | Read | validate, lint, loose, index, catalog, files, tags, types, stats, graph, server, render, registry, skill — **plus any verb an installed extension adds** (`okf help` is authoritative, this list is not) | `okf <verb> --help` + [reference/cli.md](reference/cli.md) |
 
-Two boundaries worth keeping sharp: `curate` is structural upkeep only — when
-the *content* no longer matches reality, that is `maintain` — and `doctor` is
-the one playbook that does not assume the CLI is installed. In Claude Code with
-the okf plugin, `/okf:gem` routes these same verbs.
+Three boundaries worth keeping sharp: `curate` is structural upkeep only — when
+the *content* no longer matches reality, that is `maintain`, and when the
+content is right but the *shape* underserves retrieval, that is `refine` — and
+`doctor` is the one playbook that does not assume the CLI is installed. In
+Claude Code with the okf plugin, `/okf:gem` routes these same verbs.
 
 ## The lifecycle is a flywheel, not phases
 
