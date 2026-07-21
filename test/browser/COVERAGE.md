@@ -175,9 +175,10 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 
 | ID | Commit | Type | Behavior | Handle | Cov | Spec / reason |
 |---|---|---|---|---|---|---|
-| A3-01 | d942471 | FEAT | Hiding a type drops its concepts and the badge counts it | `.chip.off`, `.fbadge` | ✓ | filters › hiding a type drops its concepts |
+| A3-01 | d942471 | FEAT | Picking a type narrows the graph to it and the badge counts it | `.chip.on`, `.fbadge` | ✓ | filters › picking a type narrows to it, the way picking an area or a tag does |
+| A3-01b | (cohesion) | REG | Types select like areas and tags: empty means all, a second selection unions, a repeat click undoes | `activeTypes` | ✓ | filters › a second type adds to the first · clicking a selected type again puts it back |
 | A3-02 | d942471 | FEAT | Badge counts every dimension (type/area/tag) | `.fbadge` | ✓ | filters › the badge counts every dimension |
-| A3-03 | d942471 | FEAT | Area and type filters intersect | applyGraphFilter | ✓ | filters › area and type filters intersect |
+| A3-03 | d942471 | FEAT | Groups intersect (within a group they union), even where the intersection is empty | applyGraphFilter | ✓ | filters › groups intersect even where that leaves nothing · a type and an area that do overlap keep exactly the overlap |
 | A3-04 | d942471 | FEAT | A tag spanning two areas selects across both | activeTags | ✓ | filters › a tag spanning two areas |
 | A3-05 | d942471 | FEAT | Reset restores every concept, zeroes the badge | clearGraphFilter | ✓ | filters › Reset restores every concept |
 | A3-06 | dc83857 | FEAT | Filter-finder box narrows Type/Area/Tag chips together | `#filter-search`, syncFilterChips | ✓ | filters › the filter finder narrows the chip lists |

@@ -1,6 +1,18 @@
 # Update Log
 
 ## 2026-07-21
+* **Fix**: the graph's Filters panel had three chip groups and two grammars.
+  Areas and tags were additive — nothing selected means everything, a click
+  narrows, a second click undoes — while **types were subtractive**: every type
+  showed until you clicked one *away*. Same chip component, same panel, opposite
+  meaning, and the catalog's and tags' own type chips one view over were already
+  additive, so the odd one out was odd twice. Types now select like everything
+  else (`hiddenTypes` → `activeTypes`), which also means two types compound into
+  a union the way two tags do — something the old model could not express at all.
+  The change is a net deletion: `.chip.off` had no other user, and `chipRow`'s
+  per-group state-class argument was there only to tell types apart from the
+  rest. `typeFocused` collapses into the same shape as `tagFocused`, taking its
+  one-type-bundle special case with it.
 * **Change**: the `/b/` manager's registry forms are gone, and the page stayed.
   For a stretch both surfaces carried the same four verbs — the forms here and
   the graph page's ⚙ Bundles panel — which is two implementations of one

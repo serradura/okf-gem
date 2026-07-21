@@ -26,10 +26,12 @@ test.describe("index layer", () => {
   });
 
   test("a map whose concepts are all filtered away leaves the canvas", async ({ app }) => {
-    // Hide the Dataset type — both datasets concepts go, so the datasets map has
-    // nothing left to point at and hides too; the services map stays.
+    // Narrow to Service — both datasets concepts fall out, so the datasets map
+    // has nothing left to point at and hides too; the services map stays.
+    // (This used to click Dataset, back when a type chip *hid* its type. Same
+    // contract, same outcome, reached the way every other chip group is.)
     await app.locator("#btn-filters").click();
-    await app.locator('#ftypes .chip[data-t="Dataset"]').click();
+    await app.locator('#ftypes .chip[data-t="Service"]').click();
 
     await expect.poll(() => app.evaluate(() => cy.getElementById("ix::datasets").style("display"))).toBe("none");
     await expect.poll(() => app.evaluate(() => cy.getElementById("ix::services").style("display"))).toBe("element");

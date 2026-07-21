@@ -20,11 +20,38 @@ test.describe("graph filters", () => {
     await expect(app.locator("#filters")).toHaveClass(/open/);
   });
 
-  test("hiding a type drops its concepts and counts on the badge", async ({ app }) => {
+  // All three chip groups mean the same thing, and this is the group that used
+  // not to. Types were *subtractive* — every type shown until you clicked one to
+  // hide it — while areas and tags were additive, and so were the catalog's own
+  // type chips two views away. Same component, same word, opposite meaning,
+  // which is a thing a reader has to learn per panel rather than once.
+  test("picking a type narrows to it, the way picking an area or a tag does", async ({ app }) => {
     await app.locator('#ftypes .chip[data-t="Service"]').click();
-    await expect(app.locator('#ftypes .chip[data-t="Service"]')).toHaveClass(/off/);
+    await expect(app.locator('#ftypes .chip[data-t="Service"]')).toHaveClass(/on/);
     await expect(app.locator("#btn-filters .fbadge")).toHaveText("1");
-    expect(await visibleNodeIds(app)).toEqual(ALL.filter((id) => !id.startsWith("services/")));
+    expect(await visibleNodeIds(app)).toEqual(ALL.filter((id) => id.startsWith("services/")));
+  });
+
+  test("a second type adds to the first rather than replacing it", async ({ app }) => {
+    // The compounding half. Two selections in one group is a union — show me
+    // Services *and* Charters — exactly as two tags are.
+    await app.locator('#ftypes .chip[data-t="Service"]').click();
+    const services = await visibleNodeIds(app);
+    await app.locator('#ftypes .chip[data-t="Charter"]').click();
+
+    const both = await visibleNodeIds(app);
+    expect(both.length).toBeGreaterThan(services.length);
+    expect(both).toEqual(expect.arrayContaining(services));
+    await expect(app.locator("#btn-filters .fbadge")).toHaveText("2");
+  });
+
+  test("clicking a selected type again puts it back, leaving nothing selected", async ({ app }) => {
+    await app.locator('#ftypes .chip[data-t="Service"]').click();
+    await app.locator('#ftypes .chip[data-t="Service"]').click();
+
+    await expect(app.locator("#ftypes .chip.on")).toHaveCount(0);
+    await expect(app.locator("#btn-filters .fbadge")).toHaveText("0");
+    expect(await visibleNodeIds(app)).toEqual(ALL);
   });
 
   test("the badge counts every dimension, not just types", async ({ app }) => {
@@ -34,10 +61,21 @@ test.describe("graph filters", () => {
     await expect(app.locator("#btn-filters .fbadge")).toHaveText("3");
   });
 
-  test("area and type filters intersect rather than union", async ({ app }) => {
+  test("groups intersect even where that leaves nothing", async ({ app }) => {
+    // Within a group, selections union; across groups they intersect. Charter
+    // lives outside datasets, so asking for both is an honest empty result —
+    // and an empty graph with a badge of 2 is the correct answer, not a bug.
     await app.locator('#fareas .chip[data-area="datasets"]').click();
     await app.locator('#ftypes .chip[data-t="Charter"]').click();
-    // datasets only, and Charter is not in datasets, so hiding it changes nothing
+
+    await expect.poll(() => visibleNodeIds(app)).toEqual([]);
+    await expect(app.locator("#btn-filters .fbadge")).toHaveText("2");
+  });
+
+  test("a type and an area that do overlap keep exactly the overlap", async ({ app }) => {
+    await app.locator('#fareas .chip[data-area="datasets"]').click();
+    await app.locator('#ftypes .chip[data-t="Dataset"]').click();
+
     await expect.poll(() => visibleNodeIds(app)).toEqual([ "datasets/customers", "datasets/orders" ]);
   });
 
@@ -53,7 +91,7 @@ test.describe("graph filters", () => {
     await app.locator("#filters-reset").click();
     await expect(app.locator("#btn-filters .fbadge")).toHaveText("0");
     expect(await visibleNodeIds(app)).toEqual(ALL);
-    await expect(app.locator("#ftypes .chip.off")).toHaveCount(0);
+    await expect(app.locator("#ftypes .chip.on")).toHaveCount(0);
   });
 
   test("the filter finder narrows the chip lists", async ({ app }) => {
@@ -67,7 +105,7 @@ test.describe("graph filters", () => {
     await app.locator("#filters-close").click();
     await expect(app.locator("#filters")).not.toHaveClass(/open/);
     await expect(app.locator("#btn-filters .fbadge")).toHaveText("1");
-    expect(await visibleNodeIds(app)).not.toContain("services/gateway");
+    expect(await visibleNodeIds(app)).toContain("services/gateway");
   });
 });
 

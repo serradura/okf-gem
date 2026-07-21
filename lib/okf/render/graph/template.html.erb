@@ -199,7 +199,7 @@
  .chip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;font-size:12.5px;
   color:var(--muted);background:var(--panel);border:1px solid var(--line);cursor:pointer;user-select:none;transition:.14s;font-family:inherit}
  .chip:hover{color:var(--ink);border-color:var(--accent)}
- .chip.off{opacity:.38} .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+ .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
  .chip .dot{width:9px;height:9px;border-radius:50%} .chip .c{color:var(--faint);font-variant-numeric:tabular-nums}
  .chip.on .c{color:rgba(255,255,255,.8)}
  .badge{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--ink);
@@ -1114,7 +1114,7 @@
 
    1. `applyGraphFilter()` is the shared sink. The search box, the three chip
       groups in the slide-over, the inspector's focus chips and cluster mode
-      all funnel into it, and it reads `q.graph`, `hiddenTypes`, `activeTags`,
+      all funnel into it, and it reads `q.graph`, `activeTypes`, `activeTags`,
       `activeAreas` and `ftMatch()` together. Touching any one caller can
       change what the other four produce.
    2. `setView()` reaches into nearly every section — it toggles the tool
@@ -1483,14 +1483,21 @@ function deselect(){cy.elements().removeClass('dim hl');try{if(location.hash)his
 cy.on('tap',e=>{if(e.target===cy)deselect();});
 
 /* ── graph filters (slide-over) ── */
-const hiddenTypes=new Set(), activeTags=new Set(), activeAreas=new Set();
+/* Three groups, one grammar: empty means everything, a click narrows, a second
+   click puts it back. Types used to be the odd one out — a `hiddenTypes` set
+   where every type showed until you clicked one *away* — so the same chip
+   component meant "include" under Areas and Tags and "exclude" two rows above,
+   and meant "include" again on the catalog's own type chips one view over. That
+   is a rule a reader has to learn per panel instead of once. Within a group
+   selections union (Service *or* Charter); across groups they intersect. */
+const activeTypes=new Set(), activeTags=new Set(), activeAreas=new Set();
 const searchInput=document.getElementById('search');
 const q={graph:'',catalog:'',files:'',tags:''};
 function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.graph);
  cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir')||n.hasClass('ix'))return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
   const hay=(n.data('title')+' '+t+' '+nt.join(' ')+' '+(descOf[id]||'')).toLowerCase();
   const txt=ids?ids.has(id):(!s||hay.includes(s));
-  const m=txt&&!hiddenTypes.has(t)&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
+  const m=txt&&(activeTypes.size===0||activeTypes.has(t))&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
   n.style('display',m?'element':'none');});
  /* Cluster mode draws an area box around each group's concepts. When a filter
     hides every concept in a group, hide the now-empty box too (and bring it back
@@ -1500,13 +1507,13 @@ function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.gr
  ixVisibility();
  relaxZoom();
  bridgeSync();}
-function fbadge(){const c=hiddenTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
+function fbadge(){const c=activeTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;ctlBadge();syncFacets();}
 /* mirror the active view's tool state onto the ⚙ toggle — when the sheet is
    folded away on mobile, an active filter must still call out from the bar */
 function ctlBadge(){const b=document.getElementById('btn-controls');if(!b)return;
  let c=0;
- if(view==='graph')c=hiddenTypes.size+activeTags.size+activeAreas.size;
+ if(view==='graph')c=activeTypes.size+activeTags.size+activeAreas.size;
  else if(view==='files'){try{c=(fileTypeCombo.get()?1:0)+(fileTagCombo.get()?1:0);}catch(err){}}
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;}
 const ftypes=document.getElementById('ftypes'), ftags=document.getElementById('ftags'), fareas=document.getElementById('fareas');
@@ -1517,8 +1524,8 @@ const dotFor=t=>`<span class="dot" style="background:${color[t]}"></span>`;
 const toggleSet=(s,v)=>{s.has(v)?s.delete(v):s.add(v);};
 /* One renderer for every filter chip group (graph, catalog and tags views):
    paints the items with their current state class and wires the toggle. */
-function chipRow(el,items,attr,stateCls,isOn,onToggle){
- el.innerHTML=items.map(o=>`<span class="chip${isOn(o.v)?' '+stateCls:''}" ${attr}="${esc(o.v)}">${o.dot||''}${esc(o.v)} <span class="c">${o.n}</span></span>`).join('');
+function chipRow(el,items,attr,isOn,onToggle){
+ el.innerHTML=items.map(o=>`<span class="chip${isOn(o.v)?' on':''}" ${attr}="${esc(o.v)}">${o.dot||''}${esc(o.v)} <span class="c">${o.n}</span></span>`).join('');
  el.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>onToggle(ch.getAttribute(attr)));}
 const typeItems=list=>list.map(t=>({v:t,n:(TYPES[t]||[]).length,dot:dotFor(t)}));
 const areaItems=list=>list.map(a=>({v:a,n:areaCount[a]}));
@@ -1528,28 +1535,30 @@ const tagItems=list=>list.map(t=>({v:t,n:(TAGS[t]||[]).length}));
 const fsearch=document.getElementById('filter-search');
 function syncFilterChips(){const qq=fsearch.value.trim().toLowerCase();const match=v=>!qq||v.toLowerCase().includes(qq);
  const after=()=>{syncFilterChips();applyGraphFilter();fbadge();};
- chipRow(ftypes,typeItems(types.filter(match)),'data-t','off',t=>hiddenTypes.has(t),t=>{toggleSet(hiddenTypes,t);after();});
- chipRow(fareas,areaItems(graphAreas.filter(match)),'data-area','on',a=>activeAreas.has(a),a=>{toggleSet(activeAreas,a);after();});
- chipRow(ftags,tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag','on',t=>activeTags.has(t),t=>{toggleSet(activeTags,t);after();});}
+ chipRow(ftypes,typeItems(types.filter(match)),'data-t',t=>activeTypes.has(t),t=>{toggleSet(activeTypes,t);after();});
+ chipRow(fareas,areaItems(graphAreas.filter(match)),'data-area',a=>activeAreas.has(a),a=>{toggleSet(activeAreas,a);after();});
+ chipRow(ftags,tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag',t=>activeTags.has(t),t=>{toggleSet(activeTags,t);after();});}
 fsearch.oninput=syncFilterChips;
 syncFilterChips();
 // Fit the graph to the currently-visible nodes after a view swap settles (two rAFs
 // so the container has resized), reusing the working fitGraph implementation.
 function fitVisible(){requestAnimationFrame(()=>requestAnimationFrame(fitGraph));}
-function focusGraphType(t){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();types.forEach(x=>{if(x!==t)hiddenTypes.add(x);});syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
-function focusGraphArea(a){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();activeAreas.add(a);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
-function focusGraphTag(t){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();activeTags.add(t);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
-function clearGraphFilter(){hiddenTypes.clear();activeTags.clear();activeAreas.clear();syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function focusGraphType(t){setView('graph');clearSets();activeTypes.add(t);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function focusGraphArea(a){setView('graph');clearSets();activeAreas.add(a);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function focusGraphTag(t){setView('graph');clearSets();activeTags.add(t);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+const clearSets=()=>{activeTypes.clear();activeTags.clear();activeAreas.clear();};
+function clearGraphFilter(){clearSets();syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
 /* Is the graph focused on exactly this facet and nothing else? Only then is a
    second click on the chip an undo — with any other filter in play, clearing
    would throw away more than the click put there, so the chip re-focuses
    instead. This is also what lights the chip, so what you see and what the
    next click does are the same question, asked once. */
-/* hiddenTypes.size>0 is not redundant: in a one-type bundle `types.length-1` is
-   zero, so an unfiltered graph would read as focused, light the chip, and spend
-   the first click clearing nothing. */
-function typeFocused(t){return !activeTags.size&&!activeAreas.size&&hiddenTypes.size>0&&hiddenTypes.size===types.length-1&&!hiddenTypes.has(t);}
-function tagFocused(t){return !hiddenTypes.size&&!activeAreas.size&&activeTags.size===1&&activeTags.has(t);}
+/* The two read alike now. They could not while types were subtractive: "focused
+   on t" was `every other type hidden`, which a one-type bundle satisfies with
+   nothing hidden at all — so an unfiltered graph read as focused, lit the chip,
+   and spent the first click clearing nothing. */
+function typeFocused(t){return !activeTags.size&&!activeAreas.size&&activeTypes.size===1&&activeTypes.has(t);}
+function tagFocused(t){return !activeTypes.size&&!activeAreas.size&&activeTags.size===1&&activeTags.has(t);}
 /* The chips are filter indicators, so they repaint wherever the badge does —
    that way a filter cleared from the slide-over un-lights the chip too. */
 function syncFacets(){
@@ -1558,7 +1567,7 @@ function syncFacets(){
 const filtersEl=document.getElementById('filters');
 document.getElementById('btn-filters').onclick=()=>filtersEl.classList.toggle('open');
 document.getElementById('filters-close').onclick=()=>filtersEl.classList.remove('open');
-document.getElementById('filters-reset').onclick=()=>{hiddenTypes.clear();activeTags.clear();activeAreas.clear();syncFilterChips();applyGraphFilter();fbadge();};
+document.getElementById('filters-reset').onclick=()=>{clearSets();syncFilterChips();applyGraphFilter();fbadge();};
 
 /* ── layout: 5 built-ins + extension layouts loaded lazily on first use ── */
 const layoutSel=document.getElementById('layout');
@@ -1877,9 +1886,9 @@ function wireCatChips(el){el.querySelectorAll('.chip').forEach(ch=>ch.onclick=()
 function renderCatFilters(){const qq=(document.getElementById('cat-filter-search').value||'').trim().toLowerCase();
  const match=v=>!qq||v.toLowerCase().includes(qq);
  const after=()=>{renderCatFilters();renderCatalog();};
- chipRow(document.getElementById('cat-ftypes'),typeItems(catByCount.filter(match)),'data-t','on',t=>catActiveTypes.has(t),t=>{toggleSet(catActiveTypes,t);after();});
- chipRow(document.getElementById('cat-fareas'),areaItems(graphAreas.filter(match)),'data-area','on',a=>catActiveAreas.has(a),a=>{toggleSet(catActiveAreas,a);after();});
- chipRow(document.getElementById('cat-ftags'),tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag','on',t=>catActiveTags.has(t),t=>{toggleSet(catActiveTags,t);after();});
+ chipRow(document.getElementById('cat-ftypes'),typeItems(catByCount.filter(match)),'data-t',t=>catActiveTypes.has(t),t=>{toggleSet(catActiveTypes,t);after();});
+ chipRow(document.getElementById('cat-fareas'),areaItems(graphAreas.filter(match)),'data-area',a=>catActiveAreas.has(a),a=>{toggleSet(catActiveAreas,a);after();});
+ chipRow(document.getElementById('cat-ftags'),tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag',t=>catActiveTags.has(t),t=>{toggleSet(catActiveTags,t);after();});
  syncCatChips();}
 function initCatalog(){inited.catalog=true;
  // Only the five most common types get inline chips; everything else — types,
@@ -2136,8 +2145,8 @@ const tagSel=new Set(), tagTypes=new Set(), tagAreas=new Set();
 function tagMatch(id){return (tagTypes.size===0||tagTypes.has(typeOf[id]||'Untyped'))&&(tagAreas.size===0||tagAreas.has(areaOf(id)));}
 function renderTagChips(){
  const after=()=>{renderTagChips();renderCloud();};
- chipRow(document.getElementById('tag-ftypes'),typeItems(types),'data-t','on',t=>tagTypes.has(t),t=>{toggleSet(tagTypes,t);after();});
- chipRow(document.getElementById('tag-fareas'),areaItems(graphAreas),'data-area','on',a=>tagAreas.has(a),a=>{toggleSet(tagAreas,a);after();});
+ chipRow(document.getElementById('tag-ftypes'),typeItems(types),'data-t',t=>tagTypes.has(t),t=>{toggleSet(tagTypes,t);after();});
+ chipRow(document.getElementById('tag-fareas'),areaItems(graphAreas),'data-area',a=>tagAreas.has(a),a=>{toggleSet(tagAreas,a);after();});
  const n=tagTypes.size+tagAreas.size;const b=document.getElementById('tag-filters-btn');
  b.classList.toggle('on-filter',n>0);b.querySelector('.fbadge').textContent=n;}
 function initTags(){inited.tags=true;
