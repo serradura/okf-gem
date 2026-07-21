@@ -1,6 +1,16 @@
 # Update Log
 
 ## 2026-07-21
+* **Update**: [read-views](capabilities/read-views.md) gains `--depth` and the
+  `dirs` subtree count. Both came out of running the CLI against a bundle an
+  order of magnitude bigger than this one, which is the only way the gap shows:
+  every read view had a `--dir` and none had a way to ask for a *level*, so the
+  §6 map — one section per directory — was hundreds of KB with no lever but
+  naming each branch by hand. The subtree count is the half that is easy to miss:
+  depth alone truncates a deep tree into a column of zeroes, because direct
+  counts are honest and an intermediate directory holds nothing of its own. Two
+  numbers per row, the second defined as what `--dir` on that row returns, so the
+  view and the flag cannot drift apart.
 * **Update**: [graph-server](capabilities/graph-server.md) records cluster mode
   nesting. The same rename reaches the page: a cluster is a directory, the boxes
   nest as the directories do to a depth the reader picks, and the filter chips

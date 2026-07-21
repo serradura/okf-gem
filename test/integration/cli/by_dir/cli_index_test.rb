@@ -127,6 +127,51 @@ module ByDir
       assert_equal %w[datasets tables], data["directories"].map { |row| row["dir"] }
     end
 
+    test "--depth truncates the map, counting levels from the bundle root" do
+      # The lever the map needed: on a deep bundle every directory is a section,
+      # and there is no way to ask for the top of the tree without naming each
+      # branch. `--dir root` gives one directory, never one *level*.
+      assert_equal %w[. deeply], map_dirs(okf("index", fixture("edge-cases"), "--depth", "1", "--json"))
+      assert_equal [ "." ], map_dirs(okf("index", fixture("edge-cases"), "--depth", "0", "--json"))
+      assert_equal %w[. deeply deeply/nested deeply/nested/path],
+        map_dirs(okf("index", fixture("edge-cases"), "--depth", "9", "--json"))
+
+      human = okf("index", fixture("edge-cases"), "--depth", "1", "--no-body")
+      assert_equal 0, human.status
+      assert_match(/\(2 directories\)/, human.out)
+      refute_match(%r{deeply/nested}, human.out)
+    end
+
+    test "--dir plus --depth counts the levels from the named directory" do
+      # Relative, so a reader never has to know how deep the dir they named is:
+      # `--dir deeply --depth 1` is "deeply and one level under it" wherever
+      # deeply happens to sit.
+      assert_equal %w[deeply deeply/nested],
+        map_dirs(okf("index", fixture("edge-cases"), "--dir", "deeply", "--depth", "1", "--json"))
+      assert_equal [ "deeply" ],
+        map_dirs(okf("index", fixture("edge-cases"), "--dir", "deeply", "--depth", "0", "--json"))
+      assert_equal [ "." ],
+        map_dirs(okf("index", fixture("edge-cases"), "--dir", "root", "--depth", "3", "--json")),
+        "`.` is a prefix of nothing, so no depth reaches out of the root"
+    end
+
+    test "--depth composes with --no-body and a projection" do
+      data = json(okf("index", fixture("edge-cases"), "--depth", "1", "--fields", "dir,count"))
+
+      assert_equal [ { "dir" => ".", "count" => 3 }, { "dir" => "deeply", "count" => 0 } ], data.fetch("directories")
+      assert_equal 2, data.fetch("count")
+    end
+
+    test "a --depth that is not a whole number is a usage error (exit 2)" do
+      [ "-1", "two", "1.5" ].each do |value|
+        result = okf("index", fixture("edge-cases"), "--depth", value)
+
+        assert_equal 2, result.status, "--depth #{value.inspect}"
+        assert_match(/--depth takes a whole number of levels/, result.err, "--depth #{value.inspect}")
+        assert_empty result.out
+      end
+    end
+
     test "--area still narrows to the named directory exactly, and warns" do
       result = okf("index", fixture("edge-cases"), "--area", "deeply", "--json")
 
@@ -254,6 +299,12 @@ module ByDir
       assert_equal 2, bad_flag.status
       assert_match(/invalid option: --bogus/, bad_flag.err)
       assert_empty bad_flag.out
+    end
+
+    private
+
+    def map_dirs(result)
+      json(result).fetch("directories").map { |row| row["dir"] }
     end
   end
 end

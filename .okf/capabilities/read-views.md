@@ -3,7 +3,7 @@ type: Capability
 title: Read views (index, dirs, catalog, files, types, tags, stats, loose, graph)
 description: The server's browser panels reproduced on the CLI, plus the index map, so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-21T18:00:00Z
+timestamp: 2026-07-21T20:00:00Z
 ---
 
 # Overview
@@ -45,9 +45,12 @@ concept views skip those structural files, so only `index` renders the
 [progressive-disclosure map](../format/okf-format.md) — one entry per directory
 (root first) with its authored index body, a type/tag rollup over the concepts
 living directly there, its child directories, and the concept listing. `--dir`
-narrows to a directory and its subtree, and repeats (`root` names the bundle
-root); `--no-body`
-drops the prose to a skeleton. It is the cheapest orientation when picking up a
+narrows to a directory and its subtree and repeats (`root` names the bundle
+root), `--depth N` bounds how far below the starting point that reaches, and
+`--no-body` drops the prose to a skeleton. The last two are what make the map
+usable at scale: every directory is a section, so a few hundred concepts is a map
+nobody reads whole — `--depth 1 --no-body` orients, `--dir <branch> --depth 1`
+descends, and the pair walks the tree a level at a time instead of paging it. It is the cheapest orientation when picking up a
 bundle, and the only view that exposes *enumeration drift* — a listing entry that
 should exist but is missing, which no grep can find. A directory that holds
 concepts but no `index.md` gets its listing synthesized and tagged `(no index.md)`,
@@ -57,14 +60,31 @@ a prompt to write a real map rather than a defect.
 
 `dirs` answers the question `--dir` is pointed at: every directory the bundle
 has — those holding concepts, those carrying an `index.md`, and the empty
-intermediates that exist only to connect the tree — with the concepts living
-**directly** in each. Direct, never cumulative: the column sums to the bundle's
-concept count, and a directory holding nothing but sub-directories reads `0`
-rather than borrowing its children's weight. One line per directory where
-`index` is the whole map, so it is the cheaper of the two when the question is
-where the mass sits. The root stores `.` and prints `(root)` — the split every
-grouped view keeps, so a table and its `--json` never disagree about which
-spelling is the data.
+intermediates that exist only to connect the tree — with two counts each.
+
+`count` is **direct**, never cumulative: the column sums to the bundle's concept
+count, and a directory holding nothing but sub-directories reads `0` rather than
+borrowing its children's weight. That honesty is also its limit, and why
+`subtree` sits beside it: truncate the listing on a deep bundle and every row at
+the top of the tree reads `0`, which is precisely where "where is the mass?" is
+being asked. `subtree` is defined as *exactly what `--dir` on that row returns*,
+so the number and the flag can never disagree — and the root's subtree is
+therefore its own direct count, since `.` is a prefix of nothing. The human
+table shows the second column only where some directory actually nests; a flat
+bundle would only see the first one repeated.
+
+`--dir` (repeatable) takes a subtree and `--depth N` bounds how far below the
+starting point it reaches — the `--dir` when one is given, the bundle root
+otherwise. **Relative, not absolute**, so `--dir a/b --depth 1` reads "a/b and
+one level under it" without the caller first working out how deep `a/b` is, and
+the two compose the way a reader descending a tree actually moves. `--depth 0`
+is the starting point alone.
+
+One line per directory where `index` is the whole map, so it is the cheaper of
+the two when the question is shape rather than contents — and `dirs --depth 1`
+is the first thing to run on an unfamiliar bundle. The root stores `.` and
+prints `(root)` — the split every grouped view keeps, so a table and its `--json`
+never disagree about which spelling is the data.
 
 # JSON output — compact, and projectable
 

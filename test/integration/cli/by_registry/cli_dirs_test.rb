@@ -37,6 +37,31 @@ module ByRegistry
       end
     end
 
+    test "--dir and --depth narrow a ref-named listing, identity intact" do
+      with_registry("edge-cases") do
+        data = json(okf("dirs", "@edge-cases", "--depth", "1", "--json"))
+
+        assert_equal "edge-cases", data.fetch("slug")
+        assert_equal [ ".", "deeply" ], data.fetch("dirs").map { |row| row["dir"] }
+        assert_equal 1, data.fetch("dirs").last.fetch("subtree"),
+          "the subtree count is read off the whole map, so truncating cannot shrink it"
+
+        scoped = json(okf("dirs", "@edge-cases", "--dir", "deeply", "--depth", "0", "--json"))
+        assert_equal [ "deeply" ], scoped.fetch("dirs").map { |row| row["dir"] }
+        assert_equal "edge-cases", scoped.fetch("slug")
+      end
+    end
+
+    test "a bad --depth through a ref is still a usage error (exit 2)" do
+      with_registry("conformant") do
+        result = okf("dirs", "@conformant", "--depth", "-1")
+
+        assert_equal 2, result.status
+        assert_match(/--depth takes a whole number of levels/, result.err)
+        assert_empty result.out
+      end
+    end
+
     test "an unknown slug is a usage error naming the registry file" do
       with_registry("conformant") do
         result = okf("dirs", "@nope")

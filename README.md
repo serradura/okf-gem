@@ -309,11 +309,11 @@ $ okf render docs > public/index.html   # the same page, static — host it anyw
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/server-dark.png">
-  <img src=".github/server-light.png" alt="The okf graph server: a force-directed knowledge graph with a concept selected, its neighbors highlighted, and the inspector panel showing the concept's type, tags, cross-links, and rendered Markdown body.">
+  <img src=".github/server-light.png" alt="The okf graph server: a force-directed knowledge graph with a concept selected, its neighbors highlighted and the rest of the bundle dimmed, and the inspector panel showing the concept's type, description, tags, and every concept it links to and from, each labelled with its type.">
 </picture>
 
-_The graph server on this repo's own [`.okf`](.okf) bundle, with the
-`capabilities/graph-server` concept selected. Try it live at
+_The graph server on this repo's own [`.okf`](.okf) bundle, with the `overview`
+concept selected. Try it live at
 **[demo.okfgem.com](https://demo.okfgem.com)**._
 
 The page is one template from a phone to a desktop: on small screens the

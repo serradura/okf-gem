@@ -92,6 +92,18 @@ module ByRegistry
       end
     end
 
+    test "--depth truncates a ref-named map, and counts from --dir when given" do
+      with_registry("edge-cases") do
+        top = json(okf("index", "@edge-cases", "--depth", "1", "--json"))
+        assert_equal "edge-cases", top.fetch("slug")
+        assert_equal %w[. deeply], top["directories"].map { |row| row["dir"] }
+
+        branch = json(okf("index", "@edge-cases", "--dir", "deeply", "--depth", "1", "--json"))
+        assert_equal %w[deeply deeply/nested], branch["directories"].map { |row| row["dir"] }
+        assert_equal "edge-cases", branch.fetch("slug")
+      end
+    end
+
     test "--area still narrows to the directory exactly, and warns" do
       with_registry("edge-cases") do
         result = okf("index", "@edge-cases", "--area", "deeply", "--json")

@@ -64,12 +64,16 @@ Lint/AmbiguousBlockAssociation:
 # inherit_mode keeps the cops' own defaults (gemspecs, Rakefiles) instead of
 # replacing them — without it, excluding test/ would silently re-enable the cop
 # on okf.gemspec.
+# The Rakefile is here for the same reason as test/: a `namespace` block is a
+# declarative list of the commands this project offers, so its length tracks how
+# many there are and never how tangled any one of them is.
 Metrics/BlockLength:
   inherit_mode:
     merge:
       - Exclude
   Exclude:
     - "test/**/*"
+    - "Rakefile"
 Metrics/ModuleLength:
   inherit_mode:
     merge:

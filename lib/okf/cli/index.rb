@@ -7,7 +7,13 @@ module OKF
     # child directories, and — for a directory with no index.md — the listing
     # synthesized from the concepts there. The "orient before you read" view. `--dir`
     # is repeatable and selects a directory *and its subtree* (`root` is the bundle
-    # root); `--no-body` drops the prose to a skeleton; advisory, exit 0.
+    # root), `--depth N` bounds how far below the starting point that goes, and
+    # `--no-body` drops the prose to a skeleton; advisory, exit 0.
+    #
+    # The two narrowings are what make the map usable on a deep bundle: every
+    # directory is a section, so a few hundred concepts is a map nobody reads at
+    # once. `--depth 1` is the top of the tree, `--dir X --depth 1` is one branch
+    # of it, and the pair walks down a level at a time.
     class Index < Command
       def self.id
         :index
@@ -19,18 +25,19 @@ module OKF
 
       def self.help_rows
         [
-          [ "index     <dir|@slug> [--json] [--dir D] [--no-body]", "the index map: dirs, their listings and rollups" ]
+          [ "index     <dir|@slug> [--dir D] [--depth N] [--no-body]", "the index map: dirs, their listings and rollups" ]
         ]
       end
 
       def call(argv)
-        options = { json: false, body: true, dirs: nil, areas: nil }
+        options = { json: false, body: true, dirs: nil, areas: nil, depth: nil }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf index <dir|@slug> [--dir PATH] [--no-body] [--json]"
+          o.banner = "Usage: okf index <dir|@slug> [--dir PATH] [--depth N] [--no-body] [--json]"
           json_flags(o, options, "emit the index map as JSON")
           projection_flags(o, options)
           o.on("--dir PATH", "only this directory and the ones below it",
             "(repeatable; `root` for the bundle root)") { |v| (options[:dirs] ||= []) << v }
+          depth_flag(o, options)
           o.on("--area AREA", "deprecated: use --dir (this directory exactly)") do |v|
             (options[:areas] ||= []) << v
             deprecated("--area", "--dir")
@@ -39,6 +46,8 @@ module OKF
           help_flag(o)
         end
         dir = positional_dir(parser, argv) or return 2
+        bad_depth = depth_error(options)
+        return bad_depth if bad_depth
 
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)
@@ -61,21 +70,20 @@ module OKF
 
       private
 
-      # Narrow the map to the named directories — case-insensitive, `root` matching
-      # the bundle root ("."). --dir takes the named directory *and its subtree*, the
-      # one prefix rule the filter flag uses; the deprecated --area keeps its old
-      # exact match, because a deprecated flag that quietly widens is worse than one
-      # that is merely old. Neither passed keeps the whole map.
+      # Narrow the map — case-insensitive, `root` matching the bundle root (".").
+      # --dir takes the named directory *and its subtree* and --depth bounds how
+      # far below the starting point that reaches, both through the shared
+      # select_dirs so the whole CLI answers "which directories?" one way. The
+      # deprecated --area keeps its old exact match beside them, because a
+      # deprecated flag that quietly widens is worse than one that is merely old.
+      # Nothing passed keeps the whole map.
       def select_directories(entries, options)
-        dirs = options[:dirs]
-        areas = options[:areas]
-        return entries if (dirs.nil? || dirs.empty?) && (areas.nil? || areas.empty?)
+        areas = Array(options[:areas]).map { |area| fold_dir(area) }
+        scoped = !options[:dirs].nil? || !options[:depth].nil?
+        return entries if areas.empty? && !scoped
 
-        wanted = Array(areas).map { |area| fold_dir(area) }
-        entries.select do |entry|
-          wanted.include?(fold(entry[:dir])) ||
-            Array(dirs).any? { |path| under_dir?(entry[:dir], path) }
-        end
+        wanted = scoped ? select_dirs(entries.map { |entry| entry[:dir] }, options) : []
+        entries.select { |entry| areas.include?(fold(entry[:dir])) || wanted.include?(entry[:dir]) }
       end
 
       def print_index_map(dir, entries, body)

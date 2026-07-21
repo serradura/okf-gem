@@ -15,6 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exist only to connect it — a dir holding nothing but sub-directories reads
   `0`, not a hidden rollup, so the column sums to the bundle's concept count.
   JSON: `{ bundle, total, count, dirs: [{ dir, count, subdirs }] }`.
+- **`--depth N` on `index` and `dirs`** — how many directory levels below the
+  starting point to keep, where the starting point is the `--dir` when one is
+  given and the bundle root otherwise. Relative rather than absolute, so
+  `--dir a/b --depth 1` reads "a/b and one level under it" without first working
+  out how deep `a/b` is, and the two flags walk a tree a level at a time.
+  `--depth 0` is the starting point alone; anything but a whole number is a
+  usage error (exit 2). This is what makes `index` usable at scale — every
+  directory in it is a section, so a few hundred concepts is a map nobody reads
+  whole. On one such bundle `index --no-body` went 12.5 KB → 1.3 KB at
+  `--depth 1`, and `index --json` 311 KB → 2.6 KB with `--depth 1 --except
+  body,listing`.
+- **`dirs` gains `--dir` (repeatable) and a `subtree` count** per row: the
+  concepts at or below that directory, defined as exactly what `--dir` on the
+  row returns, so the number and the flag can never disagree. Without it a
+  truncated listing is all zeroes at the top of a deep tree — which is where
+  "where is the mass?" is actually asked. The human table shows the column only
+  where some directory nests; `--json` always carries it.
 - **`--dir PATH`** joins the shared filter set on `search`, `catalog`, `files`,
   `types` and `tags`, and `index` gains it as a repeatable selector. One rule:
   a concept matches when its dir *is* the path or sits below it — so `--dir

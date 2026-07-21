@@ -7,11 +7,15 @@ module OKF
     # `dirs` reads the layout they hang off, which is the question `--dir` is
     # answered against.
     #
-    # Counts are *direct*, never cumulative: a dir's number is what lives in it,
+    # `count` is *direct*, never cumulative: a dir's number is what lives in it,
     # so the column sums to the bundle's concept count and an empty intermediate
-    # dir reads as the zero it is. Presentation only — every number comes off
-    # Bundle#directory_index, the same source `okf index` and the server's Index
-    # panel read. Advisory: exit 0.
+    # dir reads as the zero it is. `subtree` is the other half of that honesty —
+    # what `--dir <that row>` would return — because a direct count alone cannot
+    # say where the mass is once `--depth` truncates the listing: on a deep
+    # bundle the top-level rows are then all zeroes.
+    #
+    # Presentation only — every number comes off Bundle#directory_index, the same
+    # source `okf index` and the server's Index panel read. Advisory: exit 0.
     class Dirs < Command
       def self.id
         :dirs
@@ -23,22 +27,27 @@ module OKF
 
       def self.help_rows
         [
-          [ "dirs      <dir|@slug> [--json]", "list the bundle's dirs (clusters) and their concept counts" ]
+          [ "dirs      <dir|@slug> [--json] [--dir D] [--depth N]", "list the bundle's dirs (clusters) and their concept counts" ]
         ]
       end
 
       def call(argv)
-        options = { json: false }
+        options = { json: false, dirs: nil, depth: nil }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf dirs <dir|@slug> [--json]"
+          o.banner = "Usage: okf dirs <dir|@slug> [--dir PATH] [--depth N] [--json]"
           json_flags(o, options, "emit the dirs as JSON")
+          o.on("--dir PATH", "only this directory and the ones below it",
+            "(repeatable; `root` for the bundle root)") { |v| (options[:dirs] ||= []) << v }
+          depth_flag(o, options)
           help_flag(o)
         end
         dir = positional_dir(parser, argv) or return 2
+        bad_depth = depth_error(options)
+        return bad_depth if bad_depth
 
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)
-        rows = folder.directory_index.map { |entry| { "dir" => entry[:dir], "count" => entry[:count], "subdirs" => entry[:subdirs] } }
+        rows = select_rows(folder.directory_index, options)
         return emit_list_json(dir, "dirs", rows, options, "total" => total(rows)) if options[:json]
 
         print_dirs(dir, rows)
@@ -46,6 +55,30 @@ module OKF
       end
 
       private
+
+      # The subtree counts come off the *whole* map, before any narrowing — a
+      # truncated view still has to report the real weight hanging below a row,
+      # which is the only reason the column exists.
+      def select_rows(entries, options)
+        subtree = subtree_counts(entries)
+        wanted = select_dirs(entries.map { |entry| entry[:dir] }, options)
+        entries.select { |entry| wanted.include?(entry[:dir]) }.map do |entry|
+          { "dir" => entry[:dir], "count" => entry[:count],
+            "subtree" => subtree[entry[:dir]], "subdirs" => entry[:subdirs] }
+        end
+      end
+
+      # Per dir, the concepts at or below it — defined as exactly what `--dir` on
+      # that row selects, so the number on the row and the flag can never
+      # disagree. Which is also why the root's subtree is its own direct count:
+      # `.` is a prefix of nothing, the same rule `--dir .` is built on.
+      def subtree_counts(entries)
+        entries.each_with_object({}) do |entry, out|
+          out[entry[:dir]] = entries.reduce(0) do |sum, other|
+            under_dir?(other[:dir], entry[:dir]) ? sum + other[:count] : sum
+          end
+        end
+      end
 
       def total(rows)
         rows.map { |row| row["count"] }.reduce(0, :+)
@@ -58,10 +91,17 @@ module OKF
         @out.puts "Dirs — #{bundle_label(dir)}"
         @out.puts
         labels = rows.map { |row| dir_label(row["dir"]) }
+        # The second column earns its place only where a dir actually nests. On a
+        # flat bundle it would repeat the first one down the page.
+        nested = rows.any? { |row| row["subtree"] != row["count"] }
         unless rows.empty?
           width = [ 3, *labels.map(&:length) ].max
-          @out.puts "  #{"Dir".ljust(width)}  Concepts"
-          rows.each_with_index { |row, i| @out.puts "  #{labels[i].ljust(width)}  #{row["count"].to_s.rjust(8)}" }
+          @out.puts "  #{"Dir".ljust(width)}  Concepts#{"   Subtree" if nested}"
+          rows.each_with_index do |row, i|
+            line = "  #{labels[i].ljust(width)}  #{row["count"].to_s.rjust(8)}"
+            line += "   #{row["subtree"].to_s.rjust(7)}" if nested
+            @out.puts line
+          end
           @out.puts
         end
         @out.puts "  #{rows.size} #{pluralize(rows.size, "dir")} · #{total(rows)} #{pluralize(total(rows), "concept")}"

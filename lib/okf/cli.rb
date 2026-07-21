@@ -42,7 +42,7 @@ module OKF
       "concepts" => %w[id title type description tags timestamp status backlog_ref dir area links_out links_in],
       "files" => %w[path id dir type title description],
       "directories" => %w[dir index_path present synthesized count types tags subdirs body listing],
-      "dirs" => %w[dir count subdirs],
+      "dirs" => %w[dir count subtree subdirs],
       "bundles" => %w[slug title dir mount default missing]
     }.freeze
 

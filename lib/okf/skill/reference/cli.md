@@ -275,7 +275,19 @@ enumeration drift a grep can't (you can't grep for a listing entry that is *miss
 
 `--dir PATH` narrows to a directory **and everything below it**, and is
 **repeatable** — `--dir model --dir format` shows both; `root` (or `.`) names the
-bundle root. `--no-body` drops the prose to a
+bundle root. `--depth N` bounds how far below the starting point the map reaches
+(the `--dir` when one is given, else the bundle root), counted **relatively**:
+`--depth 1` is the top of the tree, `--dir X --depth 1` is one branch of it, and
+the pair walks down a level at a time.
+
+**On a bundle of any size the map is unreadable whole** — every directory is a
+section — so reach for the two together rather than paging it: `--depth 1
+--no-body` is the orientation, `--dir <branch> --depth 1` is the next step down,
+and `--except body,listing` on top of either is the lean JSON skeleton. Full
+`index` output on a few hundred concepts runs to hundreds of KB; the same map at
+`--depth 1` is a couple of KB.
+
+`--no-body` drops the prose to a
 skeleton (headers, rollups, child pointers). For a directory that has concepts but
 **no `index.md`**, the listing is **synthesized** from the concepts' descriptions
 and tagged `(no index.md)` — §6 explicitly permits synthesizing a map on the fly.
@@ -291,16 +303,34 @@ description, type, tags }] }] }`.
 `okf dirs <dir>` lists every directory the bundle has — the ones holding
 concepts, the ones carrying an `index.md`, and the empty intermediates that only
 exist to connect the tree — with the number of concepts living **directly** in
-each. A cluster *is* a directory here, so this is the view that tells you what
-`--dir` can be pointed at and how much sits behind each choice. The count column
-sums to the bundle's concept total; a dir holding only sub-directories reads `0`,
-which is the honest answer rather than a hidden rollup.
+each and the number in its **subtree**. A cluster *is* a directory here, so this
+is the view that tells you what `--dir` can be pointed at and how much sits
+behind each choice.
+
+Two numbers, because one cannot answer the question. `count` is direct, so the
+column sums to the bundle's concept total and a dir holding only sub-directories
+reads `0` rather than a hidden rollup. `subtree` is defined as *exactly what
+`--dir <that row>` returns*, so the row and the flag can never disagree — which
+is also why the root's subtree is its own direct count (`.` is a prefix of
+nothing). Without it a truncated listing is all zeroes at the top of a deep tree,
+which is where you most need to know where the mass is. The human table shows the
+second column only where some dir actually nests.
+
+`--dir PATH` (repeatable) narrows to a directory and its subtree; `--depth N`
+keeps only N levels below the starting point — the `--dir` when one is given,
+the bundle root otherwise. Relative, not absolute, so `--dir a/b --depth 1`
+reads "a/b and one level under it" without your first working out how deep `a/b`
+is. `--depth 0` is the starting point alone. A `--depth` that is not a whole
+number is a usage error (exit 2).
+
+**This is the first command to run on a bundle you do not know.** `okf dirs <dir>
+--depth 1` is a few hundred bytes and tells you the shape and where the weight
+sits; you then descend with `--dir`, one level at a time.
 
 The root prints `(root)` and stores `.` — the split every grouped view keeps, so
 a table and its `--json` never disagree about which spelling is the data. JSON:
-`{ bundle, total, count, dirs: [{ dir, count, subdirs }] }`, root first. Reach
-for it before `index` when the question is *shape*, not contents: `dirs` is one
-line per directory, `index` is the whole map.
+`{ bundle, total, count, dirs: [{ dir, count, subtree, subdirs }] }`, root first
+(`total` sums the direct counts of the rows actually shown).
 
 ## catalog / files / tags / types / stats — the server views, as text
 

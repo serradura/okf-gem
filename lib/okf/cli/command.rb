@@ -225,6 +225,51 @@ module OKF
         folded == "root" ? "." : folded
       end
 
+      # How many path segments deep a directory sits. The root is 0.
+      def dir_depth(dir)
+        dir == "." ? 0 : dir.count("/") + 1
+      end
+
+      # --depth N: how many directory levels below the *starting point* to keep,
+      # where the starting point is each --dir when one is given and the bundle
+      # root otherwise. Relative rather than absolute on purpose: `--dir a/b
+      # --depth 1` reads "a/b and one level under it" without the caller first
+      # working out how deep a/b already is — and the two flags then compose the
+      # way a reader descending a tree actually moves.
+      def depth_flag(parser, options)
+        parser.on("--depth N", "keep only this many directory levels below the",
+          "starting point (--dir when given, else the bundle root)") { |v| options[:depth] = v }
+      end
+
+      # Checked here rather than with OptionParser's Integer coercion, which
+      # accepts "-1" and "0x2" and reports in its own words. Returns the exit
+      # status to hand back, or nil when the value is fine.
+      def depth_error(options)
+        raw = options[:depth]
+        return nil if raw.nil? || raw.to_s =~ /\A\d+\z/
+
+        usage_error("--depth takes a whole number of levels (got #{raw.inspect})")
+      end
+
+      # The directories a --dir/--depth pair selects, out of the map's own
+      # ordered list. Neither flag given keeps everything — these narrow a view,
+      # they do not define one.
+      def select_dirs(dirs, options)
+        bases = Array(options[:dirs]).map { |path| fold_dir(path) }
+        depth = options[:depth]&.to_i
+        return dirs if bases.empty? && depth.nil?
+        # No --dir means the whole bundle is the starting point, which is *not*
+        # `--dir .`: that one selects the root alone, by the same prefix rule
+        # everything else here uses.
+        return dirs.select { |dir| dir_depth(dir) <= depth } if bases.empty?
+
+        dirs.select do |dir|
+          bases.any? do |base|
+            under_dir?(dir, base) && (depth.nil? || dir_depth(dir) - dir_depth(base) <= depth)
+          end
+        end
+      end
+
       # A deprecated spelling still does what it always did — never silently
       # something else — and says so once per run, on stderr so a --json
       # consumer's stdout stays a clean machine substrate.
