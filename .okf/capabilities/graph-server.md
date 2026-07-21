@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-21T16:00:00Z
+timestamp: 2026-07-21T19:00:00Z
 ---
 
 # Overview
@@ -291,9 +291,23 @@ so a parent map survives on a surviving child.
 The inspector and files panes are drag-resizable (persisted; double-click resets),
 and the inspector boots hidden on every screen until the first node tap.
 
-A filter or search that empties an area hides that area's **box** too, rather
+**Cluster mode nests.** A cluster is a directory of concepts, and the boxes nest
+as the directories do, to a depth the reader picks beside the layout select
+(`1` by default — exactly the flat one-box-per-first-segment view the mode always
+drew; a flat bundle is offered no control at all, since there is nothing to
+choose). At depth *N* every directory of depth ≤ N gets a box, intermediates that
+hold no concepts of their own included, and a concept attaches to its own
+directory's box truncated to N. The root box is the exception that stays: it
+holds direct-root concepts and never nests another. Box ids carry the directory
+verbatim (`box::platform/services`, `box::.`), so a tap resolves to a map with no
+label to unmangle — and `box::` rather than `dir::`, which file-tree mode's folder
+nodes already own.
+
+A filter or search that empties a directory hides its **box** too, rather
 than stranding a labelled empty rectangle: the filter recomputes each compound
-parent from its surviving children, and clustering re-applies the active filter
+parent from its surviving **leaf** descendants — children alone would read an
+intermediate box holding only sub-boxes as empty and take the whole branch below
+it off the canvas — and clustering re-applies the active filter
 before the layout tiles the boxes, so the two orders — filter-then-cluster and
 cluster-then-filter — agree. Selection clears with `Esc` as well as a tap on
 empty canvas, because a dense graph leaves almost no empty canvas to hit.
@@ -462,9 +476,10 @@ index layer's root map and the inspector's directory map all carry the name the
 header already shows — `--title` included, so a named server labels the root with
 that name. The row is set as a name rather than a path segment: no uppercasing,
 and truncated rather than wrapped, since a title has no length limit. What keeps
-its own `(root)` is `areaOf`, the **area** vocabulary shared with `okf stats --by
-area` and `tags --by area` — a UI label and a CLI-facing vocabulary that happened
-to read alike, and only one of them was being renamed.
+its own `(root)` is the **dir** vocabulary the page shares with `okf dirs` and
+`okf stats`: `.` is the stored value everywhere — chip values, box ids, JSON —
+and `(root)` is only ever the label a human reads. A UI name and a data spelling
+that happened to read alike, and only one of them was being renamed.
 
 The tree is a real explorer — directories *nest*, one
 row per path segment indented by depth, so `core/configurations` sits inside
@@ -480,7 +495,7 @@ click with a lone `(root)` row and hides the top-level folders — the one thing
 reader wants left standing after collapsing everything. Unfolding clears the
 whole set, root included, so a root closed by hand is still reversible from
 there.
-Folder nodes in file-tree mode and area boxes in cluster mode are
+Folder nodes in file-tree mode and directory boxes in cluster mode are
 clickable: the inspector opens that directory's map, the authored `index.md` or a
 synthesized listing badged as such when none exists; **Open in graph** — one label on
 every file, because the question is the same whatever is open — shows a map *in*
@@ -561,4 +576,4 @@ does not cover.
 [1] [lib/okf/server/app.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/app.rb) — the Rack app and its routes; `GET /` renders the page through [`OKF::Render::Graph`](render.md).
 [2] [lib/okf/cli/server.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/server.rb) — the `serve` boot seam that wraps every served app in `Rack::Deflater` (the static counterpart, [`render`](render.md), is its own capability).
 [3] [lib/okf/server/hub.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/hub.rb) — the multi-bundle dispatcher: the `/b/<slug>/` mounts, the default redirect, and the hub's own index, empty-state, and 404 pages.
-[4] [lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/lib/okf/render/graph/template.html.erb) — the page itself: the two MiniSearch indexes behind the search box, the compound-parent visibility pass that keeps emptied area boxes off the canvas, and the file tree's fold controls.
+[4] [lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/lib/okf/render/graph/template.html.erb) — the page itself: the two MiniSearch indexes behind the search box, the compound-parent visibility pass that keeps emptied directory boxes off the canvas, and the file tree's fold controls.

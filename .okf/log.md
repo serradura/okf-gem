@@ -1,6 +1,18 @@
 # Update Log
 
 ## 2026-07-21
+* **Update**: [graph-server](capabilities/graph-server.md) records cluster mode
+  nesting. The same rename reaches the page: a cluster is a directory, the boxes
+  nest as the directories do to a depth the reader picks, and the filter chips
+  list every dir rather than first segments. Two bugs came out of it, both of the
+  shape this bundle keeps noting — a rule written for one level, exercised only
+  at one level. The empty-box pass read a compound's *children*, so an
+  intermediate box holding nothing but sub-boxes always read empty and took its
+  whole branch off the canvas; and fcose, handed a nested graph whose nodes went
+  `display:none` mid-animation, threw on a label it could no longer measure. The
+  second one is the more interesting: it was only reachable by typing during the
+  tiling, which is exactly the *other order* the phantom-box bug taught this
+  bundle to look for, one release ago, in this same function.
 * **Update**: [read-views](capabilities/read-views.md), [search](capabilities/search.md)
   and [graph](model/graph.md) now say `--dir` where they said `--area`, and
   read-views gains the `dirs` verb. The rename is not cosmetic: "area" appears

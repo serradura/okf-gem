@@ -366,10 +366,13 @@ in a body render as diagrams, and a click (or tap) opens the diagram full
 screen with drag-to-pan and wheel/pinch zoom. Concepts render as nodes
 coloured by `type` and sized by degree, links as edges, with a detail panel
 (rendered markdown, "Links to" / "Linked from" backlinks), layout switching,
-type/area/tag filters on every view, and search. The authored layer is in the
+type/dir/tag filters on every view (the dir chips take a directory *and* its
+subtree, the same rule `--dir` uses), and search. Cluster mode groups the
+concepts into one box per directory, nested to a depth picked beside the layout
+select — depth 1 is the flat view, and a flat bundle is offered no control. The authored layer is in the
 UI too: the Files view carries **Files | Indexes** tabs — the Indexes tab
 lists the log first (the chronological index), then every `index.md` — and
-folder nodes in file-tree mode and area boxes in cluster mode open a
+folder nodes in file-tree mode and directory boxes in cluster mode open a
 directory's §6 map in the inspector (authored, or synthesized when none
 exists). Links to an `index.md`, `log.md`, or bare directory navigate instead
 of dead-ending, and the log is fetched fresh on every read, so a

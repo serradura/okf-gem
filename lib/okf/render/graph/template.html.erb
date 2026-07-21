@@ -154,6 +154,12 @@
  .sb-act kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--faint);
   border:1px solid var(--line);border-radius:4px;padding:1px 4px;background:var(--panel);line-height:1.3}
  .selwrap{position:relative;display:inline-flex;flex:none}
+ /* `display:inline-flex` above outranks the [hidden] attribute's own
+    display:none, so the depth select would sit in the bar unclustered. */
+ .selwrap[hidden]{display:none}
+ /* the depth control is a single digit — sized to its content, not to the
+    layout select beside it */
+ #cluster-depth{padding-right:26px;min-width:0}
  .selwrap::after{content:"";position:absolute;right:12px;top:50%;width:7px;height:7px;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
  select.field{appearance:none;-webkit-appearance:none;padding-right:30px;cursor:pointer}
  select.field:disabled{opacity:.45;cursor:not-allowed}
@@ -891,8 +897,9 @@
     </select></span>
     <button class="btn" id="btn-fit" type="button" aria-label="Fit graph to screen" title="Fit graph to screen">
      <svg viewBox="0 0 24 24"><path d="M3 9V6a2 2 0 0 1 2-2h3M21 9V6a2 2 0 0 0-2-2h-3M3 15v3a2 2 0 0 0 2 2h3M21 15v3a2 2 0 0 0-2 2h-3"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/></svg></button>
-    <button class="btn" id="btn-cluster" type="button" aria-label="Cluster by area" aria-pressed="false" title="Cluster nodes by area">
+    <button class="btn" id="btn-cluster" type="button" aria-label="Cluster by directory" aria-pressed="false" title="Cluster by directory — each cluster is a directory of concepts">
      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" opacity=".45"/><circle cx="9" cy="9" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1.9" fill="currentColor" stroke="none"/><circle cx="11" cy="15" r="1.9" fill="currentColor" stroke="none"/></svg></button>
+    <span class="selwrap" id="cluster-depth-wrap" hidden><select id="cluster-depth" class="field" aria-label="Cluster depth" title="How many directory levels to nest"></select></span>
     <button class="btn" id="btn-tree" type="button" aria-label="File tree" aria-pressed="false" title="File tree: folders and files, parent-to-child edges only">
      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M12 12H6v4M12 12h6v4"/></svg></button>
     <button class="btn" id="btn-ix" type="button" aria-label="Show indexes" aria-pressed="false" title="Draw the index.md map layer alongside the concepts">
@@ -916,9 +923,9 @@
         <button class="btn" id="filters-close" type="button" aria-label="Close filters" style="width:28px;height:28px"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
        <div class="fbody">
         <label class="search" style="max-width:none;margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-         <input id="filter-search" class="field" placeholder="find a type, area, tag…" autocomplete="off" aria-label="Find a filter"></label>
+         <input id="filter-search" class="field" placeholder="find a type, dir, tag…" autocomplete="off" aria-label="Find a filter"></label>
         <div class="fgroup"><h4>Types</h4><div class="fchips" id="ftypes"></div></div>
-        <div class="fgroup"><h4>Areas</h4><div class="fchips" id="fareas"></div></div>
+        <div class="fgroup"><h4>Dirs</h4><div class="fchips" id="fdirs"></div></div>
         <div class="fgroup"><h4>Tags</h4><div class="fchips" id="ftags"></div></div>
        </div>
       </aside>
@@ -965,7 +972,7 @@
       <label class="search" style="max-width:none;margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
        <input id="cat-filter-search" class="field" placeholder="find a type, area, tag…" autocomplete="off"></label>
       <div class="fgroup"><h4>Types</h4><div class="fchips" id="cat-ftypes"></div></div>
-      <div class="fgroup"><h4>Areas</h4><div class="fchips" id="cat-fareas"></div></div>
+      <div class="fgroup"><h4>Dirs</h4><div class="fchips" id="cat-fdirs"></div></div>
       <div class="fgroup"><h4>Tags</h4><div class="fchips" id="cat-ftags"></div></div>
      </div>
     </aside>
@@ -1008,7 +1015,7 @@
       <button class="btn" id="tag-filters-close" type="button" aria-label="Close filters" style="width:28px;height:28px"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
      <div class="fbody">
       <div class="fgroup"><h4>Types</h4><div class="fchips" id="tag-ftypes"></div></div>
-      <div class="fgroup"><h4>Areas</h4><div class="fchips" id="tag-fareas"></div></div>
+      <div class="fgroup"><h4>Dirs</h4><div class="fchips" id="tag-fdirs"></div></div>
      </div>
     </aside>
    </section>
@@ -1020,7 +1027,7 @@
      <div class="stat-grid" id="stat-grid"></div>
      <div class="two">
       <div><div class="shead"><h2>By type</h2></div><div class="bars" id="bars-type"></div></div>
-      <div><div class="shead"><h2>By area</h2></div><div class="bars" id="bars-area"></div></div>
+      <div><div class="shead"><h2>By dir</h2></div><div class="bars" id="bars-dir"></div></div>
      </div>
     </div>
    </section>
@@ -1098,7 +1105,7 @@
      Mermaid (lazy)                fullscreen diagram viewer
      inspector                     drag-resize splitters
      graph filters                 layout
-     cluster by area               file-tree mode
+     cluster by directory          file-tree mode
      the authored layer            fit to screen
      view switching                full-text search
      catalog                       files
@@ -1115,7 +1122,7 @@
    1. `applyGraphFilter()` is the shared sink. The search box, the three chip
       groups in the slide-over, the inspector's focus chips and cluster mode
       all funnel into it, and it reads `q.graph`, `activeTypes`, `activeTags`,
-      `activeAreas` and `ftMatch()` together. Touching any one caller can
+      `activeDirs` and `ftMatch()` together. Touching any one caller can
       change what the other four produce.
    2. `setView()` reaches into nearly every section — it toggles the tool
       groups, seeds a view on first entry via `inited`, and has to
@@ -1125,7 +1132,8 @@
       filled by one section and read by three or four. A stale one is
       invisible until an unrelated view renders wrong.
 
-   The mode flags (`clustered`, `treeMode`, `ixNodes`, `ixOnly`, `view`) are
+   The mode flags (`clustered` + `clusterDepth`, `treeMode`, `ixNodes`,
+   `ixOnly`, `view`) are
    read across boundaries too: each rebuilds the graph's elements and must
    undo itself exactly, or its nodes leak into the plain view.
 
@@ -1187,7 +1195,22 @@ const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt
 const cvar=n=>getComputedStyle(root).getPropertyValue(n).trim();
 const isDark=()=>root.getAttribute('data-theme')==='dark';
 const reduce=()=>matchMedia('(prefers-reduced-motion:reduce)').matches;
-const areaOf=id=>id.includes('/')?id.split('/')[0]:'(root)';
+/* A concept's directory — the whole path, "." at the root — mirroring the
+   `dir` every catalog row carries. This used to be `areaOf`, the *first path
+   segment* only: a word the OKF spec never uses, and a projection that made
+   nested clustering impossible because everything below level one was already
+   thrown away before the boxes were drawn. */
+const dirOf=id=>{const i=id.lastIndexOf('/');return i<0?'.':id.slice(0,i);};
+const dirDepth=d=>d==='.'?0:d.split('/').length;
+const dirTrunc=(d,n)=>d==='.'?'.':d.split('/').slice(0,n).join('/');
+const dirParent=d=>{const i=d.lastIndexOf('/');return i<0?null:d.slice(0,i);};
+/* The one rule `okf --dir` uses, verbatim: a directory names itself and
+   everything beneath it. "." needs no special case — nothing starts with "./",
+   so the root selects only what lives directly in it. */
+const underDir=(d,path)=>d===path||d.indexOf(path+'/')===0;
+/* `.` is the data; `(root)` is what a human reads. A box caption is the last
+   segment — a full path on every nested box would bury the picture in text. */
+const dirLabel=d=>d==='.'?'(root)':d.split('/').pop()+'/';
 
 /* ── Cytoscape ── */
 function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('--edge');
@@ -1474,7 +1497,9 @@ function select(id){const ele=cy.getElementById(id);if(!ele.length)return;const 
 cy.on('tap','node',e=>{const t=e.target;
  if(t.hasClass('dir')){showDir(t.id().slice(DIR.length)||'.');return focusNode(t,true);}
  if(t.hasClass('ix')){showDir(t.data('dir')||'.');return focusNode(t,true);}
- if(t.isParent()){const a=t.id().indexOf('area::')===0?t.id().slice(6):null;return showDir(a&&a!=='(root)'?a:'.');}
+ /* A box's id carries the directory verbatim — "." included — so the tap needs
+    no unmangling of a display label back into a path. */
+ if(t.isParent()){const id=t.id();return showDir(id.indexOf('box::')===0?id.slice(5):'.');}
  select(t.id());});
 /* Clear the focus: drop the dim/highlight and let the hash forget the node, so a
    reload does not reselect it. Tapping empty canvas does this — but a dense graph
@@ -1486,57 +1511,76 @@ cy.on('tap',e=>{if(e.target===cy)deselect();});
 /* Three groups, one grammar: empty means everything, a click narrows, a second
    click puts it back. Types used to be the odd one out — a `hiddenTypes` set
    where every type showed until you clicked one *away* — so the same chip
-   component meant "include" under Areas and Tags and "exclude" two rows above,
+   component meant "include" under Dirs and Tags and "exclude" two rows above,
    and meant "include" again on the catalog's own type chips one view over. That
    is a rule a reader has to learn per panel instead of once. Within a group
    selections union (Service *or* Charter); across groups they intersect. */
-const activeTypes=new Set(), activeTags=new Set(), activeAreas=new Set();
+const activeTypes=new Set(), activeTags=new Set(), activeDirs=new Set();
 const searchInput=document.getElementById('search');
 const q={graph:'',catalog:'',files:'',tags:''};
 function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.graph);
  cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir')||n.hasClass('ix'))return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
   const hay=(n.data('title')+' '+t+' '+nt.join(' ')+' '+(descOf[id]||'')).toLowerCase();
   const txt=ids?ids.has(id):(!s||hay.includes(s));
-  const m=txt&&(activeTypes.size===0||activeTypes.has(t))&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
+  const m=txt&&(activeTypes.size===0||activeTypes.has(t))&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeDirs.size===0||[...activeDirs].some(d=>underDir(dirOf(id),d)));
   n.style('display',m?'element':'none');});
- /* Cluster mode draws an area box around each group's concepts. When a filter
-    hides every concept in a group, hide the now-empty box too (and bring it back
+ /* Cluster mode draws a box around each directory's concepts. When a filter
+    hides every concept in one, hide the now-empty box too (and bring it back
     when one survives) — the same rule fitBox already uses to leave stale boxes
-    out of the fit, now applied to what is drawn. */
- cy.nodes(':parent').forEach(p=>p.style('display',p.children().some(c=>c.style('display')!=='none')?'element':'none'));
+    out of the fit, now applied to what is drawn.
+    Leaf descendants, not children: a box nests other boxes now, and an
+    intermediate directory holding nothing directly has no children but its
+    sub-boxes — `children()` read it as empty and took the whole branch beneath
+    it off the canvas. One pass still does it, because the predicate is what
+    knows about depth, not the loop. */
+ cy.nodes(':parent').forEach(p=>p.style('display',p.descendants().some(c=>!c.isParent()&&c.style('display')!=='none')?'element':'none'));
  ixVisibility();
  relaxZoom();
  bridgeSync();}
-function fbadge(){const c=activeTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
+function fbadge(){const c=activeTypes.size+activeTags.size+activeDirs.size;const b=document.getElementById('btn-filters');
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;ctlBadge();syncFacets();}
 /* mirror the active view's tool state onto the ⚙ toggle — when the sheet is
    folded away on mobile, an active filter must still call out from the bar */
 function ctlBadge(){const b=document.getElementById('btn-controls');if(!b)return;
  let c=0;
- if(view==='graph')c=activeTypes.size+activeTags.size+activeAreas.size;
+ if(view==='graph')c=activeTypes.size+activeTags.size+activeDirs.size;
  else if(view==='files'){try{c=(fileTypeCombo.get()?1:0)+(fileTagCombo.get()?1:0);}catch(err){}}
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;}
-const ftypes=document.getElementById('ftypes'), ftags=document.getElementById('ftags'), fareas=document.getElementById('fareas');
-const graphAreas=[...new Set(NODES.map(n=>areaOf(n.id)))].sort();
-const areaCount={};NODES.forEach(n=>{const a=areaOf(n.id);areaCount[a]=(areaCount[a]||0)+1;});
+const ftypes=document.getElementById('ftypes'), ftags=document.getElementById('ftags'), fdirs=document.getElementById('fdirs');
+/* Every directory a concept lives in, plus each of their ancestors — so a chip
+   exists for an intermediate directory that holds nothing itself but whose
+   subtree does. The root is listed only when concepts actually sit there. */
+const graphDirs=(()=>{const s=new Set();
+ NODES.forEach(n=>{let d=dirOf(n.id);if(d==='.'){s.add('.');return;}while(d){s.add(d);d=dirParent(d);}});
+ return [...s].sort((a,b)=>a==='.'?-1:b==='.'?1:(a<b?-1:a>b?1:0));})();
+/* Counted by the same prefix rule the chip filters with, so the number on a
+   chip is exactly how many concepts clicking it leaves — the root's count is
+   its own, since "." is a prefix of nothing. */
+const dirCount={};graphDirs.forEach(d=>{dirCount[d]=NODES.filter(n=>underDir(dirOf(n.id),d)).length;});
 const tagsByCount=Object.entries(TAGS).sort((a,b)=>b[1].length-a[1].length).map(e=>e[0]);
 const dotFor=t=>`<span class="dot" style="background:${color[t]}"></span>`;
 const toggleSet=(s,v)=>{s.has(v)?s.delete(v):s.add(v);};
 /* One renderer for every filter chip group (graph, catalog and tags views):
    paints the items with their current state class and wires the toggle. */
+/* `label` is separate from `v` for one reason: the root directory's value is
+   "." and its label "(root)", and a chip that filtered on what it displayed
+   would be filtering on a spelling the data never uses. */
 function chipRow(el,items,attr,isOn,onToggle){
- el.innerHTML=items.map(o=>`<span class="chip${isOn(o.v)?' on':''}" ${attr}="${esc(o.v)}">${o.dot||''}${esc(o.v)} <span class="c">${o.n}</span></span>`).join('');
+ el.innerHTML=items.map(o=>`<span class="chip${isOn(o.v)?' on':''}" ${attr}="${esc(o.v)}">${o.dot||''}${esc(o.label==null?o.v:o.label)} <span class="c">${o.n}</span></span>`).join('');
  el.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>onToggle(ch.getAttribute(attr)));}
 const typeItems=list=>list.map(t=>({v:t,n:(TYPES[t]||[]).length,dot:dotFor(t)}));
-const areaItems=list=>list.map(a=>({v:a,n:areaCount[a]}));
+const dirItems=list=>list.map(d=>({v:d,label:d==='.'?'(root)':d,n:dirCount[d]}));
 const tagItems=list=>list.map(t=>({v:t,n:(TAGS[t]||[]).length}));
 /* The find box narrows the chips themselves; while it is empty, tags cap at the
    top 40 so a busy bundle doesn't flood the panel — searching reaches ALL tags. */
 const fsearch=document.getElementById('filter-search');
+/* The finder matches what the reader sees, so typing "root" reaches the chip
+   labelled (root) even though its value is ".". */
+const dirMatch=qq=>d=>!qq||(d==='.'?'(root)':d).toLowerCase().includes(qq);
 function syncFilterChips(){const qq=fsearch.value.trim().toLowerCase();const match=v=>!qq||v.toLowerCase().includes(qq);
  const after=()=>{syncFilterChips();applyGraphFilter();fbadge();};
  chipRow(ftypes,typeItems(types.filter(match)),'data-t',t=>activeTypes.has(t),t=>{toggleSet(activeTypes,t);after();});
- chipRow(fareas,areaItems(graphAreas.filter(match)),'data-area',a=>activeAreas.has(a),a=>{toggleSet(activeAreas,a);after();});
+ chipRow(fdirs,dirItems(graphDirs.filter(dirMatch(qq))),'data-dir',d=>activeDirs.has(d),d=>{toggleSet(activeDirs,d);after();});
  chipRow(ftags,tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag',t=>activeTags.has(t),t=>{toggleSet(activeTags,t);after();});}
 fsearch.oninput=syncFilterChips;
 syncFilterChips();
@@ -1544,9 +1588,9 @@ syncFilterChips();
 // so the container has resized), reusing the working fitGraph implementation.
 function fitVisible(){requestAnimationFrame(()=>requestAnimationFrame(fitGraph));}
 function focusGraphType(t){setView('graph');clearSets();activeTypes.add(t);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
-function focusGraphArea(a){setView('graph');clearSets();activeAreas.add(a);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function focusGraphDir(d){setView('graph');clearSets();activeDirs.add(d);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
 function focusGraphTag(t){setView('graph');clearSets();activeTags.add(t);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
-const clearSets=()=>{activeTypes.clear();activeTags.clear();activeAreas.clear();};
+const clearSets=()=>{activeTypes.clear();activeTags.clear();activeDirs.clear();};
 function clearGraphFilter(){clearSets();syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
 /* Is the graph focused on exactly this facet and nothing else? Only then is a
    second click on the chip an undo — with any other filter in play, clearing
@@ -1557,8 +1601,8 @@ function clearGraphFilter(){clearSets();syncFilterChips();applyGraphFilter();fba
    on t" was `every other type hidden`, which a one-type bundle satisfies with
    nothing hidden at all — so an unfiltered graph read as focused, lit the chip,
    and spent the first click clearing nothing. */
-function typeFocused(t){return !activeTags.size&&!activeAreas.size&&activeTypes.size===1&&activeTypes.has(t);}
-function tagFocused(t){return !activeTypes.size&&!activeAreas.size&&activeTags.size===1&&activeTags.has(t);}
+function typeFocused(t){return !activeTags.size&&!activeDirs.size&&activeTypes.size===1&&activeTypes.has(t);}
+function tagFocused(t){return !activeTypes.size&&!activeDirs.size&&activeTags.size===1&&activeTags.has(t);}
 /* The chips are filter indicators, so they repaint wherever the badge does —
    that way a filter cleared from the slide-over un-lights the chip too. */
 function syncFacets(){
@@ -1600,8 +1644,42 @@ async function runLayout(name){if(await ensureLayout(name))cy.layout(layoutOpts(
 layoutSel.onchange=e=>{if(clustered)return;runLayout(e.target.value);};
 layoutSel.value='<%= @layout %>';
 
-/* ── cluster by area (compound parent nodes) ── */
-let clustered=false;const btnCluster=document.getElementById('btn-cluster');
+/* ── cluster by directory (nested compound parent nodes) ── */
+/* A cluster is a directory of concepts, and the boxes nest as the directories
+   do. `clusterDepth` is how many levels down that nesting goes: at 1 the view
+   is exactly the flat one this mode always drew (one box per first segment),
+   at the bundle's maximum every concept sits in a box for its own directory.
+   Both are mode state — turning clustering off has to undo them together, or
+   the boxes leak into the plain graph. */
+let clustered=false,clusterDepth=1;const btnCluster=document.getElementById('btn-cluster');
+const depthSel=document.getElementById('cluster-depth'),depthWrap=document.getElementById('cluster-depth-wrap');
+const BOX='box::';
+/* `dir::` is taken — file-tree mode's folder nodes wear it — so the boxes get a
+   prefix of their own rather than a shade of meaning on a shared one. */
+const maxDirDepth=Math.max(1,...NODES.map(n=>dirDepth(dirOf(n.id))));
+depthSel.innerHTML=Array.from({length:maxDirDepth},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+depthSel.value=String(clusterDepth);
+/* Every box a depth calls for: each concept's directory truncated to N, plus
+   every ancestor of that — so an intermediate directory holding no concepts
+   directly still gets a box for its sub-boxes to sit in. The root box is added
+   only when concepts live at the root, and never nests another one: it holds
+   direct-root concepts and nothing else, which is what it always did.
+   Shallowest first, because cy.add() reads the array in order and a compound
+   child cannot name a parent that has not been added yet. */
+function boxesAt(depth){const set=new Set();
+ NODES.forEach(n=>{const d=dirOf(n.id);if(d==='.'){set.add('.');return;}
+  let t=dirTrunc(d,depth);while(t){set.add(t);t=dirParent(t);}});
+ return [...set].sort((a,b)=>dirDepth(a)-dirDepth(b)||(a<b?-1:a>b?1:0));}
+function addBoxes(){
+ cy.add(boxesAt(clusterDepth).map(d=>{const data={id:BOX+d,label:dirLabel(d)};
+  const p=d==='.'?null:dirParent(d);if(p)data.parent=BOX+p;return {group:'nodes',data:data};}));
+ cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);
+  if(e.length)e.move({parent:BOX+dirTrunc(dirOf(n.id),clusterDepth)});}));}
+/* Unparent first, then take the boxes out as one collection — removing a nested
+   parent while its children still point at it is how a teardown leaves orphans. */
+function removeBoxes(){cy.batch(()=>{
+ NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length&&e.isChild())e.move({parent:null});});
+ cy.nodes().filter(n=>n.id().indexOf(BOX)===0).remove();});}
 /* cose treats compounds as an afterthought — nodes with no links drift to
    opposite corners of a huge half-empty box, and the boxes themselves sprawl —
    so grouped views needed hand-tidying every time. fcose is the engine built
@@ -1610,27 +1688,42 @@ let clustered=false;const btnCluster=document.getElementById('btn-cluster');
    captions from overlapping. Clustering therefore always uses it, with cose
    kept only for when the CDN is unreachable (a saved render opened offline
    still groups, just less prettily). */
+/* Laid out over the *visible* elements only. Not a nicety: fcose measures every
+   node it is handed, and a nested compound graph whose nodes went `display:none`
+   mid-run threw on a label it could no longer measure — reachable by typing a
+   term that matches nothing while the tiling animation is still going. Handing
+   it the visible subset also happens to be the right answer, since a hidden
+   concept has no business influencing where the visible ones land. Nothing
+   visible means nothing to lay out. */
 function clusterLayout(){ensureLayout('fcose').then(ok=>{if(!clustered)return;
- cy.layout(ok?{name:'fcose',quality:'proof',animate:true,padding:40,nodeRepulsion:6500,idealEdgeLength:90,
+ const eles=cy.elements(':visible');if(!eles.nodes().nonempty())return;
+ cy.layout(ok?{name:'fcose',eles:eles,quality:'proof',animate:true,padding:40,nodeRepulsion:6500,idealEdgeLength:90,
    nodeSeparation:100,nestingFactor:.1,gravityCompound:1.5,tile:true,tilingPaddingVertical:14,
    tilingPaddingHorizontal:14,packComponents:true,nodeDimensionsIncludeLabels:true}
-  :{name:'cose',animate:true,padding:40,nodeRepulsion:8000,idealEdgeLength:70,nodeOverlap:24,nestingFactor:1.2,gravity:.7}).run();});}
+  :{name:'cose',eles:eles,animate:true,padding:40,nodeRepulsion:8000,idealEdgeLength:70,nodeOverlap:24,nestingFactor:1.2,gravity:.7}).run();});}
 function setClustered(on){if(on===clustered)return;if(on&&treeMode)setTree(false);
  clustered=on;btnCluster.setAttribute('aria-pressed',String(on));layoutSel.disabled=on;
- if(on){const as=[...new Set(NODES.map(n=>areaOf(n.id)))];
-  cy.add(as.map(a=>({group:'nodes',data:{id:'area::'+a,label:a}})));
-  cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length)e.move({parent:'area::'+areaOf(n.id)});}));
-  /* A box is made for every area; if a search or filter was already narrowing
-     the graph, the areas it emptied would cluster as phantom boxes. Re-apply the
-     filter now — before the layout tiles them — so empty areas never get drawn.
-     (Filtering while already clustered runs applyGraphFilter on its own.) */
+ /* A flat bundle has one level and therefore no choice to offer — the control
+    stays away rather than presenting a select with a single option. */
+ depthWrap.hidden=!(on&&maxDirDepth>1);
+ if(on){
+  addBoxes();
+  /* A box is made for every directory; if a search or filter was already
+     narrowing the graph, the ones it emptied would cluster as phantom boxes.
+     Re-apply the filter now — before the layout tiles them — so empty boxes
+     never get drawn. (Filtering while already clustered runs applyGraphFilter
+     on its own.) */
   applyGraphFilter();
   clusterLayout();
  }else{
-  cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);if(e.length&&e.isChild())e.move({parent:null});}));
-  cy.nodes().filter(n=>n.id().indexOf('area::')===0).remove();
+  removeBoxes();
   runLayout(layoutSel.value);}}
 btnCluster.onclick=()=>setClustered(!clustered);
+/* Changing depth rebuilds rather than re-parents: the box *set* changes with it
+   (depth 2 adds boxes depth 1 never had), so tearing down and building again is
+   both simpler and the only version with one code path to get right. */
+depthSel.onchange=()=>{clusterDepth=+depthSel.value;if(!clustered)return;
+ removeBoxes();addBoxes();applyGraphFilter();clusterLayout();};
 
 /* ── file-tree mode: folders become nodes and the only edges are folder→child,
    so the picture is the acyclic files-and-folders tree, not the link graph. ── */
@@ -1731,10 +1824,12 @@ function openMapInGraph(dir){setView('graph');showDir(dir);
    visible leaves plus the area boxes drawn around them. A compound parent is
    26px of padding wider than its children on every side and carries its label
    above that, so fitting to the children alone crops the boxes and their names
-   off the edges. A parent whose children are all filtered out is left out too —
-   it collapses to a stale box that would inflate the fit. */
+   off the edges. A parent with no visible *leaf* descendant is left out too — it
+   collapses to a stale box that would inflate the fit, and leaves are the test
+   because a box nests other boxes now. */
 function fitBox(){const vis=cy.nodes(':visible');
- const eles=vis.filter(n=>!n.isParent()).union(vis.filter(n=>n.isParent()&&n.children(':visible').nonempty()));
+ const eles=vis.filter(n=>!n.isParent())
+  .union(vis.filter(n=>n.isParent()&&n.descendants().some(c=>!c.isParent()&&c.style('display')!=='none')));
  const use=eles.length?eles:cy.nodes();
  return use.length?use.boundingBox():null;}
 
@@ -1873,38 +1968,38 @@ let CATALOG=null;
    otherwise) and fills descOf on the way, so even the pre-index substring
    fallback can match a graph node by its leaf description. */
 function getCatalog(){return CATALOG||(CATALOG=(EMBED?Promise.resolve(EMBED.catalog):fetch(CATALOG_ENDPOINT).then(r=>r.json()).then(d=>d.concepts)).then(list=>{list.forEach(c=>{descOf[c.id]=c.description||'';});return list;}));}
-const catActiveTypes=new Set(), catActiveAreas=new Set(), catActiveTags=new Set();
+const catActiveTypes=new Set(), catActiveDirs=new Set(), catActiveTags=new Set();
 const catByCount=types.slice().sort((a,b)=>(TYPES[b]||[]).length-(TYPES[a]||[]).length);
 const catChip=t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} <span class="c">${(TYPES[t]||[]).length}</span></span>`;
 function syncCatChips(){document.querySelectorAll('#cat-types .chip').forEach(c=>c.classList.toggle('on',catActiveTypes.has(c.getAttribute('data-t'))));
- const n=catActiveTypes.size+catActiveAreas.size+catActiveTags.size;
+ const n=catActiveTypes.size+catActiveDirs.size+catActiveTags.size;
  const b=document.getElementById('cat-filters-btn');b.classList.toggle('on-filter',n>0);b.querySelector('.fbadge').textContent=n;}
 function catToggle(t){toggleSet(catActiveTypes,t);renderCatFilters();renderCatalog();}
 function wireCatChips(el){el.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>catToggle(ch.getAttribute('data-t')));}
-/* The slide-over mirrors the graph filters — Types, Areas, Tags — with one find
+/* The slide-over mirrors the graph filters — Types, Dirs, Tags — with one find
    box narrowing the chips of all three groups (tags cap at 40 until searched). */
 function renderCatFilters(){const qq=(document.getElementById('cat-filter-search').value||'').trim().toLowerCase();
  const match=v=>!qq||v.toLowerCase().includes(qq);
  const after=()=>{renderCatFilters();renderCatalog();};
  chipRow(document.getElementById('cat-ftypes'),typeItems(catByCount.filter(match)),'data-t',t=>catActiveTypes.has(t),t=>{toggleSet(catActiveTypes,t);after();});
- chipRow(document.getElementById('cat-fareas'),areaItems(graphAreas.filter(match)),'data-area',a=>catActiveAreas.has(a),a=>{toggleSet(catActiveAreas,a);after();});
+ chipRow(document.getElementById('cat-fdirs'),dirItems(graphDirs.filter(dirMatch(qq))),'data-dir',d=>catActiveDirs.has(d),d=>{toggleSet(catActiveDirs,d);after();});
  chipRow(document.getElementById('cat-ftags'),tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag',t=>catActiveTags.has(t),t=>{toggleSet(catActiveTags,t);after();});
  syncCatChips();}
 function initCatalog(){inited.catalog=true;
  // Only the five most common types get inline chips; everything else — types,
- // areas, tags — lives in the searchable slide-over, so a bundle with many
+ // dirs, tags — lives in the searchable slide-over, so a bundle with many
  // values doesn't flood the header.
  const quick=document.getElementById('cat-types');quick.innerHTML=catByCount.slice(0,5).map(catChip).join('');wireCatChips(quick);
  renderCatFilters();
  const cf=document.getElementById('cat-filters');
  document.getElementById('cat-filters-btn').onclick=()=>cf.classList.toggle('open');
  document.getElementById('cat-filters-close').onclick=()=>cf.classList.remove('open');
- document.getElementById('cat-filters-reset').onclick=()=>{catActiveTypes.clear();catActiveAreas.clear();catActiveTags.clear();renderCatFilters();renderCatalog();};
+ document.getElementById('cat-filters-reset').onclick=()=>{catActiveTypes.clear();catActiveDirs.clear();catActiveTags.clear();renderCatFilters();renderCatalog();};
  document.getElementById('cat-filter-search').oninput=renderCatFilters;
  getCatalog().then(renderCatalog);}
 function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.catalog||'').toLowerCase();const ids=ftMatch(q.catalog);
  const rows=list.filter(c=>{if(catActiveTypes.size&&!catActiveTypes.has(c.type))return false;
-  if(catActiveAreas.size&&!catActiveAreas.has(areaOf(c.id)))return false;
+  if(catActiveDirs.size&&![...catActiveDirs].some(d=>underDir(dirOf(c.id),d)))return false;
   if(catActiveTags.size&&!c.tags.some(t=>catActiveTags.has(t)))return false;
   if(ids)return ids.has(c.id);
   if(s){const hay=(c.title+' '+c.description+' '+c.type+' '+c.tags.join(' ')+' '+c.id).toLowerCase();if(!hay.includes(s))return false;}return true;});
@@ -2139,21 +2234,21 @@ function openReserved(kind,path){fileSel=path;
   LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.path===path);done((l&&l.content)||'');});}}
 
 /* ── tags ── */
-const tagSel=new Set(), tagTypes=new Set(), tagAreas=new Set();
-/* Does this concept survive the tags view's type/area filters? Tags are counted
+const tagSel=new Set(), tagTypes=new Set(), tagDirs=new Set();
+/* Does this concept survive the tags view's type/dir filters? Tags are counted
    and listed over the surviving concepts only; a tag left with none disappears. */
-function tagMatch(id){return (tagTypes.size===0||tagTypes.has(typeOf[id]||'Untyped'))&&(tagAreas.size===0||tagAreas.has(areaOf(id)));}
+function tagMatch(id){return (tagTypes.size===0||tagTypes.has(typeOf[id]||'Untyped'))&&(tagDirs.size===0||[...tagDirs].some(d=>underDir(dirOf(id),d)));}
 function renderTagChips(){
  const after=()=>{renderTagChips();renderCloud();};
  chipRow(document.getElementById('tag-ftypes'),typeItems(types),'data-t',t=>tagTypes.has(t),t=>{toggleSet(tagTypes,t);after();});
- chipRow(document.getElementById('tag-fareas'),areaItems(graphAreas),'data-area',a=>tagAreas.has(a),a=>{toggleSet(tagAreas,a);after();});
- const n=tagTypes.size+tagAreas.size;const b=document.getElementById('tag-filters-btn');
+ chipRow(document.getElementById('tag-fdirs'),dirItems(graphDirs),'data-dir',d=>tagDirs.has(d),d=>{toggleSet(tagDirs,d);after();});
+ const n=tagTypes.size+tagDirs.size;const b=document.getElementById('tag-filters-btn');
  b.classList.toggle('on-filter',n>0);b.querySelector('.fbadge').textContent=n;}
 function initTags(){inited.tags=true;
  const tf=document.getElementById('tag-filters');
  document.getElementById('tag-filters-btn').onclick=()=>tf.classList.toggle('open');
  document.getElementById('tag-filters-close').onclick=()=>tf.classList.remove('open');
- document.getElementById('tag-filters-reset').onclick=()=>{tagTypes.clear();tagAreas.clear();renderTagChips();renderCloud();};
+ document.getElementById('tag-filters-reset').onclick=()=>{tagTypes.clear();tagDirs.clear();renderTagChips();renderCloud();};
  renderTagChips();renderCloud();}
 function renderCloud(){const s=(q.tags||'').toLowerCase();
  // Uniform chip size, ordered by frequency (descending); the background tint scales
@@ -2183,19 +2278,23 @@ function countUp(el,to){if(reduce()||to<=8){el.textContent=to;return;}let start=
  function step(ts){if(!start)start=ts;const p=Math.min(1,(ts-start)/650);el.textContent=Math.round(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(step);}
  requestAnimationFrame(step);}
 function initStats(){inited.stats=true;
- const areas=new Set(NODES.map(n=>areaOf(n.id)));
- const stats=[['Concepts',NODES.length],['Areas',areas.size],['Concept types',types.length],['Cross-links',EDGES.length],['Distinct tags',Object.keys(TAGS).length]];
+ const dirs=new Set(NODES.map(n=>dirOf(n.id)));
+ const stats=[['Concepts',NODES.length],['Dirs',dirs.size],['Concept types',types.length],['Cross-links',EDGES.length],['Distinct tags',Object.keys(TAGS).length]];
  const g=document.getElementById('stat-grid');
  g.innerHTML=stats.map(s=>`<div class="stat"><div class="n" data-to="${s[1]}">0</div><div class="l">${s[0]}</div></div>`).join('');
  g.querySelectorAll('.n').forEach(el=>countUp(el,+el.dataset.to));
  const byType=Object.entries(TYPES).map(([t,ids])=>[t,ids.length]).sort((a,b)=>b[1]-a[1]);
- const areaCnt={};NODES.forEach(n=>{const a=areaOf(n.id);areaCnt[a]=(areaCnt[a]||0)+1;});
- const byArea=Object.entries(areaCnt).sort((a,b)=>b[1]-a[1]);
- renderBars('bars-type',byType,t=>color[t],'type');renderBars('bars-area',byArea,()=>cvar('--accent'),'area');}
+ /* Direct counts, keyed by the whole path — the same cut `okf stats --json`
+    emits as `by_dir`, so the panel and the CLI answer alike. The bar's value is
+    the directory; only its label is softened to (root). */
+ const dirCnt={};NODES.forEach(n=>{const d=dirOf(n.id);dirCnt[d]=(dirCnt[d]||0)+1;});
+ const byDir=Object.entries(dirCnt).sort((a,b)=>b[1]-a[1]);
+ renderBars('bars-type',byType,t=>color[t],'type');renderBars('bars-dir',byDir,()=>cvar('--accent'),'dir');}
 function renderBars(id,rows,colFn,kind){const max=Math.max(1,...rows.map(r=>r[1]));const box=document.getElementById(id);
+ const label=l=>kind==='dir'&&l==='.'?'(root)':l;
  box.innerHTML=rows.map(([l,v])=>
-  `<div class="bar clickable" data-val="${esc(l)}" role="button" tabindex="0" title="Show ${esc(l)} in the graph"><span class="bl">${esc(l)}</span><div class="bt"><div class="bf" style="background:${colFn(l)};transform:scaleX(${reduce()?1:0})" data-w="${v/max}"></div></div><span class="bv">${v}</span></div>`).join('');
- box.querySelectorAll('.bar').forEach(b=>{const go=()=>{const val=b.dataset.val;kind==='type'?focusGraphType(val):focusGraphArea(val);};
+  `<div class="bar clickable" data-val="${esc(l)}" role="button" tabindex="0" title="Show ${esc(label(l))} in the graph"><span class="bl">${esc(label(l))}</span><div class="bt"><div class="bf" style="background:${colFn(l)};transform:scaleX(${reduce()?1:0})" data-w="${v/max}"></div></div><span class="bv">${v}</span></div>`).join('');
+ box.querySelectorAll('.bar').forEach(b=>{const go=()=>{const val=b.dataset.val;kind==='type'?focusGraphType(val):focusGraphDir(val);};
   b.onclick=go;b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}};});
  requestAnimationFrame(()=>box.querySelectorAll('.bf').forEach(f=>f.style.transform=`scaleX(${f.dataset.w})`));}
 

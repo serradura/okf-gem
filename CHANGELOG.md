@@ -28,6 +28,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Search rows carry `dir`** — the full path, `.` at the root — beside the
   first-segment `area` they already had.
 
+### Changed
+
+- **Cluster mode nests.** The graph page grouped concepts into one flat row of
+  boxes, one per *first path segment* — the same lossy projection `--area` was.
+  A cluster is a directory now, and the boxes nest as the directories do, to a
+  depth picked from a select beside the layout one. Depth **1** is the default
+  and draws exactly the old view; a flat bundle is offered no control at all.
+  At depth N every directory of depth ≤ N gets a box (intermediates that hold no
+  concepts of their own included, since they hold sub-boxes), and a concept
+  attaches to its own directory's box truncated to N. The root box still holds
+  direct-root concepts and never nests another. Box ids carry the directory
+  verbatim (`box::platform/services`, `box::.`), so a tap opens that directory's
+  map with no label to unmangle.
+- **The page speaks `dir` too**: the filter group is **Dirs**, listing every
+  directory (not just first segments) and filtering by the same
+  directory-and-below rule `--dir` uses — in the graph, catalog and tags views —
+  and the Stats panel's breakdown is **By dir**, keyed by the whole path.
+
+### Fixed
+
+- **A nested cluster no longer throws when a filter empties it mid-layout.**
+  fcose measures every node it is handed, so hiding nodes while its tiling
+  animation ran threw on a label it could no longer measure. The layout is
+  handed the visible elements only — which is also the right answer, since a
+  hidden concept has no business influencing where the visible ones land.
+- **An intermediate directory box no longer takes its branch off the canvas.**
+  The empty-box rule read a compound's direct children, and a box holding only
+  sub-boxes has none, so it always counted as empty. It reads leaf descendants
+  now.
+
 ### Deprecated
 
 - **`--area`, and `tags --by area`.** OKF's own vocabulary for grouping is

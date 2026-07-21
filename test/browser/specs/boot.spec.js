@@ -38,11 +38,11 @@ test.describe("boot", () => {
     await expect(chips.filter({ hasText: "Charter" })).toHaveText("Charter 1");
   });
 
-  test("a root-level concept produces the (root) area chip", async ({ app }) => {
+  test("a root-level concept produces the (root) dir chip", async ({ app }) => {
     // Unreachable from a bundle whose concepts all sit in folders — the
     // fixture carries charter.md at the root precisely to reach this branch.
-    await expect(app.locator('#fareas .chip[data-area="(root)"]')).toHaveText("(root) 1");
-    await expect(app.locator("#fareas .chip")).toHaveCount(5);
+    await expect(app.locator('#fdirs .chip[data-dir="."]')).toHaveText("(root) 1");
+    await expect(app.locator("#fdirs .chip")).toHaveCount(5);
   });
 });
 

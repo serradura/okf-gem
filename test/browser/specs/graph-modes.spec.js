@@ -8,13 +8,18 @@ test.describe("graph modes", () => {
   const total = (page) => page.evaluate(() => cy.nodes().length);
   const parents = (page) => page.evaluate(() => cy.nodes().filter((n) => n.isParent()).map((n) => n.id()).sort());
 
-  test("cluster wraps the concepts in one compound parent per area", async ({ app }) => {
+  test("cluster wraps the concepts in one compound parent per dir", async ({ app }) => {
+    // The continuity pin: this fixture is flat, so depth 1 (the default) must
+    // draw exactly what the mode drew before it could nest at all — one box per
+    // directory, the root's spelled `.` in the id and (root) only on the label.
+    // cluster-nested.spec.js owns the depths above 1, on a bundle that has them.
     await app.locator("#btn-cluster").click();
     await expect(app.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
     expect(await parents(app)).toEqual([
-      "area::(root)", "area::datasets", "area::decisions", "area::runbooks", "area::services",
+      "box::.", "box::datasets", "box::decisions", "box::runbooks", "box::services",
     ]);
     expect(await total(app)).toBe(13);
+    await expect(app.locator("#cluster-depth")).toBeHidden(); // one level, no choice to offer
   });
 
   test("cluster undoes itself completely", async ({ app }) => {
@@ -102,22 +107,22 @@ test.describe("graph modes", () => {
   test("a filter still applies inside cluster mode", async ({ app }) => {
     await app.locator("#btn-cluster").click();
     await app.locator("#btn-filters").click();
-    await app.locator('#fareas .chip[data-area="services"]').click();
+    await app.locator('#fdirs .chip[data-dir="services"]').click();
     await expect.poll(() => visibleNodeIds(app)).toEqual([ "services/billing", "services/gateway" ]);
   });
 
-  test("clustering re-applies the active filter, and an emptied area box hides", async ({ app }) => {
+  test("clustering re-applies the active filter, and an emptied dir box hides", async ({ app }) => {
     // A2-15: setClustered runs applyGraphFilter before tiling, so a filter set
     // *before* clustering still takes. A2-14: a compound area box whose concepts
     // are all filtered away hides too, while one with a survivor stays. Filter to
     // area services first, then cluster — the services box stands, datasets is gone.
     await app.locator("#btn-filters").click();
-    await app.locator('#fareas .chip[data-area="services"]').click();
+    await app.locator('#fdirs .chip[data-dir="services"]').click();
     await app.locator("#btn-cluster").click();
     await expect(app.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
 
-    await expect.poll(() => app.evaluate(() => cy.getElementById("area::services").style("display"))).toBe("element");
-    await expect.poll(() => app.evaluate(() => cy.getElementById("area::datasets").style("display"))).toBe("none");
+    await expect.poll(() => app.evaluate(() => cy.getElementById("box::services").style("display"))).toBe("element");
+    await expect.poll(() => app.evaluate(() => cy.getElementById("box::datasets").style("display"))).toBe("none");
   });
 
   test("switching layouts keeps every node on the canvas", async ({ app }) => {

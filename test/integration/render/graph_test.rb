@@ -246,17 +246,21 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "title:d.dir==='.'?BUNDLE:", "and the index layer's root map"
   end
 
-  test "the area vocabulary keeps its own (root), which the CLI shares" do
+  test "the dir vocabulary keeps `.` as data and (root) as the label, as the CLI does" do
     write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 
     html = render(title: "Demo")
 
-    # `(root)` is the *area* label — what `okf stats --by area` and `tags --by
-    # area` print, and what their tests pin. Renaming the tree's root row must
-    # not quietly rename a CLI-shared vocabulary along with it.
-    assert_includes html, "const areaOf=id=>id.includes('/')?id.split('/')[0]:'(root)';",
-      "an area with no directory is still (root)"
-    assert_includes html, "a&&a!=='(root)'?a:'.'", "and the cluster box that names it still resolves to the root dir"
+    # The split the whole rename rests on: `.` is what is stored and matched —
+    # ids, chip values, box ids — and `(root)` is only ever what a human reads.
+    # `okf dirs` and `stats --json` keep the same one, so a page and a CLI answer
+    # never disagree about which spelling is the data.
+    assert_includes html, "const dirOf=id=>{const i=id.lastIndexOf('/');return i<0?'.':id.slice(0,i);};",
+      "a concept with no directory lives in `.`, not in a label"
+    assert_includes html, "const dirLabel=d=>d==='.'?'(root)':d.split('/').pop()+'/';",
+      "and (root) is where that `.` becomes readable"
+    assert_includes html, "id.indexOf('box::')===0?id.slice(5):'.'",
+      "so a box tap carries the directory verbatim, with no label to unmangle"
   end
 
   test "hides a cluster box once a filter empties it, and binds Esc to deselect" do
