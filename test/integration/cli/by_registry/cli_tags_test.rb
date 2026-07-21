@@ -86,9 +86,9 @@ module ByRegistry
 
         assert_equal 0, result.status
         assert_match(/^Tags — @conformant \(#{Regexp.escape(fixture("conformant"))}\) \(2 distinct, by type\)$/, result.out)
-        assert_match(/BigQuery Dataset \(1 tag\)\n\s+sales\s+1\s+Sales\n/, result.out)
+        assert_match(%r{BigQuery Dataset \(1 tag\)\n\s+sales\s+1/3\s+Sales\n}, result.out)
         assert_match(/BigQuery Table \(2 tags\)/, result.out)
-        assert_match(/sales\s+2\s+Customers, Orders/, result.out) # `sales` is connective — counted per group
+        assert_match(%r{sales\s+2/3\s+Customers, Orders}, result.out) # `sales` is connective — counted per group, with its total
       end
     end
 
@@ -98,9 +98,22 @@ module ByRegistry
 
         assert_equal 0, result.status
         assert_match(/^Tags — @conformant \(#{Regexp.escape(fixture("conformant"))}\) \(2 distinct, by area\)$/, result.out)
-        assert_match(%r{datasets/ \(1 tag\)\n\s+sales\s+1\s+Sales\n}, result.out)
+        assert_match(%r{datasets/ \(1 tag\)\n\s+sales\s+1/3\s+Sales\n}, result.out)
         assert_match(%r{tables/ \(2 tags\)}, result.out)
         assert_operator result.out.index("datasets/"), :<, result.out.index("tables/") # groups sort by name
+      end
+    end
+
+    test "@slug --by area carries totals, so the spread reads through a ref too" do
+      with_registry("shapely") do
+        result = okf("tags", "@shapely", "--by", "area")
+
+        assert_equal 0, result.status
+        assert_match(/^Tags — @shapely \(#{Regexp.escape(fixture("shapely"))}\) \(4 distinct, by area\)$/, result.out)
+        assert_match(%r{async\s+2/3\s+Activate, Suspend}, result.out)
+
+        flows = json(okf("tags", "@shapely", "--by", "area", "--json")).fetch("groups").find { |group| group.fetch("area") == "flows" }
+        assert_equal 3, flows.fetch("tags").first.fetch("total")
       end
     end
 
@@ -115,7 +128,7 @@ module ByRegistry
         groups = data.fetch("groups")
         assert_equal [ "BigQuery Dataset", "BigQuery Table" ], groups.map { |g| g.fetch("type") }
         assert_equal %w[count tags type], groups.first.keys.sort
-        assert_equal [ { "tag" => "sales", "count" => 1, "concepts" => [ "datasets/sales" ] } ], groups.first.fetch("tags")
+        assert_equal [ { "tag" => "sales", "count" => 1, "total" => 3, "concepts" => [ "datasets/sales" ] } ], groups.first.fetch("tags")
       end
     end
 

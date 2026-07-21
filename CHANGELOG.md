@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   playbook's hub origin test made mechanical: a hub whose inbound majority is
   foreign to its own area is a move candidate. JSON: `{ bundle, count, hubs:
   [{ id, area, inbound, by_area }] }`.
+- **`okf tags --by` rows carry each tag's total.** The grouped view printed only
+  within-group counts, so a tag's spread meant cross-referencing groups by
+  hand; each row now shows `count/total` when they differ (`async  2/3`) and
+  the plain count when the tag is wholly local — locality at a glance, the
+  domain-vs-concern read. The JSON rows gain a `total` key; filters recompute
+  it over the narrowed set.
 - **`okf` is extensible.** Any gem that puts `okf/plugin.rb` on its load path can
   register a verb, and it answers to `okf` — listed in `okf help` under
   `installed extensions:`, dispatched like a built-in. There is no list of known

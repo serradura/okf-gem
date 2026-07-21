@@ -52,11 +52,15 @@ module OKF
         0
       end
 
-      # [ [ group, rows ], … ] — groups sorted by name, rows shaped like index_rows'.
-      # A tag carried in several groups appears in each, counted per group.
+      # [ [ group, rows ], … ] — groups sorted by name, rows shaped like index_rows'
+      # plus each tag's total across the narrowed set. A tag carried in several
+      # groups appears in each, counted per group; count/total per row is what
+      # makes a tag's spread — local to one group, or cutting across several —
+      # readable without cross-referencing the groups by hand.
       def tag_groups(tag_index, folder, options)
         by_id = filter_entries(folder.catalog, options).map { |entry| [ entry[:id], entry ] }.to_h
         groups = {}
+        totals = Hash.new(0)
         tag_index.each do |tag, ids|
           ids.each do |id|
             entry = by_id[id]
@@ -64,10 +68,11 @@ module OKF
 
             key = options[:by] == :type ? entry_type(entry) : entry[:area]
             ((groups[key] ||= {})[tag] ||= []) << id
+            totals[tag] += 1
           end
         end
         groups.map do |key, tags|
-          rows = tags.map { |tag, ids| { tag: tag, count: ids.length, concepts: ids } }
+          rows = tags.map { |tag, ids| { tag: tag, count: ids.length, total: totals[tag], concepts: ids } }
                      .sort_by { |row| [ -row[:count], row[:tag] ] }
           [ key, rows ]
         end.sort_by(&:first)
@@ -85,16 +90,24 @@ module OKF
           @out.puts
           @out.puts "  #{label} (#{rows.size} #{pluralize(rows.size, "tag")})"
           width = rows.map { |row| row[:tag].length }.max || 0
+          cwidth = [ 3, *rows.map { |row| count_cell(row).length } ].max
           rows.each do |row|
             names = row[:concepts].map { |id| titles[id] || id }.join(", ")
-            @out.puts "    #{row[:tag].ljust(width)}  #{row[:count].to_s.rjust(3)}   #{truncate(names, 76)}"
+            @out.puts "    #{row[:tag].ljust(width)}  #{count_cell(row).rjust(cwidth)}   #{truncate(names, 76)}"
           end
         end
       end
 
+      # "2/3" when the tag spreads beyond this group, the plain count when it is
+      # local — so equality (locality 1.0) reads by absence.
+      def count_cell(row)
+        row[:count] == row[:total] ? row[:count].to_s : "#{row[:count]}/#{row[:total]}"
+      end
+
       def print_grouped_tags_json(dir, dim, groups)
         groups_json = groups.map do |key, rows|
-          { dim.to_s => key, "count" => rows.size, "tags" => index_rows_json(:tag, rows) }
+          rows_json = rows.map { |row| { "tag" => row[:tag], "count" => row[:count], "total" => row[:total], "concepts" => row[:concepts] } }
+          { dim.to_s => key, "count" => rows.size, "tags" => rows_json }
         end
         emit_json(bundle_head(dir).merge("count" => distinct_tags(groups), "by" => dim.to_s, "groups" => groups_json))
       end
