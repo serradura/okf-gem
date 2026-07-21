@@ -225,10 +225,15 @@ docker run --rm -v "$PWD:/data" ghcr.io/serradura/okf validate .
 docker run --rm -v "$PWD:/data" -p 8808:8808 ghcr.io/serradura/okf server . --bind 0.0.0.0
 ```
 
+A container has to bind `0.0.0.0` for the host to reach it at all, which is
+exactly the bind that makes the registry read-only. Reading the graph is
+unaffected, and there is no flag that opens the registry on that bind — it is a
+per-user file, managed from the machine that owns it or from `okf registry`.
+
 Then open <http://127.0.0.1:8808>. Images are published for `linux/amd64` and
 `linux/arm64` on
 [ghcr.io](https://github.com/serradura/okf-gem/pkgs/container/okf): `:latest`
-tracks the newest release, or pin a version like `:1.9.0`.
+tracks the newest release, or pin a version like `:1.10.0`.
 
 Tired of the long line? Install a Docker-backed [`okf` command](https://docker.okfgem.com),
 so every verb drops the `docker run` prefix and reads exactly like the native CLI
@@ -246,13 +251,20 @@ instead: `irm https://docker.okfgem.com/install.ps1 | iex`.
 
 ## Command line
 
+These verbs are written to be read by an **agent first and a person second** —
+that is what the skill drives, with no wrapper in between. Every read verb takes
+`--json`, `index`/`catalog`/`files` project down to the fields you ask for
+(`--fields`/`--except`), so nothing pays for output it will not read, and the
+exit codes are stable enough to branch on in CI. The same commands render as
+scannable plain text when a human is the one looking.
+
 ```bash
 okf validate  <dir|@slug> [--json]                         # check OKF v0.1 conformance (§9)
 okf lint      <dir|@slug> [--json] [--fail-on warn] [...]  # report curation-quality issues
 okf loose     <dir|@slug> [--json]                         # list files with no graph links, by folder
-okf search    <dir|@slug…|@all> <term…> [-e|--fuzzy] [...] # ranked retrieval; @slugs or @all span bundles
+okf search    <dir|@slug…|@all> <term…> [--regexp|--fuzzy] # ranked retrieval; @slugs or @all span bundles
 okf index     <dir|@slug> [--json] [--area A] [--no-body]  # progressive-disclosure map (§6): bodies, rollups, listings
-okf server    [DIR|@slug…] [-p PORT] [--bind ADDR] [...]   # serve one bundle, or many behind a hub (⌘K to switch)
+okf server    [DIR|@slug…] [-p PORT] [--bind ADDR] [...]   # serve one bundle, or many behind a hub (⌘K searches every one)
 okf render    <dir|@slug> [-o FILE] [--layout NAME] [...]  # export the graph as one static, self-contained HTML file
 okf registry  list [--json]                                # list registered bundles (* marks the default)
 okf registry  set <dir|@slug> [--as SLUG] [--default]      # add or update a bundle (a bare `server` serves it)
@@ -269,8 +281,11 @@ okf registry  default <@slug> | rename <@slug> <new>       # move a bundle to th
 # set`, or bare @ for the default. Anywhere a <dir> goes, an @slug goes:
 # okf lint @handbook works from anywhere. Set $OKF_HOME to point every verb
 # at another registry.
-okf graph     <dir|@slug> [--json] [--minimal] [--no-body]        # print the knowledge graph
+okf graph     <dir|@slug> [--json] [--minimal] [--hubs]           # print the knowledge graph (--hubs ranks by inbound links)
 okf catalog | files | tags | types | stats  <dir|@slug> [--json]  # the browser views, on the CLI
+# `tags --by type|area` regroups the tag index per concept dimension; each row
+# shows count/total, so a tag confined to one area (a domain) reads differently
+# from one spread across several (a cross-cutting concern).
 okf skill     <dest> [--here] [--force]                 # install the companion agent skill
 okf --version
 ```
@@ -303,11 +318,19 @@ _The graph server on this repo's own [`.okf`](.okf) bundle, with the
 
 The page is one template from a phone to a desktop: on small screens the
 navigation rail becomes a drawer, the toolbar folds into a `⚙` sheet, and the
-panels go full-bleed — rotate a tablet and the layout re-evaluates. It is
-keyboard-first too: `⌘/Ctrl-K` opens a command palette in every mode (views
+panels go full-bleed — rotate a tablet and the layout re-evaluates. On a touch
+screen a tap opens a preview card at the bottom edge rather than a panel over
+the whole viewport, so the graph stays on screen and live while you read: drag
+the card up for the neighbourhood, tap a link in it and it walks there in place.
+It is keyboard-first too: `⌘/Ctrl-K` opens a command palette in every mode (views
 always; bundles too when a [hub](#one-registry-many-bundles) is serving), `/`
 jumps to the current view's search, and `?` answers with a sheet of every
 shortcut.
+
+The search box says what it is doing while it does it: a live `7/8` count of
+what the filter kept, and — when a word matches nothing here — a panel naming
+the bundle and the query, offering to search every other bundle instead. The
+query carries over, so nothing is typed twice.
 
 To skip the server entirely, **`okf render <dir>`** writes that same page as one
 self-contained HTML file, the whole bundle baked in, so you can publish the
@@ -329,10 +352,32 @@ okf server                              # no args: the whole registry behind one
 
 The first entry still on disk is the **default** — the bundle a bare `okf
 server` opens at `/` and a bare `@` names; `okf registry default @slug` moves an
-entry to the front. Behind the hub each bundle mounts at `/b/<slug>/`, `/b/` is
-a browsable index, and the `⌘/Ctrl-K` palette switches bundles without leaving
-the page. The hub reads the registry at boot, so restart it after registry
-changes; set `$OKF_HOME` to point every verb at a different registry.
+entry to the front. Behind the hub each bundle mounts at `/b/<slug>/`, and the
+`⌘/Ctrl-K` palette both switches bundles and **searches every one of them at
+once** — type a few words and the matching concepts appear with their bundle and
+a snippet, from wherever you are.
+
+The ⚙ in the rail opens **Bundles** — the registry on the graph page itself, so
+switching the default, renaming an entry or dropping one no longer means finding
+`/b/` first. Each row carries its size, its health as a *word*, and which one `/`
+opens. There is no Add: registering a bundle means naming a filesystem path,
+which a browser cannot hand over and an agent can (`okf registry set <dir>`), and
+the panel says so instead of leaving the absence to be noticed.
+
+`/b/` is the **bundles list**: every bundle with its size, its health
+(conformance plus curation, so a warning is a warning and not a failure), the
+default marked, and any entry whose folder has gone missing shown rather than
+quietly dropped.
+
+Managing the registry without a terminal happens on the graph page instead, in
+the ⚙ **Bundles** panel — make default, rename, remove, where you are already
+reading. Those controls are the one thing that does not follow you onto a
+network: bind anywhere but loopback and they are refused outright, with no flag
+that says otherwise, since `--bind 0.0.0.0` is how a personal tool becomes a
+public one. `--read-only` declines them on loopback too, and is the only switch
+there is. Writes rebuild the hub's set as they go, so a rename takes effect on
+the next click; a registry change made *elsewhere* while it runs still wants a
+restart to be served. Set `$OKF_HOME` to point every verb at a different registry.
 
 `graph` and `server` are best-effort (§9): a file with invalid frontmatter is
 skipped (and noted on stderr), not fatal, so one bad file never breaks the rest.
@@ -361,6 +406,22 @@ OKF lint — docs
 
   ⚠ 3 warn, 31 info
 ```
+
+That `hubs:` line is the bundle's centre of gravity — the concepts the most links
+point *at*, with their inbound count. **`okf graph <dir> --hubs`** expands it into
+the full ranking and, for each hub, the areas those links come *from*:
+
+```bash
+$ okf graph docs --hubs
+Hubs — docs (38 of 40 concepts with inbound links)
+
+  storage/reconcile   ×16   storage 6, shape 4, exploration 3, (root) 1, …
+```
+
+That second half is what decides whether a concept sits where it belongs: a hub
+pulled in mostly from outside its own folder is usually homed by history rather
+than by meaning. Together with `okf tags <dir> --by area`, it is the evidence the
+skill's [`refine`](#agent-skill) verb reads before proposing anything.
 
 `loose` lists the files that float in the graph: concepts with no cross-links
 in or out (graph degree 0), grouped by folder. It is a curation lens over
@@ -391,10 +452,20 @@ The skill routes a small set of verbs. In Claude Code they run as `/okf:gem
 | `produce`        | Create or extend a bundle from code, docs, or knowledge in people's heads                                   |
 | `migrate`        | Adopt existing Markdown docs in place: frontmatter and reserved files added, bodies kept verbatim           |
 | `maintain`       | Sync the bundle's content with reality after the code or docs change                                        |
+| `refine`         | Restructure it for retrieval: evidence-first, cohesion over balance — proposes, never applies             |
 | `consume`        | Use the bundle as context for a task, writing back what you learn                                           |
 | `curate`         | Structural upkeep as it stands: `validate` + `lint` + `loose`                                               |
 | `doctor`         | Install and verify the CLI, then doctor the bundle                                                          |
 | `<okf-cli-verb>` | Run any CLI verb (`validate`, `lint`, `search`, `index`, `server`, the read views) and interpret its output |
+
+Three of those look alike and are not, which is the distinction worth learning
+first: **`curate`** keeps the bundle *sound* (the structure as it stands),
+**`maintain`** keeps it *true* (the code changed, so the content must catch up),
+and **`refine`** changes *where knowledge lives* — the folder a concept sits in,
+a fact re-explained in three overviews. Reach for `refine` when nothing is wrong
+and everything is hard to find: a folder grown to twenty concepts, a hub homed by
+history, tags that neither connect nor mark. It reads the evidence, then hands
+you a proposal — it never rearranges your bundle on its own.
 
 Point it at your agent's config directory (or its skills directory) and the tree
 settles in its own `skills/okf/` folder, so a shared skills directory never gets
@@ -512,6 +583,26 @@ self-links). Select with `--only`/`--except`; `--json` emits the full report as 
 Two loop concerns from the format's own guidance, _contradictions_ and _semantic_
 staleness, need to understand meaning and are not computed here; `lint --json`
 is the structured input an agent consumes to reason about those.
+
+## Extending okf
+
+This is the other kind of plugin, and it is worth separating from the
+[Claude Code plugin](#claude-code-plugin) below: that one teaches an *agent* to
+use okf, while this one adds behavior to the `okf` command everyone runs.
+
+Publish a gem named `okf-*` that carries an `okf/plugin.rb`, and installing it is
+the whole installation: your verb answers to `okf`, appears in `okf help` under
+`installed extensions:`, and behaves like a built-in — nothing to register,
+nothing to configure, no list of known addons in this gem. The same seam takes
+retrieval backends, which is what `okf search --engine NAME` chooses between.
+
+Two promises make that safe to install: nothing an addon registers can displace a
+built-in, and a broken addon is skipped and reported rather than taking the CLI
+down with it.
+
+The [extension points](.okf/design/extension-points.md) concept has the contract
+and the threat model; `test/integration/cli/cli_plugin_test.rb` is a working
+example to copy.
 
 ## Server trust boundary
 

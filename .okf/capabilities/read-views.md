@@ -3,7 +3,7 @@ type: Capability
 title: Read views (index, catalog, files, types, tags, stats, loose, graph)
 description: The server's browser panels reproduced on the CLI, plus the index map, so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-17T04:00:00Z
+timestamp: 2026-07-21T12:00:00Z
 ---
 
 # Overview
@@ -28,7 +28,7 @@ these views group by, for the price of a few rows.
 | `tags` | [tags](../format/frontmatter.md) with their concepts | count |
 | `stats` | rollups: concepts, areas, types, cross-links, tags | — |
 | `loose` | degree-0 concepts (no [links](../format/cross-links.md) in or out) | folder |
-| `graph` | the raw nodes and edges | — (`--minimal` / `--no-body`) |
+| `graph` | the raw nodes and edges; `--hubs` ranks inbound links by source area | — (`--minimal` / `--no-body`) |
 
 Every one of them names the bundle it answers about, in the identity the caller
 used — the rule the [CLI](../cli.md) keeps: `bundle` is always the directory,
@@ -77,7 +77,14 @@ the whole bundle (matching is case-insensitive):
 `tags --by type|area` regroups the tag index under each concept dimension with
 within-group counts — the view for curating a
 [tag](../format/frontmatter.md) vocabulary: which tags cluster in which area,
-which type leans on which tags.
+which type leans on which tags. Each row also carries the tag's total across
+the narrowed set, printed `count/total` when they differ (`async  2/3`) and as
+a plain count when the tag is wholly local — so a tag's *locality* (domain
+confined to one area, or concern cutting across several) reads per row. The
+same evidence question for the graph: `graph --hubs` ranks every concept with
+inbound [links](../format/cross-links.md) by inbound degree and groups each
+hub's links by *source area* — whether a hub is well-homed, answered
+mechanically.
 
 # `loose` is a curation lens, not an error
 

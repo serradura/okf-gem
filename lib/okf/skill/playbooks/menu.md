@@ -33,6 +33,11 @@ is the lede.
      the working tree has uncommitted changes to the code the bundle describes
      (`git status`), prefer **`maintain`**: that is exactly the drift it exists
      to close.
+   - **clean, but the shape strains** — one area dwarfing the rest in
+     `okf stats`, tags spread thin across areas in `okf tags --by area`, hubs
+     whose inbound links are mostly foreign in `okf graph --hubs` → offer
+     **`refine`** (evidence-driven restructuring; it proposes before it
+     touches anything).
 4. **Freshness is off by default.** If the bundle carries timestamps, note that a
    plain `lint` said nothing about staleness and `okf lint <root> --stale-after
    90d` is the check that would.

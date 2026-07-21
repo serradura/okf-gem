@@ -34,10 +34,18 @@ module ByDir
       out = okf("render", fixture("conformant")).out
 
       callers = out.scan(/^.*fetch\([A-Z_]+_ENDPOINT.*$/)
-      assert_equal 5, callers.size, "every on-demand endpoint the server serves has one getter"
-      callers.each do |line|
+      assert_equal 6, callers.size, "every on-demand endpoint the server serves has one getter"
+      # Five of the six are a bundle's own data, baked into EMBED, so their getter
+      # branches on it. The sixth is the hub's cross-bundle search, which has no
+      # baked counterpart at all — a static file is one bundle and knows of no
+      # others — so it is gated a rung earlier: the endpoint itself is null here,
+      # and the palette never builds the group that would call it.
+      body, search = callers.partition { |line| !line.include?("SEARCH_ENDPOINT") }
+      body.each do |line|
         assert_match(/EMBED\?/, line, "a getter that fetches without an EMBED branch would break the static file")
       end
+      assert_equal 1, search.size
+      assert_match(/const SEARCH_ENDPOINT=null;/, out, "and the one unguarded fetch is unreachable: there is no endpoint")
       assert_match(/getNodeBody\(id\)\{return EMBED\?Promise\.resolve\(EMBED\.bodies\[id\]/, out)
     end
 

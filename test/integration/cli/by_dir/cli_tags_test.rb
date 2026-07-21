@@ -48,9 +48,10 @@ module ByDir
       assert_match(/Tags — .*conformant \(2 distinct, by type\)/, result.out)
       assert_match(/BigQuery Dataset \(1 tag\)/, result.out)
       assert_match(/BigQuery Table \(2 tags\)/, result.out)
-      # `sales` is connective — it recurs in both groups, counted per group
-      assert_match(/BigQuery Dataset \(1 tag\)\n\s+sales\s+1\s+Sales\n/, result.out)
-      assert_match(/sales\s+2\s+Customers, Orders/, result.out)
+      # `sales` is connective — it recurs in both groups, counted per group,
+      # with the bundle-wide total beside the within-group count
+      assert_match(%r{BigQuery Dataset \(1 tag\)\n\s+sales\s+1/3\s+Sales\n}, result.out)
+      assert_match(%r{sales\s+2/3\s+Customers, Orders}, result.out)
     end
 
     test "--by area groups the tags per top-level area, labelled as folders" do
@@ -58,7 +59,7 @@ module ByDir
 
       assert_equal 0, result.status
       assert_match(/\(2 distinct, by area\)/, result.out)
-      assert_match(%r{datasets/ \(1 tag\)\n\s+sales\s+1\s+Sales\n}, result.out)
+      assert_match(%r{datasets/ \(1 tag\)\n\s+sales\s+1/3\s+Sales\n}, result.out)
       assert_match(%r{tables/ \(2 tags\)}, result.out)
       assert_match(/orders\s+1\s+Orders/, result.out)
       # groups sort by name: datasets/ before tables/
@@ -74,8 +75,37 @@ module ByDir
       assert_equal [ "BigQuery Dataset", "BigQuery Table" ], groups.map { |g| g.fetch("type") }
       assert_equal %w[count tags type], groups.first.keys.sort
       assert_equal 1, groups.first.fetch("count")
-      assert_equal [ { "tag" => "sales", "count" => 1, "concepts" => [ "datasets/sales" ] } ], groups.first.fetch("tags")
+      assert_equal [ { "tag" => "sales", "count" => 1, "total" => 3, "concepts" => [ "datasets/sales" ] } ], groups.first.fetch("tags")
       assert_equal %w[sales orders], groups.last.fetch("tags").map { |row| row.fetch("tag") }
+    end
+
+    test "--by rows carry each tag's bundle-wide total, so spread reads per group" do
+      result = okf("tags", fixture("shapely"), "--by", "area")
+
+      assert_equal 0, result.status
+      # `async` is spread over two areas — each group shows its share of the total
+      assert_match(%r{flows/ \(2 tags\)\n\s+async\s+2/3\s+Activate, Suspend\n\s+flows\s+2\s+Activate, Suspend\n}, result.out)
+      assert_match(%r{billing/ \(2 tags\)\n\s+async\s+1/3\s+Renew\n\s+billing\s+1\s+Renew\n}, result.out)
+      # a tag local to its group shows a plain count — count/total only when they differ
+      refute_match(%r{2/2}, result.out)
+      assert_match(/state-machine\s+1\s+Status/, result.out)
+    end
+
+    test "--by area --json rows carry count and total per tag" do
+      data = json(okf("tags", fixture("shapely"), "--by", "area", "--json"))
+
+      flows = data.fetch("groups").find { |group| group.fetch("area") == "flows" }
+      assert_equal [ { "tag" => "async", "count" => 2, "total" => 3, "concepts" => [ "flows/activate", "flows/suspend" ] },
+                     { "tag" => "flows", "count" => 2, "total" => 2, "concepts" => [ "flows/activate", "flows/suspend" ] } ],
+        flows.fetch("tags")
+    end
+
+    test "filters recompute totals over the narrowed set, so a filtered view stays self-consistent" do
+      data = json(okf("tags", fixture("shapely"), "--area", "flows", "--by", "area", "--json"))
+
+      async = data.fetch("groups").first.fetch("tags").find { |row| row.fetch("tag") == "async" }
+      assert_equal 2, async.fetch("count")
+      assert_equal 2, async.fetch("total") # the billing concept is narrowed away, and the total follows
     end
 
     test "--by area labels the root area bare, and only nested areas get a slash" do

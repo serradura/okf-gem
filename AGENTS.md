@@ -22,6 +22,9 @@ lib/okf/
   bundle/reader|writer|folder.rb  shell  directory <-> Bundle (writer is atomic, validates before publish)
   render/graph.rb + graph/template.html.erb  shell  the whole UI in one self-contained ERB file — `okf render` bakes it (.static), the server serves the same
   server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types, /index, /log
+  server/hub.rb           shell  N bundles at /b/<slug>/, plus the routes only a set can answer:
+                                 GET /search (cross-bundle), GET /b/ (the bundles list),
+                                 POST /registry/{default,rename,remove,add} — the only writes in the server
   server/runner.rb        shell  built-in WEBrick <-> Rack bridge (replaces any rackup need)
   skill.rb + skill/       shell  the companion agent skill + its installer
   cli.rb                  shell  the command registry, the dispatcher, and `okf help`
@@ -282,8 +285,16 @@ the three seams that actually couple the sections (`applyGraphFilter`,
 `setView`, the lazy caches). Read it before editing; `grep -n '── '` on the
 template prints the same list with live line numbers.
 
-`test/browser/README.md` covers the fixture, the console-error watch, and the
-assertion mistakes the suite's first run shook out.
+The page's CDN libraries are served from a gitignored `test/browser/vendor/` by
+`vendor-cache.js` — a read-through cache keyed on the request URL, so a version
+bump is a miss rather than a stale hit. A warm run needs no network;
+`OKF_NO_VENDOR_CACHE=1` bypasses it, which is how you check the pins still
+resolve. It buys robustness, not speed: measured at one worker it is 28.7s
+without and 29.0s with, because the suite is CPU-bound and Chromium already
+reused those files across contexts.
+
+`test/browser/README.md` covers the fixture, the console-error watch, the
+assertion mistakes the suite's first run shook out, and the cache in full.
 
 ## Pull requests
 

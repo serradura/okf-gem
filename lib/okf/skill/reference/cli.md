@@ -302,10 +302,14 @@ in/out link degree). Add `--json` to any for a machine substrate.
 - **`tags`** — every tag with the concepts that carry it, ordered by count
   descending. The "what themes dominate" view. JSON: `{ bundle, count, tags: [{ tag,
   count, concepts: [id, …] }] }`. `--by type|area` regroups the list per concept
-  dimension with **within-group** counts (a tag spanning groups appears in each) —
-  the substrate for tag curation; the judgment recipe lives in the
-  [maintain playbook](../playbooks/maintain.md). JSON: `{ bundle, count, by,
-  groups: [{ <dim>, count, tags: […] }] }`.
+  dimension with **within-group** counts (a tag spanning groups appears in each);
+  each row also carries the tag's **total** across the narrowed set, printed
+  `count/total` when they differ — so a tag's locality reads per row (a plain
+  count = wholly local; `2/7` = a cross-cutting spread). The substrate for tag
+  curation and for [refine](../playbooks/refine.md)'s domain-vs-concern read;
+  the judgment recipes live in the [maintain playbook](../playbooks/maintain.md)
+  and the [refine playbook](../playbooks/refine.md). JSON: `{ bundle, count, by,
+  groups: [{ <dim>, count, tags: [{ tag, count, total, concepts }] }] }`.
 - **`types`** — every type with the concepts that carry it, ordered by count
   descending. The "what kinds of knowledge" view. JSON: `{ bundle, count, types:
   [{ type, count, concepts: [id, …] }] }`.
@@ -433,3 +437,11 @@ drops each node's body, and `--minimal` ships only `id`/`title` plus the type/ta
 indexes — the lean shape the `server` page boots from. Reach for the full dump
 only when the task truly consumes every body; for one question, the
 [search verb](#search--ranked-text-retrieval-metadata--body) is orders cheaper.
+
+`--hubs` swaps the dump for the **inbound ranking**: every concept with at
+least one inbound link, ranked by inbound degree, each with its links grouped
+by *source area* (`core/status  ×3   flows 2, billing 1`) — the evidence for
+[refine](../playbooks/refine.md)'s hub origin test ("is this hub well-homed?").
+A source at the bundle root counts under `(root)`. JSON: `{ bundle, count,
+hubs: [{ id, area, inbound, by_area: { <area>: n } }] }`. Advisory read, exit 0;
+`--minimal`/`--no-body` shape node payloads and change nothing here.

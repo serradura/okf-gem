@@ -1,5 +1,245 @@
 # Update Log
 
+## 2026-07-21
+* **Correction**: a maintain pass against `CHANGELOG.md` found the drift running
+  the *other* way — the bundle was current and the changelog was not. Every
+  concept touched by this branch's server/page work had its body updated in the
+  same commit as the code (`bundles-manager`, `graph-server`,
+  `server-trust-boundary`, `registry` all speak `--read-only`, and a search for
+  `--allow-manage`/`--allow-edit` returns nothing), but `[Unreleased]` carried
+  none of it: the registry's browser surface and its four write gates,
+  cross-bundle search from the hub, the topbar box's count and bridge, the 404
+  rebuilt as a directory, the touch preview card, and additive type chips were
+  all shipped and undocumented. Written now, documenting the **net end state
+  only** — the flag is `--read-only` with management as the default, and the
+  intermediate `--allow-edit` → `--allow-manage` renames are deliberately not
+  named, because neither ever appeared in a release and a changelog that
+  describes states no user ever saw is a changelog nobody can use.
+* **Correction**: two timestamps were stale by up to two days —
+  [graph-server](capabilities/graph-server.md) stamped `07-19T03:00` with a body
+  last edited `07-21T14:43`, and [bundles-manager](capabilities/bundles-manager.md)
+  stamped `07-21T00:00` against `07-21T13:51`. The bodies were right both times;
+  only the closeout's timestamp bump was skipped. Worth recording as a pattern
+  rather than a slip: `timestamp` records *last written*, so a body edited in the
+  same commit that leaves the stamp alone makes every freshness answer — a
+  reader's, and `lint --stale-after`'s — quietly wrong in the direction that
+  looks fine.
+* **Update**: [browser-tests](design/browser-tests.md) gained the vendor cache's
+  bypass (`OKF_NO_VENDOR_CACHE=1`). The cache itself was already documented down
+  to the measurement that refuted its own rationale; the one lever a reader needs
+  to check the template's pins against the real CDN was the part missing.
+* **Addition**: the skill gained a **`refine` verb** and the CLI its two
+  evidence views. `playbooks/refine.md` is the third authoring boundary —
+  `curate` keeps the structure sound, `maintain` keeps the content true,
+  `refine` changes where knowledge lives: the directory
+  tree as a lossy projection of the link graph, cohesion over balance, concerns
+  as tags never containers, free levers (heading sectioning, tag curation,
+  extraction) before file moves, and a propose-don't-apply contract (a report
+  plus a frozen execution prompt). The evidence is mechanical now: `okf tags
+  --by` rows carry each tag's `count/total` so locality (domain vs concern)
+  reads per row, and `okf graph --hubs` ranks inbound links grouped by source
+  area — the hub origin test. The [read views](capabilities/read-views.md) and
+  [agent skill](capabilities/agent-skill.md) concepts record both; the design
+  came from evaluating a field report on a 50-concept production bundle whose
+  restructuring had to be hand-derived.
+* **Change**: the hub's 404 stopped leading with the apology. It is a directory
+  reached by a wrong turn, not an error page, so the **asked path is now the
+  heading** — mono, 27px, where a dropped slash reads as a shape — and "not
+  found" is the eyebrow above it. A reader arrives already knowing they are
+  lost; the URL bar told them. The near miss became a **row** instead of a
+  sentence, wearing the same anatomy as the list under it and already lit, with
+  `⏎` wired to it before a character is typed. Rows gained the folder, which is
+  the fact that actually distinguishes bundles on a real server (`site/.okf`,
+  `minifts/.okf`, `okf-core/.okf` are three titles that read alike). And colour
+  went back to marking exceptions only: a healthy row draws no verdict edge,
+  because six rules saying "nothing to report" is a page where the one that
+  matters cannot be found by looking.
+* **Fix**: the 404's ↑↓ keys are gone, and moving through the list is Tab's job
+  again. The hand-rolled cursor was a second focus model living beside the real
+  one — it lit rows the browser did not consider focused, it was invisible to a
+  screen reader, and keeping the two in step is what left the near miss and a
+  list row highlighted at once, which made ↑↓ read as doing nothing at all. Every
+  row is an `<a href>`, a filtered-out row is `display:none` and leaves the tab
+  order on its own, and Shift-Tab goes back: all of it free, none of it ours to
+  maintain. What is left is one mark meaning "⏎ opens this", which never moves
+  and stands down the moment the caret leaves the box — past that point `⏎`
+  belongs to whatever Tab focused. `/` reaches the box from anywhere, the same
+  key the graph page binds, so a reader who tabbed into the list and changed
+  their mind does not have to tab back out of it.
+* **Feature**: the 404's box escalates the way the graph page's does, through the
+  **same component**. A bundle list cannot answer "where is the thing about
+  decay?" — but the hub can, since `/search` reads inside every bundle it hosts.
+  So a query matching no *bundle* drops the graph page's own bridge panel under
+  the box — `No bundle matches "…"`, then `Search every bundle ⏎` and
+  `Clear esc` — rather than saying no twice or inventing a second dialect of one
+  idea two pages apart. The hits land under the list, each opening its concept in
+  place (`/b/<slug>/?select=<id>`).
+* **Fix**: the 404's guess only ever looked at the slug the router parsed, so it
+  was silent on the commonest typo there is. `/bokf-tui/` is `/b/okf-tui/` minus
+  one slash, and the router — which only looks *under* the mount — hands back no
+  slug at all. The guess now falls back to the path's own first segment, whole
+  first so a bundle really named `borders` beats `orders` reached by eating the
+  mount letter. The dropped separator is named outright only on evidence with no
+  second reading; short of that the page teaches the URL shape rather than
+  guessing at the mistake.
+* **Fix**: the graph's Filters panel had three chip groups and two grammars.
+  Areas and tags were additive — nothing selected means everything, a click
+  narrows, a second click undoes — while **types were subtractive**: every type
+  showed until you clicked one *away*. Same chip component, same panel, opposite
+  meaning, and the catalog's and tags' own type chips one view over were already
+  additive, so the odd one out was odd twice. Types now select like everything
+  else (`hiddenTypes` → `activeTypes`), which also means two types compound into
+  a union the way two tags do — something the old model could not express at all.
+  The change is a net deletion: `.chip.off` had no other user, and `chipRow`'s
+  per-group state-class argument was there only to tell types apart from the
+  rest. `typeFocused` collapses into the same shape as `tagFocused`, taking its
+  one-type-bundle special case with it.
+* **Change**: the `/b/` manager's registry forms are gone, and the page stayed.
+  For a stretch both surfaces carried the same four verbs — the forms here and
+  the graph page's ⚙ Bundles panel — which is two implementations of one
+  contract and the shape that drifts. The panel wins because managing a set is
+  something you do while reading it, not on a detour to a page you had to know
+  existed. `/b/` keeps the jobs only it can do: the list, the redirect target
+  when no bundle is named, the way back from a 404, and the empty state a hub
+  with no bundles has no graph page to show. It now carries no forms, no script
+  and no token — a page with nothing to post has no business holding the
+  credential — and the four `POST /registry/<verb>` routes answer JSON to one
+  caller instead of two shapes to two.
+* **Note**: `--allow-manage` is now **`--read-only`**, and the axis flipped. The
+  old flag read as the on switch and was not one — a loopback bind was already
+  writable, and all `--allow-manage` did was widen that to a bind nobody should
+  widen it to. So the opt-in is gone outright: a non-loopback bind is refused
+  with no flag that opens it, because the registry is a per-user file and the
+  machine that owns it is the machine that manages it. What is left is the way
+  *out*, named for the word the hub's own refusal already used. A flag that
+  cannot be misread as permission beats one that has to be read carefully.
+* **Fix**: on a touch screen, tapping a concept destroyed the graph. At `≤768px`
+  the inspector is `grid-template-columns:0 1fr`, so a tap measured `#stage` at
+  **0 px wide** — the graph was not covered, it was gone, and exploring became
+  open → read → close → tap the next dot. A **preview card** now rises at the
+  bottom edge instead, carrying the concept's head over a graph that keeps every
+  pixel and stays live; drag it up for the neighbourhood and the body, tap a row
+  and it swaps in place while the camera walks. Two subtractions are the point:
+  the 0.26 s entrance is gone outright — the card takes exactly one transform
+  value for its whole life on screen — and a miss on bare canvas no longer
+  dismisses it, because the misses are constant at that size and each one made
+  the next dot replay the entrance. Together those two were the slideshow. The
+  camera aims at the visible band rather than the canvas centre, or the selected
+  node parks under the card describing it. The branch is wider than the chrome's
+  (`≤768px` **or** `≤1024px` portrait): a portrait tablet has the same bug and
+  wants the same gesture, while landscape at that size keeps the inspector.
+  Folder and index taps fill the card too — they used to write into an invisible
+  `#side-body`, so tree and cluster modes were silently dead on touch.
+* **Note**: `clickNode` in the browser suite returned Cytoscape's collection
+  from its `evaluate`, so Playwright deep-serialized the whole `cy` instance
+  hanging off it — **5.0 s per tap**, against 6 ms with braces round the body.
+  Eleven call sites across five specs; the full suite went 3.0m → 1.4m. The trap
+  is that it never fails, only costs, so nothing points at it until a spec with
+  three taps in it hits the 30 s timeout.
+* **Feature**: the graph page stops hiding what it can do. The topbar box said
+  "search concepts…", *filtered* the current view, emptied the graph in silence
+  when nothing matched, and never mentioned the ⌘K palette that searches every
+  bundle. It now carries the chord as a chip, a live `7/8` count — so an empty
+  result is a number that reached zero rather than a view that went blank — and,
+  on zero, a panel naming the bundle and the query with the way on: `⏎` hands
+  the query to the palette prefilled and already searching. The escalation is
+  the TUI's own, arriving four surfaces late. It will fire rarely, and that is
+  the design working: the box's index reaches full bodies wherever the page
+  holds them, so most real words match *something* locally.
+* **Feature**: the registry moved onto the page. A ⚙ in the rail opens a
+  **Bundles** slide-over — every registered bundle with its size, its health as
+  a word, the default marked and the one being read marked differently, and a
+  `⋯` per row carrying Make default, Rename… and Remove…. It reads a new
+  `GET /bundles` (the [manager](capabilities/bundles-manager.md)'s own rows, as
+  JSON) on every open rather than baking the list in, because the hub re-reads
+  the registry per request and a boot snapshot goes stale silently. The four
+  `POST` verbs gained a JSON rendering for it; every gate, status and sentence
+  is unchanged, and asking for JSON is not a way around any of them. No **Add**:
+  a browser cannot hand over a filesystem path, and registering is the agent's
+  act — the footer says so rather than leaving the absence to be noticed.
+* **Fix**: a slide-over parked at `translateX(100%)` **still occupies layout**,
+  and `#views` did not clip — the Filters panel escapes this only because
+  `#stage` does. The closed panel widened the document by its own 340px, and
+  writing the spec found the half a prototype could not: it does the same *while
+  sliding*, so fixing only the closed state still flashes a horizontal scrollbar
+  on every open. `hidden` while closed plus `overflow:hidden` on `#views` settle
+  both, and the spec samples `scrollWidth` across the whole animation — measured
+  after it lands, the scrollbar has already gone. The hazard was latent for any
+  panel added outside `#stage`, so the clip is the fix that matters.
+* **Fix**: the hub's 404 was a centred card in a chrome that existed nowhere
+  else in the product — the page a reader reaches by being wrong was also the
+  page telling them they had left. It is now the app shell with nothing to show:
+  the same rail, mark, theme toggle, topbar and row anatomy, plus the asked path
+  as a chip, a did-you-mean, and a filterable list. The guess is Levenshtein
+  with a shared-prefix shortcut, which is the part that earns its keep —
+  truncation is the commonest way a slug comes out wrong, and plain edit distance
+  scores `ord` three edits from `orders`. It is rendered in Ruby, not from an
+  inlined payload: this is where someone lands when something has already gone
+  wrong, and a page that needs JavaScript to say what happened has picked the
+  worst possible moment to need it.
+* **Note**: `--allow-edit` is now **`--allow-manage`**, with no alias — it had
+  not shipped in a release. The flag is a permission grant, so the `allow-`
+  prefix was right; the noun was wrong. Nothing edits anything: what it permits
+  is adding, renaming, removing and re-defaulting *registry entries*, which are
+  references, and "allow edit" invited the fear that a reader's markdown had
+  become writable from a browser. The rename came with the test that was
+  missing — a POST straight at a read-only hub, carrying a valid same-origin
+  token, asserting 403 *and* a byte-identical registry file. It passed on the
+  first run, which is the point: the guard was real and unproven, and unproven
+  is how a guard quietly stops being real.
+* **Note**: "workspace" is retired. It appeared only in the server layer and in
+  this bundle, never in anything a user types — `registry` is the CLI verb
+  family, `$OKF_HOME`, `OKF::Registry`; **Bundles** is what the surface has
+  always called itself, in the TUI's view and in `/b/`'s own `<h1>`. It is also
+  the only word true in both modes, since the hub serves ephemeral sets with no
+  registry at all: a panel titled "Registry" would be lying half the time.
+* **Feature**: the server reaches what the TUI reaches, through a browser. Three
+  pieces, shipped in order. **Cross-bundle search**: the hub answers
+  `GET /search?q=`, `Search.across` over every hosted bundle on one shared index,
+  and the ⌘K palette gains a **Concepts** group that fetches as you type. The
+  group comes last because it is the only one that arrives asynchronously, and a
+  group landing above the cursor moves the row under the reader's fingers between
+  the keystroke and the Enter. The engine is *named* `:index` rather than left to
+  route off `fuzzy: true` — that worked only because nothing else declares the
+  capability, and it is also the right engine here for a reason the CLI's default
+  does not share: a long-lived server amortizes an index build over every
+  keystroke, and the browser's own MiniSearch is a port of it, so a palette hit
+  and an in-page search rank alike. **The [bundles
+  manager](capabilities/bundles-manager.md)**: `/b/` went from a bare list to
+  the browser counterpart of the TUI's bundles view — size, health verdict,
+  default marker, and the entries the hub *cannot* host shown muted rather than
+  omitted, because leaving them off answers "where did my bundle go?" with
+  silence. **Registry writes**: four `POST` routes behind three gates
+  (loopback-or-`--allow-manage`, a registry to write to, same-origin plus a
+  per-boot token), each rebuilding the hub's served set from disk — a write that
+  leaves the running server on the old set is a lie the next click believes.
+* **Note**: the manager page carries no script, deliberately. Rename and Remove
+  are `<details>` disclosures, Add is a text field for an absolute path — a
+  browser cannot hand over a filesystem path at all (the File System Access API
+  yields an opaque handle, and is Chromium-only), so there was never a picker to
+  choose over typing. The first browser run of the new specs paid for itself: an
+  HTML `pattern` whose character class is a valid Ruby regexp and invalid under
+  the `v` flag a browser compiles it with, throwing on every keystroke where no
+  integration assertion could see it.
+* **Sync**: the browser suite now serves the page's CDN libraries from a local
+  read-through cache, and [browser tests](design/browser-tests.md) records both
+  what that buys and what it does not. It is keyed on the request URL rather
+  than a manifest of the versions the template pins, because a manifest is a
+  second copy of those pins that can drift into serving a library the page no
+  longer loads — the one failure a cache is most likely to hide. A warm run
+  touches no network (proven by making the fetch path throw and watching 64
+  cases still pass), but `vendor/` is build output, so CI still starts cold and
+  the `continue-on-error` rationale stands until the workflow restores it.
+* **Correction**: the same note records that the cache does *not* make the suite
+  faster, against the arithmetic that predicted it would. The premise — a fresh
+  Playwright context per test re-paying ~330 ms of boot scripts across 400-odd
+  cases — is wrong: Chromium reuses those subresources across contexts inside a
+  worker's browser process. Controlled A/B at one worker, 28.7 s → 29.0 s; the
+  suite is CPU-bound at ~500% across five workers. Recorded because full-suite
+  wall clock is noisy enough (3.4 m, 3.6 m, 2.8 m on the same 412 cases) to
+  invite reading the fastest run as a win, and because the discarded hypothesis
+  is the part that would otherwise be re-derived from the per-request timings.
+
 ## 2026-07-20
 * **Fix**: the graph no longer collapses on return from another view — and the
   cause was misdiagnosed for months. The [browser suite](design/browser-tests.md)

@@ -35,6 +35,73 @@ test.describe("diagram viewer", () => {
     await expect(mmd).toBeFocused();
   });
 
+  test("a rendered diagram block advertises that it opens — zoom-in cursor, accent hover", async ({ app }) => {
+    // The block is a role=button that opens the fullscreen viewer, and its
+    // affordances say so: cursor:zoom-in always, and the border turns to the
+    // accent on hover. (The :focus-visible outline is keyboard-only and left to
+    // the eye.) The colour is read through a probe so it is an rgb-to-rgb compare.
+    await openAdr(app);
+    const mmd = app.locator("#side-body #body .mermaid");
+    expect(await mmd.evaluate((el) => getComputedStyle(el).cursor)).toBe("zoom-in");
+
+    const accent = await app.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+      document.body.appendChild(probe);
+      const c = getComputedStyle(probe).color;
+      probe.remove();
+      return c;
+    });
+    await mmd.hover();
+    await expect
+      .poll(() => mmd.evaluate((el) => getComputedStyle(el).borderColor.replace(/\s/g, "")))
+      .toBe(accent.replace(/\s/g, ""));
+  });
+
+  test("the open viewer swallows the page's other shortcuts", async ({ app }) => {
+    // #dgv is modal: while it is up the keydown handler honours Escape and
+    // returns before any other binding, so a view key that would otherwise
+    // navigate is swallowed. Open it on the graph, press "3" (Files) — the view
+    // must stay graph with the viewer still up — then Escape, the one key the
+    // guard passes, closes it.
+    await openAdr(app);
+    await app.locator("#side-body #body .mermaid").click();
+    await expect(app.locator("#dgv")).toBeVisible();
+    await expect(app.locator("#app")).toHaveAttribute("data-view", "graph");
+
+    await app.keyboard.press("3");
+    await expect(app.locator("#app")).toHaveAttribute("data-view", "graph");
+    await expect(app.locator("#dgv")).toBeVisible();
+
+    await app.keyboard.press("Escape");
+    await expect(app.locator("#dgv")).toBeHidden();
+  });
+
+  test("the viewer's zoom controls scale the diagram, and reset returns it", async ({ app }) => {
+    // The three toolbar buttons drive Panzoom: #dgv-in / #dgv-out step the scale,
+    // #dgv-reset returns to the fit start scale. Read the scale off the pan
+    // element's transform matrix (its `a` component) — zoom in grows it, zoom out
+    // shrinks it, reset lands back near where it started.
+    await openAdr(app);
+    await app.locator("#side-body #body .mermaid").click();
+    await expect(app.locator("#dgv")).toBeVisible();
+
+    const scale = () =>
+      app.locator("#dgv-pan").evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).a);
+    const s0 = await scale();
+    expect(s0).toBeGreaterThan(0);
+
+    await app.locator("#dgv-in").click();
+    await expect.poll(scale).toBeGreaterThan(s0);
+    const s1 = await scale();
+
+    await app.locator("#dgv-out").click();
+    await expect.poll(scale).toBeLessThan(s1);
+
+    await app.locator("#dgv-reset").click();
+    await expect.poll(scale).toBeCloseTo(s0, 1);
+  });
+
   test("toggling the theme re-renders the inline diagram in the new theme", async ({ app }) => {
     // rethemeMermaid() runs on every setTheme: it re-initializes mermaid with the
     // new theme, clears each block back to its source, and re-runs — a diagram

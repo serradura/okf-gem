@@ -4,6 +4,7 @@ require_relative "../cli_integration_case"
 
 # The CLI loads these on demand (`server` requires them); a test naming the
 # classes it asserts on cannot wait for the run to pull them in.
+require "json"
 require "okf/server/hub"
 require "rack/deflater"
 require "stringio"
@@ -317,6 +318,96 @@ module AcrossBundles
       refute_match(/example\.test/, page, "the ignored --link reaches no app behind the hub")
     end
 
+    # -- --read-only: who may change the registry from the browser
+
+    # Writability is read off `GET /bundles` rather than off the manager page:
+    # /b/ carries no controls at any setting now, so its markup cannot tell the
+    # settings apart. That endpoint is what the graph page's Bundles panel asks
+    # before it decides what to offer, which makes it the honest signal.
+
+    test "a loopback bind manages the registry from the browser without a flag" do
+      _result, booted = with_registry("conformant", "rooted") { okf_server }
+
+      assert_equal true, writable?(booted_app(booted.first)),
+        "the audience this page was built for should not need a flag to use it"
+    end
+
+    test "--read-only takes management away from a loopback bind" do
+      # The off switch, and the only one: management follows the bind, and this
+      # is how you decline it on the bind that would otherwise have it.
+      _result, booted = with_registry("conformant", "rooted") { okf_server("--read-only") }
+      hub = booted_app(booted.first)
+
+      assert_equal false, writable?(hub)
+      assert_match(/fixtures\/conformant/, manager(hub), "the list is still worth reading")
+    end
+
+    test "--read-only refuses the write itself, not only the controls for it" do
+      # The flag is what a public deployment binds, so it is worth proving at the
+      # endpoint and not just on the page. This POST carries everything a real
+      # one would — same origin, this boot's token — and the registry is read
+      # back off disk afterwards, because a refusal that still wrote is the only
+      # failure that matters here.
+      _result, booted = with_registry("conformant", "rooted") { okf_server("--read-only") }
+      hub = booted_app(booted.first)
+      before = read_utf8(OKF::Registry.path)
+
+      status, _headers, body = post(hub, "/registry/remove", "slug" => "rooted")
+
+      assert_equal 403, status
+      assert_match(/read-only/, body)
+      assert_equal before, read_utf8(OKF::Registry.path), "nothing reached the registry"
+      assert_match(/^\s*rooted/, okf("registry", "list").out, "and the entry is still registered")
+    end
+
+    test "a non-loopback bind is read-only, and no flag opens it" do
+      # --bind 0.0.0.0 is how a personal tool becomes a public one. The manager
+      # still *reads* — the page is worth having either way — but nothing writes,
+      # and there is no longer an opt-in that says otherwise: the registry is
+      # managed from the machine that owns it.
+      _result, booted = with_registry("conformant", "rooted") { okf_server("--bind", "0.0.0.0") }
+      hub = booted_app(booted.first)
+
+      assert_equal false, writable?(hub)
+      assert_match(/fixtures\/conformant/, manager(hub), "the list is still worth reading")
+
+      # Gone, not quietly ignored — an unknown flag that boots anyway would let
+      # a stale command line believe it had opened something.
+      opted, = with_registry("conformant", "rooted") { okf_server("--bind", "0.0.0.0", "--allow-manage") }
+      assert_equal 2, opted.status
+      assert_match(/--allow-manage/, opted.err)
+    end
+
+    test "an ephemeral hub offers no management, loopback or not" do
+      _result, booted = okf_server(fixture("conformant"), fixture("minimal"))
+      hub = booted_app(booted.first)
+
+      assert_equal false, JSON.parse(get_page(hub, "/bundles").last)["registry"],
+        "there is no registry behind these dirs to change"
+      assert_match(/not registered/, manager(hub),
+        "and the page says so rather than leaving it a mystery")
+    end
+
+    test "--read-only shows up in the verb's own help" do
+      assert_match(/--read-only/, okf("server", "--help").out)
+    end
+
+    test "a read-only hub refuses a registry POST outright, and the file on disk is untouched" do
+      # Hiding the controls is a UI; refusing the request is the boundary. This
+      # POST carries everything the page's own form would have — same origin,
+      # this boot's token — and is still refused, because the bind decides.
+      _result, booted = with_registry("conformant", "rooted") { okf_server("--bind", "0.0.0.0") }
+      hub = booted_app(booted.first)
+      before = read_utf8(OKF::Registry.path)
+
+      status, _headers, page = post(hub, "/registry/rename", "slug" => "conformant", "to" => "renamed")
+
+      assert_equal 403, status
+      assert_match(/loopback/, page, "the refusal names what decides it")
+      assert_equal before, read_utf8(OKF::Registry.path), "nothing reached the registry"
+      assert_match(/^\* conformant/, okf("registry", "list").out, "and the entry still answers to its own slug")
+    end
+
     test "a plain dir and a ref mount side by side, each under its own name" do
       okf("registry", "set", fixture("rooted"), "--as", "steered")
 
@@ -380,6 +471,32 @@ module AcrossBundles
     # Drive a booted (unwrapped) Rack app the way a browser would, no socket:
     # returns [ status, headers, body ]. App and Hub both answer with an array
     # body, so joining it is the whole response.
+    # The /b/ manager as a booted hub renders it — where every question about
+    # who may change what has a visible answer.
+    def manager(hub)
+      get_page(hub, "/b/").last
+    end
+
+    # What the Bundles panel asks before it decides what to offer — and so the
+    # one place a boot's writability is visible from outside.
+    def writable?(hub)
+      JSON.parse(get_page(hub, "/bundles").last)["writable"]
+    end
+
+    # A form POST as the manager's own page would send it: same-origin, and
+    # carrying this boot's token. Anything the hub refuses through here it
+    # refuses for a reason of its own, not for a missing credential.
+    def post(hub, path, params = {})
+      body = Rack::Utils.build_query(params.merge("token" => hub.send(:token)))
+      status, headers, response = hub.call(
+        "REQUEST_METHOD" => "POST", "PATH_INFO" => path, "QUERY_STRING" => "",
+        "HTTP_HOST" => "example.org", "HTTP_ORIGIN" => "http://example.org",
+        "CONTENT_TYPE" => "application/x-www-form-urlencoded",
+        "CONTENT_LENGTH" => body.bytesize.to_s, "rack.input" => StringIO.new(body)
+      )
+      [ status, headers, response.join ]
+    end
+
     def get_page(app, path = "/")
       status, headers, body = app.call(
         "REQUEST_METHOD" => "GET", "PATH_INFO" => path, "QUERY_STRING" => "", "rack.input" => StringIO.new("")

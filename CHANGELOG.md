@@ -5,10 +5,89 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.10.0] - 2026-07-21
 
 ### Added
 
+- **The skill gains a `refine` verb** (`playbooks/refine.md`): restructure a
+  bundle to get the most from OKF's capabilities — progressive disclosure, the
+  emergent graph, cross-cutting tags, capture-once-link-many. It is the third
+  authoring boundary: `curate` keeps the structure sound as it stands,
+  `maintain` keeps the content true, `refine` changes where knowledge lives —
+  evidence-first (tag locality, the hub origin test, a fatness alarm),
+  cohesion-over-balance, free levers before file moves, and it *proposes* (a
+  report plus a frozen execution prompt), never auto-applies.
+- **`okf graph --hubs`** — the inbound ranking: every concept with at least one
+  inbound link, ranked by inbound degree, each with its links grouped by
+  *source area* (`core/status  ×3   flows 2, billing 1`). This is the refine
+  playbook's hub origin test made mechanical: a hub whose inbound majority is
+  foreign to its own area is a move candidate. JSON: `{ bundle, count, hubs:
+  [{ id, area, inbound, by_area }] }`.
+- **The registry has a browser surface.** A meeting with non-technical readers
+  settled what the TUI could not: `okf registry set/del/default/rename` is the
+  right surface for the people who *write* bundles and the wrong one for the
+  people who read them. The graph page's rail grows a **Bundles panel** behind
+  ⚙ — every bundle the server knows about, with its title, `@slug`, folder,
+  concept count and a health verdict — and four routes behind it:
+  `POST /registry/{default,rename,remove,add}`, the only non-GET routes the
+  server has.
+  - **Management is the default, and `--read-only` declines it.** The flag names
+    the restriction rather than the capability, because the audience this was
+    built for should not need a command line to use the page they were pointed
+    at. A loopback bind is writable without a flag; any other address is refused
+    outright, with no flag that opens it — `--bind 0.0.0.0` is how a personal
+    tool becomes a public one, and a write surface does not follow it there.
+  - **Four gates on every write**: is this server writable at all; is there a
+    registry to write to (an ephemeral `okf server ./a ./b` answers `409` rather
+    than leaving the missing controls a mystery); is the verb one of the four (a
+    frozen list — "call whatever method the path names" is how a router becomes
+    an `eval`); and did this come from this page (same-origin *and* a per-boot
+    token, since the token lives in a page another site can get a reader to
+    submit, and Origin alone would trust every tab open on the host). A
+    read-only server hides the controls *and* refuses the request that skipped
+    them: hiding a button is a UI, refusing the request is the boundary.
+  - **A write rebuilds the hub's bundles from disk** before it answers. That is
+    the step easy to skip and impossible to skip safely — a write leaving the
+    running server on the old set is a lie the next click believes.
+  - **`/b/` stops managing and keeps the page.** Both surfaces carried the same
+    four verbs for a while, and two implementations of one contract is the thing
+    that drifts, so the forms came out and the routes stayed. `/b/` answers
+    *which bundles are there* — and remains the empty state a hub with zero
+    bundles still needs — while the panel answers *change this one* where the
+    reader already is. With nothing to post it holds no token either.
+  - **There is no Add on either surface.** A browser cannot hand over a
+    filesystem path — the File System Access API yields an opaque handle, and is
+    Chromium-only besides — so registering stays the agent's act. The route
+    exists for other callers; nothing in the UI reaches it.
+  - **"Workspace" is retired** from the docs and the UI. The things are Bundles
+    and the thing holding them is the registry; a page saying one word while the
+    CLI says another is two products wearing one name.
+- **The hub searches every bundle it hosts.** `GET /search?q=` is the only route
+  in the server that knows about more than one bundle: `Search.across` over one
+  shared index, so BM25 weighs a term against the whole corpus instead of
+  stapling per-bundle lists together. Capped at 50 with the total reported,
+  because a silent cap reads as a complete answer. The engine is named `:index`
+  outright rather than left to route off `fuzzy: true` — that reached the right
+  engine only because nothing else declares the capability, which is correctness
+  by coincidence, and an addon declaring `:fuzzy` would have taken the route
+  silently. A long-lived server also amortizes an index build over every
+  keystroke where a one-shot CLI cannot, and minifts is a port of the browser's
+  own MiniSearch, so a palette hit and an in-page search rank alike.
+  - **The palette's Concepts group comes last**, and not because it matters
+    least: it is the only group that arrives asynchronously, and a group landing
+    above the cursor moves the row under the reader's fingers between the
+    keystroke and the Enter.
+- **The topbar search box says what it filters, and where to go when it finds
+  nothing.** It and ⌘K looked alike and meant different things — the box
+  *filters* what is on screen, the palette *finds* across every bundle a hub
+  hosts — and the box carried neither fact: it emptied the graph in silence and
+  never mentioned the palette, so a reader whose word lived in another bundle
+  got a blank canvas and no way out. Three additions, all inside the box: a
+  **chip** naming the chord (⌘K / Ctrl-K, OS-aware) that opens the palette, a
+  **live count** (`7/8`) that makes an empty result a number which reached zero
+  rather than a view that went blank, and on zero a **panel** naming the bundle
+  and the query — ⏎ hands it to the palette prefilled and already searching, esc
+  clears.
 - **`okf` is extensible.** Any gem that puts `okf/plugin.rb` on its load path can
   register a verb, and it answers to `okf` — listed in `okf help` under
   `installed extensions:`, dispatched like a built-in. There is no list of known
@@ -52,8 +131,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   three fixes below are what writing it turned up: shipped defects invisible to
   a string assertion over the rendered HTML, each reproduced red and pinned
   green.
+  - **Coverage is mapped per-contract, not guessed.** `test/browser/COVERAGE.md`
+    enumerates every behavioral contract the page introduced across its history
+    and marks each covered / partial / uncovered against a named spec — **176 of
+    181 net-live (97%)**. The five that remain are each a documented blocker, not
+    a missing test: an absence-proof with no line to break, a node-overlap check
+    no cytoscape layout makes both deterministic *and* mutation-sensitive, a
+    map-visibility observable another contract already owns, a palette scroll
+    whose observable is a tautology, and an unbuilt focus-trap. Reaching the
+    branches the flat 8-concept fixture cannot took four further purpose-built
+    bundles beside the hostile one, each served on its own port and baked to its
+    own static page so the main fixture's count assertions stay put — nested
+    directories, forty-five tags, a five-directory-deep reserved path, and a
+    hundred-node ring that drives the graph past its own fit box. Every new spec
+    is mutation-checked: break the code it covers, confirm it goes red for the
+    predicted reason, restore. The map also caught one of its own stale rows — a
+    note listed as an uncovered gap had in fact been deleted from the page, and is
+    now marked superseded rather than owed.
+  - **The page's CDN libraries are served from a local cache** — a read-through
+    cache keyed on the request URL, so a warm run needs no network and a version
+    bump is a miss rather than a stale hit; `OKF_NO_VENDOR_CACHE=1` bypasses it,
+    which is how you check the pins still resolve. It buys robustness, not
+    speed: measured at one worker, 28.7s without and 29.0s with, because the
+    suite is CPU-bound and Chromium already reused those files across contexts.
 
 ### Changed
+
+- **`okf tags --by` rows carry each tag's total.** The grouped view printed only
+  within-group counts, so a tag's spread meant cross-referencing groups by
+  hand; each row now shows `count/total` when they differ (`async  2/3`) and
+  the plain count when the tag is wholly local — locality at a glance, the
+  domain-vs-concern read. The JSON rows gain a `total` key; filters recompute
+  it over the narrowed set.
+
+- **A wrong turn at the hub lands on a directory, not an apology.** The 404 is
+  rebuilt on the app shell, and it reads as what it is: the **asked path is the
+  heading**, set in mono where a dropped slash is legible as a shape, with "not
+  found" demoted to the eyebrow above it, since a reader arrives already knowing
+  they are lost. A near-miss slug is a **row** wearing the same anatomy as the
+  list under it, already marked, with ⏎ pointed at it; rows carry the folder
+  that actually distinguishes `site/.okf` from `minifts/.okf`; and colour marks
+  exceptions only, so a healthy row draws no verdict edge at all. Moving through
+  the list is **Tab's** job — every row is an `<a href>`, and a hand-rolled ↑↓
+  cursor was tried and deleted as a second focus model beside the real one. A
+  query matching no bundle is offered the cross-bundle search that would match
+  it, the same escalation the graph page's box makes.
+
+- **On a touch screen a tap opens a card, not the whole viewport.** At ≤768px
+  the inspector is `grid-template-columns:0 1fr`, so tapping a dot measured the
+  stage at 0px wide: the graph was not covered, it was gone. Exploring on a
+  phone became open → read → close → tap the next dot, and you could never see a
+  concept and its neighbourhood at once, which is the one thing a graph is for.
+  A preview card now rises at the bottom edge over a graph that keeps every
+  pixel and stays live — drag it up for the neighbourhood and the body, tap a
+  row and it swaps in place while the camera walks. Folder and index taps fill
+  the card too; they used to write into an invisible panel, so tree and cluster
+  modes were silently dead on touch. The branch is wider than the chrome's
+  (≤768px, or ≤1024px portrait), because a portrait tablet has the same bug and
+  wants the same gesture.
+
+- **Type chips select instead of deselecting.** Three chip groups carried two
+  grammars: areas and tags were additive — nothing selected means everything, a
+  click narrows, a second click undoes — while types were subtractive, every
+  type showing until you clicked one away. Same component, same panel, opposite
+  meaning, and the catalog's and tags view's own type chips were already
+  additive, so the rule a reader learned in one view was wrong in the next.
+  Types now select, and two of them compound into a union the old model could
+  not express at all — it could say "not the other four", never "Services and
+  Charters". The change is a net deletion.
 
 - **The CLI is one file per verb.** `lib/okf/cli.rb` was 1,794 lines and a
   15-arm `case`; it is now a registry and a dispatcher, with the verbs under
@@ -96,6 +241,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   names this same min-zoom clamp — it was the navigate-away case that went
   uncovered.
 
+- `okf help`'s map advertised `search … [-e|--fuzzy]`, pairing a shorthand
+  it never expanded with an unrelated flag, so the one hint that an engine is
+  selectable read as though `-e` might *be* the engine switch. The row now says
+  `[--regexp|--fuzzy]`, which is what the command's own banner says; `-e` still
+  works and `search --help` still spells it out.
 - **`okf skill <a> <b>` installed into `<a>` and exited 0.** It hand-rolled
   its own argument handling instead of using the shared pair every `<dir>` verb
   goes through, so a second destination was silently dropped — the user named two
@@ -780,7 +930,7 @@ Initial release.
 
 - Runs on Ruby >= 2.4 with two runtime dependencies: rack and webrick.
 
-[Unreleased]: https://github.com/serradura/okf-gem/compare/v1.9.0...HEAD
+[1.10.0]: https://github.com/serradura/okf-gem/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/serradura/okf-gem/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/serradura/okf-gem/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/serradura/okf-gem/compare/v1.6.0...v1.7.0

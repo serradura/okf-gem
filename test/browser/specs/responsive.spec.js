@@ -61,6 +61,39 @@ test.describe("phone (375px)", () => {
   test("nothing overflows the viewport horizontally", async ({ app }) => {
     expect(await app.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
   });
+
+  test("the controls toggle is gone on Stats, which has no tools to fold", async ({ app }) => {
+    // The ⚙ folds the graph/files tools into a sheet; Stats has no tools, so
+    // `#app[data-view=stats] #btn-controls{display:none}` hides the toggle there.
+    // It is present on the graph view (the discriminating control).
+    expect(await css(app, "#btn-controls", "display")).not.toBe("none");
+    await app.locator("#btn-menu").click();
+    await app.locator('.rail-item[data-view="stats"]').click();
+    await expect(app.locator("#app")).toHaveAttribute("data-view", "stats");
+    expect(await css(app, "#btn-controls", "display")).toBe("none");
+  });
+
+  test("the ⚙ toggle carries the active-filter count even with the sheet folded away", async ({ app }) => {
+    // On mobile the graph tools fold behind the ⚙; an active filter must still
+    // call out from the bar, so ctlBadge() mirrors the filter count onto
+    // #btn-controls and lights it. Open the sheet, open Filters, hide a type —
+    // the ⚙ badge reads 1 and the button carries .on-filter.
+    await expect(app.locator("#btn-controls .fbadge")).toHaveText("0");
+    await app.locator("#btn-controls").click();
+    await app.locator("#btn-filters").click();
+    await app.locator('#ftypes .chip[data-t="Service"]').click();
+    await expect(app.locator("#btn-controls .fbadge")).toHaveText("1");
+    await expect(app.locator("#btn-controls")).toHaveClass(/on-filter/);
+  });
+
+  test("the folded tools sheet groups the icon row instead of flinging it edge to edge", async ({ app }) => {
+    // Opening the sheet wraps #graph-controls; the icon buttons must sit as one
+    // group (gap only), not spread with justify-content:space-between (a5f12ab —
+    // four buttons at the extremes of a phone read as four unrelated things).
+    await app.locator("#btn-controls").click();
+    await expect(app.locator("#app")).toHaveClass(/controls-open/);
+    expect(await css(app, "#graph-controls", "justifyContent")).not.toBe("space-between");
+  });
 });
 
 test.describe("desktop (1280px)", () => {

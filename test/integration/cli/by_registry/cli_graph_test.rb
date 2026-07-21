@@ -96,6 +96,20 @@ module ByRegistry
       end
     end
 
+    test "@slug --hubs keeps the identity head over the ranking" do
+      with_registry("shapely") do
+        result = okf("graph", "@shapely", "--hubs")
+
+        assert_equal 0, result.status
+        assert_match(/\AHubs — @shapely \(#{Regexp.escape(fixture("shapely"))}\) \(2 of 4 concepts with inbound links\)\n/, result.out)
+
+        data = json(okf("graph", "@shapely", "--hubs", "--json"))
+        assert_equal "shapely", data.fetch("slug")
+        assert_equal fixture("shapely"), data.fetch("bundle")
+        assert_equal "core/status", data.fetch("hubs").first.fetch("id")
+      end
+    end
+
     test "a malformed ref-named bundle is best-effort — skips noted, exit 0" do
       with_registry("malformed") do
         result = okf("graph", "@malformed")

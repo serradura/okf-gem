@@ -85,6 +85,16 @@ test.describe("inspector", () => {
     await expect(app.locator("#btn-filters .fbadge")).toHaveText("0");
   });
 
+  test("the \\ key toggles the inspector on the graph view", async ({ app }) => {
+    // The keyboard equivalent of the panel toggle: `\` flips data-side between
+    // hidden and default (graph view only). The panel boots hidden.
+    await expect(app.locator(".graph-body")).toHaveAttribute("data-side", "hidden");
+    await app.keyboard.press("\\");
+    await expect(app.locator(".graph-body")).toHaveAttribute("data-side", "default");
+    await app.keyboard.press("\\");
+    await expect(app.locator(".graph-body")).toHaveAttribute("data-side", "hidden");
+  });
+
   test("Escape drops the selection and clears the location hash", async ({ app }) => {
     await clickNode(app, "services/gateway");
 
@@ -108,5 +118,27 @@ test.describe("inspector", () => {
     await clickNode(app, "datasets/orders");
     await expect(app.locator("#side-body")).toContainText("One row per order");
     await expect(app.locator("#side-body")).not.toContainText("The public edge");
+  });
+
+  test("server mode never memoizes a body — re-opening re-fetches it fresh", async ({ app }, testInfo) => {
+    test.skip(testInfo.project.name === "static", "server-only: the static bake reads bodies from EMBED and never re-fetches");
+    // getNodeBody hits NODE_ENDPOINT on every selection with no cache, so an
+    // on-disk edit keeps reflecting (the trust-boundary reason the server never
+    // memoizes bodies). Serve gateway's body from a marker the test flips: the
+    // first open shows it, then flip the marker (an on-disk edit) and re-open —
+    // the new text must appear, where a memoized getter would repeat the first.
+    // (A flag, not a call counter: one selection fetches the body twice — select
+    // writes the hash and the hashchange re-selects — so counting is brittle.)
+    let marker = "FIRST-OPEN-MARKER";
+    await app.route(/\/node\?id=services%2Fgateway/, (route) =>
+      route.fulfill({ status: 200, contentType: "text/plain; charset=utf-8", body: marker }));
+
+    await clickNode(app, "services/gateway");
+    await expect(app.locator("#side-body #body")).toContainText("FIRST-OPEN-MARKER");
+
+    marker = "SECOND-OPEN-MARKER"; // as if the file changed on disk
+    await clickNode(app, "services/billing");
+    await clickNode(app, "services/gateway");
+    await expect(app.locator("#side-body #body")).toContainText("SECOND-OPEN-MARKER");
   });
 });

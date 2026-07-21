@@ -1,6 +1,22 @@
-import { test as base, expect } from "@playwright/test";
+import { test as playwright, expect } from "@playwright/test";
+import { installVendorCache } from "./vendor-cache.js";
 
 export { expect };
+
+// The layer under every spec in the suite, `app` fixture or not: the CDN
+// libraries the page boots with are served from a local read-through cache
+// instead of being re-downloaded per test. See vendor-cache.js for why that is
+// where the suite's time went.
+//
+// Specs that build their own page fixture import this as `base` — that is the
+// only reason it is exported. Importing `test as base` from "@playwright/test"
+// directly would skip the cache, so nothing in specs/ does.
+export const base = playwright.extend({
+  context: async ({ context }, use) => {
+    await installVendorCache(context);
+    await use(context);
+  },
+});
 
 // Every spec gets `app`: a booted page with the first-visit note already
 // dismissed, plus a console watch that fails the test on a page error.
@@ -90,6 +106,10 @@ export async function settledBox(page, { step = 150, tries = 24 } = {}) {
 // Click a concept through Cytoscape rather than at a screen coordinate: the
 // canvas has no DOM node to target, and a synthetic tap is what the page's own
 // handlers listen for.
+// The braces are not style: emit() returns the Cytoscape collection, and an
+// arrow with an expression body hands that back to Playwright to serialize —
+// a cyclic object graph with the whole cy instance hanging off it, which cost
+// ~5s per call. Returning nothing makes the same tap effectively free.
 export const clickNode = async (page, id) => {
-  await page.evaluate((nodeId) => cy.getElementById(nodeId).emit("tap"), id);
+  await page.evaluate((nodeId) => { cy.getElementById(nodeId).emit("tap"); }, id);
 };

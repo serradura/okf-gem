@@ -65,6 +65,17 @@ does not execute script tags. Only the `<img onerror>` did. A fixture carrying
 script tags alone would have gone green against a page with no sanitizer at
 all — proving the defense while the hole stood open.
 
+# A second boundary: the server can now be asked to change something
+
+Everything above is about content coming *in* to the page. The
+[registry routes](../capabilities/bundles-manager.md) opened the other
+direction — four `POST` routes that write the [registry](../registry.md) — and it
+carries its own three locks rather than borrowing these: writable-at-all (loopback
+by default, declined with `--read-only`, refused outright anywhere else), a registry to write to, and same-origin
+plus a per-boot token. Sanitizing has nothing to say about a well-formed request
+that should not have been honoured, which is why that gate is described where it
+lives instead of being folded in here.
+
 # What sanitizing does not cover
 
 DOMPurify removes the code, not the content. The page still fetches and shows the

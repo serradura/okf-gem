@@ -71,9 +71,11 @@ module OKF
       # +siblings+/+self_slug+/+hub_path+ carry the hub's bundle switcher into the
       # page (server mode only). nil — the standalone-server and `okf render`
       # default — injects an empty SIBLINGS, so the switcher never appears in a
-      # single bundle or a static file.
+      # single bundle or a static file. +search_endpoint+ rides along with them:
+      # the hub's cross-bundle /search, which only a hub can answer.
       def initialize(graph, title: nil, link: nil, layout: "cose", node_endpoint: "node", meta_endpoint: "node/meta", embed: nil,
-                     siblings: nil, self_slug: nil, hub_path: nil)
+                     siblings: nil, self_slug: nil, hub_path: nil, search_endpoint: nil,
+                     manage_root: nil, manage_token: nil)
         @graph = graph
         @title = title
         @link = link
@@ -84,6 +86,9 @@ module OKF
         @siblings = siblings
         @self_slug = self_slug
         @hub_path = hub_path
+        @search_endpoint = search_endpoint
+        @manage_root = manage_root
+        @manage_token = manage_token
       end
 
       def render
@@ -156,6 +161,45 @@ module OKF
 
       def hub_path_json
         json_for_script(@hub_path)
+      end
+
+      # The hub's cross-bundle /search, mount-relative — null everywhere else, and
+      # that null is the gate: a standalone server and a static file have no set
+      # of bundles to search, so the palette never offers concepts there.
+      def search_endpoint_json
+        json_for_script(@search_endpoint)
+      end
+
+      # Behind a hub the mark is a link back to the bundle list — "../" reaches
+      # it under any mount, because every page lives at <prefix>/b/<slug>/.
+      # Standalone and static have nowhere to go, so there it stays the plain
+      # identity badge it has always been, and an <a href> to nothing is worse
+      # than no <a> at all.
+      def rail_brand_open
+        return %(<span class="rail-brand" title=") unless @manage_root
+
+        %(<a class="rail-brand" href="../" aria-label="All bundles" title=")
+      end
+
+      def rail_brand_close
+        @manage_root ? "</a>" : "</span>"
+      end
+
+      # The hub root, mount-relative — where the Bundles panel reads /bundles and
+      # posts /registry/<verb>. Null everywhere else, and that null is the gate:
+      # a standalone server and a static file have no registry behind them, so
+      # the panel never appears there.
+      def manage_root_json
+        json_for_script(@manage_root)
+      end
+
+      # This boot's CSRF token, and only where a write could be honoured — a
+      # read-only hub bakes null, so the page holds no credential it may not use.
+      # It is no wider than the /b/ manager, which any script on this origin
+      # could already read; keeping it out of the page where it is useless is
+      # tidiness, not a boundary.
+      def manage_token_json
+        json_for_script(@manage_token)
       end
 
       # JSON-encode for safe embedding in an inline <script>: escaping every `<` to

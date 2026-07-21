@@ -137,6 +137,14 @@ what turns registering from "tell the server" into "give this bundle a name":
 [`search`](capabilities/search.md) crosses several of them in one query, and no
 verb needs a path once the bundle has a slug.
 
+It is also no longer terminal-only. The graph page's ⚙ Bundles panel drives
+`default`, `rename` and `remove` from a browser, through
+[this class and its messages](capabilities/bundles-manager.md) rather than around
+them. `add` stays terminal-only, because a browser cannot hand over a filesystem
+path. The file stays the record: every write goes through here, and the hub
+re-reads it per request rather than trusting a snapshot, so an `okf registry
+rename` in another terminal shows on a refresh.
+
 # It tolerates a world that changes underneath it
 
 A registry entry is a bet that a directory still exists, and the registry never

@@ -45,3 +45,21 @@ test.describe("boot", () => {
     await expect(app.locator("#fareas .chip")).toHaveCount(5);
   });
 });
+
+// prefers-reduced-motion is a page-level contract too: the graph body eases its
+// inspector column over .22s, and `*{transition:none!important}` under `reduce`
+// must strip that. emulateMedia flips the preference live (matchMedia and the
+// CSS both re-evaluate), so one test can read both sides and the pair proves the
+// media query, not that some element happens to read 0s.
+test.describe("reduced motion", () => {
+  const graphBodyDur = (app) =>
+    app.locator(".graph-body").evaluate((el) => getComputedStyle(el).transitionDuration);
+
+  test("prefers-reduced-motion:reduce strips the graph body's transition", async ({ app }) => {
+    await app.emulateMedia({ reducedMotion: "no-preference" });
+    expect(await graphBodyDur(app)).not.toBe("0s");
+
+    await app.emulateMedia({ reducedMotion: "reduce" });
+    expect(await graphBodyDur(app)).toBe("0s");
+  });
+});

@@ -106,7 +106,12 @@
  .ident .muted{color:var(--muted);font-weight:400;margin-left:9px;font-size:12.5px}
  .ident .src{color:var(--accent-ink);text-decoration:none;margin-left:8px}
  .ident .src:hover{text-decoration:underline}
- #views{flex:1;min-height:0;position:relative;background:var(--bg)}
+ /* overflow:hidden is load-bearing, not tidiness: a slide-over parked or
+    *animating* off the right edge widens the document unless something clips
+    it, and #views is the containing block for any panel that belongs to more
+    than one view. #stage has always done this job for the Filters panel, which
+    is exactly why that one never showed the bug. */
+ #views{flex:1;min-height:0;position:relative;background:var(--bg);overflow:hidden}
  .view{position:absolute;inset:0;display:none;flex-direction:column;min-height:0}
  .view.active{display:flex}
 
@@ -117,7 +122,37 @@
  .field::placeholder{color:var(--muted)}
  .search{position:relative;display:flex;align-items:center;flex:1 1 320px;min-width:130px;max-width:520px}
  .search svg{position:absolute;left:11px;width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:1.8;pointer-events:none}
- .search input{width:100%;padding-left:33px}
+ .search input{width:100%;padding-left:33px;padding-right:52px}
+ /* the count only exists while filtering, so the room for it is claimed only then */
+ .search.has-cnt input{padding-right:104px}
+ /* ── the search box's right-edge tools: the live match count, and the chip
+       that names the palette. The box filters what is on screen and the palette
+       finds across every bundle — two grammars behind one look — so the second
+       one is advertised inside the first, where the reader already is when the
+       filter disappoints them. ── */
+ .s-tools{position:absolute;right:7px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px}
+ .s-cnt{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+ .s-cnt[hidden]{display:none}
+ .s-kbd{cursor:pointer;border:1px solid var(--line);border-radius:6px;background:var(--panel-2);color:var(--muted);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;font-weight:600;letter-spacing:.02em;
+  line-height:1;padding:4px 6px;transition:color .15s,border-color .15s}
+ .s-kbd:hover{color:var(--ink);border-color:var(--accent)}
+ .s-kbd:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+ /* the bridge: the local filter came up empty, so say so and offer the way on —
+    same surface language as the palette it hands over to */
+ .s-bridge{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;background:var(--panel);border:1px solid var(--line);
+  border-radius:11px;box-shadow:var(--shadow);padding:11px 13px;font-size:12.5px}
+ .s-bridge[hidden]{display:none}
+ .sb-msg{color:var(--muted);margin-bottom:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .sb-msg b{color:var(--ink);font-weight:600}
+ .sb-row{display:flex;gap:8px;flex-wrap:wrap}
+ .sb-act{cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-family:inherit;font-size:12px;padding:5px 10px;
+  border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--muted);transition:color .15s,border-color .15s}
+ .sb-act:hover{color:var(--ink);border-color:var(--accent)}
+ .sb-act[hidden]{display:none}
+ .sb-act.primary{color:var(--accent-ink);border-color:var(--accent);background:var(--accent-soft)}
+ .sb-act kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--faint);
+  border:1px solid var(--line);border-radius:4px;padding:1px 4px;background:var(--panel);line-height:1.3}
  .selwrap{position:relative;display:inline-flex;flex:none}
  .selwrap::after{content:"";position:absolute;right:12px;top:50%;width:7px;height:7px;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
  select.field{appearance:none;-webkit-appearance:none;padding-right:30px;cursor:pointer}
@@ -164,7 +199,7 @@
  .chip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;font-size:12.5px;
   color:var(--muted);background:var(--panel);border:1px solid var(--line);cursor:pointer;user-select:none;transition:.14s;font-family:inherit}
  .chip:hover{color:var(--ink);border-color:var(--accent)}
- .chip.off{opacity:.38} .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+ .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
  .chip .dot{width:9px;height:9px;border-radius:50%} .chip .c{color:var(--faint);font-variant-numeric:tabular-nums}
  .chip.on .c{color:rgba(255,255,255,.8)}
  .badge{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--ink);
@@ -211,6 +246,91 @@
  .cat-types{align-items:center;gap:10px} .cat-types #cat-types{display:flex;flex-wrap:wrap;gap:7px}
  .link{background:none;border:0;color:var(--accent-ink);font:inherit;font-size:12.5px;cursor:pointer;padding:0;font-weight:500}
  .link:hover{text-decoration:underline}
+
+ /* ── bundles slide-over (⚙ in the rail) ──
+    The registry, surfaced on the page, so choosing which bundle `/` opens no
+    longer means leaving the graph for /b/ — and knowing /b/ exists. --warn is
+    the one added hue; ok and error reuse --ok and --accent-ink, so the health
+    trio stays the page's own. ── */
+ :root{--warn:#9a6700}
+ :root[data-theme=dark]{--warn:#d4a72c}
+ a.rail-brand{display:block;cursor:pointer;border-radius:9px}
+ a.rail-brand:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+ #ws-ovl{position:absolute;inset:0;z-index:5;background:rgba(15,17,22,.28)}
+ #ws-ovl[hidden]{display:none}
+ #ws{width:340px}
+ /* Parked off-canvas, a slide-over STILL OCCUPIES LAYOUT — and #views does not
+    clip, which the Filters panel only gets away with because #stage does. The
+    closed panel widened the document by its own 340px: a horizontal scrollbar
+    on every page, from a panel nobody had opened. So it is out of the box
+    entirely while closed; display is restored one frame before .open so the
+    slide still animates, and taken away again once the slide back has ended. */
+ #ws[hidden]{display:none}
+ .ws-head-t{margin-right:auto;min-width:0}
+ .ws-sub{font-size:11px;color:var(--faint);margin-top:1px}
+ #ws-flash{font-size:11.5px;color:var(--muted);background:var(--panel-2);border-bottom:1px solid var(--line);padding:7px 14px}
+ #ws-flash[hidden]{display:none}
+ #ws-flash.err{color:var(--accent-ink)}
+ .ws-row{padding:11px 2px;border-bottom:1px solid var(--line-2);display:flex;align-items:flex-start;gap:8px}
+ .ws-row:last-child{border-bottom:0}
+ .ws-row-main{min-width:0;flex:1}
+ .ws-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+ .ws-title{font-size:13px;font-weight:600;color:var(--ink);background:none;border:0;padding:0;cursor:pointer;
+  font-family:inherit;text-align:left;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .ws-title:hover{color:var(--accent-ink);text-decoration:underline}
+ .ws-title.off{color:var(--faint);cursor:default}
+ .ws-title.off:hover{color:var(--faint);text-decoration:none}
+ .ws-pill{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:1px 7px;
+  border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--line-2);flex:none}
+ .ws-pill.def{color:var(--accent-ink);background:var(--accent-soft);border-color:transparent}
+ .ws-meta{display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--muted);margin-top:3px;flex-wrap:wrap}
+ .ws-slug{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--faint)}
+ .ws-health.ok{color:var(--ok)} .ws-health.warn{color:var(--warn)}
+ .ws-health.error,.ws-health.missing{color:var(--accent-ink)}
+ .ws-slug-edit{height:24px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;padding:0 7px;width:150px;border-radius:6px}
+ /* One ⋯ per row, and the verbs inside it. Three same-weight text links under
+    every row meant eighteen down the panel, none of which looked pressable and
+    one of which was destructive in the same clothes as the harmless two. In a
+    menu they can be ordered, separated and coloured by consequence. */
+ .ws-menu-btn{flex:none;width:28px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);
+  color:var(--muted);cursor:pointer;display:grid;place-items:center;font-family:inherit;line-height:1;
+  transition:color .15s,border-color .15s,background .15s}
+ .ws-menu-btn:hover{color:var(--ink);border-color:var(--accent);background:var(--panel)}
+ .ws-menu-btn[aria-expanded=true]{color:var(--accent-ink);border-color:var(--accent);background:var(--accent-soft)}
+ .ws-menu-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+ .ws-menu-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+ .ws-menu{position:absolute;z-index:8;min-width:180px;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;box-shadow:var(--shadow);padding:5px;display:flex;flex-direction:column}
+ .ws-menu[hidden]{display:none}
+ .ws-menu button{display:flex;align-items:center;gap:9px;width:100%;padding:7px 9px;border:0;border-radius:7px;
+  background:none;color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer;text-align:left}
+ .ws-menu button:hover{background:var(--line-2)}
+ .ws-menu button:disabled{color:var(--faint);cursor:default;background:none}
+ .ws-menu button.danger{color:var(--accent-ink)}
+ .ws-menu button.danger:hover{background:var(--accent-soft)}
+ .ws-menu .sep{height:1px;background:var(--line);margin:4px 2px}
+ /* A rename and a removal both need a second thought, so both take over the row
+    and state themselves — no armed link hiding a second meaning in its colour,
+    and no timed revert asking the reader to be quick. */
+ .ws-edit{margin-top:7px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+ .ws-hint{font-size:10.5px;color:var(--faint);margin-top:5px}
+ .ws-confirm{margin-top:7px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2)}
+ .ws-confirm p{margin:0 0 8px;font-size:11.5px;color:var(--ink-soft);line-height:1.5}
+ .ws-confirm .crow{display:flex;gap:8px}
+ .btn-sm{height:26px;padding:0 10px;border-radius:7px;border:1px solid var(--line);background:var(--panel);
+  color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+ .btn-sm:hover{border-color:var(--accent)}
+ .btn-sm.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+ .btn-sm.primary:hover{filter:brightness(1.07)}
+ /* Read-only is a state to explain, not a set of controls to hide silently: the
+    reader keeps every fact and gets one sentence naming who may change them. */
+ .ws-ro-note{margin:0 0 4px;padding:9px 10px;border:1px solid var(--line);border-left:2px solid var(--warn);
+  border-radius:8px;background:var(--panel-2);font-size:11.5px;color:var(--muted);line-height:1.55}
+ .ws-ro-note code,.ws-empty code,.ws-foot code{background:var(--line-2);border:1px solid var(--line);padding:1px 5px;
+  border-radius:5px;font-size:.92em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-soft)}
+ .ws-empty{margin:0;padding:22px 16px;font-size:12.5px;color:var(--muted);line-height:1.7;text-align:center}
+ .ws-foot{border-top:1px solid var(--line);padding:11px 14px;font-size:11.5px;color:var(--muted);line-height:1.6}
+ @media (max-width:768px){#ws{width:100%;max-width:100%}}
 
  /* ── inspector content ── */
  .type{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--ink);
@@ -303,6 +423,24 @@
  #sw-list a.cur:hover{background:none}
  #sw-list a.none{color:var(--muted);cursor:default;font-size:13px}
  .sw-def{margin-left:7px;padding:1px 7px;border-radius:99px;background:var(--line-2);color:var(--muted);font-size:11px;vertical-align:1px}
+ /* A concept hit is the one two-line row in the palette: a bundle or a view is
+    a destination you already know the name of, a concept is one you are being
+    shown evidence for. The snippet is that evidence, so it gets its own line
+    rather than being squeezed onto the first. */
+ #sw-list a.sw-hit{display:block;padding:8px 10px}
+ #sw-list a.sw-hit .hit-top{display:flex;align-items:baseline;gap:8px}
+ #sw-list a.sw-hit .hit-t{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ #sw-list a.sw-hit .hit-type{color:var(--faint);font-size:11.5px;white-space:nowrap}
+ #sw-list a.sw-hit .slug{margin-left:auto;flex:none}
+ #sw-list a.sw-hit .hit-s{display:block;margin-top:2px;color:var(--muted);font-size:12.5px;line-height:1.45;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ /* The matched terms, marked where they landed. This is the only place the
+    palette says *why* a row is here, so it takes the accent — muted enough to
+    read as text, not as a highlighter pen. */
+ #sw-list a.sw-hit mark{background:var(--accent-soft);color:var(--accent-ink);border-radius:3px;padding:0 1px}
+ /* The async group: results arrive after the keystroke that asked for them, so
+    the header carries the state instead of the list jumping to a spinner. */
+ #sw-list .sw-grp .sw-state{margin-left:6px;font-weight:400;text-transform:none;letter-spacing:0}
 
  /* ── the ? sheet — same overlay shape as the palette, one row per binding ── */
  #kb{position:fixed;inset:0;z-index:91;background:rgba(0,0,0,.34);display:flex;align-items:flex-start;justify-content:center;padding-top:14vh}
@@ -547,6 +685,59 @@
  .ix-listing a:hover{text-decoration:underline}
  .ix-listing .d{color:var(--muted)}
 
+ /* ── concept preview (touch) ────────────────────────────────────────────────
+    Deliberately not a third "sheet": the ⚙ tools sheet and the ? sheet already
+    own that word, and a third would make every `grep -n sheet` on this file
+    ambiguous. This is the preview card — what a tap on a dot opens on a touch
+    screen, in place of the inspector.
+
+    In place of it because at this width the inspector *is* the viewport:
+    `grid-template-columns:0 1fr` below measures #stage at width 0, so tapping a
+    dot did not cover the graph, it deleted it, and exploring a phone became
+    open → read → close → tap the next dot. The card puts the concept's head at
+    the bottom edge and leaves the graph every pixel it had, live above it.
+
+    The element is the whole band from under the topbar to the bottom edge, so a
+    snap point is only a translateY: visible height H ⇒ translateY(FULL - H).
+    Hidden is translateY(100%); display:none off the touch branch keeps the
+    desktop DOM inert — no layout, no width, nothing to widen the document,
+    which is the lesson the Bundles panel above already paid for. ── */
+ #preview{position:fixed;left:0;right:0;top:var(--pv-top,56px);bottom:0;z-index:70;display:none;flex-direction:column;
+  background:var(--panel);border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+  box-shadow:0 -10px 34px rgba(0,0,0,.30),0 -1px 0 var(--line);
+  /* No transition on transform, and that is the feature. The card used to rise
+     over 0.26s, so every one of the dozens of taps that exploring a graph takes
+     cost the same wait — and a miss on bare canvas dismissed it, which meant the
+     next dot replayed the entrance from scratch. Dragging still moves the card
+     directly; that was never a transition, so it survived. Nothing else may
+     animate here: mobile-preview.spec.js counts the distinct transform values
+     the element wears while it is on screen, and the contract is exactly one. */
+  transform:translateY(100%);overscroll-behavior:contain}
+ /* the grip and the head are the drag surface, so the browser must not claim
+    the gesture for a scroll — but only here, or the card's own body stops
+    scrolling at `full` */
+ #pv-grip{flex:none;padding:9px 0 4px;display:flex;justify-content:center;touch-action:none;cursor:grab}
+ #pv-grip:active{cursor:grabbing}
+ #pv-grip .pill{display:block;width:40px;height:4px;border-radius:3px;background:var(--line-2);border:1px solid var(--line)}
+ #pv-grip:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;border-radius:10px}
+ #pv-head{flex:none;position:relative;touch-action:none;padding:2px 16px 12px;border-bottom:1px solid var(--line)}
+ /* a tablet is not a stretched phone: the column stops at a readable measure and
+    centres, while the card still spans the screen */
+ #pv-head>.col,#pv-body>.col{max-width:720px;margin:0 auto;width:100%}
+ #pv-x{position:absolute;top:0;right:10px;width:30px;height:30px;z-index:2}
+ #preview .pv-title{font-size:17px;font-weight:600;margin:.45em 0 0;line-height:1.32;letter-spacing:-.01em;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ #preview .pv-desc{color:var(--muted);margin:7px 0 0;font-size:13.5px;line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ #preview[data-snap=half] .pv-desc,#preview[data-snap=full] .pv-desc{-webkit-line-clamp:4}
+ #preview .pv-meta{margin:9px 0 0;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+ #pv-head .type{max-width:calc(100% - 38px)}
+ #pv-body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 30px}
+ #pv-body .rel:first-child{margin-top:0}
+ #pv-body .body{font-size:14.5px}
+ /* the canvas hint sits exactly where the card lands */
+ #app.preview-up .ghint{display:none}
+
  /* ── compact chrome for ≤768px (phones and portrait tablets): the rail becomes
     a drawer behind ☰ and every topbar tool collapses into the ⚙ sheet. Wider
     viewports — a rotated tablet included — fall back to the desktop layout;
@@ -604,6 +795,25 @@
   .files-grid.tree-min{grid-template-rows:auto minmax(0,1fr)}
   .files-grid.tree-min .ftree-list{display:none}
  }
+ /* The card's branch is wider than the chrome's above. A portrait tablet keeps
+    the rail and the desktop topbar — it has the room — but 0-width-stage is its
+    bug too, and a bottom card is the right gesture on any touch screen held
+    upright. Landscape at the same size matches neither and keeps the inspector.
+    Written twice, here and as MOBILE_MQ in the JS, because neither language can
+    read the other: they are one decision, so keep them identical. */
+ @media (max-width:768px),(max-width:1024px) and (orientation:portrait){
+  #preview.up{display:flex}
+  /* the inspector's controls have no job on this branch — the panel they toggle
+     can only ever show its "Select a concept…" placeholder, because show() is
+     what fills it and show() never runs here */
+  #btn-panel,#side-widen,#side-resizer{display:none}
+ }
+ /* on a portrait tablet the rail is still on screen (it only folds at 768px), so
+    the card starts where the rail ends — one that buried Stats under itself
+    would be the takeover again, just shorter */
+ @media (min-width:769px) and (max-width:1024px) and (orientation:portrait){
+  #preview{left:76px;border-top-left-radius:16px}
+ }
  /* ── tablet and up: the panes stay side-by-side, but the same chevron folds
     the whole list column into a slim strip so the reader takes the width ── */
  @media (min-width:769px){
@@ -618,9 +828,13 @@
 <body>
 <div id="app" data-view="graph">
  <nav id="rail" aria-label="Views">
-  <span class="rail-brand" title="<%= escaped_name %> — <%= @graph.nodes.length %> concepts · <%= @graph.edges.length %> links">
+  <%# Behind a hub the mark is the way back to every bundle — the missing-navbar
+      fix in miniature, and "../" reaches it under any mount because every page
+      lives at <prefix>/b/<slug>/. Standalone and static have nowhere to go, so
+      there it stays the plain identity badge it has always been. %>
+  <%= rail_brand_open %><%= escaped_name %> — <%= @graph.nodes.length %> concepts · <%= @graph.edges.length %> links">
    <svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#1a1a1a"/><polygon points="38,44 62,44 50,82" fill="#7a0a1e"/><polygon points="18,44 38,44 50,82" fill="#a8112c"/><polygon points="62,44 82,44 50,82" fill="#a8112c"/><polygon points="35,28 18,44 38,44" fill="#dc1e3c"/><polygon points="65,28 82,44 62,44" fill="#dc1e3c"/><polygon points="35,28 65,28 62,44 38,44" fill="#f43f5e"/><polygon points="36,29 49,29 42,42" fill="#fff" opacity=".38"/><polygon points="35,28 65,28 82,44 50,82 18,44" fill="none" stroke="#ff6b7f" stroke-width="2" stroke-linejoin="round"/></svg>
-  </span>
+  <%= rail_brand_close %>
   <button class="rail-item active" data-view="graph"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M7.5 16 8.2 8.3M10.9 16.4 16.3 10.5"/></svg></span><span class="ri-lbl">Graph</span></button>
   <button class="rail-item" data-view="index"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></span><span class="ri-lbl">Index</span></button>
   <button class="rail-item" data-view="files"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span><span class="ri-lbl">Files</span></button>
@@ -632,6 +846,10 @@
    <button class="btn" id="btn-switch" type="button" hidden aria-label="Switch bundle (⌘K)" title="Switch bundle (⌘K)">
     <svg viewBox="0 0 24 24"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3Z"/></svg>
     <span class="swcount" id="sw-count" hidden>0</span></button>
+   <%# Only a registry-backed hub has anything here to manage; the JS reveals it
+       off MANAGE_ROOT, the same way the switcher reveals itself off HUB_PATH. %>
+   <button class="btn" id="btn-ws" type="button" hidden aria-label="Bundles (registry)" title="Bundles (registry)" aria-expanded="false">
+    <svg viewBox="0 0 24 24" style="stroke-width:1.8"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
    <button class="btn" id="btn-theme" type="button" aria-label="Toggle theme">
     <svg class="moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg>
     <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.5 1.5M17.3 17.3l1.5 1.5M18.8 5.2l-1.5 1.5M6.7 17.3l-1.5 1.5"/></svg></button>
@@ -650,7 +868,12 @@
    <span class="ident"><%= escaped_name %><span class="muted"><%= @graph.nodes.length %> concepts · <%= @graph.edges.length %> links</span><%= source_link %></span>
    <div id="bar-tools">
    <div id="search-wrap"><label class="search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-    <input id="search" class="field" placeholder="search concepts…" autocomplete="off" aria-label="Search"></label></div>
+    <input id="search" class="field" placeholder="search concepts…" autocomplete="off" aria-label="Search">
+    <span class="s-tools"><span id="s-cnt" class="s-cnt" hidden></span><button type="button" id="s-cmdk" class="s-kbd" title="Search every bundle (⌘K)" aria-label="Search every bundle (⌘K)">⌘K</button></span>
+    <div id="s-bridge" class="s-bridge" role="status" hidden>
+     <div class="sb-msg"></div>
+     <div class="sb-row"><button type="button" class="sb-act primary" id="sb-go" hidden>Search every bundle <kbd>⏎</kbd></button><button type="button" class="sb-act" id="sb-clear">Clear <kbd>esc</kbd></button></div>
+    </div></label></div>
    <div id="file-controls">
     <div class="combo" id="file-type-combo"><input id="file-type-input" class="field" placeholder="all types" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-type-list" aria-autocomplete="list" aria-label="Filter files by type"><button class="clear" id="file-type-clear" type="button" aria-label="Clear type filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-type-list" role="listbox" hidden></ul></div>
     <div class="combo" id="file-tag-combo"><input id="file-tag-input" class="field" placeholder="all tags" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="file-tag-list" aria-autocomplete="list" aria-label="Filter files by tag"><button class="clear" id="file-tag-clear" type="button" aria-label="Clear tag filter"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><ul class="listbox" id="file-tag-list" role="listbox" hidden></ul></div>
@@ -708,6 +931,19 @@
         <svg class="narrow" viewBox="0 0 24 24" style="display:none"><path d="M11 6l6 6-6 6M5 6l6 6-6 6"/></svg></button>
        <button class="btn" id="side-close" type="button" aria-label="Hide panel" title="Hide panel"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
       <div id="side-body"><p class="empty">Select a concept — <b>click a node</b> in the graph, or search above — to read its full markdown here.</p></div>
+     </aside>
+     <!-- the touch preview card. Non-modal on purpose: the graph behind it stays
+          live, pannable and tappable, which is the whole point — so role=region
+          and not dialog, because a dialog promises a focus trap this interaction
+          must not have. -->
+     <aside id="preview" role="region" aria-label="Concept preview" data-snap="peek" aria-hidden="true">
+      <div id="pv-grip" role="slider" tabindex="0" aria-label="Preview size — arrow keys resize"
+           aria-valuemin="1" aria-valuemax="3" aria-valuenow="1" aria-valuetext="peek"><span class="pill"></span></div>
+      <div id="pv-head">
+       <button class="btn" id="pv-x" type="button" aria-label="Close preview" title="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+       <div class="col" id="pv-head-in"></div>
+      </div>
+      <div id="pv-body"><div class="col" id="pv-body-in"></div></div>
      </aside>
     </div>
    </section>
@@ -788,6 +1024,20 @@
      </div>
     </div>
    </section>
+
+   <%# The Bundles panel lives in #views rather than #stage, so it is reachable
+       from every view — which is also why its closed state has to be `hidden`
+       and not merely translated: #stage clips, #views does not. %>
+   <div id="ws-ovl" hidden></div>
+   <aside id="ws" class="slideover" aria-label="Bundles" hidden>
+    <div class="fhead">
+     <div class="ws-head-t"><h3>Bundles</h3><div class="ws-sub" id="ws-sub"></div></div>
+     <button class="btn" id="ws-close" type="button" aria-label="Close bundles" style="width:28px;height:28px"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div id="ws-flash" role="status" hidden></div>
+    <div class="fbody" id="ws-list"></div>
+    <div class="ws-foot" id="ws-foot">Adding a bundle is done from the terminal — <code>okf registry set &lt;dir&gt;</code> — usually by your agent.</div>
+   </aside>
   </div>
  </div>
 </div>
@@ -854,7 +1104,8 @@
      catalog                       files
      tags                          stats
      theme / fullscreen            §6 map payload · §7 log payload
-     command palette               mobile drawer + sheet
+     command palette               the search bridge
+     concept preview (touch)       mobile drawer + sheet
      keyboard                      deep links · first visit
 
    ── What actually couples these ──────────────────────────────────────────
@@ -863,7 +1114,7 @@
 
    1. `applyGraphFilter()` is the shared sink. The search box, the three chip
       groups in the slide-over, the inspector's focus chips and cluster mode
-      all funnel into it, and it reads `q.graph`, `hiddenTypes`, `activeTags`,
+      all funnel into it, and it reads `q.graph`, `activeTypes`, `activeTags`,
       `activeAreas` and `ftMatch()` together. Touching any one caller can
       change what the other four produce.
    2. `setView()` reaches into nearly every section — it toggles the tool
@@ -889,6 +1140,16 @@ const CATALOG_ENDPOINT="catalog",INDEX_ENDPOINT="index",LOG_ENDPOINT="log";
 /* The hub's bundle switcher (⌘/Ctrl-K). SIBLINGS is empty for a standalone
    server and for `okf render`, so a single bundle or a static file offers none. */
 const SIBLINGS=<%= siblings_json %>, SELF_SLUG=<%= self_slug_json %>, HUB_PATH=<%= hub_path_json %>;
+/* The hub's cross-bundle search, mount-relative — null for a standalone server
+   and for `okf render`, where there is no set of bundles to search. */
+const SEARCH_ENDPOINT=<%= search_endpoint_json %>;
+/* The hub root, mount-relative — where the Bundles panel reads /bundles and
+   posts /registry/<verb>. Null for a standalone server and for `okf render`,
+   and that null is the gate: neither has a registry behind it, so neither ever
+   shows the ⚙. MANAGE_TOKEN is null wherever a write would be refused anyway
+   (a read-only bind, an ephemeral set), so the page holds no credential it
+   cannot use — and the panel reads that null to explain itself. */
+const MANAGE_ROOT=<%= manage_root_json %>, MANAGE_TOKEN=<%= manage_token_json %>;
 /* null when served live (`okf server`) — the getters below fetch the endpoints
    above. `okf render` injects a payload {catalog,index,logs,bodies}, and every
    getter resolves from it instead (the /node/meta fragment derived from the
@@ -1222,14 +1483,21 @@ function deselect(){cy.elements().removeClass('dim hl');try{if(location.hash)his
 cy.on('tap',e=>{if(e.target===cy)deselect();});
 
 /* ── graph filters (slide-over) ── */
-const hiddenTypes=new Set(), activeTags=new Set(), activeAreas=new Set();
+/* Three groups, one grammar: empty means everything, a click narrows, a second
+   click puts it back. Types used to be the odd one out — a `hiddenTypes` set
+   where every type showed until you clicked one *away* — so the same chip
+   component meant "include" under Areas and Tags and "exclude" two rows above,
+   and meant "include" again on the catalog's own type chips one view over. That
+   is a rule a reader has to learn per panel instead of once. Within a group
+   selections union (Service *or* Charter); across groups they intersect. */
+const activeTypes=new Set(), activeTags=new Set(), activeAreas=new Set();
 const searchInput=document.getElementById('search');
 const q={graph:'',catalog:'',files:'',tags:''};
 function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.graph);
  cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir')||n.hasClass('ix'))return;const id=n.data('id');const t=typeOf[id]||'Untyped';const nt=tagsOf[id]||[];
   const hay=(n.data('title')+' '+t+' '+nt.join(' ')+' '+(descOf[id]||'')).toLowerCase();
   const txt=ids?ids.has(id):(!s||hay.includes(s));
-  const m=txt&&!hiddenTypes.has(t)&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
+  const m=txt&&(activeTypes.size===0||activeTypes.has(t))&&(activeTags.size===0||nt.some(x=>activeTags.has(x)))&&(activeAreas.size===0||activeAreas.has(areaOf(id)));
   n.style('display',m?'element':'none');});
  /* Cluster mode draws an area box around each group's concepts. When a filter
     hides every concept in a group, hide the now-empty box too (and bring it back
@@ -1237,14 +1505,15 @@ function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.gr
     out of the fit, now applied to what is drawn. */
  cy.nodes(':parent').forEach(p=>p.style('display',p.children().some(c=>c.style('display')!=='none')?'element':'none'));
  ixVisibility();
- relaxZoom();}
-function fbadge(){const c=hiddenTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
+ relaxZoom();
+ bridgeSync();}
+function fbadge(){const c=activeTypes.size+activeTags.size+activeAreas.size;const b=document.getElementById('btn-filters');
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;ctlBadge();syncFacets();}
 /* mirror the active view's tool state onto the ⚙ toggle — when the sheet is
    folded away on mobile, an active filter must still call out from the bar */
 function ctlBadge(){const b=document.getElementById('btn-controls');if(!b)return;
  let c=0;
- if(view==='graph')c=hiddenTypes.size+activeTags.size+activeAreas.size;
+ if(view==='graph')c=activeTypes.size+activeTags.size+activeAreas.size;
  else if(view==='files'){try{c=(fileTypeCombo.get()?1:0)+(fileTagCombo.get()?1:0);}catch(err){}}
  b.classList.toggle('on-filter',c>0);b.querySelector('.fbadge').textContent=c;}
 const ftypes=document.getElementById('ftypes'), ftags=document.getElementById('ftags'), fareas=document.getElementById('fareas');
@@ -1255,8 +1524,8 @@ const dotFor=t=>`<span class="dot" style="background:${color[t]}"></span>`;
 const toggleSet=(s,v)=>{s.has(v)?s.delete(v):s.add(v);};
 /* One renderer for every filter chip group (graph, catalog and tags views):
    paints the items with their current state class and wires the toggle. */
-function chipRow(el,items,attr,stateCls,isOn,onToggle){
- el.innerHTML=items.map(o=>`<span class="chip${isOn(o.v)?' '+stateCls:''}" ${attr}="${esc(o.v)}">${o.dot||''}${esc(o.v)} <span class="c">${o.n}</span></span>`).join('');
+function chipRow(el,items,attr,isOn,onToggle){
+ el.innerHTML=items.map(o=>`<span class="chip${isOn(o.v)?' on':''}" ${attr}="${esc(o.v)}">${o.dot||''}${esc(o.v)} <span class="c">${o.n}</span></span>`).join('');
  el.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>onToggle(ch.getAttribute(attr)));}
 const typeItems=list=>list.map(t=>({v:t,n:(TYPES[t]||[]).length,dot:dotFor(t)}));
 const areaItems=list=>list.map(a=>({v:a,n:areaCount[a]}));
@@ -1266,28 +1535,30 @@ const tagItems=list=>list.map(t=>({v:t,n:(TAGS[t]||[]).length}));
 const fsearch=document.getElementById('filter-search');
 function syncFilterChips(){const qq=fsearch.value.trim().toLowerCase();const match=v=>!qq||v.toLowerCase().includes(qq);
  const after=()=>{syncFilterChips();applyGraphFilter();fbadge();};
- chipRow(ftypes,typeItems(types.filter(match)),'data-t','off',t=>hiddenTypes.has(t),t=>{toggleSet(hiddenTypes,t);after();});
- chipRow(fareas,areaItems(graphAreas.filter(match)),'data-area','on',a=>activeAreas.has(a),a=>{toggleSet(activeAreas,a);after();});
- chipRow(ftags,tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag','on',t=>activeTags.has(t),t=>{toggleSet(activeTags,t);after();});}
+ chipRow(ftypes,typeItems(types.filter(match)),'data-t',t=>activeTypes.has(t),t=>{toggleSet(activeTypes,t);after();});
+ chipRow(fareas,areaItems(graphAreas.filter(match)),'data-area',a=>activeAreas.has(a),a=>{toggleSet(activeAreas,a);after();});
+ chipRow(ftags,tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag',t=>activeTags.has(t),t=>{toggleSet(activeTags,t);after();});}
 fsearch.oninput=syncFilterChips;
 syncFilterChips();
 // Fit the graph to the currently-visible nodes after a view swap settles (two rAFs
 // so the container has resized), reusing the working fitGraph implementation.
 function fitVisible(){requestAnimationFrame(()=>requestAnimationFrame(fitGraph));}
-function focusGraphType(t){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();types.forEach(x=>{if(x!==t)hiddenTypes.add(x);});syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
-function focusGraphArea(a){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();activeAreas.add(a);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
-function focusGraphTag(t){setView('graph');hiddenTypes.clear();activeTags.clear();activeAreas.clear();activeTags.add(t);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
-function clearGraphFilter(){hiddenTypes.clear();activeTags.clear();activeAreas.clear();syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function focusGraphType(t){setView('graph');clearSets();activeTypes.add(t);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function focusGraphArea(a){setView('graph');clearSets();activeAreas.add(a);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+function focusGraphTag(t){setView('graph');clearSets();activeTags.add(t);syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
+const clearSets=()=>{activeTypes.clear();activeTags.clear();activeAreas.clear();};
+function clearGraphFilter(){clearSets();syncFilterChips();applyGraphFilter();fbadge();fitVisible();}
 /* Is the graph focused on exactly this facet and nothing else? Only then is a
    second click on the chip an undo — with any other filter in play, clearing
    would throw away more than the click put there, so the chip re-focuses
    instead. This is also what lights the chip, so what you see and what the
    next click does are the same question, asked once. */
-/* hiddenTypes.size>0 is not redundant: in a one-type bundle `types.length-1` is
-   zero, so an unfiltered graph would read as focused, light the chip, and spend
-   the first click clearing nothing. */
-function typeFocused(t){return !activeTags.size&&!activeAreas.size&&hiddenTypes.size>0&&hiddenTypes.size===types.length-1&&!hiddenTypes.has(t);}
-function tagFocused(t){return !hiddenTypes.size&&!activeAreas.size&&activeTags.size===1&&activeTags.has(t);}
+/* The two read alike now. They could not while types were subtractive: "focused
+   on t" was `every other type hidden`, which a one-type bundle satisfies with
+   nothing hidden at all — so an unfiltered graph read as focused, lit the chip,
+   and spent the first click clearing nothing. */
+function typeFocused(t){return !activeTags.size&&!activeAreas.size&&activeTypes.size===1&&activeTypes.has(t);}
+function tagFocused(t){return !activeTypes.size&&!activeAreas.size&&activeTags.size===1&&activeTags.has(t);}
 /* The chips are filter indicators, so they repaint wherever the badge does —
    that way a filter cleared from the slide-over un-lights the chip too. */
 function syncFacets(){
@@ -1296,7 +1567,7 @@ function syncFacets(){
 const filtersEl=document.getElementById('filters');
 document.getElementById('btn-filters').onclick=()=>filtersEl.classList.toggle('open');
 document.getElementById('filters-close').onclick=()=>filtersEl.classList.remove('open');
-document.getElementById('filters-reset').onclick=()=>{hiddenTypes.clear();activeTags.clear();activeAreas.clear();syncFilterChips();applyGraphFilter();fbadge();};
+document.getElementById('filters-reset').onclick=()=>{clearSets();syncFilterChips();applyGraphFilter();fbadge();};
 
 /* ── layout: 5 built-ins + extension layouts loaded lazily on first use ── */
 const layoutSel=document.getElementById('layout');
@@ -1513,7 +1784,10 @@ function setView(v){if(v===view)return;view=v;document.getElementById('app').set
  if(v==='catalog'&&!inited.catalog)initCatalog();
  if(v==='files'&&!inited.files)initFiles();
  if(v==='tags'&&!inited.tags)initTags();
- if(v==='stats'&&!inited.stats)initStats();}
+ if(v==='stats'&&!inited.stats)initStats();
+ /* the count and the dead-end offer belong to the view's own query, so they
+    re-decide on every switch — including into a view that has no box at all */
+ bridgeSync();}
 /* The Files view answers to two rail items: Files when the Files tab is up,
    Index when the Indexes tab is — the Index rail item is a shortcut into it. */
 /* Which rail item the page is standing on. It was a question of view *and*
@@ -1612,9 +1886,9 @@ function wireCatChips(el){el.querySelectorAll('.chip').forEach(ch=>ch.onclick=()
 function renderCatFilters(){const qq=(document.getElementById('cat-filter-search').value||'').trim().toLowerCase();
  const match=v=>!qq||v.toLowerCase().includes(qq);
  const after=()=>{renderCatFilters();renderCatalog();};
- chipRow(document.getElementById('cat-ftypes'),typeItems(catByCount.filter(match)),'data-t','on',t=>catActiveTypes.has(t),t=>{toggleSet(catActiveTypes,t);after();});
- chipRow(document.getElementById('cat-fareas'),areaItems(graphAreas.filter(match)),'data-area','on',a=>catActiveAreas.has(a),a=>{toggleSet(catActiveAreas,a);after();});
- chipRow(document.getElementById('cat-ftags'),tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag','on',t=>catActiveTags.has(t),t=>{toggleSet(catActiveTags,t);after();});
+ chipRow(document.getElementById('cat-ftypes'),typeItems(catByCount.filter(match)),'data-t',t=>catActiveTypes.has(t),t=>{toggleSet(catActiveTypes,t);after();});
+ chipRow(document.getElementById('cat-fareas'),areaItems(graphAreas.filter(match)),'data-area',a=>catActiveAreas.has(a),a=>{toggleSet(catActiveAreas,a);after();});
+ chipRow(document.getElementById('cat-ftags'),tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag',t=>catActiveTags.has(t),t=>{toggleSet(catActiveTags,t);after();});
  syncCatChips();}
 function initCatalog(){inited.catalog=true;
  // Only the five most common types get inline chips; everything else — types,
@@ -1635,6 +1909,9 @@ function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.
   if(ids)return ids.has(c.id);
   if(s){const hay=(c.title+' '+c.description+' '+c.type+' '+c.tags.join(' ')+' '+c.id).toLowerCase();if(!hay.includes(s))return false;}return true;});
  document.getElementById('cat-cnt').textContent=rows.length+' of '+list.length+' concepts';
+ /* the catalog resolves asynchronously, so it reports its own count rather than
+    being asked for one at a moment it may not have it yet */
+ bridgeReport('catalog',rows.length,list.length);
  const g=document.getElementById('cat-grid');
  if(!rows.length){g.innerHTML='<div class="none">No concepts match — try clearing the filters.</div>';return;}
  g.innerHTML=rows.map(c=>{const cc=color[c.type]||'#64748b';
@@ -1713,6 +1990,10 @@ function renderTree(list){const s=(q.files||'').toLowerCase();
   (LOGPATHS||[]).forEach(p=>{if(keep(p))(res[dirOfPath(p)]=res[dirOfPath(p)]||[]).push({kind:'log',path:p});});
   Object.keys(res).forEach(d=>{res[d].sort((a,b)=>a.kind===b.kind?0:(a.kind==='index'?-1:1));resCount+=res[d].length;});
  }
+ /* Reported here rather than at the end, because the ixOnly branch below
+    returns early — and a count that skips a mode is worse than no count. The
+    tree's rows are concepts *plus* the reserved files, so the total is too. */
+ bridgeReport('files',rows.length+resCount,(ixOnly?0:NODES.length)+(IXDIRS||[]).filter(d=>d.present).length+(LOGPATHS||[]).length);
  if(ixOnly){el.innerHTML=flatRes(res)||'<p class="empty" style="padding:14px">No index.md or log.md files'+(s?' match.':' yet.')+'</p>';
   lastFileDirs=[];syncFoldAll();
   el.querySelectorAll('.file[data-res]').forEach(b=>b.onclick=()=>openReserved(b.dataset.res,b.dataset.path));
@@ -1864,8 +2145,8 @@ const tagSel=new Set(), tagTypes=new Set(), tagAreas=new Set();
 function tagMatch(id){return (tagTypes.size===0||tagTypes.has(typeOf[id]||'Untyped'))&&(tagAreas.size===0||tagAreas.has(areaOf(id)));}
 function renderTagChips(){
  const after=()=>{renderTagChips();renderCloud();};
- chipRow(document.getElementById('tag-ftypes'),typeItems(types),'data-t','on',t=>tagTypes.has(t),t=>{toggleSet(tagTypes,t);after();});
- chipRow(document.getElementById('tag-fareas'),areaItems(graphAreas),'data-area','on',a=>tagAreas.has(a),a=>{toggleSet(tagAreas,a);after();});
+ chipRow(document.getElementById('tag-ftypes'),typeItems(types),'data-t',t=>tagTypes.has(t),t=>{toggleSet(tagTypes,t);after();});
+ chipRow(document.getElementById('tag-fareas'),areaItems(graphAreas),'data-area',a=>tagAreas.has(a),a=>{toggleSet(tagAreas,a);after();});
  const n=tagTypes.size+tagAreas.size;const b=document.getElementById('tag-filters-btn');
  b.classList.toggle('on-filter',n>0);b.querySelector('.fbadge').textContent=n;}
 function initTags(){inited.tags=true;
@@ -1938,20 +2219,37 @@ function listingHtml(items){if(!items||!items.length)return '<p class="empty" st
 let LOGS=null;
 function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LOG_ENDPOINT).then(r=>r.json()).then(d=>d.logs));}
 
-/* ── command palette: jump to a view always, and to a sibling bundle when a hub
-   is serving one. It began as the bundle switcher, gated on HUB_PATH — which
-   meant ⌘K did not exist at all under a standalone `okf server` or in `okf
-   render` output, the two modes most people meet first. Views are what earn the
-   palette a place in every mode; bundles are the group that comes and goes.
-   The two are grouped rather than merged because the actions differ: a view is
+/* ── command palette: jump to a view always, to a sibling bundle when a hub is
+   serving one, and to any concept in any hosted bundle when that hub answers
+   /search. It began as the bundle switcher, gated on HUB_PATH — which meant ⌘K
+   did not exist at all under a standalone `okf server` or in `okf render`
+   output, the two modes most people meet first. Views are what earn the palette
+   a place in every mode; bundles and concepts are the groups that come and go.
+   The three are grouped rather than merged because the actions differ: a view is
    in-page and instant, a bundle is a page load that carries the view and layout
-   across and deliberately drops the selected node. ── */
+   across and deliberately drops the selected node, and a concept is the opposite
+   of that — it is *only* a node, so it carries ?select= and nothing else.
+
+   Concepts come last, and not because they matter least. They are the one group
+   that arrives asynchronously, and a group that lands above the cursor moves the
+   row under the user's fingers between the keystroke and the Enter. Last means
+   results can only ever appear below what is already selected. ── */
+/* The palette's one door from outside its IIFE. `var`, so the bridge below can
+   guard on it before this section has run; assigned at the end of the IIFE, so
+   nothing can open a palette that is only half-wired. */
+var openPalette=null;
 (function(){
  const ov=document.getElementById('sw'),input=document.getElementById('sw-input'),list=document.getElementById('sw-list');
  const isMac=/Mac|iP/.test(navigator.platform||'');
  const layout0=layoutSel?layoutSel.value:null;
  const HUB=HUB_PATH!==null;
+ /* Only a hub can answer about every bundle at once, so this is null on a
+    standalone server and in a static file — and there the group never exists. */
+ const FINDS=SEARCH_ENDPOINT!==null;
  let active=0,lastFocus=null;
+ /* the Concepts group's state: the rows, what the whole answer counted, the
+    terms they came from (for the marks), and where the request is up to */
+ let hits=[],hitTotal=0,hitTerms=[],hitState='',hitSeq=0,hitTimer=null;
  /* The rail is the source of truth for which views exist, so read it back
     rather than keeping a second list here that a new view could fall out of. */
  const VIEWS=[ ...document.querySelectorAll('.rail-item[data-view]') ].map(b=>{
@@ -1975,6 +2273,25 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
   const qs=ps.toString();return qs?p+'?'+qs:p;}
  const grp=t=>`<li class="sw-grp">${t}</li>`;
  const opt=(i,inner)=>`<a ${inner.attrs} id="sw-opt-${i}" role="option" class="${(i===active?'active':'')+(inner.cls||'')}">${inner.html}</a>`;
+ const note=t=>`<a class="none"><span>${t}</span></a>`;
+ /* Mark the typed terms where they landed — the only thing on a hit row that
+    says *why* it is here. Built by splitting the raw text and escaping each
+    piece, never by wrapping tags around already-escaped text: a term like "amp"
+    would otherwise cut an entity in half and put a <mark> inside it. */
+ const rxEsc=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ function hilite(text,terms){const s=text==null?'':String(text);
+  if(!terms.length)return esc(s);
+  const rx=new RegExp('('+terms.map(rxEsc).join('|')+')','ig');
+  return s.split(rx).map((part,i)=>i%2?`<mark>${esc(part)}</mark>`:esc(part)).join('');}
+ /* A hit names a node, so its URL carries ?select= and nothing else — the view
+    and layout a bundle switch preserves are exactly what a node has to override.
+    A hit in *this* bundle is not a navigation at all; go() selects it in place
+    and this href only exists for ⌘-click, where a second tab is the point. */
+ const hitHref=c=>(c.slug===SELF_SLUG?'':'../'+encodeURIComponent(c.slug)+'/')+'?select='+encodeURIComponent(c.id);
+ const hitHtml=c=>`<span class="hit-top"><span class="hit-t">${hilite(c.title||c.id,hitTerms)}</span>`+
+  (c.type?`<span class="hit-type">${esc(c.type)}</span>`:'')+
+  `<span class="slug">${esc(c.slug)}</span></span>`+
+  (c.snippet?`<span class="hit-s">${hilite(c.snippet,hitTerms)}</span>`:'');
  /* Bundles lead, and on an empty box they are the only thing here: switching
     bundles is what the palette is for, and six views above them would push the
     answer below the fold to advertise a convenience. So views wait until what
@@ -1987,9 +2304,11 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
  function render(qs){const q=(qs||'').trim().toLowerCase();
   const bs=matchBundles(q);
   const vs=(q||!HUB)?matchViews(q):[];
+  const showC=FINDS&&!!q;
+  const cs=showC?hits:[];
   const showB=HUB&&(bs.length||!q);
-  const heads=showB&&vs.length>0;
-  active=Math.min(active,Math.max(0,bs.length+vs.length-1));
+  const heads=(showB?1:0)+(vs.length?1:0)+(showC?1:0)>1;
+  active=Math.min(active,Math.max(0,bs.length+vs.length+cs.length-1));
   let h='';
   if(showB){
    if(heads)h+=grp('Bundles');
@@ -2006,9 +2325,21 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
     attrs:`data-view="${esc(x.v)}"`,
     html:`<span class="sw-ico">${x.icon}</span><span>${esc(x.label)}${x.v===activeRail()?'<span class="sw-def">current</span>':''}</span>`})).join('');
   }
+  if(showC){
+   if(heads)h+=grp('Concepts');
+   h+=cs.map((c,i)=>opt(bs.length+vs.length+i,{
+    cls:' sw-hit',
+    attrs:`href="${esc(hitHref(c))}" data-hit="${esc(c.id)}" data-slug="${esc(c.slug)}"`,
+    html:hitHtml(c)})).join('');
+   /* The cap is reported, never silent: a palette that shows 50 of 214 and says
+      nothing has told the reader the answer is complete. */
+   if(hitTotal>cs.length&&cs.length)h+=note(`showing ${cs.length} of ${hitTotal} matches — narrow the search`);
+   if(!cs.length)h+=note(hitState==='error'?'search is unavailable right now':
+    hitState==='done'?'no concepts match':'searching every bundle…');
+  }
   if(!h)h='<a class="none"><span>no matches</span></a>';
   list.innerHTML=h;mark();}
- const items=()=>[ ...list.querySelectorAll('a[data-view],a[data-path]') ];
+ const items=()=>[ ...list.querySelectorAll('a[data-view],a[data-path],a[data-hit]') ];
  function mark(){const its=items();
   its.forEach((a,i)=>a.classList.toggle('active',i===active));
   input.setAttribute('aria-activedescendant',its[active]?its[active].id:'');
@@ -2016,16 +2347,47 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
  /* Unhide before rendering: mark() scrolls the active row into view, and a list
     still display:none measures zero, so the scroll lands somewhere arbitrary
     and takes the first group's header off the top of the box with it. */
- function open(){discovered();lastFocus=document.activeElement;active=0;input.value='';ov.hidden=false;render('');input.setAttribute('aria-expanded','true');input.focus();}
+ /* `prefill` seeds the box and fires the concept search in the same breath: the
+    bridge under the topbar search hands its dead-end query over through this,
+    and a reader who has already typed the word must not have to type it twice. */
+ function open(prefill){const pq=prefill==null?'':String(prefill);
+  discovered();lastFocus=document.activeElement;active=0;input.value=pq;
+  hits=[];hitTotal=0;hitTerms=[];hitState='';hitSeq++;clearTimeout(hitTimer);
+  ov.hidden=false;if(pq)findLater(pq);render(pq);input.setAttribute('aria-expanded','true');input.focus();}
  function close(){ov.hidden=true;input.setAttribute('aria-expanded','false');if(lastFocus&&lastFocus.focus)lastFocus.focus();}
  /* A view switches in place, so it ignores the new-tab chord — opening this same
     bundle again in a second tab is not what ⌘⏎ was asked for. A bundle is a real
     navigation and honours it. */
  function go(a,newTab){if(!a)return;
   const v=a.dataset.view;if(v){goRail(v);close();return;}
+  const id=a.dataset.hit;
+  /* A concept in this bundle is already loaded — selecting it in place keeps the
+     camera, the filters and the layout the reader built. Only a hit in another
+     bundle is worth a page load. */
+  if(id!==undefined){const t=a.getAttribute('href');
+   if(newTab){window.open(t,'_blank');close();return;}
+   if(a.dataset.slug===SELF_SLUG){close();goToGraph(id);return;}
+   location.href=t;return;}
   const p=a.dataset.path;if(!p)return;const t=target(p);
   if(newTab){window.open(t,'_blank');close();}else{location.href=t;}}
- input.addEventListener('input',()=>{active=0;render(input.value);});
+ /* The Concepts group is the one that costs a request, so it is debounced and
+    sequenced: only the newest answer may land, and a slow one that lost the race
+    is dropped rather than overwriting what the reader is looking at now. */
+ function findLater(q){clearTimeout(hitTimer);
+  const t=q.trim();
+  hitSeq++;
+  if(!FINDS||!t){hits=[];hitTotal=0;hitTerms=[];hitState='';return;}
+  hitState='searching';
+  hitTimer=setTimeout(()=>find(t),150);}
+ function find(t){const mine=hitSeq;
+  fetch(SEARCH_ENDPOINT+'?q='+encodeURIComponent(t))
+   .then(r=>r.ok?r.json():Promise.reject(new Error('search '+r.status)))
+   .then(d=>{if(mine!==hitSeq)return;
+    hits=d.results||[];hitTotal=d.total===undefined?hits.length:d.total;
+    hitTerms=t.split(/\s+/).filter(Boolean);hitState='done';render(input.value);})
+   .catch(()=>{if(mine!==hitSeq)return;
+    hits=[];hitTotal=0;hitTerms=[];hitState='error';render(input.value);});}
+ input.addEventListener('input',()=>{active=0;findLater(input.value);render(input.value);});
  input.addEventListener('keydown',e=>{const its=items();
   if(e.key==='ArrowDown'){e.preventDefault();active=Math.min(its.length-1,active+1);}
   else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(0,active-1);}
@@ -2033,7 +2395,7 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
   else if(e.key==='Escape'){e.preventDefault();close();return;}
   else return;
   mark();});
- list.addEventListener('click',e=>{const a=e.target.closest('a[data-path]');if(!a)return;
+ list.addEventListener('click',e=>{const a=e.target.closest('a[data-path],a[data-hit]');if(!a)return;
   if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return; /* let the browser handle its own new-tab/window conventions */
   e.preventDefault();go(a,false);});
  ov.addEventListener('mousedown',e=>{if(e.target===ov)close();});
@@ -2044,21 +2406,24 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
     mode can actually do, since a standalone bundle has no bundle to switch to
     and no second tab to open one in. */
  const chord=isMac?'⌘K':'Ctrl-K';
- /* Every label names the mode's primary job and nothing else. Under a hub that
-    is switching bundles — the placeholder trails "or a view" only because a
-    convenience nobody can find is not one, and that is the whole billing views
-    get. Standalone has no bundles, so there the view is the job. */
- const label=HUB?'Switch bundle':'Jump to a view';
- input.placeholder=HUB?'switch bundle, or type a view…':'jump to a view…';
+ /* Every label names the mode's primary job and nothing else. Where the hub
+    answers /search that job is finding a concept — you type words, not names —
+    and switching bundles becomes the second billing. Where it does not, the job
+    is switching bundles. Standalone has neither, so there the view is the job.
+    The ⇄ button keeps the bundle wording in every mode: it draws a swap, and a
+    control whose tooltip disagrees with its icon teaches the wrong thing. */
+ const label=FINDS?'Search all bundles':HUB?'Switch bundle':'Jump to a view';
+ const btnLabel=HUB?'Switch bundle':label;
+ input.placeholder=FINDS?'search concepts, switch bundle, or a view…':HUB?'switch bundle, or type a view…':'jump to a view…';
  input.setAttribute('aria-label',label);
- ov.setAttribute('aria-label',HUB?'Switch bundle':'Command palette');
+ ov.setAttribute('aria-label',FINDS?label:HUB?'Switch bundle':'Command palette');
  document.getElementById('sw-hint').textContent='↑↓ move · ⏎ open · '+(HUB?(isMac?'⌘⏎':'Ctrl-⏎')+' new tab · ':'')+'Esc close';
  const gh=document.querySelector('.ghint');
- if(gh)gh.textContent+=' · '+chord+(HUB?' switches bundle':' jumps to a view');
+ if(gh)gh.textContent+=' · '+chord+(FINDS?' (or the chip in the search box) searches every bundle':HUB?' switches bundle':' jumps to a view');
  /* the ⇄ button is bundle-swap in both icon and meaning, so it stays with the
     bundles — a standalone page reaches the palette by the chord and the hint */
  const btn=document.getElementById('btn-switch');
- if(btn&&HUB){btn.hidden=false;btn.title=label+' ('+chord+')';btn.setAttribute('aria-label',label+' ('+chord+')');
+ if(btn&&HUB){btn.hidden=false;btn.title=btnLabel+' ('+chord+')';btn.setAttribute('aria-label',btnLabel+' ('+chord+')');
   btn.addEventListener('click',()=>{ov.hidden?open():close();});}
  /* the pulse badge (and its hamburger-dot mirror on mobile) exists to get the
     switcher discovered — once the palette has been opened it has done its job,
@@ -2073,6 +2438,511 @@ function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LO
   if(dot&&SIBLINGS.length)dot.hidden=false;
  }
  function discovered(){if(cnt)cnt.hidden=true;if(dot)dot.hidden=true;try{localStorage.setItem('okf-swseen','1');}catch(err){}}
+ openPalette=open;
+})();
+
+/* ── the search bridge: the topbar box, told to stop pretending ──────────────
+   The box and the palette look alike and mean different things — the box
+   filters what is on screen, the palette finds across every bundle a hub hosts
+   — and the box carried neither fact. It said "search concepts…", emptied the
+   graph in silence when nothing matched, and never mentioned the palette. A
+   reader whose word lived in another bundle got a blank canvas and no exit.
+
+   Three additions, all inside the box:
+
+     the chip   names the palette where the disappointment happens, and opens it
+     the count  makes an empty result a number that reached zero, not a view
+                that went blank — the difference between "nothing here" and
+                "something broke"
+     the panel  on zero, says which bundle and which query came up empty, and
+                offers the way on (a hub) or the way back (anywhere else)
+
+   Counts come from two directions because the views do. The graph has already
+   decided by the time `applyGraphFilter` returns, so its count is read live off
+   Cytoscape with that function's own skip predicate. The catalog and the tree
+   resolve asynchronously, so they report from inside their own render — asking
+   them would read whatever the last fetch happened to leave behind.
+
+   The bridge fires rarely, and that is fine: the box's MiniSearch reaches full
+   bodies wherever the page holds them, so most real words match *something*
+   locally. It is the dead-end case that needs an exit, not the common one. ── */
+var bridge=null;
+/* Hoisted `function`s called from applyGraphFilter and renderTree, which are
+   defined far above this and could run before it — both guard on `bridge`. */
+function bridgeSync(){if(bridge)bridge.sync();}
+function bridgeReport(v,shown,total){if(bridge)bridge.report(v,shown,total);}
+(function(){
+ const label=document.querySelector('#search-wrap .search');
+ const cntEl=document.getElementById('s-cnt'),chip=document.getElementById('s-cmdk'),panel=document.getElementById('s-bridge');
+ if(!label||!cntEl||!chip||!panel)return;
+ const msgEl=panel.querySelector('.sb-msg'),goBtn=document.getElementById('sb-go'),clearBtn=document.getElementById('sb-clear');
+ const isMac=/Mac|iP/.test(navigator.platform||'');
+ const chord=isMac?'⌘K':'Ctrl-K';
+ chip.textContent=chord;
+ /* Only a hub can answer about every bundle, so only there is there anywhere to
+    escalate to. Everywhere else the panel still earns its place: it names the
+    dead end the blank canvas used to leave unexplained. */
+ const FINDS=SEARCH_ENDPOINT!==null;
+ const chipLbl=(FINDS?'Search every bundle':'Open the command palette')+' ('+chord+')';
+ chip.title=chipLbl;chip.setAttribute('aria-label',chipLbl);
+ goBtn.hidden=!FINDS;
+ /* The bundle's own name, as the topbar already says it — the ident's first
+    child is the name, before the concepts/links muted span. */
+ const identEl=document.querySelector('#topbar .ident');
+ const IDENT=identEl&&identEl.firstChild?identEl.firstChild.textContent.trim():(BUNDLE||'this bundle');
+
+ const last={};
+ /* The same skip predicate applyGraphFilter uses — parents, folder nodes and
+    map nodes are furniture, not concepts, and counting them would make the
+    denominator disagree with the graph the reader is looking at. */
+ function graphCounts(){let shown=0,total=0;
+  cy.nodes().forEach(n=>{if(n.isParent()||n.hasClass('dir')||n.hasClass('ix'))return;
+   total++;if(n.style('display')!=='none')shown++;});
+  return [ shown,total ];}
+ function sync(){
+  /* SEARCH_PH is the table of which views have a box at all; of those, tags
+     counts nothing (its cloud is not a list of concepts), so it is named out. */
+  const counted=SEARCH_PH[view]!==undefined&&view!=='tags';
+  const qs=(q[view]||'').trim();
+  let shown=null,total=null;
+  if(counted){const c=view==='graph'?graphCounts():last[view];if(c){shown=c[0];total=c[1];}}
+  const showCnt=counted&&!!qs&&shown!==null;
+  cntEl.hidden=!showCnt;if(showCnt)cntEl.textContent=shown+'/'+total;
+  label.classList.toggle('has-cnt',showCnt);
+  const zero=showCnt&&shown===0;
+  if(zero)msgEl.innerHTML='No matches in <b>'+esc(IDENT)+'</b> for “'+esc(qs)+'”';
+  panel.hidden=!zero;}
+ bridge={sync:sync,report:function(v,shown,total){last[v]=[ shown,total ];if(v===view)sync();}};
+
+ function clearBox(){searchInput.value='';q[view]='';applySearch();sync();}
+ function toPalette(){const qs=(q[view]||'').trim();panel.hidden=true;if(openPalette)openPalette(qs);}
+ /* A chip inside a <label> hands its click's focus to the input, which would
+    fight the palette for the cursor — swallow the mousedown, keep the click. */
+ chip.addEventListener('mousedown',e=>e.preventDefault());
+ chip.addEventListener('click',e=>{e.preventDefault();if(openPalette)openPalette();});
+ panel.addEventListener('mousedown',e=>e.preventDefault());
+ goBtn.addEventListener('click',e=>{e.preventDefault();toPalette();});
+ clearBtn.addEventListener('click',e=>{e.preventDefault();clearBox();searchInput.focus();});
+ searchInput.addEventListener('keydown',e=>{
+  if(panel.hidden)return;
+  if(e.key==='Enter'&&FINDS){e.preventDefault();toPalette();}
+  else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();clearBox();}});
+ /* The views that report nothing, and the emptied box, both land here. */
+ searchInput.addEventListener('input',sync);
+ /* The palette hands focus back when it closes. If the query is still a dead
+    end, the offer comes back with it rather than leaving the box silent again. */
+ const ov=document.getElementById('sw');
+ if(ov&&window.MutationObserver)new MutationObserver(()=>{if(ov.hidden)sync();}).observe(ov,{attributes:true,attributeFilter:[ 'hidden' ]});
+ sync();
+})();
+
+/* ── bundles slide-over (⚙): the registry, on the page ───────────────────────
+   Choosing which bundle `/` opens used to mean leaving the graph for /b/ — and
+   knowing /b/ was there at all. This is the same list, in the same place the
+   reader already is.
+
+   It reads GET <MANAGE_ROOT>bundles on every open rather than baking the list
+   in: the hub re-reads the registry per request, so an `okf registry rename` in
+   another terminal shows the next time the panel is opened. A boot snapshot
+   would go stale and say nothing about it.
+
+   Writes POST <MANAGE_ROOT>registry/<verb> with Accept: application/json, so
+   the hub answers with the outcome instead of the redirect the /b/ manager's
+   forms want. Every gate is the server's; this only renders what it decides.
+
+   No Add. Registering a bundle means naming a filesystem path, a browser cannot
+   hand one over (the File System Access API yields an opaque handle, never a
+   path, and is Chromium-only), and it is the agent's act anyway. The footer
+   says so rather than leaving the absence to be noticed.
+
+   MANAGE_TOKEN is null on a read-only hub, which is what the panel reads to
+   decide between offering the menus and explaining why it does not. ── */
+(function(){
+ if(MANAGE_ROOT===null)return;
+ const btn=document.getElementById('btn-ws'),panel=document.getElementById('ws'),ovl=document.getElementById('ws-ovl');
+ const list=document.getElementById('ws-list'),sub=document.getElementById('ws-sub'),flash=document.getElementById('ws-flash');
+ const foot=document.getElementById('ws-foot');
+ if(!btn||!panel)return;
+ btn.hidden=false;
+ let rows=[],writable=false,hasRegistry=false,editing=null,confirming=null,menuFor=null,flashT=0;
+
+ /* Out of the box while closed (see the CSS): display is restored one frame
+    before .open so the slide still animates, and taken away again when the
+    slide back has finished — a panel parked off-canvas still widens the page. */
+ function open(){
+  panel.hidden=false;ovl.hidden=false;btn.setAttribute('aria-expanded','true');
+  requestAnimationFrame(()=>panel.classList.add('open'));
+  load();}
+ function close(){
+  panel.classList.remove('open');ovl.hidden=true;btn.setAttribute('aria-expanded','false');
+  editing=null;confirming=null;menuFor=null;closeMenu();
+  const done=()=>{if(!panel.classList.contains('open'))panel.hidden=true;};
+  if(reduce())done(); else setTimeout(done,240);}
+ btn.addEventListener('click',()=>panel.classList.contains('open')?close():open());
+ document.getElementById('ws-close').addEventListener('click',close);
+ ovl.addEventListener('click',close);
+ /* Escape peels one layer at a time: an open menu first, then the panel. Closing
+    the whole panel out from under an open menu throws away more than was asked
+    for, and doing nothing at all — which is what an unguarded `if(!menuFor)`
+    does — leaves the reader pressing a key that answers nothing. */
+ addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||!panel.classList.contains('open'))return;
+  if(menuFor){e.stopPropagation();closeMenu();return;}
+  close();});
+
+ function load(){
+  fetch(MANAGE_ROOT+'bundles',{headers:{'accept':'application/json'}})
+   .then(r=>r.json())
+   .then(data=>{rows=data.bundles||[];writable=!!data.writable;hasRegistry=!!data.registry;render();})
+   .catch(()=>{list.innerHTML='<p class="ws-empty">The bundle list could not be loaded.</p>';});}
+
+ /* Two different reasons there is nothing to change, and they need different
+    sentences: a read-only bind names the flag, an ephemeral set names the
+    terminal. "No controls" with no explanation is the failure both share. */
+ function manageable(){return writable&&hasRegistry&&MANAGE_TOKEN!==null;}
+ function note(){
+  if(manageable())return '';
+  if(!hasRegistry)return '<p class="ws-ro-note">These bundles were named on the command line, so there is no registry to change. '+
+   '<code>okf registry set &lt;dir&gt;</code> registers one for good.</p>';
+  return '<p class="ws-ro-note">Read-only — this server is bound to an address other than loopback, so nothing here changes '+
+   'the registry. Restart it on a loopback bind, without <code>--read-only</code>, or use <code>okf registry</code> in the terminal.</p>';}
+
+ function render(){
+  closeMenu();
+  sub.textContent=rows.length+' bundle'+(rows.length===1?'':'s')+(hasRegistry?' in the registry':' on this server');
+  foot.hidden=!hasRegistry;
+  /* An empty list rendering *nothing* reads as a broken page. It is a real
+     state — the one a fresh install is in — so it says so and names the way out. */
+  if(!rows.length){
+   list.innerHTML='<p class="ws-empty">Nothing is registered yet.<br>Register a bundle with <code>okf registry set &lt;dir&gt;</code>.</p>';
+   return;}
+  list.innerHTML=note()+rows.map(row).join('');
+  wire();}
+
+ function row(b){
+  const cur=b.mount!==null&&b.mount===SELF_SLUG;
+  const pills=(b['default']?'<span class="ws-pill def">default</span>':'')+(cur?'<span class="ws-pill cur">current</span>':'');
+  /* A row the hub could not load links nowhere, because there is nowhere to
+     link — but it is still a row: "where did my bundle go?" is the question it
+     exists to answer. */
+  const title=b.mount!==null
+   ?'<a class="ws-title" href="../'+encodeURIComponent(b.mount)+'/">'+esc(b.title)+'</a>'
+   :'<span class="ws-title off">'+esc(b.title)+'</span>';
+  const count=b.count===null?'':'<span>'+b.count+' concept'+(b.count===1?'':'s')+'</span>';
+  const body='<div class="ws-row-main"><div class="ws-t">'+title+pills+'</div>'+
+   '<div class="ws-meta"><span class="ws-slug">@'+esc(b.slug)+'</span>'+count+
+   '<span class="ws-health '+esc(b.health)+'">'+esc(b.word)+'</span></div>'+
+   (editing===b.slug?edit(b):'')+(confirming===b.slug?confirm(b):'')+'</div>';
+  return '<div class="ws-row" data-slug="'+esc(b.slug)+'">'+body+(manageable()?menuBtn(b):'')+'</div>';}
+
+ function menuBtn(b){
+  return '<button class="ws-menu-btn" type="button" aria-haspopup="true" aria-expanded="false" '+
+   'aria-label="Actions for @'+esc(b.slug)+'" data-menu="'+esc(b.slug)+'">'+
+   '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r=".9" fill="currentColor" stroke="none"/>'+
+   '<circle cx="12" cy="12" r=".9" fill="currentColor" stroke="none"/>'+
+   '<circle cx="19" cy="12" r=".9" fill="currentColor" stroke="none"/></svg></button>';}
+
+ function edit(b){
+  return '<div class="ws-edit"><input class="field ws-slug-edit" value="'+esc(b.slug)+'" '+
+   'aria-label="New name for @'+esc(b.slug)+'" data-edit="'+esc(b.slug)+'">'+
+   '<button class="btn-sm primary" type="button" data-save="'+esc(b.slug)+'">Save</button>'+
+   '<button class="btn-sm" type="button" data-cancel="1">Cancel</button></div>'+
+   '<div class="ws-hint">Lowercase letters, numbers and hyphens. The folder is not touched.</div>';}
+
+ function confirm(b){
+  return '<div class="ws-confirm"><p>Remove <code>@'+esc(b.slug)+'</code> from the registry? '+
+   'The folder stays where it is — only this server stops listing it.</p>'+
+   '<div class="crow"><button class="btn-sm primary" type="button" data-remove="'+esc(b.slug)+'">Remove</button>'+
+   '<button class="btn-sm" type="button" data-cancel="1">Cancel</button></div></div>';}
+
+ /* The menu is appended to the panel rather than to the row, so a row with no
+    height left cannot clip it and no row needs overflow:visible to be usable. */
+ function openMenu(slug,anchor){
+  closeMenu();
+  const b=rows.filter(r=>r.slug===slug)[0];if(!b)return;
+  const isDefault=!!b['default'];
+  const el=document.createElement('div');
+  el.className='ws-menu';el.setAttribute('role','menu');
+  el.innerHTML='<button type="button" data-act="default"'+(isDefault||b.mount===null?' disabled':'')+'>'+
+    (isDefault?'Already the default':'Make default')+'</button>'+
+   '<button type="button" data-act="rename">Rename…</button>'+
+   '<div class="sep"></div>'+
+   '<button type="button" class="danger" data-act="remove">Remove…</button>';
+  panel.appendChild(el);
+  const a=anchor.getBoundingClientRect(),p=panel.getBoundingClientRect();
+  el.style.top=(a.bottom-p.top+4)+'px';
+  el.style.right=(p.right-a.right)+'px';
+  anchor.setAttribute('aria-expanded','true');
+  menuFor=slug;
+  el.addEventListener('click',e=>{
+   const item=e.target.closest('button[data-act]');if(!item||item.disabled)return;
+   const act=item.dataset.act;closeMenu();
+   if(act==='default')post('default',{slug:slug});
+   else if(act==='rename'){editing=slug;confirming=null;render();focusEdit();}
+   else{confirming=slug;editing=null;render();}});}
+ function closeMenu(){
+  const el=panel.querySelector('.ws-menu');if(el)el.remove();
+  const open=panel.querySelector('.ws-menu-btn[aria-expanded=true]');if(open)open.setAttribute('aria-expanded','false');
+  menuFor=null;}
+
+ function focusEdit(){const f=list.querySelector('.ws-slug-edit');if(f){f.focus();f.select();}}
+
+ function wire(){
+  list.querySelectorAll('.ws-menu-btn').forEach(b=>b.addEventListener('click',e=>{
+   e.stopPropagation();
+   const slug=b.dataset.menu;
+   if(menuFor===slug){closeMenu();return;}
+   openMenu(slug,b);}));
+  list.querySelectorAll('[data-cancel]').forEach(b=>b.addEventListener('click',()=>{editing=null;confirming=null;render();}));
+  list.querySelectorAll('[data-save]').forEach(b=>b.addEventListener('click',()=>save(b.dataset.save)));
+  list.querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>post('remove',{slug:b.dataset.remove})));
+  list.querySelectorAll('.ws-slug-edit').forEach(f=>f.addEventListener('keydown',e=>{
+   if(e.key==='Enter'){e.preventDefault();save(f.dataset.edit);}
+   else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();editing=null;render();}}));}
+ panel.addEventListener('click',e=>{if(!e.target.closest('.ws-menu')&&!e.target.closest('.ws-menu-btn'))closeMenu();});
+
+ function save(slug){
+  const f=list.querySelector('.ws-slug-edit');if(!f)return;
+  post('rename',{slug:slug,to:f.value});}
+
+ function post(verb,params){
+  const body=new URLSearchParams();
+  Object.keys(params).forEach(k=>body.append(k,params[k]));
+  body.append('token',MANAGE_TOKEN);
+  fetch(MANAGE_ROOT+'registry/'+verb,{method:'POST',headers:{
+    'accept':'application/json','content-type':'application/x-www-form-urlencoded'},body:body.toString()})
+   .then(r=>r.json().then(d=>({ok:r.ok,data:d})))
+   .then(res=>{
+    editing=null;confirming=null;
+    say(res.ok?res.data.message:res.data.error,!res.ok);
+    /* Re-read rather than patch the row in place: a write rebuilds the hub's
+       whole set, so the list after it is the server's answer, not a guess. */
+    load();})
+   .catch(()=>{say('That change could not be sent.',true);});}
+
+ function say(message,bad){
+  flash.textContent=message||'';flash.classList.toggle('err',!!bad);flash.hidden=!message;
+  clearTimeout(flashT);flashT=setTimeout(()=>{flash.hidden=true;},6000);}
+})();
+
+/* ── concept preview (touch): how a phone inspects a dot ─────────────────────
+   The desktop inspector is a column beside the graph. On a touch-sized viewport
+   the same panel is the *whole* viewport (grid-template-columns:0 1fr), so a tap
+   on a node measured #stage at width 0 and the graph was simply gone — read,
+   close, tap the next dot, repeat. There is no exploring in that loop.
+
+   So on this branch a tap never opens #side. It fills the card instead: the head
+   (type · title · description · link counts) rides at the bottom of a graph that
+   keeps every pixel and stays pannable, zoomable and tappable. Drag it up for
+   the neighbourhood lists and the body; tap a row in one and the card's contents
+   swap in place while the camera walks to the new node. Three snaps — dragged,
+   flicked, tapped or arrowed.
+
+   Four seams with the rest of the page, and they stay this narrow on purpose:
+   · openPanel() returns false here, which is the whole of what suppresses the
+     takeover — data-side stays "hidden" for show(), showDir() and showLog()
+     alike, so the grid is `1fr 0px` and #stage keeps the screen.
+   · select() is wrapped, not rewritten: cy's tap handler, goToGraph, the hash
+     deep-link and the palette all reach the card through the same door.
+   · centerOn() aims at a band rather than the centre — cy.center() would park
+     the selected node underneath the card describing it.
+   · setSide() is pinned to "hidden", so `\` cannot raise an inspector that
+     show() never fills. ── */
+(function(){
+ const card=document.getElementById('preview'),grip=document.getElementById('pv-grip'),
+       head=document.getElementById('pv-head'),body=document.getElementById('pv-body'),
+       headIn=document.getElementById('pv-head-in'),bodyIn=document.getElementById('pv-body-in'),
+       app=document.getElementById('app'),bar=document.getElementById('topbar');
+ /* identical to the CSS branch — one decision, written twice because neither
+    language can read the other */
+ const MOBILE_MQ=matchMedia('(max-width:768px),(max-width:1024px) and (orientation:portrait)');
+ const isTouch=()=>MOBILE_MQ.matches;
+ const SNAPS=[ 'peek','half','full' ];
+ /* the card hangs off the bottom of the topbar, and the bar is not the same
+    height on every branch — measure it rather than carry a constant that a
+    padding change would quietly falsify, and hand the CSS the same number */
+ let TOPBAR=56;
+ function measure(){TOPBAR=Math.round(bar.getBoundingClientRect().height);
+  root.style.setProperty('--pv-top',TOPBAR+'px');}
+ measure();
+ const fullH=()=>Math.max(220,innerHeight-TOPBAR);
+ function snapH(s){const vh=innerHeight;
+  if(s==='half')return Math.round(vh*.62);
+  if(s==='full')return fullH();
+  return Math.min(fullH(),Math.max(150,Math.round(vh*.34)));}
+ const yFor=h=>Math.max(0,fullH()-h);
+ let snap='peek', up=false, shown=null, bodyLoaded=null, aimed=null;
+
+ /* ---- snap + visibility ------------------------------------------------- */
+ function apply(h){card.style.transform='translateY('+yFor(h)+'px)';}
+ function setSnap(s,quiet){snap=s;card.setAttribute('data-snap',s);
+  grip.setAttribute('aria-valuenow',String(SNAPS.indexOf(s)+1));grip.setAttribute('aria-valuetext',s);
+  apply(snapH(s));
+  if(s!=='peek')loadBody();
+  if(!quiet)panToBand();}
+ /* Shown and hidden with no frame in between: no rAF dance to give a slide
+    something to slide from, and no timer waiting for one to finish. The class
+    comes off before the hiding transform goes on, so the card takes exactly one
+    transform value for the whole time it is on screen — which is the only
+    external evidence that nothing animates. */
+ function raise(){if(up)return;up=true;card.classList.add('up');card.setAttribute('aria-hidden','false');
+  app.classList.add('preview-up');
+  setSnap('peek',true);
+  if(aimed)panToBand(aimed);}
+ function close(){if(!up)return;up=false;card.classList.remove('dragging');
+  card.classList.remove('up');card.style.transform='translateY(100%)';
+  card.setAttribute('aria-hidden','true');
+  app.classList.remove('preview-up');
+  shown=null;aimed=null;
+  try{cy.elements().removeClass('dim hl');}catch(e){}
+  try{if(location.hash)history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
+ document.getElementById('pv-x').addEventListener('click',close);
+
+ /* ---- content ----------------------------------------------------------- */
+ /* Every string here goes through esc(); the only innerHTML that is not escaped
+    is the markdown body, and that one goes through renderMarkdown — i.e.
+    DOMPurify.sanitize(marked.parse(...)) — like every other body on the page. A
+    second render path that skipped either defense would reopen the hole the
+    template closed once, which is why mobile-preview.spec.js runs the hostile
+    bundle's payloads through this card too. */
+ function fill(id){const n=byId[id];if(!n)return false;
+  const ty=typeOf[id]||'Untyped', c=color[ty]||'#64748b';
+  const out=(outL[id]||[]).length, inn=(inL[id]||[]).length;
+  shown=id;bodyLoaded=null;body.scrollTop=0;
+  headIn.innerHTML='<span class="type"><span class="dot" style="background:'+esc(c)+'"></span>'+esc(ty)+'</span>'+
+   '<h2 class="pv-title">'+esc(n.title||id)+'</h2>'+
+   '<p class="pv-desc loading" id="pv-desc">loading…</p>'+
+   '<p class="pv-meta">'+out+' link'+(out===1?'':'s')+' out · '+inn+' in</p>';
+  bodyIn.innerHTML=relList('Links to',outL[id]||[])+relList('Linked from',inL[id]||[])+'<div class="body" id="pv-md"></div>';
+  bodyIn.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
+  getNodeMeta(id).then(h=>{const d=document.getElementById('pv-desc');
+   if(d&&shown===id){d.innerHTML=h||'<span class="empty">no description</span>';d.classList.remove('loading');}}).catch(()=>{});
+  if(snap!=='peek')loadBody();
+  return true;}
+ /* lazy: the body is markdown nobody can see at peek, and on a phone peek is the
+    state the card spends most of its life in */
+ function loadBody(){const id=shown;if(!id||bodyLoaded===id)return;bodyLoaded=id;
+  const el=document.getElementById('pv-md');if(!el)return;
+  el.innerHTML='<span class="loading">loading…</span>';
+  getNodeBody(id).then(md=>{if(el.isConnected&&shown===id)renderMarkdown(el,md);}).catch(()=>{});}
+ /* The authored layer needs its own filler for the same reason concepts do:
+    showDir and showLog write into #side-body, and on this branch that is a panel
+    nobody can see — so a folder in tree mode, an area box in cluster mode and an
+    index node all did nothing visible at all. Not a crash, which is exactly why
+    it survived: the tap looked ignored. */
+ function fillHead(kind,title,meta){shown=null;bodyLoaded=null;body.scrollTop=0;
+  headIn.innerHTML='<span class="type">'+esc(kind)+'</span>'+
+   '<h2 class="pv-title">'+esc(title)+'</h2>'+
+   '<p class="pv-meta">'+esc(meta)+'</p>';
+  bodyIn.innerHTML='<div class="body" id="pv-md"></div>';
+  return document.getElementById('pv-md');}
+ function fillDir(dir){getIndex().then(function(dirs){const d=dirs.find(x=>x.dir===dir);if(!d)return;
+  const types=Object.entries(d.types||{}).map(([t,n])=>(t||'Untyped')+' '+n).join(' · ');
+  const el=fillHead(d.present?'index.md':'no index.md · synthesized',
+   d.dir==='.'?BUNDLE:d.dir+'/',
+   d.count+' concept'+(d.count===1?'':'s')+(types?' · '+types:''));
+  if(d.present)renderMarkdown(el,d.body||'');else el.innerHTML=listingHtml(d.listing);
+  bodyIn.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
+  raise();}).catch(function(){});}
+ function fillLog(path){LOGS=null;getLogs().then(function(logs){const l=logs.find(x=>x.path===path);if(!l)return;
+  renderMarkdown(fillHead('update log · §7',path,'the §7 history'),l.content||'');
+  raise();}).catch(function(){});}
+
+ /* ---- the camera -------------------------------------------------------- */
+ /* cy.center() puts the node in the middle of the canvas, which here is behind
+    the card describing it. Aim at the middle of the *visible band* instead — the
+    strip between the top of the canvas and the card's edge — and skip the move
+    outright when the card leaves no band worth aiming at. The bump into
+    centerCommits is the same counter centerOn uses: a band-pan is a committed
+    camera move like any other, and one-move-per-selection is the invariant
+    camera-races.spec.js pins (at a desktop width, where this branch is off). */
+ function panToBand(ele){
+  if(!up||!isTouch())return;
+  const e=ele||(shown?cy.getElementById(shown):null);
+  if(!e||!e.length)return;
+  const r=cy.container().getBoundingClientRect();
+  const top=innerHeight-snapH(snap);
+  const band=Math.min(r.bottom,top)-r.top;
+  if(band<140)return; /* at full there is nothing to see; do not jerk the view */
+  const rp=e.renderedPosition(), p=cy.pan();
+  const dx=r.width/2-rp.x, dy=band/2-rp.y;
+  if(Math.abs(dx)<1&&Math.abs(dy)<1)return;
+  cy.stop();window.__camCenters=++centerCommits;
+  cy.animate({pan:{x:p.x+dx,y:p.y+dy},duration:420,easing:'ease-in-out-cubic'});}
+
+ /* ---- gestures ---------------------------------------------------------- */
+ /* One pointer stream for the grip and the head. A short, still press is a tap
+    (peek↔half); anything longer follows the finger and lands on the nearest
+    snap, one step further when it was flicked. Below peek a downward flick means
+    "go away", which is the gesture people already have. */
+ let drag=null;
+ function down(e){if(!up||e.target.closest('button,a'))return;
+  drag={y0:e.clientY,h0:snapH(snap),h:snapH(snap),ly:e.clientY,lt:performance.now(),v:0,moved:0,t0:performance.now()};
+  card.classList.add('dragging');
+  try{e.currentTarget.setPointerCapture(e.pointerId);}catch(err){}
+  addEventListener('pointermove',move);addEventListener('pointerup',upEv);addEventListener('pointercancel',upEv);}
+ function move(e){if(!drag)return;
+  const dy=e.clientY-drag.y0;drag.moved=Math.max(drag.moved,Math.abs(dy));
+  const now=performance.now(),dt=now-drag.lt;
+  if(dt>0){drag.v=(e.clientY-drag.ly)/dt;drag.ly=e.clientY;drag.lt=now;}
+  drag.h=Math.min(fullH(),Math.max(20,drag.h0-dy));apply(drag.h);}
+ function upEv(){if(!drag)return;const d=drag;drag=null;
+  removeEventListener('pointermove',move);removeEventListener('pointerup',upEv);removeEventListener('pointercancel',upEv);
+  card.classList.remove('dragging');
+  if(d.moved<8&&performance.now()-d.t0<500){setSnap(snap==='peek'?'half':'peek');return;}
+  let i=0,best=Infinity;
+  SNAPS.forEach((s,k)=>{const g=Math.abs(snapH(s)-d.h);if(g<best){best=g;i=k;}});
+  /* 0.9 px/ms is where a flick stops being a drag. Measured lower (0.55), a
+     deliberate ~150ms pull already read as a flick and overshot its target by a
+     whole snap — the difference between a card you place and one that argues. */
+  if(d.v>.9)i--;else if(d.v<-.9)i++;
+  if(i<0||d.h<snapH('peek')*.55){close();return;}
+  setSnap(SNAPS[Math.min(SNAPS.length-1,i)]);}
+ grip.addEventListener('pointerdown',down);head.addEventListener('pointerdown',down);
+ grip.addEventListener('keydown',e=>{const i=SNAPS.indexOf(snap);
+  if(e.key==='ArrowUp'){e.preventDefault();setSnap(SNAPS[Math.min(2,i+1)]);}
+  else if(e.key==='ArrowDown'){e.preventDefault();if(i===0)close();else setSnap(SNAPS[i-1]);}
+  else if(e.key==='Enter'||e.key===' '){e.preventDefault();setSnap(snap==='peek'?'half':'peek');}});
+ /* Esc closes what is on top, and the card is the bottom-most thing it can
+    reach — it is not modal, so every overlay above it answers first. */
+ const covered=()=>!dgv.hidden||!kb.hidden||(swModal&&!swModal.hidden)||
+  document.getElementById('ws').classList.contains('open')||
+  document.getElementById('filters').classList.contains('open');
+ addEventListener('keydown',e=>{if(up&&e.key==='Escape'&&!covered())close();});
+ /* a rotation, or a phone's address bar sliding away, changes what the snaps mean */
+ addEventListener('resize',()=>{measure();if(up)apply(snapH(snap));});
+ MOBILE_MQ.addListener&&MOBILE_MQ.addListener(()=>{if(!isTouch())close();});
+
+ /* ---- the seams --------------------------------------------------------- */
+ const _openPanel=openPanel;
+ openPanel=function(){if(isTouch())return false;return _openPanel();};
+ const _setSide=setSide;
+ setSide=function(s){return _setSide(isTouch()?'hidden':s);};
+ const _centerOn=centerOn;
+ /* remembered, because a folder tap centres before its index has been fetched —
+    the card raises afterwards and re-aims at the band it now leaves */
+ centerOn=function(ele,delay){if(!isTouch())return _centerOn(ele,delay);aimed=ele;panToBand(ele);};
+ const _showDir=showDir, _showLog=showLog;
+ showDir=function(dir){if(!isTouch())return _showDir(dir);fillDir(dir);};
+ showLog=function(path){if(!isTouch())return _showLog(path);fillLog(path);};
+ const _select=select;
+ select=function(id){
+  if(!isTouch())return _select(id);
+  const ele=cy.getElementById(id);if(!ele||!ele.length)return;
+  if(!fill(id))return;
+  /* raise first: the card is already at its snap by the time focusNode pans, so
+     the band is measured once and the camera moves once */
+  raise();
+  focusNode(ele,false);
+  try{if(decodeURIComponent((location.hash||'').slice(1))!==id)location.hash=encodeURIComponent(id);}catch(e){}};
+ /* A bare-canvas tap deliberately does NOT dismiss the card. It used to, on the
+    reasoning that the gesture means "never mind" — but the dots are small, the
+    misses constant, and the card kept closing by accident, which is what made
+    the *next* dot replay the whole entrance. Exploring turned into a slideshow.
+    (It also explains why a tablet felt fine and a phone did not: the same code,
+    with dots far enough apart that the miss rarely fired.) The card is a preview
+    of the last dot you touched, so it survives a miss and swaps in place on a
+    hit; dismissing stays explicit — ✕, swipe down, or Esc. */
 })();
 
 /* ── mobile: the rail as a drawer, the topbar controls as a sheet, and a
@@ -2135,7 +3005,9 @@ const KEYS=[
  [ '\\', 'show or hide the inspector — graph' ],
  [ '0', 'fit the graph to the screen — graph' ],
  [ 'f', 'fullscreen' ],
- [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K', HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
+ [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K',
+   SEARCH_ENDPOINT!==null?'search every bundle, switch bundle, or jump to a view':
+   HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
  [ '?', 'this list' ],
  [ 'Esc', 'close what is open, or clear the graph selection' ]
 ];

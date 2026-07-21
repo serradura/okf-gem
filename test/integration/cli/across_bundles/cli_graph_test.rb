@@ -81,5 +81,15 @@ module AcrossBundles
       assert_equal 2, leading.status
       assert_empty trailing.out + leading.out
     end
+
+    test "--hubs still answers about one bundle, and a second behind it is refused" do
+      assert_match(/2 of 4 concepts with inbound links/, okf("graph", fixture("shapely"), "--hubs").out)
+
+      second = okf("graph", fixture("shapely"), "--hubs", fixture("minimal"))
+
+      assert_equal 2, second.status
+      assert_match(/unexpected argument '#{Regexp.escape(fixture("minimal"))}'/, second.err)
+      assert_empty second.out
+    end
   end
 end

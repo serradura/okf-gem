@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-19T03:00:00Z
+timestamp: 2026-07-21T16:00:00Z
 ---
 
 # Overview
@@ -56,14 +56,58 @@ hub needs only a clean `PATH_INFO` strip and a trailing-slash redirect — no
 rewriting, no per-mount configuration. The rough edges are all navigational: a
 redirect preserves the query string (a deep link survives the hop), and an unknown
 slug answers `404` with a *page listing the hosted bundles*, so a bookmark left
-stale by a rename gets a way home instead of bare text. `/b/` itself is a browsable
-index with the default marked — a hub is navigable without the switcher, and the
-empty registry lands on a page that says so rather than redirecting nowhere. Those
-pages are self-contained and theme-aware like the graph page: no external requests.
+stale by a rename gets a way home instead of bare text. That page is a directory
+reached by a wrong turn rather than an error page, and it is built that way: the
+**asked path is the heading**, set in mono where a dropped slash reads as a
+shape, with "not found" demoted to the eyebrow above it — a reader arrives
+already knowing they are lost, so the diagnosis is the least useful thing on the
+page. Where a slug nearly matches, the guess is a **row** carrying the same
+anatomy as the list under it, already marked, with `⏎` pointed at it: a sentence
+in muted grey asks a reader to read, parse and then aim. Moving through the list
+is **Tab's** job — every row is an `<a href>`, a filtered-out row leaves the tab
+order on its own, and `/` reaches the box from anywhere, the same key the graph
+binds. A hand-rolled ↑↓ cursor was tried and deleted: it was a second focus model
+beside the browser's own, invisible to a screen reader, and the two falling out
+of step is what left two rows lit at once. And when the filter finds no bundle,
+the page raises the **same bridge panel** the graph page's search box raises —
+same component, same place, same two buttons — because it is the same event, and
+a second dialect of one idea two pages apart is how a product stops feeling like
+one. Rows carry the folder,
+because a hub hosting `site/.okf`, `minifts/.okf` and `okf-core/.okf` has three
+titles that read alike and the directory is all that tells them apart. Colour
+marks only the exception — a healthy row draws no verdict edge at all, since a
+rule on every row is a page where the one that matters cannot be found.
 
-The hub reads its bundles **at boot**. Registering or editing one is not picked up
-by a running server — restart it. That is the honest tradeoff for a hub that never
-re-scans disk per request.
+The guess reads the path, not only the slug the router parsed. `/bokf-tui/` is
+`/b/okf-tui/` with one slash missing, which is the likeliest way a hand-typed URL
+fails when every bundle lives at `/b/<name>/` — and the router, which only looks
+*under* the mount, hands back no slug at all there. The dropped separator is
+named outright only on evidence with no second reading (the remainder is a hosted
+slug exactly, and the whole segment is not one); everything short of that gets a
+sentence teaching the shape instead of guessing at the mistake. `/b/` itself is the
+[bundles list](bundles-manager.md) — a hub is navigable without the
+switcher, and the empty registry lands on a page that says so rather than
+redirecting nowhere. Those pages are self-contained and theme-aware like the graph
+page: no external requests.
+
+The hub loads its bundles **at boot** and rebuilds them after any registry write
+it serves, so a rename made on the manager page takes effect on the next click.
+What it never does is re-scan disk per request: an edit made *elsewhere* while it
+runs — `okf registry set` in another terminal — still wants a restart to be
+served, though the manager page itself reads the file fresh and will show it.
+
+# One search box for every bundle
+
+The hub answers `GET /search?q=…`, which is the only route in the server that
+knows about more than one bundle. It is
+[`OKF::Bundle::Search.across`](search.md) over every hosted bundle at once —
+one shared index, so BM25 weighs a term against the whole corpus and the merged
+ranking is comparable by construction rather than by stapling per-bundle lists
+together. The engine is **named**, not inferred: `:index`, because a long-lived
+server amortizes a build over every keystroke where a one-shot CLI cannot, and
+because the browser's own MiniSearch is a port of it, so a palette hit and an
+in-page search rank alike. Results are capped at 50 and the answer reports its
+own `total`, so a truncated list never reads as a complete one.
 
 # One palette, every mode
 
@@ -74,7 +118,22 @@ palette at all; now the palette is universal and *bundles* are the group that
 comes and goes. Under a hub, each `App` is built carrying the *other* bundles as
 siblings: bundles lead the list and own the empty box, `Cmd/Ctrl-Enter` opens
 one in a new tab, and a count badge advertises the palette until it has been
-opened once. Views ride underneath, each carrying the rail's own icon and label
+opened once.
+
+Where the hub also answers `/search`, a third group appears: **Concepts**, every
+match in every hosted bundle, fetched as you type and shown with its bundle, its
+type, and a snippet with the matched terms marked. It comes **last** on purpose.
+It is the one group that arrives asynchronously, and a group that lands above the
+cursor moves the row under the reader's fingers between the keystroke and the
+Enter; last means results can only ever appear below what is already selected. A
+hit in another bundle is a page load carrying `?select=<id>` and nothing else —
+the view and layout a bundle switch preserves are exactly what naming a node has
+to override — while a hit in the bundle already open is selected in place, since
+a page load to arrive where you already are throws away the camera and the
+filters for nothing. Standalone and static have no `SEARCH_ENDPOINT` at all, so
+the group does not exist there rather than existing empty.
+
+Views ride underneath, each carrying the rail's own icon and label
 — read from the rail, so the two cannot drift — and where there is no hub, views
 become the whole list. What never appears is a dead end: a standalone page
 injects an empty sibling list, so the palette offers a bundle only where its
@@ -86,6 +145,75 @@ view's search where it has one, and `?` answers with a sheet of every binding �
 reachable from a rail button too, because a shortcut list you can only open with
 a shortcut helps whoever needs it least. The sheet is written against the key
 handler it documents, so it cannot drift from what the keys do.
+
+# The registry, on the page
+
+`/b/` answered "which bundles are there?" for anyone who knew `/b/` existed, and
+grew forms to change them. The ⚙ in the rail asks the same question where the
+reader already is: a **Bundles** slide-over
+listing every registered bundle with its size, its health as a word, and which
+one `/` opens — plus, per row, a `⋯` carrying *Make default*, *Rename…* and
+*Remove…*. Rename and Remove take the row over and state themselves; a removal
+says the one thing a reader actually fears is not going to happen ("the folder
+stays where it is").
+
+There is no **Add**. Registering means naming a filesystem path; a browser
+cannot hand one over — the File System Access API yields an opaque handle, never
+a path, and is Chromium-only — and it is the agent's act anyway. The footer says
+where it is done rather than leaving the absence to be noticed.
+
+The panel reads `GET /bundles` on every open rather than baking the list into
+the page, because the hub re-reads the registry per request: a rename made in
+another terminal shows the next time it is opened. Writes POST the
+`/registry/<verb>` routes and the hub answers with the outcome as data. For a
+while `/b/`'s forms posted those same four routes, and two implementations of one
+contract is the thing that drifts — so the forms came out, and `/b/` kept the
+jobs only it can do (the list, the landing, the way back from a 404, and the
+empty state a hub with no bundles has no graph page to show).
+Every gate is the server's — the page only renders what it decides, and
+`MANAGE_TOKEN` is null wherever a write would be refused anyway, so the page
+holds no credential it cannot use. Read-only is explained rather than hidden:
+the same facts, no `⋯`, and one sentence naming what decides it.
+
+One bug is worth keeping named, because it is latent for any panel added later.
+A slide-over parked at `translateX(100%)` **still occupies layout**, and `#views`
+did not clip — the Filters panel only escapes it because `#stage` does. Closed,
+the panel widened the document by its own 340px; mid-slide it did the same. Both
+halves are fixed (`hidden` while closed, `overflow:hidden` on `#views`) and both
+are pinned by a spec that samples `scrollWidth` across the whole animation.
+
+# The box filters, the palette finds — and the box now says so
+
+Two surfaces looked alike and meant different things. The topbar box *filters*
+what is on screen; `⌘/Ctrl-K` *finds* across every bundle a hub hosts. The box
+carried neither fact: it said "search concepts…", emptied the graph in silence
+when nothing matched, and never mentioned the palette — so a reader whose word
+lived in another bundle got a blank canvas and no exit. The TUI already
+escalated a local miss into a global search; the page did not.
+
+Three additions close it, all inside the box. A **chip** carrying the chord
+(`⌘K` / `Ctrl-K`, OS-aware) names the palette where the disappointment happens,
+and opens it. A **live count** (`7/8`) makes an empty result a number that
+reached zero rather than a view that went blank — the difference between
+"nothing here" and "something broke". And on zero, a **panel** says which bundle
+and which query came up empty, then offers the way on: `⏎` hands the query to
+the palette prefilled and already searching, `esc` clears the box.
+
+The counts come from two directions because the views do. The graph has already
+decided by the time `applyGraphFilter` returns, so its count is read live off
+Cytoscape with that function's own skip predicate; the catalog and the file tree
+resolve asynchronously, so each reports from inside its own render. Only the
+views with a search box are counted, and tags is named out of that set — its
+cloud is not a list of concepts.
+
+The panel is honest about where it is. Only a hub can answer about every bundle,
+so only there does "Search every bundle" exist; on a standalone server or in a
+static `okf render` file the panel still names the dead end and offers `esc`,
+which is the half of the fix that was never about hubs.
+
+The escalation fires rarely, and that is the design working rather than failing:
+the box's index reaches full bodies wherever the page holds them, so most real
+words match *something* locally. It is the dead end that needs an exit.
 
 # The search box is full-text, and client-side
 
@@ -181,6 +309,50 @@ The breakpoint tracks the width actually available to the chrome, not a device
 class, which is why rotation is a re-evaluation rather than a one-way door: the
 same tablet crosses back over `769px` in landscape and gets the desktop layout,
 and `orientationchange` refits the graph to its new box.
+
+## On a touch screen a tap opens a card, not the inspector
+
+"Panels go full-bleed" was the takeover, and it cost the graph outright. At this
+width `.graph-body[data-side=default]` is `grid-template-columns:0 1fr`, so the
+moment a dot was tapped `#stage` measured **0 px wide**: the graph was not
+covered by the inspector, it was gone. Exploring a phone became open → read →
+close → tap the next dot, and there was no way to see a concept and its
+neighbourhood at once — which is the one thing a graph is for.
+
+So on a touch screen a node tap raises a **preview card** at the bottom edge
+instead. It carries the concept's head — type, title, description, `N links out ·
+N in` — over a graph that keeps every pixel and stays pannable, zoomable and
+tappable. Drag it up for the neighbourhood lists and the body; tap a row in one
+and the card's contents swap **in place** while the camera walks to the new node.
+Three snap points, reachable by drag, flick, tap or arrow key.
+
+Two behaviours are the point of it, and both are subtractions:
+
+* **Nothing animates.** The card had a 0.26 s entrance. Exploring a graph is
+  dozens of taps, and every one of them charged that wait. It was removed
+  outright — no transition, no `requestAnimationFrame` staging, no close timer —
+  so the card takes exactly **one transform value for its whole life on screen**.
+  Dragging still moves it directly; that was never a transition.
+* **A miss on bare canvas does not dismiss it.** It used to, on the reasoning
+  that the gesture means "never mind". The dots are small at this size and the
+  misses are constant, so the card kept vanishing by accident and the next dot
+  replayed the entrance from scratch. That pairing is what turned exploring into
+  a slideshow, and it also explains why the same code felt fine on a tablet:
+  dots far enough apart that the miss rarely fired. Dismissing is explicit — `✕`,
+  a downward swipe, or `Esc`.
+
+The camera aims at the middle of the **visible band** — canvas top to card top —
+rather than at the canvas centre, which would park the selected node underneath
+the card describing it, and it skips the move entirely when that band is under
+140 px, so the view never jerks for a node nobody can see.
+
+The card's branch is deliberately **wider than the chrome's**: `≤768px`, *or*
+`≤1024px` in portrait. A portrait tablet keeps the rail and the desktop topbar —
+it has the room — but zero-width-stage is its bug too, and a bottom card is the
+right gesture on any touch screen held upright. Rotate it to landscape and the
+inspector comes back. The rail only folds at 768 px, so on that tablet the card
+starts at `left:76px`: one that buried the Stats rail item under itself would be
+the takeover again, just shorter.
 
 # The graph opens the page, and a note says the index is there
 
@@ -351,8 +523,14 @@ sequenceDiagram
 | `/log` | every `log.md`, read live from disk for the Log |
 
 Under a hub every path above keeps its shape, mounted under its bundle's prefix
-(`/b/<slug>/node?id=`), plus the hub's own `/` (redirect to the default) and `/b/`
-(the bundle index).
+(`/b/<slug>/node?id=`), plus the hub's own:
+
+| Path | Serves |
+|------|--------|
+| `/` | redirect to the default bundle (empty-state page when none) |
+| `/search?q=` | ranked concepts across every hosted bundle (JSON) |
+| `/b/` | the [bundles list](bundles-manager.md) |
+| `POST /registry/{default,rename,remove,add}` | the manager's four writes |
 
 # Responses are gzipped on the wire
 

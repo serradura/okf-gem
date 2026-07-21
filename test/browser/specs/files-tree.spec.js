@@ -52,6 +52,37 @@ test.describe("file tree — collapse (desktop)", () => {
     await expect(app.locator('.file[data-id="services/billing"]')).toBeVisible();
   });
 
+  test("the fold-all control reflects the folders' collapsed state", async ({ app }) => {
+    // syncFoldAll: the button offers Collapse when anything is open and Expand
+    // (chevron rotated, .all-closed) when every foldable folder is shut.
+    const btn = app.locator("#ftree-foldall");
+    await expect(btn).toHaveAttribute("aria-label", "Collapse all folders");
+    await expect(btn).toBeEnabled();
+    await expect(btn).not.toHaveClass(/all-closed/);
+
+    await btn.click();
+    await expect(btn).toHaveAttribute("aria-label", "Expand all folders");
+    await expect(btn).toHaveClass(/all-closed/);
+
+    await btn.click();
+    await expect(btn).toHaveAttribute("aria-label", "Collapse all folders");
+    await expect(btn).not.toHaveClass(/all-closed/);
+  });
+
+  test("index/log rows sit above the concept files in their folder", async ({ app }) => {
+    // subtree() renders resIn(dir) before the concept groups, so a folder's map
+    // (services/index.md) lists above its concepts (services/gateway).
+    const order = await app.evaluate(() => {
+      const all = [ ...document.querySelectorAll("#ftree-list .file") ];
+      return {
+        ix: all.findIndex((e) => e.dataset.path === "services/index.md"),
+        gw: all.findIndex((e) => e.dataset.id === "services/gateway"),
+      };
+    });
+    expect(order.ix, "the services map must be present").toBeGreaterThanOrEqual(0);
+    expect(order.gw, "the map must come before the concept").toBeGreaterThan(order.ix);
+  });
+
   test("collapse-all stays reversible after the root was closed by hand", async ({ app }) => {
     // The fold controls read every folder from the tree walk, not just the ones
     // on screen — so closing the root (which hides all the sub-headers) does not
@@ -65,6 +96,29 @@ test.describe("file tree — collapse (desktop)", () => {
     await app.locator("#ftree-foldall").click();
     await expect(app.locator('.ffolder.root[data-dir="."]')).not.toHaveClass(/closed/);
     await expect(app.locator('.file[data-id="services/billing"]')).toBeVisible();
+  });
+});
+
+// The reader header (type badge + filename + graph button) carries a `hidden`
+// attribute until a file is opened, and it is hidden by `.fp-head[hidden]{
+// display:none}` — the same [hidden]-specificity precedent the log-button bug
+// (indexes.spec) forced. Without that rule `.fp-head{display:flex}` wins and an
+// empty header bar shows on the Files view with nothing open. toBeHidden reads
+// computed display, so it holds the rule, not just the attribute; and opening a
+// file is the positive control that the element can show in this view at all
+// (so the hidden assertion is not passing on a hidden ancestor).
+test.describe("file tree — reader header (desktop)", () => {
+  test.beforeEach(async ({ app }) => {
+    await showView(app, "files");
+    await expect(app.locator("#ftree-list")).toContainText("orders.md");
+  });
+
+  test("the reader header is hidden until a file is open", async ({ app }) => {
+    await expect(app.locator("#fp-head")).toBeHidden();
+
+    await app.locator('.file[data-id="services/gateway"]').click();
+    await expect(app.locator("#fp-head")).toBeVisible();
+    await expect(app.locator("#fp-title")).toHaveText("Gateway");
   });
 });
 
@@ -109,5 +163,74 @@ test.describe("file tree — collapse (mobile 375px)", () => {
     await expect(app.locator(".files-grid")).not.toHaveClass(/tree-min/);
     await expect(root).not.toHaveClass(/closed/);
     await expect(services).toHaveClass(/closed/);
+  });
+});
+
+test.describe("reserved files re-fetch fresh (server)", () => {
+  test("a log re-reads on every open, so a new entry shows", async ({ app }, testInfo) => {
+    test.skip(testInfo.project.name === "static", "server-only: the static bake reads logs from EMBED and never re-fetches");
+    // openReserved sets LOGS=null before getLogs, so the log is re-read on every
+    // open — an appended entry shows without a reload. Serve /log from a flag the
+    // test flips: open log.md, flip the flag (a new entry), re-open, and the new
+    // content appears. A cached getLogs would repeat the first.
+    let logBody = "LOG-MARKER-ALPHA";
+    await app.route((url) => url.pathname === "/log", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ logs: [ { path: "log.md", content: logBody } ] }) }));
+
+    await showView(app, "files");
+    await app.locator('.file[data-res="log"][data-path="log.md"]').click();
+    await expect(app.locator("#fp-body")).toContainText("LOG-MARKER-ALPHA");
+
+    logBody = "LOG-MARKER-BETA"; // as if a new line were appended to log.md
+    await app.locator('.file[data-id="services/gateway"]').click();
+    await app.locator('.file[data-res="log"][data-path="log.md"]').click();
+    await expect(app.locator("#fp-body")).toContainText("LOG-MARKER-BETA");
+  });
+});
+
+test.describe("file tree — the type/tag comboboxes", () => {
+  test.beforeEach(async ({ app }) => {
+    await showView(app, "files");
+    await expect(app.locator("#ftree-list")).toContainText("orders.md");
+  });
+
+  test("picking a type narrows the tree to that type's concepts", async ({ app }) => {
+    // The Files header carries two role=combobox filters; the type one narrows
+    // the tree to concepts of that type (reserved index/log rows step aside
+    // while either combo is set). Focus opens the listbox; the option is picked
+    // on mousedown (blur closes the box 130ms later), so dispatch it directly.
+    await expect(app.locator('#ftree-list .file[data-id="runbooks/deploy"]')).toBeVisible();
+
+    await app.locator("#file-type-input").click();
+    await expect(app.locator("#file-type-list")).toBeVisible();
+    await app.locator('#file-type-list li[data-v="Service"]').dispatchEvent("mousedown");
+
+    await expect(app.locator("#file-type-combo")).toHaveClass(/has/);
+    await expect(app.locator('#ftree-list .file[data-id="services/gateway"]')).toBeVisible();
+    await expect(app.locator('#ftree-list .file[data-id="services/billing"]')).toBeVisible();
+    await expect(app.locator('#ftree-list .file[data-id="runbooks/deploy"]')).toHaveCount(0);
+  });
+
+  test("setting a combo filter hides the reserved index/log rows", async ({ app }) => {
+    // Reserved files carry neither a type nor tags, so a combo filter is a
+    // statement about concepts and they step aside for it: renderTree fills
+    // `res` only when `!ft && !fg`. Set a type and the index/log rows go.
+    await expect(app.locator("#ftree-list .file[data-res]").first()).toBeVisible();
+    await app.locator("#file-type-input").click();
+    await app.locator('#file-type-list li[data-v="Service"]').dispatchEvent("mousedown");
+    await expect(app.locator("#file-type-combo")).toHaveClass(/has/);
+    await expect(app.locator("#ftree-list .file[data-res]")).toHaveCount(0);
+  });
+
+  test("clearing the type combo restores the full tree", async ({ app }) => {
+    // The ✕ clear button drops the filter and re-renders — the concepts it hid
+    // come back. (Its own handle: #file-type-clear resets value to null.)
+    await app.locator("#file-type-input").click();
+    await app.locator('#file-type-list li[data-v="Service"]').dispatchEvent("mousedown");
+    await expect(app.locator('#ftree-list .file[data-id="runbooks/deploy"]')).toHaveCount(0);
+
+    await app.locator("#file-type-clear").click();
+    await expect(app.locator("#file-type-combo")).not.toHaveClass(/has/);
+    await expect(app.locator('#ftree-list .file[data-id="runbooks/deploy"]')).toBeVisible();
   });
 });

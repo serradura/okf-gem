@@ -1,5 +1,4 @@
-import { test as base, expect } from "@playwright/test";
-import { bootGraph } from "../helpers.js";
+import { test as base, expect, bootGraph } from "../helpers.js";
 
 // ?view / ?layout / ?select / #hash and the ?view=index shortcut. These carry
 // state into a fresh page, so they need a URL the shared `app` fixture cannot

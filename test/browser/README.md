@@ -76,6 +76,7 @@ playwright.config.js   the two projects, the webServer that boots okf server
 paths.js               shared by config and global-setup (kept apart to avoid a cycle)
 global-setup.js        renders the static page
 helpers.js             the `app` fixture, the console-error watch, the DOM readers
+vendor-cache.js        serves the page's CDN libraries from a local vendor/ (see below)
 fixtures/bundle/       an OKF bundle shaped to reach the page's branches
 specs/
   boot.spec.js         what the page owes on arrival
@@ -87,12 +88,22 @@ specs/
   sanitization.spec.js the two XSS defenses, driven by a hostile bundle
   emphasis.spec.js     dim/highlight ordering, and cluster-mode legibility
   indexes.spec.js      Indexes-only, and the reserved files' graph button
-  links.spec.js        the inspector resolving index / log / dir / dead links
-  files-tree.spec.js   the collapse state machine (desktop + mobile)
+  links.spec.js        the inspector resolving index / log / dir / dead / external links
+  files-tree.spec.js   the collapse state machine (desktop + mobile) + the type/tag comboboxes
+  files-tree-nested.spec.js  the nested-dir tree: only-subdir folders, last-segment headers, depth (own fixture)
+  filters-manytags.spec.js   the filter finder's top-40 tag-chip cap (own 45-tag fixture)
+  files-tree-deeppath.spec.js  a long reserved-row path ellipsizes, badge on-screen (own deep-path fixture)
+  graph-zoomfloor.spec.js    the zoom floor relaxing on a graph bigger than the viewport (own 100-node ring)
   mobile-layout.spec.js the ≤768px tools sheet and file header, in geometry
+  mobile-preview.spec.js the touch preview card: the ended takeover, the band-pan, and the one transform it is allowed
   camera-races.spec.js un-cluster restore, index→tree, and one-camera-move (via the __camCenters counter)
   palette.spec.js      the ⌘K command palette (standalone: jump to a view)
   palette-hub.spec.js  the ⌘K palette in hub mode (switch bundle)
+  global-search.spec.js the ⌘K palette's Concepts group, over the hub's /search
+  manager.spec.js      the hub's /b/ bundles list (verdict edge, columns, phone)
+  hub-404.spec.js      the 404's filter, count and keyboard — the half that is not server-rendered
+  search-bridge.spec.js the topbar box's ⌘K chip, live count, and dead-end panel
+  bundles-panel.spec.js the rail's ⚙ Bundles slide-over (serial, own $OKF_HOME + hub)
   help.spec.js         the ? sheet and the / search key
   deep-links.spec.js   ?view / ?layout / ?select / #hash
   theme.spec.js        the theme toggle and its persistence
@@ -106,6 +117,43 @@ specs/
 `helpers.js` sits beside the config rather than inside `specs/` on purpose —
 `specs/` is `testDir`, and a non-spec module in there is a file Playwright
 scans and ignores on every run.
+
+## The CDN cache
+
+The page loads Cytoscape, marked and DOMPurify from `cdn.jsdelivr.net` at boot
+and six more libraries lazily. `vendor-cache.js` puts a read-through disk cache
+in front of all of them: a miss fetches and writes `vendor/<flattened-url>`, a
+hit is served from there. `vendor/` is gitignored — it is build output, and
+deleting it costs one slow run.
+
+It is keyed on the **request URL**, not on a list of the versions the template
+pins. That is deliberate. A manifest would be a second copy of those pins, free
+to fall out of step with the template's, and the suite would then quietly test a
+library the page no longer loads — the one failure a cache is most likely to
+hide. Keyed on the URL, a version bump is simply a miss.
+
+**It does not make the suite faster.** It was built to, and the measurement said
+otherwise: 28.7s without it, 29.0s with it, on a 34-case subset pinned to one
+worker. Full-suite wall clock cannot answer the question — three runs of the
+same 412 cases came in at 3.4m, 3.6m and 2.8m — so the single-worker A/B is the
+number to trust. Chromium reuses these subresources across contexts inside a
+worker's browser process, so the per-test download the idea assumed was only
+ever paid once per worker; the suite is bound by CPU (~500% across 5 workers, on
+rendering and Cytoscape layout), which is where the CDN wait was already hiding.
+What the cache does buy is that a warm run needs **no network** — worth having
+on its own, and the standing reason the CI job is non-blocking.
+
+`OKF_NO_VENDOR_CACHE=1` bypasses it and goes to the CDN. That is how you check
+the pins still resolve: a warm cache will serve a version jsdelivr has stopped
+publishing for as long as you let it.
+
+Every spec gets the cache because every spec builds on the `base` exported from
+`helpers.js`. A spec that imported `test` from `"@playwright/test"` directly
+would silently opt out, so none does — the eleven that used to now take `test as
+base` from `helpers.js` instead. Page-level routes still win over it, which is
+what keeps the specs that abort or count a CDN script working unchanged; the one
+that lets the real load through uses `route.fallback()` rather than
+`route.continue()` so it lands on the cache instead of the network.
 
 ## The console watch
 
@@ -129,8 +177,11 @@ other way in to:
 - `log.md`, so the Files view has a history entry to open.
 - a "See also" block in `runbooks/rollback.md` linking to `/index.md`,
   `/log.md`, a bare directory and a non-existent one, so the inspector's four
-  link resolutions each have a real link to follow. All four keep validate and
-  lint clean (directory and reserved-file links are not cross-links).
+  in-bundle link resolutions each have a real link to follow, plus a
+  `# Citations` section with an external `https://` link — the fifth kind, which
+  the inspector opens in a new tab rather than resolving. All keep validate and
+  lint clean (directory and reserved-file links are not cross-links; the
+  external link is cited, so it draws no "external link without citations" info).
 - a ```mermaid block in `decisions/adr-001-postgres.md`, so the diagram viewer
   has a real diagram to render, open and close.
 
@@ -144,8 +195,8 @@ tolerate one.
 [COVERAGE.md](COVERAGE.md) is the per-contract map — every user-visible behavior
 the page introduced across its 49-commit history, each marked covered / partial /
 uncovered against a named spec, with a ranked worklist of what is still missing.
-Of **182 net-live contracts** it covers **115 (63%)**, 16 partially, 51 not yet;
-by the narrower regression-fix-only lens that is ~50 of ~94. Read COVERAGE.md
+Of **181 net-live contracts** it covers **176 (97%)**, 1 partially, 4 not yet;
+by the narrower regression-fix-only lens that is ~60 of ~94. Read COVERAGE.md
 before writing a spec — the ✗ rows are the to-do list. It is strong on the
 interaction spine, the filters, the file
 tree, link resolution, both XSS defenses, the mobile chrome, the first-visit
@@ -220,3 +271,22 @@ first green run were all cases of asserting what the code looked like it did:
 - Eight nodes fit at `maxZoom`, so a correct "fit" can leave the zoom
   unchanged. Assert the rendered bounding box is inside the viewport, which is
   what fit actually promises.
+- **`cose` seeds itself from `Math.random`.** Anything read off the boot layout
+  varies run to run, so a threshold with a thin margin is a coin flip wearing a
+  test's clothes. `graph-zoomfloor` asserted `minZoom < 0.2` against a spread
+  that landed between 0.135 and 0.2 across ten runs, and failed roughly two in
+  five — for no reason connected to the code. It now drives a deterministic
+  `circle` layout, which reaches the same `layoutstop → relaxZoom` road with a
+  reproducible extent. Prefer a chosen layout over the boot one whenever the
+  assertion is numeric.
+
+**Never let an `evaluate` return a Cytoscape object.** `clickNode` was written
+as `page.evaluate(() => cy.getElementById(id).emit("tap"))` — an arrow with an
+expression body, so it handed `emit`'s return value (the collection, with the
+whole `cy` instance hanging off it through `_private`) back to Playwright to
+deep-serialize. That cost **5.0s per tap**; with braces around the body it is
+**6ms**, and the eleven call sites across five specs were most of the suite's
+wall clock. The trap is that it is invisible — the spec passes, only slowly, so
+nothing points at it until a test with three taps in it hits the 30s timeout.
+Read the same way, `cy.nodes().map(n => n.id())` is fine and `cy.nodes()` is not:
+return ids, positions and numbers, never elements.

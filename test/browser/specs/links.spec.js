@@ -36,6 +36,21 @@ test.describe("body link resolution (inspector)", () => {
     await expect(app.locator("#side-body")).toContainText("Customers");
   });
 
+  test("an external link opens in a new tab and leaves the panel in place", async ({ app }) => {
+    // An absolute/external href is none of the four in-bundle kinds:
+    // interceptMdLinks matches the scheme, calls window.open(href,'_blank',
+    // 'noopener') and returns — it never resolves it as a concept, so the
+    // inspector must not navigate. Catch the popup on the browser context (the
+    // ⌘⏎ chord's idiom) and confirm rollback is still the open panel.
+    const [ popup ] = await Promise.all([
+      app.context().waitForEvent("page"),
+      seeAlso(app, "on the web").click(),
+    ]);
+    expect(popup.url()).toContain("okfgem.com");
+    await popup.close();
+    await expect(app.locator("#side-body .title")).toHaveText("Rollback");
+  });
+
   test("an unresolvable link is disabled, not followed", async ({ app }) => {
     const dead = seeAlso(app, "not in this bundle");
     await dead.click();

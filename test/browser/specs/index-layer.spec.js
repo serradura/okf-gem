@@ -26,12 +26,36 @@ test.describe("index layer", () => {
   });
 
   test("a map whose concepts are all filtered away leaves the canvas", async ({ app }) => {
-    // Hide the Dataset type — both datasets concepts go, so the datasets map has
-    // nothing left to point at and hides too; the services map stays.
+    // Narrow to Service — both datasets concepts fall out, so the datasets map
+    // has nothing left to point at and hides too; the services map stays.
+    // (This used to click Dataset, back when a type chip *hid* its type. Same
+    // contract, same outcome, reached the way every other chip group is.)
     await app.locator("#btn-filters").click();
-    await app.locator('#ftypes .chip[data-t="Dataset"]').click();
+    await app.locator('#ftypes .chip[data-t="Service"]').click();
 
     await expect.poll(() => app.evaluate(() => cy.getElementById("ix::datasets").style("display"))).toBe("none");
     await expect.poll(() => app.evaluate(() => cy.getElementById("ix::services").style("display"))).toBe("element");
+  });
+
+  test("a synthesized map node is filled fainter than an authored one", async ({ app }) => {
+    // The same authorship-as-form the edges carry, on the nodes: an authored map
+    // (services/, node.ix) fills at --accent / opacity .9, a synthesized one
+    // (datasets/, node.ix-syn) at --faint / opacity .2. The fill opacity tells
+    // them apart.
+    const res = await app.evaluate(() => {
+      const syn = cy.nodes(".ix-syn");
+      const authored = cy.nodes(".ix").not(".ix-syn");
+      const op = (n) => parseFloat(n.style("background-opacity"));
+      return {
+        synN: syn.length,
+        authN: authored.length,
+        synOp: syn.length ? Math.max(...syn.map(op)) : null,
+        authOp: authored.length ? Math.min(...authored.map(op)) : null,
+      };
+    });
+    expect(res.synN, "datasets/ is a synthesized map node").toBeGreaterThan(0);
+    expect(res.authN, "services/ is an authored map node").toBeGreaterThan(0);
+    expect(res.synOp).toBeCloseTo(0.2, 5);
+    expect(res.authOp).toBeCloseTo(0.9, 5);
   });
 });
