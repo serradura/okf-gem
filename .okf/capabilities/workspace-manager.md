@@ -47,7 +47,7 @@ before it runs:
 
 1. **Is this server writable at all?** A loopback bind is, without a flag: the
    audience this page was built for should not need a command line to use the
-   page they were pointed at. Any other address takes `okf server --allow-edit`,
+   page they were pointed at. Any other address takes `okf server --allow-manage`,
    because `--bind 0.0.0.0` is how a personal tool becomes a public one and a
    write surface must not follow it there by accident. A read-only server renders
    the page with no forms *and* refuses the request that skipped them.
@@ -106,5 +106,5 @@ a `SyntaxError` no integration assertion could see.
 # Citations
 
 [1] [lib/okf/server/hub.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/hub.rb) — the manager page, the four POST routes, the three gates, and the rebuild-after-write.
-[2] [lib/okf/cli/server.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/server.rb) — `--allow-edit` and the loopback rule that decides whether the hub is writable.
+[2] [lib/okf/cli/server.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/server.rb) — `--allow-manage` and the loopback rule that decides whether the hub is writable.
 [3] [lib/okf/registry.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/registry.rb) — the CRUD the page drives, and the messages its refusals carry.

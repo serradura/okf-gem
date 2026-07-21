@@ -227,7 +227,7 @@ docker run --rm -v "$PWD:/data" -p 8808:8808 ghcr.io/serradura/okf server . --bi
 
 A container has to bind `0.0.0.0` for the host to reach it at all, which is
 exactly the bind that makes the hub's workspace manager read-only. Reading the
-graph is unaffected; add `--allow-edit` only if you also want to manage the
+graph is unaffected; add `--allow-manage` only if you also want to manage the
 registry from that page, and only when you know who can reach the port.
 
 Then open <http://127.0.0.1:8808>. Images are published for `linux/amd64` and
@@ -346,7 +346,7 @@ quietly dropped. On a loopback server it is also where you manage the registry
 without a terminal — make default, rename, remove, and add a bundle by pasting
 its folder path. Those controls are the one thing that does not follow you onto
 a network: bind anywhere but loopback and the page turns read-only unless you
-pass `--allow-edit`, since `--bind 0.0.0.0` is how a personal tool becomes a
+pass `--allow-manage`, since `--bind 0.0.0.0` is how a personal tool becomes a
 public one. Writes rebuild the hub's set as they go, so a rename takes effect on
 the next click; a registry change made *elsewhere* while it runs still wants a
 restart to be served. Set `$OKF_HOME` to point every verb at a different registry.

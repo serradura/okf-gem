@@ -317,7 +317,7 @@ module AcrossBundles
       refute_match(/example\.test/, page, "the ignored --link reaches no app behind the hub")
     end
 
-    # -- --allow-edit: who may change the registry from the browser
+    # -- --allow-manage: who may change the registry from the browser
 
     test "a loopback bind manages the registry from the browser without a flag" do
       _result, booted = with_registry("conformant", "rooted") { okf_server }
@@ -326,7 +326,7 @@ module AcrossBundles
         "the audience this page was built for should not need a flag to use it")
     end
 
-    test "a non-loopback bind is read-only until --allow-edit says otherwise" do
+    test "a non-loopback bind is read-only until --allow-manage says otherwise" do
       # --bind 0.0.0.0 is how a personal tool becomes a public one. The manager
       # still *reads* — the page is worth having either way — but it offers
       # nothing that writes.
@@ -336,7 +336,7 @@ module AcrossBundles
       assert_match(/fixtures\/conformant/, page, "the list is still worth reading")
       refute_match(/<form/, page, "and nothing on it changes anything")
 
-      _opted, booted = with_registry("conformant", "rooted") { okf_server("--bind", "0.0.0.0", "--allow-edit") }
+      _opted, booted = with_registry("conformant", "rooted") { okf_server("--bind", "0.0.0.0", "--allow-manage") }
       assert_match(/<form/, manager(booted_app(booted.first)), "the flag is the opt-in")
     end
 
@@ -348,8 +348,24 @@ module AcrossBundles
       assert_match(/not registered/, page, "and the page says so rather than leaving it a mystery")
     end
 
-    test "--allow-edit shows up in the verb's own help" do
-      assert_match(/--allow-edit/, okf("server", "--help").out)
+    test "--allow-manage shows up in the verb's own help" do
+      assert_match(/--allow-manage/, okf("server", "--help").out)
+    end
+
+    test "a read-only hub refuses a registry POST outright, and the file on disk is untouched" do
+      # Hiding the controls is a UI; refusing the request is the boundary. This
+      # POST carries everything the page's own form would have — same origin,
+      # this boot's token — and is still refused, because the bind decides.
+      _result, booted = with_registry("conformant", "rooted") { okf_server("--bind", "0.0.0.0") }
+      hub = booted_app(booted.first)
+      before = read_utf8(OKF::Registry.path)
+
+      status, _headers, page = post(hub, "/registry/rename", "slug" => "conformant", "to" => "renamed")
+
+      assert_equal 403, status
+      assert_match(/--allow-manage/, page, "the refusal names the way back in")
+      assert_equal before, read_utf8(OKF::Registry.path), "nothing reached the registry"
+      assert_match(/^\* conformant/, okf("registry", "list").out, "and the entry still answers to its own slug")
     end
 
     test "a plain dir and a ref mount side by side, each under its own name" do
@@ -419,6 +435,20 @@ module AcrossBundles
     # who may change what has a visible answer.
     def manager(hub)
       get_page(hub, "/b/").last
+    end
+
+    # A form POST as the manager's own page would send it: same-origin, and
+    # carrying this boot's token. Anything the hub refuses through here it
+    # refuses for a reason of its own, not for a missing credential.
+    def post(hub, path, params = {})
+      body = Rack::Utils.build_query(params.merge("token" => hub.send(:token)))
+      status, headers, response = hub.call(
+        "REQUEST_METHOD" => "POST", "PATH_INFO" => path, "QUERY_STRING" => "",
+        "HTTP_HOST" => "example.org", "HTTP_ORIGIN" => "http://example.org",
+        "CONTENT_TYPE" => "application/x-www-form-urlencoded",
+        "CONTENT_LENGTH" => body.bytesize.to_s, "rack.input" => StringIO.new(body)
+      )
+      [ status, headers, response.join ]
     end
 
     def get_page(app, path = "/")

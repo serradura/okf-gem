@@ -18,7 +18,7 @@
   default marker, and the entries the hub *cannot* host shown muted rather than
   omitted, because leaving them off answers "where did my bundle go?" with
   silence. **Registry writes**: four `POST` routes behind three gates
-  (loopback-or-`--allow-edit`, a registry to write to, same-origin plus a
+  (loopback-or-`--allow-manage`, a registry to write to, same-origin plus a
   per-boot token), each rebuilding the hub's served set from disk — a write that
   leaves the running server on the old set is a lie the next click believes.
 * **Note**: the manager page carries no script, deliberately. Rename and Remove

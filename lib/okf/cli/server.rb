@@ -24,7 +24,7 @@ module OKF
         require "okf/server/app"
         require "rack/deflater"
 
-        options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose", allow_edit: false }
+        options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose", allow_manage: false }
         parser = OptionParser.new do |o|
           o.banner = "Usage: okf server [DIR|@slug…] [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url]"
           o.on("-p", "--port PORT", Integer, "port to serve on (default #{options[:port]})") { |v| options[:port] = v }
@@ -32,7 +32,7 @@ module OKF
           o.on("-t", "--title TITLE", "graph title, single bundle only (default: parent/bundle dir name)") { |v| options[:title] = v }
           o.on("-l", "--link URL", "source URL shown in the header, single bundle only") { |v| options[:link] = v }
           o.on("--layout NAME", OKF::Render::Graph::LAYOUTS, "initial layout (#{OKF::Render::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
-          o.on("--allow-edit", "manage the registry from the browser on a non-loopback bind") { options[:allow_edit] = true }
+          o.on("--allow-manage", "manage the registry from the browser on a non-loopback bind") { options[:allow_manage] = true }
           help_flag(o)
         end
         dirs = positional_dirs(parser, argv) or return 2
@@ -151,12 +151,17 @@ module OKF
       # May the browser change the registry? On a loopback bind, yes: the server
       # is reachable only from this machine, and the audience this was built for
       # should not need a flag to use the page they were pointed at. Anywhere
-      # else it takes --allow-edit, because `--bind 0.0.0.0` is how a personal
+      # else it takes --allow-manage, because `--bind 0.0.0.0` is how a personal
       # tool becomes a public one and a write surface must not follow it there by
       # accident. 0.0.0.0 is *not* loopback — it is every interface, which is the
       # exact case this guards.
+      #
+      # The flag is named for what it permits, and *manage* is the whole of it:
+      # adding, renaming, removing and re-defaulting registry entries, which are
+      # references. Nothing here makes a reader's markdown writable from a
+      # browser, and "allow edit" was a name that invited exactly that fear.
       def writable?(options)
-        options[:allow_edit] || loopback?(options[:bind])
+        options[:allow_manage] || loopback?(options[:bind])
       end
 
       def loopback?(bind)

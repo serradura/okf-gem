@@ -217,7 +217,7 @@ module OKF
       # request rather than trusting a snapshot taken at boot.
       # +writable+ decides whether the manager offers the registry forms and
       # whether the POST routes answer at all. The CLI sets it: loopback binds
-      # get it for free, and any other address has to opt in with --allow-edit,
+      # get it for free, and any other address has to opt in with --allow-manage,
       # because `--bind 0.0.0.0` turns a personal tool into a public one and the
       # write surface should not follow it there by accident.
       def initialize(bundles, layout: "cose", registry: nil, writable: false)
@@ -295,7 +295,7 @@ module OKF
       def write(request, base)
         verb = request.path_info.sub("/registry/", "")
         return not_found unless WRITES.include?(verb)
-        return refused(base, 403, "This server is read-only. Restart it with --allow-edit to manage bundles here.") unless @writable
+        return refused(base, 403, "This server is read-only. Restart it with --allow-manage to manage bundles here.") unless @writable
         return refused(base, 409, "These bundles were named on the command line, so there is no registry to change.") if @boot_registry.nil?
         return refused(base, 403, "That request did not come from this page. Reload and try again.") unless authentic?(request)
 
