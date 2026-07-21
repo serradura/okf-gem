@@ -38,6 +38,27 @@ test.describe("indexes-only filter + reserved graph button", () => {
     await expect(app.locator("#ftree-ixonly")).toHaveAttribute("aria-pressed", "true");
   });
 
+  test("the indexes-only toggle narrows the tree to the authored maps", async ({ app }) => {
+    // A concept file shows in the full tree; pressing "Indexes only" drops every
+    // concept and leaves the index/map rows — the narrowing itself, distinct
+    // from the release/hold rules the other tests cover.
+    await expect(app.locator('.file[data-id="services/gateway"]')).toBeVisible();
+    await app.locator("#ftree-ixonly").click();
+    await expect(app.locator("#ftree-ixonly")).toHaveAttribute("aria-pressed", "true");
+    await expect(app.locator('.file[data-id="services/gateway"]')).toHaveCount(0);
+    await expect(app.locator('.file[data-res="index"]').first()).toBeVisible();
+  });
+
+  test("the fold-all control is disabled in indexes-only — nothing to fold", async ({ app }) => {
+    // Indexes-only renders a flat reserved list (lastFileDirs=[]), so foldable()
+    // is empty and syncFoldAll disables the fold-all button. No new fixture
+    // needed — the flat list is reachable from the base bundle.
+    await expect(app.locator("#ftree-foldall")).toBeEnabled();
+    await app.locator("#ftree-ixonly").click();
+    await expect(app.locator("#ftree-ixonly")).toHaveAttribute("aria-pressed", "true");
+    await expect(app.locator("#ftree-foldall")).toBeDisabled();
+  });
+
   test("a map offers the graph button and it lands on that map", async ({ app }) => {
     // A directory map offers "Open in graph", and it opens *that* map: switch to
     // the graph, put the services map in the inspector labelled by its directory.
@@ -46,6 +67,19 @@ test.describe("indexes-only filter + reserved graph button", () => {
     await app.locator("#fp-graph").click();
     await expect(app.locator("#app")).toHaveAttribute("data-view", "graph");
     await expect(app.locator("#side-body")).toContainText("services/");
+  });
+
+  test("every file's graph button reads one static \"Open in graph\"", async ({ app }) => {
+    // Per-file labels ("Explore the knowledge graph" / "Open services/ in graph")
+    // were collapsed to one static string (3376b9a) — the label must read the
+    // same whatever the open file is. Check it on a concept and on a map.
+    await app.locator('.file[data-id="services/gateway"]').click();
+    await expect(app.locator("#fp-graph")).toBeVisible();
+    await expect(app.locator("#fp-graph .fpg-lbl")).toHaveText("Open in graph");
+
+    await app.locator('.file[data-res="index"][data-path="services/index.md"]').click();
+    await expect(app.locator("#fp-graph")).toBeVisible();
+    await expect(app.locator("#fp-graph .fpg-lbl")).toHaveText("Open in graph");
   });
 
   test("a log hides the graph button", async ({ app }) => {

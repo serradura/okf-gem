@@ -1,4 +1,4 @@
-import { test, expect, visibleNodeIds } from "../helpers.js";
+import { test, expect, visibleNodeIds, settledBox } from "../helpers.js";
 
 // The three canvas toggles each rebuild the graph's elements, and each has to
 // undo itself exactly. A mode that leaks its nodes back into the plain view is
@@ -47,6 +47,40 @@ test.describe("graph modes", () => {
     expect(await total(app)).toBe(8);
   });
 
+  test("cluster disables the layout selector, and undoing it re-enables", async ({ app }) => {
+    // Cluster runs its own fcose tiling, so the layout selector is meaningless
+    // while it is on — the page disables it (setClustered: layoutSel.disabled=on)
+    // rather than let a pick silently do nothing.
+    await expect(app.locator("#layout")).toBeEnabled();
+    await app.locator("#btn-cluster").click();
+    await expect(app.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
+    await expect(app.locator("#layout")).toBeDisabled();
+
+    await app.locator("#btn-cluster").click();
+    await expect(app.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "false");
+    await expect(app.locator("#layout")).toBeEnabled();
+  });
+
+  test("entering tree mode disables the index button and tears down the layer", async ({ app }) => {
+    // The index layer and tree mode both rebuild the elements, so they cannot
+    // coexist: setTree(true) disables #btn-ix and, if the layer is up, calls
+    // setIxNodes(false) to remove its `.ix` nodes. Turn the layer on first so the
+    // teardown has something to undo.
+    await app.locator("#btn-ix").click();
+    await expect(app.locator("#btn-ix")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => app.evaluate(() => cy.nodes(".ix").length)).toBeGreaterThan(0);
+
+    await app.locator("#btn-tree").click();
+    await expect(app.locator("#btn-tree")).toHaveAttribute("aria-pressed", "true");
+    await expect(app.locator("#btn-ix")).toBeDisabled();
+    await expect(app.locator("#btn-ix")).toHaveAttribute("aria-pressed", "false");
+    await expect.poll(() => app.evaluate(() => cy.nodes(".ix").length)).toBe(0);
+
+    // Leaving tree mode hands the index button back.
+    await app.locator("#btn-tree").click();
+    await expect(app.locator("#btn-ix")).toBeEnabled();
+  });
+
   test("a filter still applies inside cluster mode", async ({ app }) => {
     await app.locator("#btn-cluster").click();
     await app.locator("#btn-filters").click();
@@ -73,5 +107,64 @@ test.describe("graph modes", () => {
       const b = cy.elements().renderedBoundingBox();
       return b.x1 >= -1 && b.y1 >= -1 && b.x2 <= cy.width() + 1 && b.y2 <= cy.height() + 1;
     })).toBe(true);
+  });
+
+  test("the 0 key fits the graph", async ({ app }) => {
+    // The keyboard equivalent of #btn-fit (graph view only). Let the one-shot
+    // boot fit run and settle FIRST — else it re-fits during the poll below and
+    // the test passes with the key doing nothing (the boot timer, not `0`, fit
+    // the graph). That fit is `addEventListener('load',()=>setTimeout(fitGraph,
+    // 400))`, so it is keyed off the `load` event — which waits on the CDN
+    // scripts and can land well after bootGraph. Gate on readyState==='complete'
+    // (load has fired), then clear the 400ms timer + its 450ms ease, then settle.
+    await app.waitForFunction(() => document.readyState === "complete");
+    await app.waitForTimeout(900);
+    await settledBox(app);
+    // Shove the graph well out of frame — and confirm it actually left, or the
+    // test can't tell a fit from a no-op — then 0, and assert it lands back in.
+    await app.evaluate(() => { cy.zoom(3); cy.pan({ x: -3000, y: -3000 }); });
+    const outside = await app.evaluate(() => {
+      const b = cy.elements().renderedBoundingBox();
+      return b.x2 < 0 || b.y2 < 0 || b.x1 > cy.width() || b.y1 > cy.height();
+    });
+    expect(outside, "the artificial pan must push the graph off-screen").toBe(true);
+
+    await app.keyboard.press("0");
+    await expect.poll(() => app.evaluate(() => {
+      const b = cy.elements().renderedBoundingBox();
+      return b.x1 >= -1 && b.y1 >= -1 && b.x2 <= cy.width() + 1 && b.y2 <= cy.height() + 1;
+    })).toBe(true);
+  });
+
+  test("tree edges render dashed and folder nodes carry the accent", async ({ app }) => {
+    // The tree picture's two visual contracts: folder→child edges are dashed
+    // (edge.tree line-style), and folder nodes are accent squares like maps
+    // (node.dir background-color = --accent, round-rectangle). The colour is
+    // read through a probe element so the comparison is rgb-to-rgb.
+    await app.locator("#btn-tree").click();
+    await expect(app.locator("#btn-tree")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => app.evaluate(() => cy.getElementById("dir::services").length)).toBe(1);
+
+    const res = await app.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+      document.body.appendChild(probe);
+      const accent = getComputedStyle(probe).color;
+      probe.remove();
+      const edges = cy.edges(".tree");
+      const dir = cy.getElementById("dir::services");
+      return {
+        edgeCount: edges.length,
+        line: edges.length ? edges[0].style("line-style") : null,
+        bg: dir.style("background-color"),
+        shape: dir.style("shape"),
+        accent,
+      };
+    });
+    expect(res.edgeCount, "tree mode draws folder→child edges").toBeGreaterThan(0);
+    expect(res.line).toBe("dashed");
+    // Cytoscape returns rgb() without spaces, the DOM with them — same colour.
+    expect(res.bg.replace(/\s/g, "")).toBe(res.accent.replace(/\s/g, ""));
+    expect(res.shape).toBe("round-rectangle");
   });
 });

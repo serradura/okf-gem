@@ -85,6 +85,16 @@ test.describe("inspector", () => {
     await expect(app.locator("#btn-filters .fbadge")).toHaveText("0");
   });
 
+  test("the \\ key toggles the inspector on the graph view", async ({ app }) => {
+    // The keyboard equivalent of the panel toggle: `\` flips data-side between
+    // hidden and default (graph view only). The panel boots hidden.
+    await expect(app.locator(".graph-body")).toHaveAttribute("data-side", "hidden");
+    await app.keyboard.press("\\");
+    await expect(app.locator(".graph-body")).toHaveAttribute("data-side", "default");
+    await app.keyboard.press("\\");
+    await expect(app.locator(".graph-body")).toHaveAttribute("data-side", "hidden");
+  });
+
   test("Escape drops the selection and clears the location hash", async ({ app }) => {
     await clickNode(app, "services/gateway");
 

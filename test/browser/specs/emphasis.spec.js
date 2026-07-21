@@ -74,6 +74,44 @@ test.describe("emphasis (dim + highlight)", () => {
     expect(op.unrelated, "an unrelated concept still recedes").toBeLessThan(0.2);
   });
 
+  // The tap handler routes three node kinds through the *same* focusNode: a
+  // concept, a folder (`.dir`) in tree mode, and a map (`.ix`) in the index
+  // layer. The concept path is covered above; these two pin that a folder and a
+  // map emphasise identically — hl on the tapped node, dim (with the resolved
+  // 0.1 opacity) on an unrelated leaf. Gut the `.dir`/`.ix` branch of the tap
+  // handler and these go red.
+  test("tapping a folder node in tree mode emphasises it", async ({ app }) => {
+    await app.locator("#btn-tree").click();
+    await expect(app.locator("#btn-tree")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => app.evaluate(() => cy.getElementById("dir::services").length)).toBe(1);
+
+    await app.evaluate(() => cy.getElementById("dir::services").emit("tap"));
+    await expect.poll(() => app.evaluate(() => cy.getElementById("dir::services").hasClass("hl"))).toBe(true);
+
+    const op = await app.evaluate(() => ({
+      folder: cy.getElementById("dir::services").effectiveOpacity(),
+      unrelated: cy.getElementById("datasets/customers").effectiveOpacity(),
+    }));
+    expect(op.folder, "the tapped folder must stay lit").toBeGreaterThan(0.9);
+    expect(op.unrelated, "a leaf outside the folder's neighbourhood recedes").toBeLessThan(0.2);
+  });
+
+  test("tapping a map node in the index layer emphasises it", async ({ app }) => {
+    await app.locator("#btn-ix").click();
+    await expect(app.locator("#btn-ix")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => app.evaluate(() => cy.getElementById("ix::services").length)).toBe(1);
+
+    await app.evaluate(() => cy.getElementById("ix::services").emit("tap"));
+    await expect.poll(() => app.evaluate(() => cy.getElementById("ix::services").hasClass("hl"))).toBe(true);
+
+    const op = await app.evaluate(() => ({
+      map: cy.getElementById("ix::services").effectiveOpacity(),
+      unrelated: cy.getElementById("datasets/customers").effectiveOpacity(),
+    }));
+    expect(op.map, "the tapped map must stay lit").toBeGreaterThan(0.9);
+    expect(op.unrelated, "a concept outside the map's neighbourhood recedes").toBeLessThan(0.2);
+  });
+
   test("the selected node carries the highlight border", async ({ app }) => {
     // The other half of the state block: `.hl` is a 3px accent border over the
     // concept's borderless base. Pins that selection is visible at all.

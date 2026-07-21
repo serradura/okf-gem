@@ -52,6 +52,37 @@ test.describe("file tree — collapse (desktop)", () => {
     await expect(app.locator('.file[data-id="services/billing"]')).toBeVisible();
   });
 
+  test("the fold-all control reflects the folders' collapsed state", async ({ app }) => {
+    // syncFoldAll: the button offers Collapse when anything is open and Expand
+    // (chevron rotated, .all-closed) when every foldable folder is shut.
+    const btn = app.locator("#ftree-foldall");
+    await expect(btn).toHaveAttribute("aria-label", "Collapse all folders");
+    await expect(btn).toBeEnabled();
+    await expect(btn).not.toHaveClass(/all-closed/);
+
+    await btn.click();
+    await expect(btn).toHaveAttribute("aria-label", "Expand all folders");
+    await expect(btn).toHaveClass(/all-closed/);
+
+    await btn.click();
+    await expect(btn).toHaveAttribute("aria-label", "Collapse all folders");
+    await expect(btn).not.toHaveClass(/all-closed/);
+  });
+
+  test("index/log rows sit above the concept files in their folder", async ({ app }) => {
+    // subtree() renders resIn(dir) before the concept groups, so a folder's map
+    // (services/index.md) lists above its concepts (services/gateway).
+    const order = await app.evaluate(() => {
+      const all = [ ...document.querySelectorAll("#ftree-list .file") ];
+      return {
+        ix: all.findIndex((e) => e.dataset.path === "services/index.md"),
+        gw: all.findIndex((e) => e.dataset.id === "services/gateway"),
+      };
+    });
+    expect(order.ix, "the services map must be present").toBeGreaterThanOrEqual(0);
+    expect(order.gw, "the map must come before the concept").toBeGreaterThan(order.ix);
+  });
+
   test("collapse-all stays reversible after the root was closed by hand", async ({ app }) => {
     // The fold controls read every folder from the tree walk, not just the ones
     // on screen — so closing the root (which hides all the sub-headers) does not
@@ -65,6 +96,29 @@ test.describe("file tree — collapse (desktop)", () => {
     await app.locator("#ftree-foldall").click();
     await expect(app.locator('.ffolder.root[data-dir="."]')).not.toHaveClass(/closed/);
     await expect(app.locator('.file[data-id="services/billing"]')).toBeVisible();
+  });
+});
+
+// The reader header (type badge + filename + graph button) carries a `hidden`
+// attribute until a file is opened, and it is hidden by `.fp-head[hidden]{
+// display:none}` — the same [hidden]-specificity precedent the log-button bug
+// (indexes.spec) forced. Without that rule `.fp-head{display:flex}` wins and an
+// empty header bar shows on the Files view with nothing open. toBeHidden reads
+// computed display, so it holds the rule, not just the attribute; and opening a
+// file is the positive control that the element can show in this view at all
+// (so the hidden assertion is not passing on a hidden ancestor).
+test.describe("file tree — reader header (desktop)", () => {
+  test.beforeEach(async ({ app }) => {
+    await showView(app, "files");
+    await expect(app.locator("#ftree-list")).toContainText("orders.md");
+  });
+
+  test("the reader header is hidden until a file is open", async ({ app }) => {
+    await expect(app.locator("#fp-head")).toBeHidden();
+
+    await app.locator('.file[data-id="services/gateway"]').click();
+    await expect(app.locator("#fp-head")).toBeVisible();
+    await expect(app.locator("#fp-title")).toHaveText("Gateway");
   });
 });
 

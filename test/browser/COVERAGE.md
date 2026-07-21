@@ -27,33 +27,37 @@ exactly):**
 
 | | Count | % |
 |---|---:|---:|
-| ✓ covered | **115** | 63% |
-| ~ partial | 16 | 9% |
-| ✗ uncovered | 51 | 28% |
+| ✓ covered | **136** | 75% |
+| ~ partial | 11 | 6% |
+| ✗ uncovered | 35 | 19% |
 
-The **51 uncovered** rows are the worklist: ~11 are REG fixes with existing
-fixtures (Priority 1), ~25 are cheap FEAT coverage (Priority 2), ~7 need a new
-fixture (Priority 3), and ~9 are hard/instrumentation/unbuilt (Priority 4).
+The **35 uncovered** rows are the worklist. **Priority 1 (REG fixes with
+existing fixtures) is cleared**, and Priority-2 is well underway (keys A1-08/09,
+tree visuals A2-19/20, indexes-only narrowing A5-14, note scope A7-06, fold-all
+states A5-08/13, and A5-23 — which turned out reachable from the base bundle, no
+new fixture). What remains: ~16 more cheap FEAT rows (Priority 2), ~6 need a new
+fixture (Priority 3), and ~8 are hard/instrumentation/unbuilt (Priority 4).
 
 ### By area (covered / partial / uncovered)
 
 | Area | ✓ | ~ | ✗ | Total |
 |---|---:|---:|---:|---:|
-| 1 — Boot, views, rail, view-switching, keyboard | 7 | 0 | 4 | 11 |
-| 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer | 18 | 9 | 11 | 38 |
+| 1 — Boot, views, rail, view-switching, keyboard | 9 | 0 | 2 | 11 |
+| 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer | 25 | 7 | 6 | 38 |
 | 3 — Filters & search | 13 | 1 | 5 | 19 |
-| 4 — Inspector, links, escaping/sanitization | 18 | 0 | 2 | 20 |
-| 5 — Files view, file tree, reserved files | 12 | 3 | 13 | 28 |
-| 6 — Mobile / responsive | 10 | 1 | 3 | 14 |
-| 7 — First-visit notes | 5 | 1 | 4 | 10 |
+| 4 — Inspector, links, escaping/sanitization | 20 | 0 | 0 | 20 |
+| 5 — Files view, file tree, reserved files | 18 | 1 | 9 | 28 |
+| 6 — Mobile / responsive | 12 | 1 | 1 | 14 |
+| 7 — First-visit notes | 7 | 0 | 3 | 10 |
 | 8 — Command palette, hub, help, keyboard sheet | 11 | 0 | 5 | 16 |
 | 9 — Deep links, theme, splitters, diagram, static/server, interiors | 21 | 1 | 4 | 26 |
-| **Total** | **115** | **16** | **51** | **182** |
+| **Total** | **136** | **11** | **35** | **182** |
 
-The two thinnest areas carry most of the gap: **Files/file-tree (13 ✗)** — the
-largest surface and largest historical bug source — and **Graph canvas (11 ✗)**,
-where several ✗ are sub-frame timing or reserved-mode rendering. Areas 4 and 9
-(inspector/escaping, deep-links/theme/diagram) are effectively complete.
+**Area 4 (inspector/escaping) is now complete** — the last two rows (external
+links, dead-link tooltip) closed. **Files/file-tree (11 ✗)** is now the largest
+gap — the largest surface and largest historical bug source — with **Graph
+canvas (7 ✗)** behind it, where the remaining ✗ are sub-frame timing or
+reserved-mode rendering. Area 9 (deep-links/theme/diagram) stays near-complete.
 
 ### The two counts, reconciled
 
@@ -63,7 +67,7 @@ and classifies conservatively (ambiguous → FEAT), which is why its raw REG cou
 (54) is below that earlier 94: the old count split the big commits (ed6c0af,
 adf96ff, 4f4aae4) into finer regression rows and counted some behavior-changing
 features as regressions. **Neither is wrong; they measure different things.** The
-page reads as "better covered" here (63%) precisely because features — many of
+page reads as "better covered" here (75%) precisely because features — many of
 them covered — are now in the denominator. What matters below is the concrete ✗
 list, not the denominator.
 
@@ -102,8 +106,8 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A1-05 | a2f6db1/1093ae3 | REG | Index rail item resolves to Files with root map open | `readIndex()`, `activeRail()` | ✓ | views › Index lands on Files |
 | A1-06 | d942471 | REG | A number key typed into a text field is text | keydown guard on input focus | ✓ | views › a number key typed into a text field |
 | A1-07 | d942471 | FEAT | `/` focuses the view's search (not on Stats) | `SEARCH_PH`, keydown `/` | ✓ | help › / focuses the search |
-| A1-08 | d942471 | FEAT | `0` fits the graph (graph view only) | keydown `0` → `fitGraph` | ✗ | no spec presses `0` |
-| A1-09 | d942471 | FEAT | `\` toggles the inspector | keydown `\` → `setSide` | ✗ | inspector toggle tested via button, not key |
+| A1-08 | d942471 | FEAT | `0` fits the graph (graph view only) | keydown `0` → `fitGraph` | ✓ | graph-modes › the 0 key fits the graph |
+| A1-09 | d942471 | FEAT | `\` toggles the inspector | keydown `\` → `setSide` | ✓ | inspector › the \ key toggles the inspector |
 | A1-10 | d942471 | FEAT | `f` toggles fullscreen | `#btn-full`, `requestFullscreen` | ✗ | fullscreen not exercised (hard in headless) |
 | A1-11 | d942471 | FEAT | Reduced-motion disables transitions/count-up | `@media (prefers-reduced-motion)` | ✗ | never emulated; testable via `emulateMedia` |
 
@@ -117,27 +121,27 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A2-04 | 138b705 | REG | `.dim` outranks an index-layer edge's opacity | `.dim` after `edge.ixe` | ✓ | emphasis › dim outranks an index-layer edge |
 | A2-05 | 975a522 | REG | Cluster-mode selection stays legible (dim leaves/edges, never `:parent`) | `focusNode` `.not(':parent')`, effectiveOpacity | ✓ | emphasis › selection stays legible in cluster mode |
 | A2-06 | d942471 | FEAT | Selected node carries the highlight border | `.hl` border-width/color | ✓ | emphasis › the selected node carries the highlight border |
-| A2-07 | 9158ca6 | REG | One `focusNode` drives concept/folder/map emphasis identically | `focusNode(ele,opened)` | ~ | emphasis covers the concept path only |
-| A2-08 | 9158ca6 | REG | Tapping a folder (`.dir`) node emphasises it (dim rest+hl) | tap handler `.hasClass('dir')`→focusNode | ✗ | no spec taps a folder node for emphasis |
-| A2-09 | 9158ca6 | REG | Tapping a map (`.ix`) node emphasises it | tap handler `.hasClass('ix')`→focusNode | ✗ | no spec taps a map node for emphasis |
+| A2-07 | 9158ca6 | REG | One `focusNode` drives concept/folder/map emphasis identically | `focusNode(ele,opened)` | ✓ | emphasis › concept + tapping a folder/map node (all three paths) |
+| A2-08 | 9158ca6 | REG | Tapping a folder (`.dir`) node emphasises it (dim rest+hl) | tap handler `.hasClass('dir')`→focusNode | ✓ | emphasis › tapping a folder node in tree mode |
+| A2-09 | 9158ca6 | REG | Tapping a map (`.ix`) node emphasises it | tap handler `.hasClass('ix')`→focusNode | ✓ | emphasis › tapping a map node in the index layer |
 | A2-10 | d0b4fed/9158ca6 | REG | Opening a map in-graph (non-tree) emphasises it like a concept | `setIxNodes(true).then(focusNode)` | ✗ | uncovered (d0b4fed no-dim ⊘ by 9158ca6) |
 | A2-11 | d942471 | FEAT | Cluster wraps areas in one compound parent each | `:parent`, `#btn-cluster[aria-pressed]` | ✓ | graph-modes › cluster wraps the concepts |
 | A2-12 | d942471 | FEAT | Cluster undoes itself completely | `setClustered(false)` | ✓ | graph-modes › cluster undoes itself |
-| A2-13 | d942471 | FEAT | Cluster disables the layout selector | `layoutSel.disabled` | ✗ | no spec asserts the select is disabled |
+| A2-13 | d942471 | FEAT | Cluster disables the layout selector | `layoutSel.disabled` | ✓ | graph-modes › cluster disables the layout selector |
 | A2-14 | 8ca455f | REG | A cluster box whose concepts are all filtered is hidden | `:parent` `display:none` in applyGraphFilter | ~ | graph-modes › a filter still applies inside cluster |
 | A2-15 | 8ca455f | REG | Clustering re-applies the active filter before tiling | `setClustered`→`applyGraphFilter` first | ~ | graph-modes › a filter still applies inside cluster |
 | A2-16 | ed6c0af | FEAT | Tree mode: folders-as-nodes, folder→child edges only, link edges hidden | `#btn-tree`, `node.dir`, `edge.tree`, `edge.linkhid` | ✓ | graph-modes › tree mode adds folder nodes and undoes |
 | A2-17 | ed6c0af | FEAT | Tree and cluster are mutually exclusive; tree disables layout+cluster | `setTree`↔`setClustered` guards | ~ | graph-modes covers tree add/undo, not the guards |
 | A2-18 | ed6c0af | FEAT | Folder nodes are unselectable and filter-exempt | `hasClass('dir')` guards | ✗ | uncovered |
-| A2-19 | 1498a7c | REG | Tree folder nodes render as accent squares (like maps) | `node.dir,node.ix` background accent | ✗ | node fill color of tree dirs untested |
-| A2-20 | 1498a7c | REG | Tree parent→child edges are dashed | `edge.tree` line-style dashed | ~ | emphasis asserts edge.tree opacity, not dash |
+| A2-19 | 1498a7c | REG | Tree folder nodes render as accent squares (like maps) | `node.dir,node.ix` background accent | ✓ | graph-modes › tree edges render dashed and folder nodes carry the accent |
+| A2-20 | 1498a7c | REG | Tree parent→child edges are dashed | `edge.tree` line-style dashed | ✓ | graph-modes › tree edges render dashed and folder nodes carry the accent |
 | A2-21 | aeef15b | FEAT | `#btn-ix` draws the index layer over any layout, flips pressed | `#btn-ix[aria-pressed]`, `cy.nodes('.ix')` | ✓ | graph-modes › the index layer adds the map nodes |
 | A2-22 | aeef15b/456aa79 | FEAT | Authored map draws accent, synthesized faint+dashed | `node.ix` vs `node.ix-syn` | ~ | index-layer covers edges, not node fill |
 | A2-23 | aeef15b | FEAT | Index edges dashed `.ixe`; synth `.ixe-syn` fainter | `edge.ixe` .5 vs `edge.ixe-syn` .3 | ✓ | index-layer › synthesized map's edges fainter |
 | A2-24 | aeef15b | FEAT | A map with all concepts filtered hides; parent survives on a child | `ixVisibility()`, node `display` | ✓ | index-layer › a map whose concepts are all filtered away |
 | A2-25 | aeef15b | FEAT | Index nodes are exempt from the graph filter | applyGraphFilter skips `.ix` | ~ | index-layer partial (ixVisibility only) |
 | A2-26 | aeef15b | FEAT | Index nodes never modelled (absent from catalog/tags/types) | id prefix `ix::` | ✗ | not asserted absent from catalog |
-| A2-27 | aeef15b/456aa79 | REG | Entering tree disables `#btn-ix` and tears down the layer | `#btn-ix[disabled]`, `setTree`→`setIxNodes(false)` | ✗ | uncovered |
+| A2-27 | aeef15b/456aa79 | REG | Entering tree disables `#btn-ix` and tears down the layer | `#btn-ix[disabled]`, `setTree`→`setIxNodes(false)` | ✓ | graph-modes › entering tree mode disables the index button and tears down the layer |
 | A2-28 | 456aa79 | REG | index→tree switch lands clean in one click (no competing layout) | `setIxNodes(on,relayout=false)` | ✓ | camera-races › index layer to tree mode |
 | A2-29 | 456aa79 | REG | A stale `/index` fetch after a toggle/in-tree is dropped | `ixSeq` ticket guard | ✗ | server-mode race; needs delayed fetch |
 | A2-30 | d942471 | FEAT | Layout selector: 5 built-in + 3 lazy, cose fallback on load fail | `#layout`, `ensureLayout` | ~ | graph-modes › switching layouts keeps nodes (fallback ✗) |
@@ -189,8 +193,8 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A4-09 | d942471 | FEAT | Selecting a second concept replaces the first | select(id) | ✓ | inspector › selecting a second concept replaces the first |
 | A4-10 | ae7a882 | REG | Links to index.md / log.md / bare dir resolve and navigate | resolveTarget, DIRSET | ✓ | links › (all four resolutions) |
 | A4-11 | ed6c0af | FEAT | Unresolvable in-bundle links are disabled, not followed | `a.dead` | ✓ | links › an unresolvable link is disabled |
-| A4-12 | ae7a882 | REG | Dead-link tooltip reads "not a file in this bundle" | `a.dead[title]` | ✗ | links asserts disabled, not the title text |
-| A4-13 | ed6c0af | FEAT | External/absolute links open in a new tab | `window.open(_blank)` | ✗ | uncovered (catchable via page event) |
+| A4-12 | ae7a882 | REG | Dead-link tooltip reads "not a file in this bundle" | `a.dead[title]` | ✓ | links › an unresolvable link is disabled, not followed (asserts the title) |
+| A4-13 | ed6c0af | FEAT | External/absolute links open in a new tab | `window.open(_blank)` | ✓ | links › an external link opens in a new tab and leaves the panel in place |
 | A4-14 | d1b485d | REG | Scripts stripped from bodies; prose survives | DOMPurify | ✓ | sanitization › scripts are stripped |
 | A4-15 | d1b485d | REG | Event-handler attributes don't survive into the DOM | DOMPurify | ✓ | sanitization › event-handler attributes |
 | A4-16 | d1b485d | REG | `javascript:` URLs stripped from links | DOMPurify | ✓ | sanitization › javascript: URLs |
@@ -210,22 +214,22 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A5-05 | 2163bfe | REG | Reopening a root-folded list reopens the root (returns the tree) | `#ftree-min`, `foldedByRoot` | ✓ | files-tree › reopening the list undoes the root collapse |
 | A5-06 | 2163bfe | FEAT | A file-folded list reopens without touching root collapse | `foldedByRoot===false` | ✓ | files-tree › (same test, preserves a file collapse) |
 | A5-07 | 0e9eab8 | FEAT | Fold/unfold-all control in the Files header | `#ftree-foldall` | ✓ | files-tree › collapse-all |
-| A5-08 | 0e9eab8 | FEAT | Fold-all label/aria/disabled/icon reflect folders in view | `syncFoldAll()` | ✗ | states not asserted |
+| A5-08 | 0e9eab8 | FEAT | Fold-all label/aria/disabled/icon reflect folders in view | `syncFoldAll()` | ✓ | files-tree › the fold-all control reflects the folders' collapsed state |
 | A5-09 | 4b80b80 | FEAT | File tree nests directories by depth, parent above child | `subtree()`, `--d` padding | ~ | structure exercised, indentation not asserted |
 | A5-10 | 4b80b80 | FEAT | A dir containing only sub-dirs still renders | `dirParents()` | ✗ | needs fixture (dir with only subdirs) |
 | A5-11 | 4b80b80 | FEAT | Folder headers show only the last path segment | `dir.split('/').pop()` | ✗ | uncovered |
-| A5-12 | 1093ae3 | REG | Reader header hidden when no file open (`.fp-head[hidden]`) | `.fp-head[hidden]{display:none}` | ✗ | **uncovered REG — same [hidden]-specificity class as the log-button bug** |
-| A5-13 | 1093ae3 | FEAT | index/log rows sit at the top of their folder in the tree | `resIn(dir,depth)` order | ~ | reserved rows exercised, ordering not asserted |
-| A5-14 | 1093ae3 | FEAT | "Indexes only" toggle narrows the tree to the authored layer | `#ftree-ixonly`, `ixOnly` | ~ | indexes covers release/hold, not the narrowing |
+| A5-12 | 1093ae3 | REG | Reader header hidden when no file open (`.fp-head[hidden]`) | `.fp-head[hidden]{display:none}` | ✓ | files-tree › the reader header is hidden until a file is open |
+| A5-13 | 1093ae3 | FEAT | index/log rows sit at the top of their folder in the tree | `resIn(dir,depth)` order | ✓ | files-tree › index/log rows sit above the concept files in their folder |
+| A5-14 | 1093ae3 | FEAT | "Indexes only" toggle narrows the tree to the authored layer | `#ftree-ixonly`, `ixOnly` | ✓ | indexes › the indexes-only toggle narrows the tree to the authored maps |
 | A5-15 | c7bb1b5 | REG | Opening a concept releases the Indexes-only filter | openFile→`setIxOnly(false)` | ✓ | indexes › opening a concept releases the filter |
 | A5-16 | c7bb1b5 | REG | Opening a map does NOT release the Indexes-only filter | openReserved (no setIxOnly) | ✓ | indexes › opening a map does not release |
 | A5-17 | 646f3f5 | REG | "Open in graph" on a map jumps to its folder / draws that map | openMapInGraph, centerOn | ✓ | indexes › a map offers the graph button and it lands |
 | A5-18 | c7bb1b5/815d5c1 | REG | A log hides its "Open in graph" button (`[hidden]` honoured) | `.btn.text[hidden]{display:none}` | ✓ | indexes › a log hides the graph button |
-| A5-19 | 3376b9a | REG | Every file's graph button reads one static "Open in graph" | `#fp-graph .fpg-lbl` text | ✗ | label text/consistency not asserted |
+| A5-19 | 3376b9a | REG | Every file's graph button reads one static "Open in graph" | `#fp-graph .fpg-lbl` text | ✓ | indexes › every file's graph button reads one static "Open in graph" |
 | A5-20 | 1093ae3 | FEAT | Type/tag combos hide reserved files while set | `res` populated only if `!ft&&!fg` | ✗ | uncovered |
 | A5-21 | ee4788a | REG | ixOnly renders reserved as a flat list at folder depth (no headers) | `.file[data-res]` `--d`, flatRes | ✗ | uncovered |
 | A5-22 | ee4788a | FEAT | ixOnly row shows full path; full tree shows bare filename | `.rn` text vs `data-path` | ✗ | uncovered |
-| A5-23 | ee4788a | REG | ixOnly fold-all reflects nothing to fold | `#ftree-foldall` disabled | ✗ | uncovered |
+| A5-23 | ee4788a | REG | ixOnly fold-all reflects nothing to fold | `#ftree-foldall` disabled | ✓ | indexes › the fold-all control is disabled in indexes-only |
 | A5-24 | ee4788a | FEAT | ixOnly with no matches shows an empty-state message | `.empty` text | ✗ | needs fixture |
 | A5-25 | 8241cc2 | REG | A long tree-row path ellipsizes, doesn't push its badge off-edge | `.rn{min-width:0;overflow:hidden}` | ✗ | uncovered |
 | A5-26 | d942471/dc83857 | FEAT | Files type & tag comboboxes (keyboard-navigable) filter the tree | `#file-type-combo`, `#file-tag-combo` (role) | ✗ | uncovered (no spec drives the comboboxes) |
@@ -240,11 +244,11 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A6-02 | adf96ff | FEAT | ≤768px: topbar tools fold into a ⚙ sheet | `#btn-controls`, `#app.controls-open` | ✓ | responsive › the controls toggle folds the tools row |
 | A6-03 | adf96ff | FEAT | Opening Filters folds the sheet away | ctlSet(false) | ✓ | responsive › opening Filters folds the sheet |
 | A6-04 | adf96ff | FEAT | Nothing overflows the viewport horizontally | body scrollWidth | ✓ | responsive › nothing overflows |
-| A6-05 | adf96ff | FEAT | ⚙ controls toggle is absent on the Stats view | `#app[data-view=stats] #btn-controls` | ✗ | uncovered |
+| A6-05 | adf96ff | FEAT | ⚙ controls toggle is absent on the Stats view | `#app[data-view=stats] #btn-controls` | ✓ | responsive › the controls toggle is gone on Stats |
 | A6-06 | adf96ff | FEAT | ⚙ carries a filter-count badge mirroring the active filters | `ctlBadge()`, `.fbadge` | ✗ | uncovered |
 | A6-07 | dec7cad | REG | Folded tools sheet is two even columns, no orphaned icon | flex-basis calc(50%-4px) | ✓ | mobile-layout › the folded tools sheet is two even columns |
 | A6-08 | a5f12ab | REG | Mobile layout `<select>` fills its wrapper (chevron clickable) | `#layout` width:100% | ✓ | mobile-layout › the layout select fills its wrapper |
-| A6-09 | a5f12ab | FEAT | Mobile icon-button row groups (no space-between) | `#graph-controls` gap only | ✗ | uncovered |
+| A6-09 | a5f12ab | FEAT | Mobile icon-button row groups (no space-between) | `#graph-controls` gap only | ✓ | responsive › the folded tools sheet groups the icon row |
 | A6-10 | b376e8c | REG | Tree header lays out identically at every width (one line) | `.ftabs`, margin-auto placement | ✓ | mobile-layout › the file-tree header stays on one line |
 | A6-11 | b376e8c | REG | Pane-toggle flush with neighbours at every width | `#ftree-min` no margin-bottom | ~ | one-line covered, alignment not asserted |
 | A6-12 | ??/mobile | REG | The ident ellipsizes instead of overflowing the bar | `.ident` ellipsis | ✓ | mobile-layout › the ident ellipsizes |
@@ -260,8 +264,8 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A7-03 | cc7d545 | FEAT | Dismissal remembered across visits | localStorage `okf-hello` | ✓ | first-visit › dismissing stays dismissed across a reload |
 | A7-04 | 3ce2284 | FEAT | Canvas hint (`.ghint`) stands down while the note is up, restored on dismiss | `gh.style.visibility` | ✓ | first-visit › the canvas hint stands down / restores the hint |
 | A7-05 | 3ce2284 | FEAT | A second `#hello2` note points at ☰ on leaving the graph (compact) | `#hello2`, setView hook | ✓ | first-visit › a second note points at the other views |
-| A7-06 | cc7d545 | FEAT | The note belongs to the graph, disappears on other views | `#app:not([data-view=graph]) ~ #hello` | ~ | not asserted explicitly |
-| A7-07 | 3ce2284 | FEAT | ☰ dismisses `#hello2` (only once on screen), remembered | hello2Done early-return | ✗ | uncovered |
+| A7-06 | cc7d545 | FEAT | The note belongs to the graph, disappears on other views | `#app:not([data-view=graph]) ~ #hello` | ✓ | first-visit › the welcome note belongs to the graph and hides on other views |
+| A7-07 | 3ce2284 | FEAT | ☰ dismisses `#hello2` (only once on screen), remembered | hello2Done early-return | ✓ | first-visit › opening ☰ answers the second note and remembers it |
 | A7-08 | cc7d545/3ce2284 | FEAT | Note wording follows pointer type & width (tap/pinch, ☰ mention) | `@media (pointer:coarse)`/width | ✗ | uncovered |
 | A7-09 | 3ce2284 | FEAT | `#hello` reflows for short & landscape-phone viewports | `@media (max-height:480px)` | ✗ | visual; uncovered |
 | A7-10 | adf96ff | FEAT | A "best on desktop" `#mnote` shows on small screens, dismiss/persist | `#mnote`, `okf-mnote` | ✗ | uncovered |
@@ -340,9 +344,10 @@ A2-34):
 2. **A log's "Open in graph" button stayed visible though the code hides it** —
    `.btn.text{display:inline-flex}` outranked `.btn[hidden]{display:none}` at
    equal specificity, so a `hidden` button still rendered ~143px wide with a
-   stale handler. Fixed with `.btn.text[hidden]{display:none}`. **Note A5-12 in
-   the worklist is the same `[hidden]`-specificity class, still uncovered** — the
-   reader header (`.fp-head[hidden]`) — worth checking it is actually hidden.
+   stale handler. Fixed with `.btn.text[hidden]{display:none}`. **The sibling of
+   this bug class, the reader header (`.fp-head[hidden]`, A5-12), is now covered
+   too** — files-tree › "the reader header is hidden until a file is open",
+   mutation-checked by dropping the `.fp-head[hidden]` rule.
 
 3. **Selection was illegible in cluster mode** — `focusNode` dimmed the compound
    area boxes, whose opacity cascades to the nodes inside them, so the whole graph
@@ -385,41 +390,44 @@ small new fixture, deterministic, no product change. **Needs-fixture** = add a
 bundle/dir first. **Needs-instrumentation/hard** = no external handle, or a
 product change, or genuinely untestable headless.
 
-### Priority 1 — REG fixes, cheap, existing fixtures (write these first)
+### Priority 1 — REG fixes, cheap, existing fixtures — ✅ CLEARED
 
-| ID | Behavior | Handle | Note |
-|---|---|---|---|
-| A5-12 | Reader header hidden when no file open | `.fp-head[hidden]{display:none}` | **Same `[hidden]`-specificity bug class as the log button** — a real REG, no spec. Open Files, open nothing / close a file, assert `#fp-head` `display:none`. |
-| A2-08 | Tapping a folder node emphasises it | `focusNode` on `.dir` tap | Tree mode, emit tap on a `.dir` node, assert `.dim`/`.hl` + effectiveOpacity. |
-| A2-09 | Tapping a map node emphasises it | `focusNode` on `.ix` tap | Index layer on, tap an `.ix` node, same asserts. |
-| A2-13 | Cluster disables the layout selector | `#layout[disabled]` | Click cluster, assert `#layout` disabled + `#btn-tree` too. |
-| A2-27 | Entering tree disables `#btn-ix`, tears down layer | `#btn-ix[disabled]`, `.ix` count 0 | Turn on ix, enter tree, assert btn-ix disabled and no `.ix` nodes. |
-| A4-12 | Dead-link tooltip text | `a.dead[title]` | Extend links.spec: assert the disabled link's `title`. |
-| A4-13 | External links open in a new tab | `window.open(_blank)` | Catch the context `page` event (like the ⌘⏎ test). Needs an external link in a fixture body. |
-| A6-05 | ⚙ controls toggle absent on Stats | `#app[data-view=stats] #btn-controls` | Mobile viewport, go to Stats, assert hidden. |
-| A6-09 | Mobile icon-button row grouping | `#graph-controls` no space-between | Assert computed justify-content. |
-| A5-19 | One static "Open in graph" label | `#fp-graph .fpg-lbl` text | Open several files, assert the label is always "Open in graph". |
-| A7-07 | ☰ dismisses `#hello2` once on screen | hello2Done early-return | Mobile, leave graph (note shows), open ☰, assert note gone + persisted. |
+All ten were written and mutation-checked (break the handle, confirm red for the
+predicted reason, restore); A4-12 was found already covered and corrected. The
+covering specs are in the row tables above. Kept here as the closed record:
+
+| ID | Behavior | Covering spec |
+|---|---|---|
+| A5-12 | Reader header hidden when no file open | files-tree › the reader header is hidden until a file is open |
+| A2-08 | Tapping a folder node emphasises it | emphasis › tapping a folder node in tree mode |
+| A2-09 | Tapping a map node emphasises it | emphasis › tapping a map node in the index layer |
+| A2-13 | Cluster disables the layout selector | graph-modes › cluster disables the layout selector (cluster/tree are mutually exclusive; cluster disables `#layout` only — it does **not** disable `#btn-tree`, correcting the original note) |
+| A2-27 | Entering tree disables `#btn-ix`, tears down layer | graph-modes › entering tree mode disables the index button and tears down the layer |
+| A4-12 | Dead-link tooltip text | links › an unresolvable link is disabled (already asserted the `title`; stale ✗ corrected) |
+| A4-13 | External links open in a new tab | links › an external link opens in a new tab (added an external link to rollback.md in a `# Citations` section, kept validate+lint clean) |
+| A6-05 | ⚙ controls toggle absent on Stats | responsive › the controls toggle is gone on Stats |
+| A6-09 | Mobile icon-button row grouping | responsive › the folded tools sheet groups the icon row |
+| A5-19 | One static "Open in graph" label | indexes › every file's graph button reads one static "Open in graph" |
+| A7-07 | ☰ dismisses `#hello2` once on screen | first-visit › opening ☰ answers the second note and remembers it |
 
 ### Priority 2 — FEAT, cheap, existing fixtures
 
+**Done so far** (see the row tables): A1-08 (`0` fits), A1-09 (`\` inspector),
+A2-19/A2-20 (tree accent nodes + dashed edges), A5-08 (fold-all states), A5-13
+(reserved-row ordering), A5-14 (indexes-only narrowing), A7-06 (note scope).
+Remaining:
+
 | ID | Behavior | Handle |
 |---|---|---|
-| A1-08 | `0` key fits the graph | keydown `0` |
-| A1-09 | `\` key toggles the inspector | keydown `\`, `data-side` |
 | A2-18 | Folder nodes unselectable + filter-exempt | tap `.dir` no select / filter skip |
 | A2-25/26 | Index nodes filter-exempt / absent from catalog | applyGraphFilter skip / catalog |
 | A2-36 | Zoom floor auto-relaxes | `cy.minZoom` after layout |
 | A3-16 | Substring fallback before index ready | ftMatch null path |
-| A5-08 | Fold-all label/aria/disabled/icon states | `syncFoldAll` |
-| A5-11 | Folder headers show last segment only | header text |
-| A5-13 | index/log rows at top of their folder | `resIn` order |
-| A5-14 | "Indexes only" narrows the tree | `#ftree-ixonly` list contents |
+| A5-11 | Folder headers show last segment only (needs a nested dir — see P3) | header text |
 | A5-25 | Long tree-row path ellipsizes | `.rn` overflow |
 | A5-26 | Files type/tag comboboxes filter the tree | `#file-type-combo` (role) |
 | A6-06 | ⚙ filter-count badge | `#btn-controls .fbadge` |
 | A6-11 | Pane-toggle flush at every width | `#ftree-min` alignment |
-| A7-06 | `#hello` disappears on other views | sibling combinator display |
 | A8-09 | ⇄ Switch button hidden in standalone | `#btn-switch[hidden]` (assert in non-hub project) |
 | A8-10 | Palette empty states | `a.none` |
 | A8-11 | Sibling links carry view+layout | `target()` query on the row href |
@@ -428,8 +436,10 @@ product change, or genuinely untestable headless.
 | A9-17 | Viewer suppresses other shortcuts | keydown while open |
 | A3-18 | Catalog area/tag filter + find | `#cat-fareas`/`#cat-ftags` |
 | A3-19 | Tags view Types/Areas filter + recount | `#tag-filters` |
-| A2-20 | Tree edges dashed | `edge.tree` line-style |
-| A2-19 | Tree folder nodes accent | `node.dir` background |
+
+> The palette/hub rows (A8-09/10/11/12) sit in the command-palette and
+> bundle-switcher code that the server-UI work is actively changing — coordinate
+> before taking them, or the spec will chase a moving target.
 
 ### Priority 3 — needs a new fixture
 
@@ -438,7 +448,7 @@ product change, or genuinely untestable headless.
 | A5-10 | Dir with only sub-dirs renders | a directory containing only subdirectories (no files) |
 | A5-11 | (also helped by the above) | — |
 | A3-07 | Tag chips capped at 40 | a bundle with >40 distinct tags |
-| A5-21/22/23/24 | ixOnly flat list / full-path label / fold-all-empty / empty-state | reserved-file arrangements + a no-reserved dir |
+| A5-21/22/24 | ixOnly flat list / full-path label / empty-state | reserved-file arrangements + a no-reserved dir (A5-23 fold-all-empty done — needed no fixture) |
 | A9-20 | Server live-edit reflection | mutate a body file mid-test (server only) |
 | A7-10 | `#mnote` best-on-desktop note | (exists; just needs a mobile spec that doesn't seed okf-mnote) |
 | A3-15 | Prefix/fuzzy search | assert a typo'd query still matches (fuzzy=`--fuzzy` parity) |

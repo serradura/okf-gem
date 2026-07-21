@@ -61,6 +61,26 @@ test.describe("phone (375px)", () => {
   test("nothing overflows the viewport horizontally", async ({ app }) => {
     expect(await app.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
   });
+
+  test("the controls toggle is gone on Stats, which has no tools to fold", async ({ app }) => {
+    // The ⚙ folds the graph/files tools into a sheet; Stats has no tools, so
+    // `#app[data-view=stats] #btn-controls{display:none}` hides the toggle there.
+    // It is present on the graph view (the discriminating control).
+    expect(await css(app, "#btn-controls", "display")).not.toBe("none");
+    await app.locator("#btn-menu").click();
+    await app.locator('.rail-item[data-view="stats"]').click();
+    await expect(app.locator("#app")).toHaveAttribute("data-view", "stats");
+    expect(await css(app, "#btn-controls", "display")).toBe("none");
+  });
+
+  test("the folded tools sheet groups the icon row instead of flinging it edge to edge", async ({ app }) => {
+    // Opening the sheet wraps #graph-controls; the icon buttons must sit as one
+    // group (gap only), not spread with justify-content:space-between (a5f12ab —
+    // four buttons at the extremes of a phone read as four unrelated things).
+    await app.locator("#btn-controls").click();
+    await expect(app.locator("#app")).toHaveClass(/controls-open/);
+    expect(await css(app, "#graph-controls", "justifyContent")).not.toBe("space-between");
+  });
 });
 
 test.describe("desktop (1280px)", () => {

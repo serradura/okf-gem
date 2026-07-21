@@ -87,12 +87,15 @@ specs/
   sanitization.spec.js the two XSS defenses, driven by a hostile bundle
   emphasis.spec.js     dim/highlight ordering, and cluster-mode legibility
   indexes.spec.js      Indexes-only, and the reserved files' graph button
-  links.spec.js        the inspector resolving index / log / dir / dead links
+  links.spec.js        the inspector resolving index / log / dir / dead / external links
   files-tree.spec.js   the collapse state machine (desktop + mobile)
   mobile-layout.spec.js the ≤768px tools sheet and file header, in geometry
   camera-races.spec.js un-cluster restore, index→tree, and one-camera-move (via the __camCenters counter)
   palette.spec.js      the ⌘K command palette (standalone: jump to a view)
   palette-hub.spec.js  the ⌘K palette in hub mode (switch bundle)
+  global-search.spec.js the ⌘K palette's Concepts group, over the hub's /search
+  manager.spec.js      the hub's /b/ workspace manager (verdict edge, columns, phone)
+  workspace.spec.js    the manager's registry forms, driven live (serial, own $OKF_HOME)
   help.spec.js         the ? sheet and the / search key
   deep-links.spec.js   ?view / ?layout / ?select / #hash
   theme.spec.js        the theme toggle and its persistence
@@ -129,8 +132,11 @@ other way in to:
 - `log.md`, so the Files view has a history entry to open.
 - a "See also" block in `runbooks/rollback.md` linking to `/index.md`,
   `/log.md`, a bare directory and a non-existent one, so the inspector's four
-  link resolutions each have a real link to follow. All four keep validate and
-  lint clean (directory and reserved-file links are not cross-links).
+  in-bundle link resolutions each have a real link to follow, plus a
+  `# Citations` section with an external `https://` link — the fifth kind, which
+  the inspector opens in a new tab rather than resolving. All keep validate and
+  lint clean (directory and reserved-file links are not cross-links; the
+  external link is cited, so it draws no "external link without citations" info).
 - a ```mermaid block in `decisions/adr-001-postgres.md`, so the diagram viewer
   has a real diagram to render, open and close.
 
@@ -144,8 +150,8 @@ tolerate one.
 [COVERAGE.md](COVERAGE.md) is the per-contract map — every user-visible behavior
 the page introduced across its 49-commit history, each marked covered / partial /
 uncovered against a named spec, with a ranked worklist of what is still missing.
-Of **182 net-live contracts** it covers **115 (63%)**, 16 partially, 51 not yet;
-by the narrower regression-fix-only lens that is ~50 of ~94. Read COVERAGE.md
+Of **182 net-live contracts** it covers **136 (75%)**, 11 partially, 35 not yet;
+by the narrower regression-fix-only lens that is ~60 of ~94. Read COVERAGE.md
 before writing a spec — the ✗ rows are the to-do list. It is strong on the
 interaction spine, the filters, the file
 tree, link resolution, both XSS defenses, the mobile chrome, the first-visit
