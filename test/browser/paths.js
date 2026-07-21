@@ -55,3 +55,11 @@ export const TREE_PORT = PORT + 4;
 export const manytagsDir = path.join(here, "fixtures", "manytags");
 export const manytagsPage = path.join(here, ".tmp", "manytags.html");
 export const MANYTAGS_PORT = PORT + 5;
+
+// A concept buried five directories deep, so its folder's authored index.md
+// carries a path long enough to overflow a tree row — the one arrangement the
+// flat and shallow fixtures cannot make, and the tree fixture (which asserts no
+// reserved files) must not. Own server + static page, as the rest.
+export const deeppathDir = path.join(here, "fixtures", "deeppath");
+export const deeppathPage = path.join(here, ".tmp", "deeppath.html");
+export const DEEPPATH_PORT = PORT + 6;

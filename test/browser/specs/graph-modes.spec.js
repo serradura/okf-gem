@@ -61,6 +61,24 @@ test.describe("graph modes", () => {
     await expect(app.locator("#layout")).toBeEnabled();
   });
 
+  test("tree and cluster are mutually exclusive — entering tree drops and disables cluster", async ({ app }) => {
+    // The two grouped views never coexist. Entering tree both un-clusters
+    // (setTree's `if(on&&clustered)setClustered(false)`) and disables the cluster
+    // button (setTree: btnCluster.disabled=on), so there is no way back into
+    // cluster from tree. Leaving tree re-enables it.
+    await app.locator("#btn-cluster").click();
+    await expect(app.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
+
+    await app.locator("#btn-tree").click();
+    await expect(app.locator("#btn-tree")).toHaveAttribute("aria-pressed", "true");
+    await expect(app.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "false");
+    await expect(app.locator("#btn-cluster")).toBeDisabled();
+
+    await app.locator("#btn-tree").click();
+    await expect(app.locator("#btn-tree")).toHaveAttribute("aria-pressed", "false");
+    await expect(app.locator("#btn-cluster")).toBeEnabled();
+  });
+
   test("entering tree mode disables the index button and tears down the layer", async ({ app }) => {
     // The index layer and tree mode both rebuild the elements, so they cannot
     // coexist: setTree(true) disables #btn-ix and, if the layer is up, calls
@@ -88,6 +106,20 @@ test.describe("graph modes", () => {
     await expect.poll(() => visibleNodeIds(app)).toEqual([ "services/billing", "services/gateway" ]);
   });
 
+  test("clustering re-applies the active filter, and an emptied area box hides", async ({ app }) => {
+    // A2-15: setClustered runs applyGraphFilter before tiling, so a filter set
+    // *before* clustering still takes. A2-14: a compound area box whose concepts
+    // are all filtered away hides too, while one with a survivor stays. Filter to
+    // area services first, then cluster — the services box stands, datasets is gone.
+    await app.locator("#btn-filters").click();
+    await app.locator('#fareas .chip[data-area="services"]').click();
+    await app.locator("#btn-cluster").click();
+    await expect(app.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
+
+    await expect.poll(() => app.evaluate(() => cy.getElementById("area::services").style("display"))).toBe("element");
+    await expect.poll(() => app.evaluate(() => cy.getElementById("area::datasets").style("display"))).toBe("none");
+  });
+
   test("switching layouts keeps every node on the canvas", async ({ app }) => {
     for (const layout of [ "grid", "circle", "concentric", "breadthfirst", "cose" ]) {
       await app.locator("#layout").selectOption(layout);
@@ -107,6 +139,26 @@ test.describe("graph modes", () => {
 
     await expect.poll(() => app.locator("#layout").inputValue()).toBe("cose");
     expect(await app.evaluate(() => cy.nodes().filter((n) => n.visible()).length)).toBeGreaterThan(0);
+  });
+
+  test("a stale index-layer fetch is dropped when the toggle flips before it lands", async ({ app }, testInfo) => {
+    test.skip(testInfo.project.name === "static", "server-only: the static bake reads the index from EMBED, so there is no in-flight fetch to strand");
+    // The index layer's add is async: setIxNodes bumps ixSeq and fetches /index,
+    // and the .then guards on (seq!==ixSeq || !ixNodes || treeMode), so a toggle
+    // flipped while the fetch is in flight cancels the landing (the ixSeq ticket).
+    // Hold /index, turn the layer on then straight back off, and the late
+    // response must draw nothing — the layer stays empty and the button off.
+    await app.route((url) => url.pathname === "/index", async (route) => {
+      await new Promise((r) => setTimeout(r, 400));
+      route.continue();
+    });
+
+    await app.locator("#btn-ix").click(); // on — fetch A starts, held
+    await app.locator("#btn-ix").click(); // off before A lands — bumps ixSeq, ixNodes=false
+    await expect(app.locator("#btn-ix")).toHaveAttribute("aria-pressed", "false");
+
+    await app.waitForTimeout(700); // let the held fetch resolve; the guard drops it
+    expect(await app.evaluate(() => cy.nodes(".ix").length)).toBe(0);
   });
 
   test("fit brings the whole graph inside the viewport", async ({ app }) => {

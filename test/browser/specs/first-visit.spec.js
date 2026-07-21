@@ -92,3 +92,28 @@ test.describe("first visit (mobile 375px)", () => {
     await expect(fresh.locator("#hello2")).toBeHidden();
   });
 });
+
+test.describe("first visit — short landscape viewport", () => {
+  test.use({ viewport: { width: 900, height: 450 } });
+
+  test("the welcome note reflows to a two-column grid when the viewport is short", async ({ fresh }) => {
+    // @media (max-height:480px) and (min-width:769px) lays the note out as a
+    // two-column grid so it does not eat a short landscape phone's whole height.
+    // At a normal height it is a block; here it must be a grid.
+    await expect(fresh.locator("#hello")).toBeVisible();
+    expect(await fresh.locator("#hello").evaluate((el) => getComputedStyle(el).display)).toBe("grid");
+  });
+});
+
+test.describe("first visit — a coarse pointer", () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 780 } });
+
+  test("a touch primary pointer swaps the note's click wording for tap/pinch", async ({ fresh }) => {
+    // @media (pointer:coarse) shows the ".hello-touch" line ("tap any dot… pinch
+    // to zoom") and hides the mouse ".hello-point" one — the gesture wording
+    // follows the input, not a guess.
+    await expect(fresh.locator("#hello")).toBeVisible();
+    expect(await fresh.locator("#hello .hello-touch").evaluate((el) => getComputedStyle(el).display)).toBe("inline");
+    expect(await fresh.locator("#hello .hello-point").evaluate((el) => getComputedStyle(el).display)).toBe("none");
+  });
+});

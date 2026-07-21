@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 import { repoRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, HUB_PORT,
-  workspaceHome, WORKSPACE_PORT, treeDir, TREE_PORT, manytagsDir, MANYTAGS_PORT } from "./paths.js";
+  workspaceHome, WORKSPACE_PORT, treeDir, TREE_PORT, manytagsDir, MANYTAGS_PORT,
+  deeppathDir, DEEPPATH_PORT } from "./paths.js";
 
 const serve = (dir, port) => ({
   command: `bundle exec ruby -Ilib exe/okf server ${JSON.stringify(dir)} -p ${port}`,
@@ -89,6 +90,7 @@ export default defineConfig({
     serve(hostileDir, HOSTILE_PORT),
     serve(treeDir, TREE_PORT),
     serve(manytagsDir, MANYTAGS_PORT),
+    serve(deeppathDir, DEEPPATH_PORT),
     serveHub([ bundleDir, hostileDir ], HUB_PORT),
     serveWorkspace(WORKSPACE_PORT),
   ],

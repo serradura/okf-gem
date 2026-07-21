@@ -35,6 +35,29 @@ test.describe("diagram viewer", () => {
     await expect(mmd).toBeFocused();
   });
 
+  test("a rendered diagram block advertises that it opens — zoom-in cursor, accent hover", async ({ app }) => {
+    // The block is a role=button that opens the fullscreen viewer, and its
+    // affordances say so: cursor:zoom-in always, and the border turns to the
+    // accent on hover. (The :focus-visible outline is keyboard-only and left to
+    // the eye.) The colour is read through a probe so it is an rgb-to-rgb compare.
+    await openAdr(app);
+    const mmd = app.locator("#side-body #body .mermaid");
+    expect(await mmd.evaluate((el) => getComputedStyle(el).cursor)).toBe("zoom-in");
+
+    const accent = await app.evaluate(() => {
+      const probe = document.createElement("div");
+      probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+      document.body.appendChild(probe);
+      const c = getComputedStyle(probe).color;
+      probe.remove();
+      return c;
+    });
+    await mmd.hover();
+    await expect
+      .poll(() => mmd.evaluate((el) => getComputedStyle(el).borderColor.replace(/\s/g, "")))
+      .toBe(accent.replace(/\s/g, ""));
+  });
+
   test("the open viewer swallows the page's other shortcuts", async ({ app }) => {
     // #dgv is modal: while it is up the keydown handler honours Escape and
     // returns before any other binding, so a view key that would otherwise

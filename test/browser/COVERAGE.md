@@ -28,47 +28,41 @@ exactly):**
 
 | | Count | % |
 |---|---:|---:|
-| ✓ covered | **156** | 86% |
-| ~ partial | 8 | 4% |
-| ✗ uncovered | 17 | 9% |
+| ✓ covered | **167** | 92% |
+| ~ partial | 3 | 2% |
+| ✗ uncovered | 11 | 6% |
 
-The **17 uncovered** rows are the worklist. **Priority 1 (REG fixes with
-existing fixtures) is cleared**, and Priority-2 is well underway (keys A1-08/09,
-tree visuals A2-19/20, indexes-only narrowing A5-14, note scope A7-06, fold-all
-states A5-08/13, A5-23, the diagram viewer's modal shortcut-swallow A9-17 and its
-zoom/reset controls A9-16, folder nodes unselectable + filter-exempt A2-18, the
-mobile ⚙ filter badge A6-06, the catalog/tags slide-over filters A3-18/19, and
-the Files type/tag comboboxes A5-26). **Priority 3 has started too**: a new
-`fixtures/tree` bundle — nested directories, served on its own port and baked to
-its own static page like `fixtures/hostile` — closed the three file-tree
-structure rows (A5-09 depth nesting, A5-10 a dir with only sub-dirs, A5-11
-last-segment folder headers) without disturbing the flat 8-concept fixture. The
-reserved-file rows landed with it: A5-20 (a combo hides the index/log rows),
-A5-21/A5-22 (indexes-only renders them flat, full-path-labelled) on the main
-fixture, and A5-24 (the empty state) on the tree fixture, which has no maps. A
-second new fixture, `fixtures/manytags` (45 tags), closed A3-07 (the filter
-finder's top-40 chip cap). And two Priority-4 rows fell to emulation/pattern with
-no fixture at all: A1-11 (reduced-motion strips the transitions, via
-`emulateMedia`) and A3-15 (the search index is fuzzy — a one-edit typo still
-matches). What remains: the 4 palette/hub rows (Priority 2, gated on the
-server-UI work), one long-path-ellipsis row that needs a bespoke fixture
-(Priority 3, A5-25), and the genuinely hard/instrumentation/visual/unbuilt set
-(Priority 4).
+The **11 uncovered** rows are what is left after Priority 1 (cleared), every
+Priority-2 row outside the command palette (✓), and all of Priority 3 (✓) — the
+last on the strength of three purpose-built fixtures (`fixtures/tree`,
+`fixtures/manytags`, `fixtures/deeppath`), each on its own port and static page
+like `fixtures/hostile` so none touches the flat 8-concept fixture's counts. A
+tier once filed as hard fell to emulation and route interception with no fixture
+at all — reduced-motion, fuzzy search, the CDN-fail cose fallback, the coarse-
+pointer wording and short-viewport reflow, the diagram cursor/hover, and the
+server-only body/log re-fetch and stale-`/index` drop. The full breakdown of
+what is closed and why the 11 that remain are blocked is in
+[How to drive this to full coverage](#how-to-drive-this-to-full-coverage) at the
+bottom; in short, of the 11 ✗: 5 wait on the other session's palette code (one
+unbuilt), 3 are timing- or headless-limited, 2 have no deterministic handle, and
+1 (A2-36) needs a 100+ concept fixture built solely to move the zoom floor. The 3
+remaining `~` are likewise stuck — an orientation event, the lazy-index window,
+and a map-visibility observable A2-24 already owns.
 
 ### By area (covered / partial / uncovered)
 
 | Area | ✓ | ~ | ✗ | Total |
 |---|---:|---:|---:|---:|
 | 1 — Boot, views, rail, view-switching, keyboard | 10 | 0 | 1 | 11 |
-| 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer | 28 | 6 | 4 | 38 |
+| 2 — Graph canvas, camera, layout, emphasis, cluster/tree/index-layer | 33 | 2 | 3 | 38 |
 | 3 — Filters & search | 17 | 1 | 1 | 19 |
 | 4 — Inspector, links, escaping/sanitization | 20 | 0 | 0 | 20 |
-| 5 — Files view, file tree, reserved files | 26 | 0 | 2 | 28 |
+| 5 — Files view, file tree, reserved files | 28 | 0 | 0 | 28 |
 | 6 — Mobile / responsive | 14 | 0 | 0 | 14 |
-| 7 — First-visit notes | 7 | 0 | 2 | 9 |
+| 7 — First-visit notes | 9 | 0 | 0 | 9 |
 | 8 — Command palette, hub, help, keyboard sheet | 11 | 0 | 5 | 16 |
-| 9 — Deep links, theme, splitters, diagram, static/server, interiors | 23 | 1 | 2 | 26 |
-| **Total** | **156** | **8** | **17** | **181** |
+| 9 — Deep links, theme, splitters, diagram, static/server, interiors | 25 | 0 | 1 | 26 |
+| **Total** | **167** | **3** | **11** | **181** |
 
 **Areas 4 (inspector/escaping) and 6 (mobile/responsive) are now complete** —
 Area 4's last two rows (external links, dead-link tooltip) and Area 6's last row
@@ -149,22 +143,22 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A2-11 | d942471 | FEAT | Cluster wraps areas in one compound parent each | `:parent`, `#btn-cluster[aria-pressed]` | ✓ | graph-modes › cluster wraps the concepts |
 | A2-12 | d942471 | FEAT | Cluster undoes itself completely | `setClustered(false)` | ✓ | graph-modes › cluster undoes itself |
 | A2-13 | d942471 | FEAT | Cluster disables the layout selector | `layoutSel.disabled` | ✓ | graph-modes › cluster disables the layout selector |
-| A2-14 | 8ca455f | REG | A cluster box whose concepts are all filtered is hidden | `:parent` `display:none` in applyGraphFilter | ~ | graph-modes › a filter still applies inside cluster |
-| A2-15 | 8ca455f | REG | Clustering re-applies the active filter before tiling | `setClustered`→`applyGraphFilter` first | ~ | graph-modes › a filter still applies inside cluster |
+| A2-14 | 8ca455f | REG | A cluster box whose concepts are all filtered is hidden | `:parent` `display:none` in applyGraphFilter | ✓ | graph-modes › clustering re-applies the active filter, and an emptied area box hides |
+| A2-15 | 8ca455f | REG | Clustering re-applies the active filter before tiling | `setClustered`→`applyGraphFilter` first | ✓ | graph-modes › clustering re-applies the active filter, and an emptied area box hides (filter set before clustering still takes) |
 | A2-16 | ed6c0af | FEAT | Tree mode: folders-as-nodes, folder→child edges only, link edges hidden | `#btn-tree`, `node.dir`, `edge.tree`, `edge.linkhid` | ✓ | graph-modes › tree mode adds folder nodes and undoes |
-| A2-17 | ed6c0af | FEAT | Tree and cluster are mutually exclusive; tree disables layout+cluster | `setTree`↔`setClustered` guards | ~ | graph-modes covers tree add/undo, not the guards |
+| A2-17 | ed6c0af | FEAT | Tree and cluster are mutually exclusive; tree disables layout+cluster | `setTree`↔`setClustered` guards | ✓ | graph-modes › tree and cluster are mutually exclusive — entering tree drops and disables cluster |
 | A2-18 | ed6c0af | FEAT | Folder nodes are unselectable and filter-exempt | `hasClass('dir')` guards | ✓ | graph-modes › a folder node is unselectable and exempt from the graph filter |
 | A2-19 | 1498a7c | REG | Tree folder nodes render as accent squares (like maps) | `node.dir,node.ix` background accent | ✓ | graph-modes › tree edges render dashed and folder nodes carry the accent |
 | A2-20 | 1498a7c | REG | Tree parent→child edges are dashed | `edge.tree` line-style dashed | ✓ | graph-modes › tree edges render dashed and folder nodes carry the accent |
 | A2-21 | aeef15b | FEAT | `#btn-ix` draws the index layer over any layout, flips pressed | `#btn-ix[aria-pressed]`, `cy.nodes('.ix')` | ✓ | graph-modes › the index layer adds the map nodes |
-| A2-22 | aeef15b/456aa79 | FEAT | Authored map draws accent, synthesized faint+dashed | `node.ix` vs `node.ix-syn` | ~ | index-layer covers edges, not node fill |
+| A2-22 | aeef15b/456aa79 | FEAT | Authored map draws accent, synthesized faint+dashed | `node.ix` vs `node.ix-syn` | ✓ | index-layer › a synthesized map node is filled fainter than an authored one (opacity .2 vs .9) |
 | A2-23 | aeef15b | FEAT | Index edges dashed `.ixe`; synth `.ixe-syn` fainter | `edge.ixe` .5 vs `edge.ixe-syn` .3 | ✓ | index-layer › synthesized map's edges fainter |
 | A2-24 | aeef15b | FEAT | A map with all concepts filtered hides; parent survives on a child | `ixVisibility()`, node `display` | ✓ | index-layer › a map whose concepts are all filtered away |
 | A2-25 | aeef15b | FEAT | Index nodes are exempt from the graph filter | applyGraphFilter skips `.ix` | ~ | index-layer (ixVisibility). The raw per-node `.ix` skip has no observable distinct from A2-24: whatever the filter leaves, `ixVisibility()` then hides a map with no surviving child, so a map's visibility is A2-24's contract, not this one's. |
 | A2-26 | aeef15b | FEAT | Index nodes never modelled (absent from catalog/tags/types) | id prefix `ix::` | ✗ | not asserted absent from catalog |
 | A2-27 | aeef15b/456aa79 | REG | Entering tree disables `#btn-ix` and tears down the layer | `#btn-ix[disabled]`, `setTree`→`setIxNodes(false)` | ✓ | graph-modes › entering tree mode disables the index button and tears down the layer |
 | A2-28 | 456aa79 | REG | index→tree switch lands clean in one click (no competing layout) | `setIxNodes(on,relayout=false)` | ✓ | camera-races › index layer to tree mode |
-| A2-29 | 456aa79 | REG | A stale `/index` fetch after a toggle/in-tree is dropped | `ixSeq` ticket guard | ✗ | server-mode race; needs delayed fetch |
+| A2-29 | 456aa79 | REG | A stale `/index` fetch after a toggle/in-tree is dropped | `ixSeq` ticket guard | ✓ | graph-modes › a stale index-layer fetch is dropped when the toggle flips before it lands (route holds /index; server-only) |
 | A2-30 | d942471 | FEAT | Layout selector: 5 built-in + 3 lazy, cose fallback on load fail | `#layout`, `ensureLayout` | ✓ | graph-modes › switching layouts keeps nodes + a lazy layout whose CDN fails falls back to cose (route.abort) |
 | A2-31 | adf96ff | REG | un-clustering restores the chosen layout (not hardcoded cose) | `cy.layout` name | ✓ | camera-races › un-clustering restores the chosen layout |
 | A2-32 | d942471/f00cb66 | FEAT | Fit frames the visible nodes (gentle 450ms ease) | `#btn-fit`, `fitGraph` | ✓ | graph-modes › fit brings the whole graph inside |
@@ -252,9 +246,9 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A5-22 | ee4788a | FEAT | ixOnly row shows full path; full tree shows bare filename | `.rn` text vs `data-path` | ✓ | indexes › an indexes-only row carries the full path; the full tree shows the bare name |
 | A5-23 | ee4788a | REG | ixOnly fold-all reflects nothing to fold | `#ftree-foldall` disabled | ✓ | indexes › the fold-all control is disabled in indexes-only |
 | A5-24 | ee4788a | FEAT | ixOnly with no matches shows an empty-state message | `.empty` text | ✓ | files-tree-nested › indexes-only shows the empty state when there are no index or log files (tree fixture has no reserved files) |
-| A5-25 | 8241cc2 | REG | A long tree-row path ellipsizes, doesn't push its badge off-edge | `.rn{min-width:0;overflow:hidden}` | ✗ | uncovered |
+| A5-25 | 8241cc2 | REG | A long tree-row path ellipsizes, doesn't push its badge off-edge | `.rn{min-width:0;overflow:hidden}` | ✓ | files-tree-deeppath › a long indexes-only row ellipsizes instead of pushing its badge off the edge (fixtures/deeppath, 39-char map path) |
 | A5-26 | d942471/dc83857 | FEAT | Files type & tag comboboxes (keyboard-navigable) filter the tree | `#file-type-combo`, `#file-tag-combo` (role) | ✓ | files-tree › picking a type narrows the tree; clearing restores it (type combo + ✕; tag combo + keyboard nav not separately asserted) |
-| A5-27 | 05b2bbb | FEAT | Reserved files re-fetch fresh on open (a new log entry shows) | `LOGS=null` before getLogs | ✗ | server-mode; uncovered |
+| A5-27 | 05b2bbb | FEAT | Reserved files re-fetch fresh on open (a new log entry shows) | `LOGS=null` before getLogs | ✓ | files-tree › a log re-reads on every open, so a new entry shows (route flips the flag; server-only) |
 | A5-28 | 05b2bbb | FEAT | Folder sections fold/unfold; state ignored while filtering | `.ffolder.closed`, filtering guard | ✓ | files-tree › a collapsed folder stays collapsed |
 
 ## Area 6 — Mobile / responsive
@@ -287,8 +281,8 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A7-05 | 3ce2284 | FEAT | A second `#hello2` note points at ☰ on leaving the graph (compact) | `#hello2`, setView hook | ✓ | first-visit › a second note points at the other views |
 | A7-06 | cc7d545 | FEAT | The note belongs to the graph, disappears on other views | `#app:not([data-view=graph]) ~ #hello` | ✓ | first-visit › the welcome note belongs to the graph and hides on other views |
 | A7-07 | 3ce2284 | FEAT | ☰ dismisses `#hello2` (only once on screen), remembered | hello2Done early-return | ✓ | first-visit › opening ☰ answers the second note and remembers it |
-| A7-08 | cc7d545/3ce2284 | FEAT | Note wording follows pointer type & width (tap/pinch, ☰ mention) | `@media (pointer:coarse)`/width | ✗ | uncovered |
-| A7-09 | 3ce2284 | FEAT | `#hello` reflows for short & landscape-phone viewports | `@media (max-height:480px)` | ✗ | visual; uncovered |
+| A7-08 | cc7d545/3ce2284 | FEAT | Note wording follows pointer type & width (tap/pinch, ☰ mention) | `@media (pointer:coarse)`/width | ✓ | first-visit › a touch primary pointer swaps the note's click wording for tap/pinch (`isMobile`+`hasTouch`) |
+| A7-09 | 3ce2284 | FEAT | `#hello` reflows for short & landscape-phone viewports | `@media (max-height:480px)` | ✓ | first-visit › the welcome note reflows to a two-column grid when the viewport is short (900×450) |
 | A7-10 | adf96ff | FEAT | A "best on desktop" `#mnote` shows on small screens, dismiss/persist | `#mnote`, `okf-mnote` | ⊘ | **superseded** — cc7d545 deleted `#mnote`/`okf-mnote` and folded the mobile note into `#hello2` (A7-05/A7-07), pinned by a `refute_includes` render test. Not a gap; the feature is gone. |
 
 ## Area 8 — Command palette, hub, help, keyboard sheet
@@ -333,9 +327,9 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A9-15 | 357ae87 | FEAT | Viewer re-renders from source (keeps colors), not a clone | `m.dataset.src` | ✓ | diagram › (re-rendered from source) |
 | A9-16 | 357ae87 | FEAT | Viewer pan (drag), zoom (wheel/pinch/±), reset (btn/dbl-click) | `#dgv-in/out/reset`, panzoom | ✓ | diagram › the viewer's zoom controls scale the diagram, and reset returns it (±/reset buttons; drag-pan + wheel/pinch not asserted) |
 | A9-17 | 357ae87 | FEAT | While the viewer is open, other shortcuts are suppressed | keydown early-return | ✓ | diagram › the open viewer swallows the page's other shortcuts |
-| A9-18 | 357ae87 | FEAT | Mermaid blocks: zoom-in cursor, accent hover, focus outline | `.mermaid` CSS | ✗ | visual; uncovered |
+| A9-18 | 357ae87 | FEAT | Mermaid blocks: zoom-in cursor, accent hover, focus outline | `.mermaid` CSS | ✓ | diagram › a rendered diagram block advertises that it opens — zoom-in cursor, accent hover (`:focus-visible` outline is keyboard-only, left to the eye) |
 | A9-19 | ed8a554 | FEAT | `EMBED` switches all five data reads: baked (static) vs fetched (server) | EMBED const | ✓ | proven by the two-project harness (every spec ×2) |
-| A9-20 | ed8a554 | FEAT | Server getters hit endpoints (bodies never memoized → live edits) | fetch NODE/META | ~ | both modes run; live-edit reflection not asserted |
+| A9-20 | ed8a554 | FEAT | Server getters hit endpoints (bodies never memoized → live edits) | fetch NODE/META | ✓ | inspector › server mode never memoizes a body — re-opening re-fetches it fresh (route flips the marker; server-only) |
 | A9-21 | d942471 | FEAT | Catalog cards: type chips, "X of Y" count, click → graph | `.card`, `#cat-cnt` | ✓ | interiors › a card opens that concept; views |
 | A9-22 | d942471 | FEAT | Catalog type chip narrows the grid and its count | `.card` filter | ✓ | interiors › a type chip narrows the grid |
 | A9-23 | d942471 | FEAT | Tags cloud: select lists concepts, second tag adds, click → graph | `.tcloud`, `#tag-detail` | ✓ | interiors › selecting a tag / a second tag adds |
@@ -468,10 +462,10 @@ A5-26 (Files type/tag comboboxes narrow the tree). Remaining:
 | A5-10, A5-11, A5-09 | Dir with only sub-dirs, last-segment headers, depth nesting | **done** — `fixtures/tree` (nested dirs, own server + static page). The pattern to copy for the rest of this tier. |
 | A3-07 | Tag chips capped at 40 | **done** — `fixtures/manytags` (45 tags, own server + static page) |
 | A5-21/22/24 | ixOnly flat list / full-path label / empty-state | **done** — A5-21/22 reached the main fixture's own reserved files (they never needed a fixture); A5-24's empty state uses `fixtures/tree`, which has no maps |
-| A9-20 | Server live-edit reflection | mutate a body file mid-test (server only) |
+| A9-20 | Server live-edit reflection | **done** — no file mutation needed; `route` serves gateway's body from a flag the test flips, re-open shows the new text (server project only, static skipped) |
 | A3-15 | Prefix/fuzzy search | **done** — needed no fixture; a one-edit typo on the main bundle's gateway, polled past the lazy index build |
 | A2-36 | Zoom floor auto-relaxes (`relaxZoom`) | a bundle whose graph exceeds the fit box, so `minZoom` must relax below `MIN_ZOOM` — the 8-concept fixture fits at `maxZoom`, so the floor never moves and there is nothing to observe |
-| A5-25 | Long tree-row path ellipsizes | a concept whose path is long enough to overflow the `.rn` box, so `text-overflow:ellipsis` actually clips — the fixture's paths are all short (forcing it by artificially narrowing the column is bending the test, per AGENTS.md) |
+| A5-25 | Long tree-row path ellipsizes | **done** — `fixtures/deeppath` buries a concept five dirs down so its authored index.md's path (39 chars) genuinely overflows the `.rn` box; the spec reads the clip (scrollWidth>clientWidth + computed overflow:hidden/ellipsis), mutation-checked by dropping overflow:hidden |
 
 ### Priority 4 — hard / needs instrumentation / genuinely untestable headless
 
@@ -479,57 +473,63 @@ A5-26 (Files type/tag comboboxes narrow the tree). Remaining:
 |---|---|---|
 | A1-10 | `f` fullscreen | `requestFullscreen` unreliable headless |
 | A1-11 | Reduced-motion | **done** — `app.emulateMedia({reducedMotion})` flips it live and the transition strip is a clean computed-CSS read; the count-up half stays visual (A9-24) |
-| A2-29 | Stale `/index` fetch dropped (ixSeq) | server-only race; needs a delayed/throttled response |
+| A2-29 | Stale `/index` fetch dropped (ixSeq) | **done** — `route` holds `/index` ~400ms; toggle on-then-off, and the late response draws nothing (server project only) |
 | A2-30 | Layout cose-fallback on CDN failure | **done** — `app.route(/fcose|cose-base|layout-base/).abort()` then select fcose; the selector lands on cose |
 | A2-37 | Node spacing across layouts | pure visual, no clean handle |
 | A2-26 | Index nodes absent from catalog/tags/types | an absence-proof with no mutation handle — index nodes are simply never added to `NODES`/`CATALOG`, so there is no line to break to make a map appear as a concept; a passing assertion would certify nothing |
 | A3-16 | Substring fallback before the index builds | the same lazy-index timing as A3-17 (a known flake source): the fallback window between first keystroke and index-ready is sub-frame and non-deterministic, so there is no stable point to assert it |
-| A5-27 | Reserved re-fetched fresh | server-only, timing |
+| A5-27 | Reserved re-fetched fresh | **done** — `route` on `/log` serves the log from a flip flag; re-opening shows the new entry (server project only) |
 | A9-24 | Stats count-up animation | visual/timing |
-| A7-08/09, A9-18 | Note gesture wording / reflow, mermaid cursor/hover | pure visual polish |
+| A7-08/09 | Note gesture wording / short-viewport reflow | **done** — not visual after all: `isMobile`+`hasTouch` emulates `pointer:coarse` (tap/pinch wording) and a 900×450 viewport triggers the `max-height:480px` grid reflow, both clean computed-CSS reads |
+| A9-18 | Mermaid block cursor / accent hover / focus outline | **done** — cursor:zoom-in is an always-on computed read, and `.hover()` turns the border accent; both mutation-checked. Only the keyboard-only `:focus-visible` outline is left to the eye |
 | A8-16 | Help focus *trap* | **feature unbuilt (Tier 3)** — build it, then test |
 
 ---
 
 ## How to drive this to full coverage
 
-**Where it stands: 156/181 (86%).** Priority 1 is cleared; every Priority-2 row
-outside the command palette is ✓; and Priority 3 is done bar one (A5-25), on the
-strength of two new fixtures — `fixtures/tree` (nested dirs) and
-`fixtures/manytags` (45 tags), each served on its own port and baked to its own
-static page like `fixtures/hostile`, so neither disturbs the flat 8-concept
-fixture's count assertions. Several rows once filed as hard fell to emulation and
-route interception with no fixture at all: A1-11 (`emulateMedia` reduced-motion),
-A3-15 (fuzzy search), A2-30 (a `route.abort`-ed CDN and the cose fallback). One
-stale ✗ turned out to be a removed feature (A7-10 → ⊘).
+**Where it stands: 167/181 (92%), 3 partial, 11 uncovered.** Priority 1 is
+cleared, every Priority-2 row outside the command palette is ✓, and Priority 3 is
+done — on the strength of three new fixtures (`fixtures/tree` nested dirs,
+`fixtures/manytags` 45 tags, `fixtures/deeppath` a five-deep reserved path), each
+served on its own port and baked to its own static page like `fixtures/hostile`,
+so none disturbs the flat 8-concept fixture's count assertions. A whole tier once
+filed as "hard" fell to emulation, route interception and the two-fixture pattern
+with no heroics: reduced-motion (`emulateMedia`), fuzzy search, the cose
+fallback, the tap/pinch pointer wording and short-viewport reflow (`isMobile`+
+`hasTouch`, a 900×450 viewport), the diagram block's zoom-in cursor + accent
+hover, the server's non-memoized body and log re-fetch and the stale-`/index`
+drop (`route` with a flag or a hold, server project only), and the authored-vs-
+synth map fill, the tree/cluster mutual-exclusion, and the emptied-cluster-box
+hide. One stale ✗ was a removed feature (A7-10 → ⊘).
 
-**The 17 remaining ✗ are the honest hard tail**, and they split cleanly:
+**The 11 remaining ✗ (and 3 ~) are the genuine floor**, each blocked for a
+concrete reason, not want of effort:
 
 - **Blocked on the other session (5):** the command-palette / bundle-switcher
-  rows A8-09/10/11/12, plus A8-16 which is an *unbuilt* feature. The palette four
-  are writable — but against code the server-UI work is changing, so they wait
-  for it to land, not for want of a test.
-- **Genuinely untestable as-is (4):** A2-26 is an absence-proof with no line to
-  break; A2-37, A7-08/09, A9-18, A9-24 are pure-visual polish with no behavioural
-  handle; A3-16/A3-17 are the sub-frame lazy-index window that is a known flake
-  source. Faking any of these would certify nothing — they are logged, not
-  chased.
-- **High-effort, low-yield (the rest):** A5-25 (a bespoke long-path reserved
-  fixture that would collide with A5-24's no-maps tree), A2-36 (a ~40-concept
-  fixture just to move the zoom floor), A2-29 / A5-27 / A9-20 (server-only race
-  or live-edit harnesses), A1-10 (`requestFullscreen`, unreliable headless).
+  rows A8-09/10/11/12 are writable, but against code the server-UI work is
+  actively changing — they wait for it to land. A8-16 is an *unbuilt* feature.
+- **Timing / headless-limited (6):** A9-24 (a 650 ms count-up), A2-35's
+  orientation half and A3-16/A3-17 (the sub-frame lazy-index window) are all
+  inherently racy — the suite refuses flaky catches on principle; A1-10
+  (`requestFullscreen`) is unreliable headless.
+- **No deterministic handle (3):** A2-26 is an absence-proof with no line to
+  break; A2-25 has no observable distinct from A2-24 (`ixVisibility` owns a map's
+  visibility); A2-37 (node non-overlap) has no form that is both deterministic
+  *and* mutation-sensitive across cytoscape's layouts.
+- **Disproportionate (1):** A2-36 (the zoom floor) needs a graph whose extent
+  exceeds ~5× the viewport — a 100+ concept fixture built solely to move
+  `minZoom` once.
 
-To go further, the sound moves are: (1) take the palette four once that code
-settles; (2) build the big-graph and long-path fixtures if A2-36/A5-25 are judged
-worth their weight; (3) leave the visual/absence/unbuilt rows as documented holes
-— per AGENTS.md, a test that cannot fail is worse than none. **Update the Cov
-column and the tallies here as rows close** — this file is the source of truth for
-what is proven.
+To go further the only sound moves left are: take the palette four once that code
+settles, and decide whether A2-36's fixture earns its weight. Everything else is
+a documented hole on purpose — per AGENTS.md, a test that cannot fail is worse
+than none. **Update the Cov column and the tallies here as rows close** — this
+file is the source of truth for what is proven.
 
-**Trust check:** "fully covered" is reached when every Priority-1/2/3 row is ✓ or
-consciously marked a documented hole, and Priority-4 items are each either done,
-instrumented, or explicitly logged as untestable. Trust the **net-live list here
-(181)**, not a single round number.
+**Trust check:** "fully covered" is reached when every reachable row is ✓ or
+consciously marked a documented hole. Trust the **net-live list here (181)**, not
+a single round number.
 
 ## Method
 

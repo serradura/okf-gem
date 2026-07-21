@@ -166,6 +166,28 @@ test.describe("file tree — collapse (mobile 375px)", () => {
   });
 });
 
+test.describe("reserved files re-fetch fresh (server)", () => {
+  test("a log re-reads on every open, so a new entry shows", async ({ app }, testInfo) => {
+    test.skip(testInfo.project.name === "static", "server-only: the static bake reads logs from EMBED and never re-fetches");
+    // openReserved sets LOGS=null before getLogs, so the log is re-read on every
+    // open — an appended entry shows without a reload. Serve /log from a flag the
+    // test flips: open log.md, flip the flag (a new entry), re-open, and the new
+    // content appears. A cached getLogs would repeat the first.
+    let logBody = "LOG-MARKER-ALPHA";
+    await app.route((url) => url.pathname === "/log", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ logs: [ { path: "log.md", content: logBody } ] }) }));
+
+    await showView(app, "files");
+    await app.locator('.file[data-res="log"][data-path="log.md"]').click();
+    await expect(app.locator("#fp-body")).toContainText("LOG-MARKER-ALPHA");
+
+    logBody = "LOG-MARKER-BETA"; // as if a new line were appended to log.md
+    await app.locator('.file[data-id="services/gateway"]').click();
+    await app.locator('.file[data-res="log"][data-path="log.md"]').click();
+    await expect(app.locator("#fp-body")).toContainText("LOG-MARKER-BETA");
+  });
+});
+
 test.describe("file tree — the type/tag comboboxes", () => {
   test.beforeEach(async ({ app }) => {
     await showView(app, "files");
