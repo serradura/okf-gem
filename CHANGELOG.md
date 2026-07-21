@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.10.0] - 2026-07-21
 
 ### Added
 
@@ -23,12 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   playbook's hub origin test made mechanical: a hub whose inbound majority is
   foreign to its own area is a move candidate. JSON: `{ bundle, count, hubs:
   [{ id, area, inbound, by_area }] }`.
-- **`okf tags --by` rows carry each tag's total.** The grouped view printed only
-  within-group counts, so a tag's spread meant cross-referencing groups by
-  hand; each row now shows `count/total` when they differ (`async  2/3`) and
-  the plain count when the tag is wholly local — locality at a glance, the
-  domain-vs-concern read. The JSON rows gain a `total` key; filters recompute
-  it over the narrowed set.
 - **The registry has a browser surface.** A meeting with non-technical readers
   settled what the TUI could not: `okf registry set/del/default/rename` is the
   right surface for the people who *write* bundles and the wrong one for the
@@ -94,39 +88,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rather than a view that went blank, and on zero a **panel** naming the bundle
   and the query — ⏎ hands it to the palette prefilled and already searching, esc
   clears.
-- **A wrong turn at the hub lands on a directory, not an apology.** The 404 is
-  rebuilt on the app shell, and it reads as what it is: the **asked path is the
-  heading**, set in mono where a dropped slash is legible as a shape, with "not
-  found" demoted to the eyebrow above it, since a reader arrives already knowing
-  they are lost. A near-miss slug is a **row** wearing the same anatomy as the
-  list under it, already marked, with ⏎ pointed at it; rows carry the folder
-  that actually distinguishes `site/.okf` from `minifts/.okf`; and colour marks
-  exceptions only, so a healthy row draws no verdict edge at all. Moving through
-  the list is **Tab's** job — every row is an `<a href>`, and a hand-rolled ↑↓
-  cursor was tried and deleted as a second focus model beside the real one. A
-  query matching no bundle is offered the cross-bundle search that would match
-  it, the same escalation the graph page's box makes.
-- **On a touch screen a tap opens a card, not the whole viewport.** At ≤768px
-  the inspector is `grid-template-columns:0 1fr`, so tapping a dot measured the
-  stage at 0px wide: the graph was not covered, it was gone. Exploring on a
-  phone became open → read → close → tap the next dot, and you could never see a
-  concept and its neighbourhood at once, which is the one thing a graph is for.
-  A preview card now rises at the bottom edge over a graph that keeps every
-  pixel and stays live — drag it up for the neighbourhood and the body, tap a
-  row and it swaps in place while the camera walks. Folder and index taps fill
-  the card too; they used to write into an invisible panel, so tree and cluster
-  modes were silently dead on touch. The branch is wider than the chrome's
-  (≤768px, or ≤1024px portrait), because a portrait tablet has the same bug and
-  wants the same gesture.
-- **Type chips select instead of deselecting.** Three chip groups carried two
-  grammars: areas and tags were additive — nothing selected means everything, a
-  click narrows, a second click undoes — while types were subtractive, every
-  type showing until you clicked one away. Same component, same panel, opposite
-  meaning, and the catalog's and tags view's own type chips were already
-  additive, so the rule a reader learned in one view was wrong in the next.
-  Types now select, and two of them compound into a union the old model could
-  not express at all — it could say "not the other four", never "Services and
-  Charters". The change is a net deletion.
 - **`okf` is extensible.** Any gem that puts `okf/plugin.rb` on its load path can
   register a verb, and it answers to `okf` — listed in `okf help` under
   `installed extensions:`, dispatched like a built-in. There is no list of known
@@ -195,6 +156,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     suite is CPU-bound and Chromium already reused those files across contexts.
 
 ### Changed
+
+- **`okf tags --by` rows carry each tag's total.** The grouped view printed only
+  within-group counts, so a tag's spread meant cross-referencing groups by
+  hand; each row now shows `count/total` when they differ (`async  2/3`) and
+  the plain count when the tag is wholly local — locality at a glance, the
+  domain-vs-concern read. The JSON rows gain a `total` key; filters recompute
+  it over the narrowed set.
+
+- **A wrong turn at the hub lands on a directory, not an apology.** The 404 is
+  rebuilt on the app shell, and it reads as what it is: the **asked path is the
+  heading**, set in mono where a dropped slash is legible as a shape, with "not
+  found" demoted to the eyebrow above it, since a reader arrives already knowing
+  they are lost. A near-miss slug is a **row** wearing the same anatomy as the
+  list under it, already marked, with ⏎ pointed at it; rows carry the folder
+  that actually distinguishes `site/.okf` from `minifts/.okf`; and colour marks
+  exceptions only, so a healthy row draws no verdict edge at all. Moving through
+  the list is **Tab's** job — every row is an `<a href>`, and a hand-rolled ↑↓
+  cursor was tried and deleted as a second focus model beside the real one. A
+  query matching no bundle is offered the cross-bundle search that would match
+  it, the same escalation the graph page's box makes.
+
+- **On a touch screen a tap opens a card, not the whole viewport.** At ≤768px
+  the inspector is `grid-template-columns:0 1fr`, so tapping a dot measured the
+  stage at 0px wide: the graph was not covered, it was gone. Exploring on a
+  phone became open → read → close → tap the next dot, and you could never see a
+  concept and its neighbourhood at once, which is the one thing a graph is for.
+  A preview card now rises at the bottom edge over a graph that keeps every
+  pixel and stays live — drag it up for the neighbourhood and the body, tap a
+  row and it swaps in place while the camera walks. Folder and index taps fill
+  the card too; they used to write into an invisible panel, so tree and cluster
+  modes were silently dead on touch. The branch is wider than the chrome's
+  (≤768px, or ≤1024px portrait), because a portrait tablet has the same bug and
+  wants the same gesture.
+
+- **Type chips select instead of deselecting.** Three chip groups carried two
+  grammars: areas and tags were additive — nothing selected means everything, a
+  click narrows, a second click undoes — while types were subtractive, every
+  type showing until you clicked one away. Same component, same panel, opposite
+  meaning, and the catalog's and tags view's own type chips were already
+  additive, so the rule a reader learned in one view was wrong in the next.
+  Types now select, and two of them compound into a union the old model could
+  not express at all — it could say "not the other four", never "Services and
+  Charters". The change is a net deletion.
 
 - **The CLI is one file per verb.** `lib/okf/cli.rb` was 1,794 lines and a
   15-arm `case`; it is now a registry and a dispatcher, with the verbs under
@@ -926,7 +930,7 @@ Initial release.
 
 - Runs on Ruby >= 2.4 with two runtime dependencies: rack and webrick.
 
-[Unreleased]: https://github.com/serradura/okf-gem/compare/v1.9.0...HEAD
+[1.10.0]: https://github.com/serradura/okf-gem/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/serradura/okf-gem/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/serradura/okf-gem/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/serradura/okf-gem/compare/v1.6.0...v1.7.0
