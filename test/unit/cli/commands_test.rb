@@ -13,7 +13,7 @@ class RegisteredCommandsConformTest < OKF::TestCase
   # coupling lives there, and this is what stops it drifting unnoticed.
   BUILTINS = %i[
     skill server render registry lint loose validate
-    search index stats types tags files catalog graph
+    search index dirs stats types tags files catalog graph
   ].freeze
 
   test "the built-ins are exactly these, in this order" do

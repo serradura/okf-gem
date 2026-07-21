@@ -34,7 +34,7 @@ is the lede.
      (`git status`), prefer **`maintain`**: that is exactly the drift it exists
      to close.
    - **clean, but the shape strains** — one area dwarfing the rest in
-     `okf stats`, tags spread thin across areas in `okf tags --by area`, hubs
+     `okf stats`, tags spread thin across dirs in `okf tags --by dir`, hubs
      whose inbound links are mostly foreign in `okf graph --hubs` → offer
      **`refine`** (evidence-driven restructuring; it proposes before it
      touches anything).

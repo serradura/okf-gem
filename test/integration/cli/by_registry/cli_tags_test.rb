@@ -149,6 +149,30 @@ module ByRegistry
       end
     end
 
+    test "--by dir keys each group by its full path, `.` for the root" do
+      with_registry("conformant", "rooted") do
+        data = json(okf("tags", "@conformant", "--by", "dir", "--json"))
+        assert_equal "dir", data.fetch("by")
+        assert_equal %w[datasets tables], data.fetch("groups").map { |g| g.fetch("dir") }
+        assert_equal "conformant", data.fetch("slug")
+
+        rooted = json(okf("tags", "@rooted", "--by", "dir", "--json"))
+        assert_equal [ ".", "services" ], rooted.fetch("groups").map { |g| g.fetch("dir") }
+        assert_match(/^\s{2}\(root\) \(2 tags\)$/, okf("tags", "@rooted", "--by", "dir").out)
+      end
+    end
+
+    test "--dir narrows through a ref, and --by area still warns" do
+      with_registry("conformant") do
+        data = json(okf("tags", "@conformant", "--dir", "TABLES", "--json"))
+        assert_equal %w[sales orders], data.fetch("tags").map { |row| row.fetch("tag") }
+        assert_equal "conformant", data.fetch("slug")
+
+        assert_equal "warning: --by area is deprecated, use --by dir\n",
+          okf("tags", "@conformant", "--by", "area", "--json").err
+      end
+    end
+
     test "an unknown --by dimension is a usage error (exit 2)" do
       with_registry("conformant") do
         result = okf("tags", "@conformant", "--by", "colour")

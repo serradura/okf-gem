@@ -160,6 +160,29 @@ module ByRegistry
       end
     end
 
+    test "--dir selects a directory and its subtree through a ref" do
+      with_registry("conformant", "edge-cases") do
+        data = json(okf("files", "@conformant", "--dir", "TABLES", "--json"))
+        assert_equal %w[tables/customers.md tables/orders.md], data.fetch("files").map { |row| row["path"] }
+
+        nested = json(okf("files", "@edge-cases", "--dir", "deeply/nested", "--json"))
+        assert_equal [ "deeply/nested/path/concept.md" ], nested.fetch("files").map { |row| row["path"] }
+
+        rooted = json(okf("files", "@edge-cases", "--dir", "root", "--json"))
+        assert_equal 3, rooted.fetch("count")
+        assert_equal "edge-cases", rooted.fetch("slug")
+      end
+    end
+
+    test "--area still selects through a ref, and warns on stderr" do
+      with_registry("conformant") do
+        result = okf("files", "@conformant", "--area", "tables", "--json")
+
+        assert_equal "warning: --area is deprecated, use --dir\n", result.err
+        assert_equal 2, json(result).fetch("count")
+      end
+    end
+
     test "--tag selects concepts carrying a tag, case-insensitively" do
       with_registry("conformant") do
         data = json(okf("files", "@conformant", "--tag", "ORDERS", "--json"))

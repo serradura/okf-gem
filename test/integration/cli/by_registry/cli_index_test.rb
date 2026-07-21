@@ -81,6 +81,26 @@ module ByRegistry
       end
     end
 
+    test "--dir is repeatable and takes a subtree through a ref" do
+      with_registry("conformant", "edge-cases") do
+        data = json(okf("index", "@conformant", "--dir", "TABLES", "--dir", "datasets", "--json"))
+        assert_equal "conformant", data["slug"]
+        assert_equal %w[datasets tables], data["directories"].map { |row| row["dir"] }
+
+        subtree = json(okf("index", "@edge-cases", "--dir", "deeply", "--json"))
+        assert_equal %w[deeply deeply/nested deeply/nested/path], subtree["directories"].map { |row| row["dir"] }
+      end
+    end
+
+    test "--area still narrows to the directory exactly, and warns" do
+      with_registry("edge-cases") do
+        result = okf("index", "@edge-cases", "--area", "deeply", "--json")
+
+        assert_equal "warning: --area is deprecated, use --dir\n", result.err
+        assert_equal [ "deeply" ], json(result)["directories"].map { |row| row["dir"] }
+      end
+    end
+
     test "--area is repeatable and case-insensitive through a ref" do
       with_registry("conformant") do
         data = json(okf("index", "@conformant", "--area", "TABLES", "--area", "datasets", "--json"))
@@ -91,9 +111,9 @@ module ByRegistry
       end
     end
 
-    test "an unknown --area selects nothing and stays advisory (exit 0)" do
+    test "an unknown --dir selects nothing and stays advisory (exit 0)" do
       with_registry("conformant") do
-        human = okf("index", "@conformant", "--area", "nope")
+        human = okf("index", "@conformant", "--dir", "nope")
 
         assert_equal 0, human.status
         assert_equal "Index map — @conformant (#{fixture("conformant")}) (0 directories)\n", human.out,

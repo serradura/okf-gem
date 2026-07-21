@@ -215,8 +215,36 @@ module ByDir
         "--fuzzy is the opt-in that forgives the typo"
     end
 
+    test "every match carries the dir it lives in, full path, `.` at the root" do
+      rows = json(okf("search", fixture("edge-cases"), "concept", "--json"))["matches"]
+
+      by_id = rows.each_with_object({}) { |row, map| map[row["id"]] = row }
+      assert_equal "deeply/nested/path", by_id.fetch("deeply/nested/path/concept").fetch("dir")
+      assert_equal ".", by_id.fetch("target").fetch("dir") if by_id.key?("target")
+    end
+
+    test "--dir narrows to a directory and everything beneath it" do
+      scoped = json(okf("search", fixture("conformant"), "orders", "--dir", "tables", "--json"))
+      assert_equal %w[tables/customers tables/orders], scoped["matches"].map { |row| row["id"] }.sort
+
+      nested = json(okf("search", fixture("edge-cases"), "concept", "--dir", "deeply", "--json"))
+      assert_equal [ "deeply/nested/path/concept" ], nested["matches"].map { |row| row["id"] }
+
+      rooted = json(okf("search", fixture("edge-cases"), "concept", "--dir", "root", "--json"))
+      refute_includes rooted["matches"].map { |row| row["id"] }, "deeply/nested/path/concept"
+    end
+
+    test "--area still narrows, and warns on stderr while stdout stays clean JSON" do
+      result = okf("search", fixture("conformant"), "orders", "--area", "tables", "--json")
+
+      assert_equal 0, result.status
+      assert_equal "warning: --area is deprecated, use --dir\n", result.err
+      assert_equal 2, json(result)["count"]
+      assert_empty okf("search", fixture("conformant"), "orders", "--dir", "tables", "--json").err
+    end
+
     test "search composes with the shared filters, which narrow the candidates first" do
-      scoped = json(okf("search", fixture("conformant"), "orders", "--area", "tables", "--json"))
+      scoped = json(okf("search", fixture("conformant"), "orders", "--dir", "tables", "--json"))
       assert_equal %w[tables/customers tables/orders], scoped["matches"].map { |row| row["id"] }.sort
 
       typed = json(okf("search", fixture("conformant"), "orders", "--type", "BigQuery Dataset", "--json"))
@@ -268,7 +296,7 @@ module ByDir
       result = okf("search", fixture("conformant"), "orders", "--fields", "slug", "--json")
 
       assert_equal 2, result.status
-      assert_match(/^error: unknown field\(s\): slug \(available: id, title, type, area, tags, matched, score, snippet\)$/, result.err)
+      assert_match(/^error: unknown field\(s\): slug \(available: id, title, type, dir, area, tags, matched, score, snippet\)$/, result.err)
       assert_empty result.out, "an unprojectable field is a refusal, never an answer shaped like one"
     end
 

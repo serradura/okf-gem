@@ -137,6 +137,57 @@ module ByDir
       assert_equal 2, data.fetch("groups").last.fetch("tags").length
     end
 
+    test "--by dir groups the tags by the full directory path, the root as (root)" do
+      result = okf("tags", fixture("rooted"), "--by", "dir")
+
+      assert_equal 0, result.status
+      assert_match(/\(2 distinct, by dir\)/, result.out)
+      assert_match(/^\s{2}\(root\) \(2 tags\)$/, result.out, "`.` is data; the human view says (root)")
+      assert_match(%r{^\s{2}services/ \(1 tag\)$}, result.out)
+      refute_match(%r{\(root\)/}, result.out)
+    end
+
+    test "--by dir keys the root group `.` in JSON, and groups by the whole path" do
+      groups = json(okf("tags", fixture("rooted"), "--by", "dir", "--json"))
+
+      assert_equal "dir", groups.fetch("by")
+      assert_equal [ ".", "services" ], groups.fetch("groups").map { |group| group["dir"] },
+        "the JSON says `.` — (root) is the human spelling, never the stored one"
+
+      # where --by area rolls a nested concept up to its first segment, --by dir
+      # keeps the path it actually lives at
+      deep = json(okf("tags", fixture("edge-cases"), "--by", "dir", "--json"))
+      assert_includes deep.fetch("groups").map { |group| group["dir"] }, "deeply/nested/path"
+    end
+
+    test "--dir narrows the concepts before the index is cut" do
+      data = json(okf("tags", fixture("conformant"), "--dir", "TABLES", "--json"))
+      assert_equal %w[sales orders], data.fetch("tags").map { |row| row.fetch("tag") }
+      assert_equal 2, data.fetch("tags").first.fetch("count")
+
+      assert_equal [ "deep" ], json(okf("tags", fixture("edge-cases"), "--dir", "deeply", "--json"))
+        .fetch("tags").map { |row| row.fetch("tag") }
+    end
+
+    test "--dir composes with --by dir" do
+      data = json(okf("tags", fixture("conformant"), "--dir", "datasets", "--by", "dir", "--json"))
+
+      assert_equal [ "datasets" ], data.fetch("groups").map { |group| group["dir"] }
+    end
+
+    test "--by area and --area still work, and each warns once on stderr" do
+      area = okf("tags", fixture("conformant"), "--by", "area", "--json")
+      assert_equal 0, area.status
+      assert_equal "warning: --by area is deprecated, use --by dir\n", area.err
+      assert_equal %w[datasets tables], json(area).fetch("groups").map { |g| g.fetch("area") }
+
+      filtered = okf("tags", fixture("conformant"), "--area", "tables", "--json")
+      assert_equal "warning: --area is deprecated, use --dir\n", filtered.err
+
+      both = okf("tags", fixture("conformant"), "--area", "tables", "--by", "area", "--json")
+      assert_equal "warning: --area is deprecated, use --dir\nwarning: --by area is deprecated, use --by dir\n", both.err
+    end
+
     test "an unknown --by dimension is a usage error (exit 2)" do
       result = okf("tags", fixture("conformant"), "--by", "colour")
 

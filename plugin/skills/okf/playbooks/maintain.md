@@ -45,7 +45,7 @@ lives in [authoring.md](../reference/authoring.md).
      defect.** Loose ≠ orphan: an index listing makes a file *reachable* (not an
      orphan) but is not a graph edge, so an indexed file can still float here.
 7. **Curate the tag vocabulary** when the pass
-   touched tags, or when `okf tags <dir>` shows a long tail of singletons. Run `okf tags <dir> --by area` and
+   touched tags, or when `okf tags <dir>` shows a long tail of singletons. Run `okf tags <dir> --by dir` and
    `--by type` — the grouped view is the analysis; read each group top-down:
    - **twins** — two tags riding the exact same concepts (equal counts sort them
      adjacent). Merge into one unless each genuinely names a different theme.

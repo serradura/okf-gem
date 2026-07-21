@@ -16,7 +16,7 @@ reads, and full bodies are read last, and only the winners.
    the skeleton: every directory with its concept count, types, tags, children.
    *You* do the semantic matching here — the question names a meaning, the map
    names areas; connect them by judgment, not string equality. When an area
-   looks right, `okf index <dir> --area <name>` buys its authored index body and
+   looks right, `okf index <dir> --dir <name>` buys its authored index body and
    listing (titles + descriptions) for the price of one directory.
    <!-- rule:okf-search-map-first -->
 3. **Cut across with the finder when the question is lexical.** An exact
@@ -52,7 +52,7 @@ reads, and full bodies are read last, and only the winners.
    default when you can. <!-- rule:okf-search-fuzzy-is-a-switch -->
 
    Scope any of them with what the map taught you:
-   `--area billing`, `--type Decision`, `--tag idempotency`, `--in body`.
+   `--dir billing`, `--type Decision`, `--tag idempotency`, `--in body`.
    Matches rank by where they hit, and the snippet often *is* the answer.
    When the answer may live in another registered bundle, span them — leading
    @slugs (`okf search @handbook @notes <terms>`) or `@all` for every registered

@@ -5,9 +5,9 @@ module OKF
     # The progressive-disclosure map (spec §6): every directory that holds concepts
     # or carries an index.md, with its authored index body, a type/tag rollup, its
     # child directories, and — for a directory with no index.md — the listing
-    # synthesized from the concepts there. The "orient before you read" view. `--area`
-    # is repeatable (one or many directories; `root` is the bundle root); `--no-body`
-    # drops the prose to a skeleton; advisory, exit 0.
+    # synthesized from the concepts there. The "orient before you read" view. `--dir`
+    # is repeatable and selects a directory *and its subtree* (`root` is the bundle
+    # root); `--no-body` drops the prose to a skeleton; advisory, exit 0.
     class Index < Command
       def self.id
         :index
@@ -19,17 +19,22 @@ module OKF
 
       def self.help_rows
         [
-          [ "index     <dir|@slug> [--json] [--area A] [--no-body]", "the index map: dirs, their listings and rollups" ]
+          [ "index     <dir|@slug> [--json] [--dir D] [--no-body]", "the index map: dirs, their listings and rollups" ]
         ]
       end
 
       def call(argv)
-        options = { json: false, body: true, areas: nil }
+        options = { json: false, body: true, dirs: nil, areas: nil }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf index <dir|@slug> [--area AREA] [--no-body] [--json]"
+          o.banner = "Usage: okf index <dir|@slug> [--dir PATH] [--no-body] [--json]"
           json_flags(o, options, "emit the index map as JSON")
           projection_flags(o, options)
-          o.on("--area AREA", "only this directory/area (repeatable; `root` for the bundle root)") { |v| (options[:areas] ||= []) << v }
+          o.on("--dir PATH", "only this directory and the ones below it",
+            "(repeatable; `root` for the bundle root)") { |v| (options[:dirs] ||= []) << v }
+          o.on("--area AREA", "deprecated: use --dir (this directory exactly)") do |v|
+            (options[:areas] ||= []) << v
+            deprecated("--area", "--dir")
+          end
           o.on("--[no-]body", "include each index's prose body (default: yes)") { |v| options[:body] = v }
           help_flag(o)
         end
@@ -38,7 +43,7 @@ module OKF
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)
         entries = folder.directory_index
-        selected = select_directories(entries, options[:areas])
+        selected = select_directories(entries, options)
         if options[:json]
           # --no-body is shorthand for --except body, so asking for the body by
           # name in the same breath is a contradiction. Letting --fields quietly
@@ -56,14 +61,21 @@ module OKF
 
       private
 
-      # Narrow the map to the named directories/areas — case-insensitive, `root`
-      # matching the bundle root (".") so no shell quoting is needed. No --area passed
-      # keeps the whole map.
-      def select_directories(entries, areas)
-        return entries if areas.nil? || areas.empty?
+      # Narrow the map to the named directories — case-insensitive, `root` matching
+      # the bundle root ("."). --dir takes the named directory *and its subtree*, the
+      # one prefix rule the filter flag uses; the deprecated --area keeps its old
+      # exact match, because a deprecated flag that quietly widens is worse than one
+      # that is merely old. Neither passed keeps the whole map.
+      def select_directories(entries, options)
+        dirs = options[:dirs]
+        areas = options[:areas]
+        return entries if (dirs.nil? || dirs.empty?) && (areas.nil? || areas.empty?)
 
-        wanted = areas.map { |area| area.downcase == "root" ? "." : area.downcase }
-        entries.select { |entry| wanted.include?(entry[:dir].downcase) }
+        wanted = Array(areas).map { |area| fold_dir(area) }
+        entries.select do |entry|
+          wanted.include?(fold(entry[:dir])) ||
+            Array(dirs).any? { |path| under_dir?(entry[:dir], path) }
+        end
       end
 
       def print_index_map(dir, entries, body)

@@ -118,13 +118,15 @@ module OKF
       # reproduced on the CLI so an agent can read the same knowledge without one.
       # Each prints a scannable human view by default and machine JSON with --json;
       # all are advisory reads (exit 0). They share OKF::Bundle#catalog for their data,
-      # and (with `types`) narrow through the same --type/--area/--tag filters the
+      # and (with `types`) narrow through the same --type/--dir/--tag filters the
       # server UI offers, so browser and CLI can answer the same questions.
       #
-      # ── their shared --type/--area/--tag narrowing ──
+      # ── their shared --type/--dir/--tag narrowing ──
       # Each view takes the filters orthogonal to it (tags can't filter by tag).
-      # Matching is case-insensitive and exact; a concept at the bundle root lives in
-      # the "(root)" area, which --area also accepts as plain `root` (no shell quoting).
+      # Matching is case-insensitive; --type and --tag are exact, --dir is a prefix
+      # over the whole path (see #under_dir?). The bundle root is `.`, spellable
+      # `root` so no shell quoting is needed. --area is --dir's deprecated
+      # predecessor and keeps its old first-segment-only behavior.
 
       # The shared back half of `tags` and `types`: load, narrow, print.
       def print_inverted_index(dir, label, key, plural, options)
@@ -177,7 +179,14 @@ module OKF
 
       def filter_flags(parser, options, *keys)
         parser.on("--type TYPE", "only concepts of this type") { |v| options[:type] = v } if keys.include?(:type)
-        parser.on("--area AREA", "only concepts in this top-level area") { |v| options[:area] = v } if keys.include?(:area)
+        if keys.include?(:area)
+          parser.on("--dir PATH", "only concepts in this directory or below it",
+            "(`root` — or `.` — for the bundle root)") { |v| options[:dir] = v }
+          parser.on("--area AREA", "deprecated: use --dir (matches the first path segment only)") do |v|
+            options[:area] = v
+            deprecated("--area", "--dir")
+          end
+        end
         parser.on("--tag TAG", "only concepts carrying this tag") { |v| options[:tag] = v } if keys.include?(:tag)
       end
 
@@ -185,8 +194,19 @@ module OKF
         entries.select do |entry|
           (options[:type].nil? || fold(entry[:type]) == fold(options[:type])) &&
             (options[:area].nil? || fold(entry[:area]) == fold_area(options[:area])) &&
+            (options[:dir].nil? || under_dir?(entry[:dir], options[:dir])) &&
             (options[:tag].nil? || entry[:tags].any? { |tag| fold(tag) == fold(options[:tag]) })
         end
+      end
+
+      # The one rule --dir is built on: a dir names itself and everything beneath
+      # it. `--dir foo` reaches foo/bar, `--dir foo/bar` narrows, and `--dir .`
+      # needs no special case at all — nothing starts with "./", so the root
+      # selects only what lives directly in it.
+      def under_dir?(entry_dir, wanted)
+        entry = fold(entry_dir)
+        path = fold_dir(wanted)
+        entry == path || entry.start_with?("#{path}/")
       end
 
       def fold(value)
@@ -196,6 +216,24 @@ module OKF
       def fold_area(value)
         folded = fold(value)
         folded == "root" ? "(root)" : folded
+      end
+
+      # `.` is the stored spelling of the root everywhere; `root` is the one a
+      # shell needs no quoting for, and the only reason the two exist.
+      def fold_dir(value)
+        folded = fold(value)
+        folded == "root" ? "." : folded
+      end
+
+      # A deprecated spelling still does what it always did — never silently
+      # something else — and says so once per run, on stderr so a --json
+      # consumer's stdout stays a clean machine substrate.
+      def deprecated(what, instead)
+        @deprecated ||= {}
+        return if @deprecated[what]
+
+        @deprecated[what] = true
+        @err.puts "warning: #{what} is deprecated, use #{instead}"
       end
 
       # Turn an inverted index ({ value => [id, …] }) into display rows ordered by
@@ -212,7 +250,7 @@ module OKF
       # The ids the filters select, resolved through the catalog metadata — or nil
       # when no filter is active, meaning keep everything.
       def filter_ids(folder, options)
-        return nil if options[:type].nil? && options[:area].nil? && options[:tag].nil?
+        return nil if options[:type].nil? && options[:area].nil? && options[:dir].nil? && options[:tag].nil?
 
         filter_entries(folder.catalog, options).map { |entry| entry[:id] }
       end

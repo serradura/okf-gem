@@ -26,7 +26,7 @@ alarm, never the objective. <!-- rule:okf-cohesion-over-balance -->
 2. **Measure — the CLI is the evidence.** Baseline `validate` / `lint
    --stale-after` / `loose` first: refine assumes a sound bundle, and hard
    errors are [curate](curate.md)'s job. Then the two structural reads:
-   - `okf tags <dir> --by area` — each row carries `count/total`, so a tag's
+   - `okf tags <dir> --by dir` — each row carries `count/total`, so a tag's
      **locality** reads directly: a tag wholly inside one area names a *domain*
      (the directories are right); one spread across areas names a *concern*.
    - `okf graph <dir> --hubs` — concepts ranked by inbound links, each with

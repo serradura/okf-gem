@@ -15,12 +15,12 @@ module ByRegistry
 
         assert_equal 0, result.status
         assert_match(/^  concepts       3$/, result.out)
-        assert_match(/^  areas          2$/, result.out)
+        assert_match(/^  dirs           2$/, result.out)
         assert_match(/^  concept types  2$/, result.out)
         assert_match(/^  cross-links    6$/, result.out)
         assert_match(/^  distinct tags  2$/, result.out)
         assert_match(/^  By type\n    BigQuery Table    2\n    BigQuery Dataset  1$/, result.out)
-        assert_match(/^  By area\n    tables    2\n    datasets  1$/, result.out)
+        assert_match(/^  By dir\n    tables    2\n    datasets  1$/, result.out)
         assert_equal okf("stats", fixture("conformant")).out.lines.drop(1), result.out.lines.drop(1),
           "naming a bundle by ref changes its header, never its content"
       end
@@ -39,7 +39,7 @@ module ByRegistry
 
         assert_equal fixture("conformant"), data.fetch("bundle"), "`bundle` is always the directory"
         assert_equal "conformant", data.fetch("slug"), "`slug` is only ever the registry slug"
-        assert_equal %w[areas bundle by_area by_type concept_types concepts cross_links distinct_tags slug], data.keys.sort,
+        assert_equal %w[areas bundle by_area by_dir by_type concept_types concepts cross_links dirs distinct_tags slug], data.keys.sort,
           "a ref adds `slug` to the path form's keys, and nothing else"
         assert_equal 3, data.fetch("concepts")
         assert_equal 2, data.fetch("areas")

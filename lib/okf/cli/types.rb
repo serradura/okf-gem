@@ -21,7 +21,7 @@ module OKF
       def call(argv)
         options = { json: false }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf types <dir|@slug> [--area A] [--tag T] [--json]"
+          o.banner = "Usage: okf types <dir|@slug> [--dir D] [--tag T] [--json]"
           json_flags(o, options, "emit the type index as JSON")
           filter_flags(o, options, :area, :tag)
           help_flag(o)

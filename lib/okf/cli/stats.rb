@@ -2,7 +2,7 @@
 
 module OKF
   class CLI
-    # Bundle rollups — concepts, types, areas, links, tags — in one screen.
+    # Bundle rollups — concepts, dirs, types, links, tags — in one screen.
     class Stats < Command
       def self.id
         :stats
@@ -14,7 +14,7 @@ module OKF
 
       def self.help_rows
         [
-          [ "stats     <dir|@slug> [--json]", "bundle rollups (concepts, types, areas, links, tags)" ]
+          [ "stats     <dir|@slug> [--json]", "bundle rollups (concepts, dirs, types, links, tags)" ]
         ]
       end
 
@@ -42,13 +42,16 @@ module OKF
         entries = folder.catalog
         by_type = graph.type_index.transform_values(&:size).sort_by { |_, n| -n }.to_h
         by_area = entries.group_by { |entry| entry[:area] }.transform_values(&:size).sort_by { |_, n| -n }.to_h
+        by_dir = entries.group_by { |entry| entry[:dir] }.transform_values(&:size).sort_by { |_, n| -n }.to_h
         {
           concepts: entries.size,
+          dirs: by_dir.size,
           areas: by_area.size,
           types: by_type.size,
           cross_links: graph.edges.size,
           tags: graph.tag_index.size,
           by_type: by_type,
+          by_dir: by_dir,
           by_area: by_area
         }
       end
@@ -57,28 +60,32 @@ module OKF
         @out.puts "Stats — #{bundle_label(dir)}"
         @out.puts
         @out.puts "  concepts       #{stats[:concepts]}"
-        @out.puts "  areas          #{stats[:areas]}"
+        @out.puts "  dirs           #{stats[:dirs]}"
         @out.puts "  concept types  #{stats[:types]}"
         @out.puts "  cross-links    #{stats[:cross_links]}"
         @out.puts "  distinct tags  #{stats[:tags]}"
         print_stat_breakdown("By type", stats[:by_type])
-        print_stat_breakdown("By area", stats[:by_area])
+        # One grouping word in the human view: `by_area` stays in --json for the
+        # deprecation window, but a screen that printed both would be teaching the
+        # vocabulary the rest of this change is retiring.
+        print_stat_breakdown("By dir", stats[:by_dir]) { |label| label == "." ? "(root)" : label }
       end
 
       def print_stat_breakdown(title, counts)
         return if counts.empty?
 
-        width = counts.keys.map(&:length).max
+        labels = counts.keys.map { |key| block_given? ? yield(key) : key }
+        width = labels.map(&:length).max
         @out.puts
         @out.puts "  #{title}"
-        counts.each { |label, count| @out.puts "    #{label.ljust(width)}  #{count}" }
+        counts.each_with_index { |(_, count), i| @out.puts "    #{labels[i].ljust(width)}  #{count}" }
       end
 
       def print_stats_json(dir, stats)
         emit_json(bundle_head(dir).merge(
-          "concepts" => stats[:concepts], "areas" => stats[:areas],
+          "concepts" => stats[:concepts], "dirs" => stats[:dirs], "areas" => stats[:areas],
           "concept_types" => stats[:types], "cross_links" => stats[:cross_links], "distinct_tags" => stats[:tags],
-          "by_type" => stats[:by_type], "by_area" => stats[:by_area]
+          "by_type" => stats[:by_type], "by_dir" => stats[:by_dir], "by_area" => stats[:by_area]
         ))
       end
     end

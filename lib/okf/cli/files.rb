@@ -22,7 +22,7 @@ module OKF
       def call(argv)
         options = { json: false }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf files <dir|@slug> [--type T] [--area A] [--tag T] [--json]"
+          o.banner = "Usage: okf files <dir|@slug> [--type T] [--dir D] [--tag T] [--json]"
           json_flags(o, options, "emit the file tree as JSON")
           projection_flags(o, options)
           filter_flags(o, options, :type, :area, :tag)

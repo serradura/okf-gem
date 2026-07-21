@@ -1,6 +1,16 @@
 # Update Log
 
 ## 2026-07-21
+* **Update**: [read-views](capabilities/read-views.md), [search](capabilities/search.md)
+  and [graph](model/graph.md) now say `--dir` where they said `--area`, and
+  read-views gains the `dirs` verb. The rename is not cosmetic: "area" appears
+  nowhere in the OKF spec (`grep -ci area SPEC.md` → 0) — it was this gem's own
+  word for a concept id's *first path segment*, and that projection threw away
+  every level below it. The spec's word for grouping is *directories*, the value
+  the catalog already carried on every row, so `dir` becomes the only machine
+  word (full path, `.` at root, `(root)` for humans) and "cluster" stays prose
+  for what a dir groups. `--area` and `tags --by area` keep their old exact
+  behavior and warn, for one release.
 * **Correction**: a maintain pass against `CHANGELOG.md` found the drift running
   the *other* way — the bundle was current and the changelog was not. Every
   concept touched by this branch's server/page work had its body updated in the

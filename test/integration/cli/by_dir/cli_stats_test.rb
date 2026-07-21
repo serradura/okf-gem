@@ -14,25 +14,34 @@ module ByDir
       assert_equal 0, result.status
       assert_match(/^Stats — .*conformant$/, result.out)
       assert_match(/^  concepts       3$/, result.out)
-      assert_match(/^  areas          2$/, result.out)
+      assert_match(/^  dirs           2$/, result.out)
       assert_match(/^  concept types  2$/, result.out)
       assert_match(/^  cross-links    6$/, result.out)
       assert_match(/^  distinct tags  2$/, result.out)
       assert_match(/^  By type\n    BigQuery Table    2\n    BigQuery Dataset  1$/, result.out)
-      assert_match(/^  By area\n    tables    2\n    datasets  1$/, result.out)
+      assert_match(/^  By dir\n    tables    2\n    datasets  1$/, result.out)
+      refute_match(/By area/, result.out) # the human view speaks one word for grouping
     end
 
     test "the breakdowns order by count, the biggest slice first" do
       result = okf("stats", fixture("edge-cases"))
 
-      assert_match(/^  By area\n    \(root\)  3\n    deeply  1$/, result.out) # a root concept lives in the "(root)" area
-      assert_equal [ "(root)", "deeply" ], json(okf("stats", fixture("edge-cases"), "--json")).fetch("by_area").keys
+      assert_match(/^  By dir\n    \(root\)              3\n    deeply\/nested\/path  1$/, result.out)
+      assert_equal [ ".", "deeply/nested/path" ], json(okf("stats", fixture("edge-cases"), "--json")).fetch("by_dir").keys
+    end
+
+    test "by_dir keeps the whole path where by_area only ever kept the first segment" do
+      data = json(okf("stats", fixture("edge-cases"), "--json"))
+
+      assert_equal({ "." => 3, "deeply/nested/path" => 1 }, data.fetch("by_dir"))
+      assert_equal({ "(root)" => 3, "deeply" => 1 }, data.fetch("by_area"), "kept for the deprecation window")
+      assert_equal 2, data.fetch("dirs")
     end
 
     test "--json emits the rollups under their machine keys" do
       data = json(okf("stats", fixture("conformant"), "--json"))
 
-      assert_equal %w[areas bundle by_area by_type concept_types concepts cross_links distinct_tags], data.keys.sort
+      assert_equal %w[areas bundle by_area by_dir by_type concept_types concepts cross_links dirs distinct_tags], data.keys.sort
       assert_equal 3, data.fetch("concepts")
       assert_equal 2, data.fetch("areas")
       assert_equal 2, data.fetch("concept_types") # `types` in the human view, `concept_types` here
@@ -65,17 +74,17 @@ module ByDir
 
       assert_equal 0, result.status
       assert_match(/^  concepts       0$/, result.out)
-      assert_match(/^  areas          0$/, result.out)
+      assert_match(/^  dirs           0$/, result.out)
       assert_match(/^  concept types  0$/, result.out)
       assert_match(/^  cross-links    0$/, result.out)
       assert_match(/^  distinct tags  0$/, result.out)
       refute_match(/By type/, result.out) # an empty breakdown prints nothing, not an empty heading
-      refute_match(/By area/, result.out)
+      refute_match(/By dir/, result.out)
 
       data = json(okf("stats", fixture("empty"), "--json"))
       assert_equal 0, data.fetch("concepts")
       assert_equal({}, data.fetch("by_type"))
-      assert_equal({}, data.fetch("by_area"))
+      assert_equal({}, data.fetch("by_dir"))
     end
 
     test "JSON names the bundle by its directory; a bundle named by path carries no slug" do

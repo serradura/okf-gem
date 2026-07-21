@@ -8,7 +8,7 @@ require_relative "cli_integration_case"
 class CLIHelpTest < CLIIntegrationCase
   # Every verb `run` dispatches, minus the two that are their own help.
   COMMANDS = %w[
-    skill server render registry lint loose validate search index stats types tags files catalog graph
+    skill server render registry lint loose validate search index dirs stats types tags files catalog graph
   ].freeze
 
   test "help lists every command with a description" do
@@ -34,7 +34,7 @@ class CLIHelpTest < CLIIntegrationCase
   # carry the hint. `skill` is absent: its <dest> is a directory to write, which
   # the registry knows nothing about.
   BUNDLE_COMMANDS = %w[
-    server render lint loose validate search index stats types tags files catalog graph
+    server render lint loose validate search index dirs stats types tags files catalog graph
   ].freeze
 
   test "help explains the @slug grammar the verbs share" do

@@ -332,7 +332,7 @@ module AcrossBundles
       # bundle when one is registered (and lint it) and two when two are (exit 2),
       # so the same command's meaning would track the size of the registry.
       with_registry("conformant", "minimal") do
-        %w[lint validate loose index catalog files tags types stats graph render server].each do |verb|
+        %w[lint validate loose index dirs catalog files tags types stats graph render server].each do |verb|
           result = okf(verb, "@all")
 
           assert_equal 2, result.status, "#{verb} @all"
@@ -368,6 +368,27 @@ module AcrossBundles
 
     # -- every flag, in multi form
 
+    test "--dir narrows every bundle in the merge, by the same prefix rule" do
+      with_registry("conformant", "edge-cases") do
+        scoped = json(okf("search", "@conformant", "@edge-cases", "concept", "orders", "--dir", "root", "--json"))
+
+        assert_equal 0, scoped["matches"].count { |row| row["dir"].start_with?("deeply") },
+          "the filter is per-bundle, but the rule it applies is the same one everywhere"
+        assert scoped["matches"].all? { |row| row["dir"] == "." }
+      end
+    end
+
+    test "every merged row carries its dir, and --area still warns once for the whole merge" do
+      with_registry("conformant", "edge-cases") do
+        rows = json(okf("search", "@conformant", "@edge-cases", "concept", "--json"))["matches"]
+        assert_includes rows.map { |row| row["dir"] }, "deeply/nested/path"
+
+        warned = okf("search", "@conformant", "@edge-cases", "concept", "--area", "root", "--json")
+        assert_equal "warning: --area is deprecated, use --dir\n", warned.err,
+          "one run, one warning — not one per bundle searched"
+      end
+    end
+
     test "search --fields projects literally, so --fields id drops the slug label" do
       with_registry("conformant", "rooted") do
         # The footgun, asserted rather than warned about: projection is literal.
@@ -400,7 +421,7 @@ module AcrossBundles
 
         bogus = okf("search", "@conformant", "@rooted", "the", "--fields", "nope")
         assert_equal 2, bogus.status
-        assert_match(/error: unknown field\(s\): nope \(available: slug, id, title, type, area, tags, matched, score, snippet\)/,
+        assert_match(/error: unknown field\(s\): nope \(available: slug, id, title, type, dir, area, tags, matched, score, snippet\)/,
           bogus.err, "the available list names slug — the field the multi-bundle envelope adds")
       end
     end

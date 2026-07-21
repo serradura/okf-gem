@@ -83,7 +83,7 @@ flags. The division of labour is the whole game:
 
 - **Shell out — never eyeball —** anything a verb computes: conformance (§9), what
   exists, what links where, where a term lives, what's stale, the map. Every read
-  verb takes `--json` and the list views filter by type/area/tag, so ask the narrow
+  verb takes `--json` and the list views filter by type/dir/tag, so ask the narrow
   question instead of paging the bundle.
 - **Skeleton first, bodies last.** `index --no-body`, `search`, `graph --minimal`,
   and `--fields` projections each answer for a fraction of a dump's bytes; full

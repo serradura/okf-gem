@@ -4,7 +4,7 @@ title: Ranked text search (search)
 description: Full-text retrieval over concept metadata and bodies — raw-text matching by default, BM25+ token ranking on request, and explainable row by row either way.
 resource: lib/okf/bundle/search.rb
 tags: [read, cli, json, registry, search]
-timestamp: 2026-07-18T22:00:00Z
+timestamp: 2026-07-21T18:00:00Z
 ---
 
 # Overview
@@ -172,7 +172,7 @@ time, so an addon appears in `okf search --help` without the CLI knowing it exis
 
 # It composes with the shared CLI surface
 
-`--in FIELDS` restricts the searched fields; the `--type`/`--area`/`--tag`
+`--in FIELDS` restricts the searched fields; the `--type`/`--dir`/`--tag`
 filters and `--fields`/`--except` projections shared with the
 [read views](read-views.md) apply unchanged. It is an advisory read: exit `0`
 even with zero matches — only an invalid `--regexp` pattern, `-e` paired with

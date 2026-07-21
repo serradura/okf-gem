@@ -37,7 +37,7 @@ module EngineConformance
         rows = search(bundle(concept("a", title: "Dedup key", body: "chosen for retries")), [ "dedup" ])
 
         assert_equal 1, rows.size
-        assert_equal %i[id title type area tags matched score snippet], rows.first.keys,
+        assert_equal %i[id title type dir area tags matched score snippet], rows.first.keys,
           "the facade owns the row; an engine that reshaped it would make two engines mean two things"
       end
 
@@ -48,7 +48,7 @@ module EngineConformance
 
         rows = search_across([ [ "left", one ], [ "right", bundle(concept("b", title: "Dedup key")) ] ], [ "dedup" ])
         assert_equal %w[left right], rows.map { |row| row[:slug] }.sort
-        assert_equal %i[slug id title type area tags matched score snippet], rows.first.keys
+        assert_equal %i[slug id title type dir area tags matched score snippet], rows.first.keys
       end
 
       test "across keeps same-id concepts from different bundles distinct" do

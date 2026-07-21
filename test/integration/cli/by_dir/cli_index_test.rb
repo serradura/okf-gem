@@ -102,12 +102,46 @@ module ByDir
       assert_equal %w[datasets tables], data["directories"].map { |row| row["dir"] }
     end
 
+    test "--dir narrows to the named directory and everything beneath it" do
+      tables = okf("index", fixture("conformant"), "--dir", "tables")
+
+      assert_equal 0, tables.status
+      assert_match(/\(1 directory\)/, tables.out)
+      assert_match(%r{^  tables/  \(no index\.md\)}, tables.out)
+      refute_match(/datasets/, tables.out)
+
+      # where --area named one directory exactly, --dir names a subtree: the
+      # empty intermediates below `deeply` come along.
+      data = json(okf("index", fixture("edge-cases"), "--dir", "deeply", "--json"))
+      assert_equal %w[deeply deeply/nested deeply/nested/path], data["directories"].map { |row| row["dir"] }
+
+      root = okf("index", fixture("conformant"), "--dir", "root")
+      assert_match(/^  \(root\)  ·  0 concepts$/, root.out)
+      refute_match(%r{^  tables/}, root.out) # `.` is a prefix of nothing
+    end
+
+    test "--dir is repeatable and case-insensitive" do
+      data = json(okf("index", fixture("conformant"), "--dir", "TABLES", "--dir", "datasets", "--json"))
+
+      assert_equal 2, data["count"]
+      assert_equal %w[datasets tables], data["directories"].map { |row| row["dir"] }
+    end
+
+    test "--area still narrows to the named directory exactly, and warns" do
+      result = okf("index", fixture("edge-cases"), "--area", "deeply", "--json")
+
+      assert_equal "warning: --area is deprecated, use --dir\n", result.err
+      assert_equal [ "deeply" ], json(result)["directories"].map { |row| row["dir"] },
+        "the deprecated flag keeps its old exact-match behavior, never the new one"
+      assert_empty okf("index", fixture("edge-cases"), "--dir", "deeply", "--json").err
+    end
+
     test "an unknown --area selects nothing and stays advisory (exit 0)" do
       human = okf("index", fixture("conformant"), "--area", "nope")
 
       assert_equal 0, human.status
       assert_equal "Index map — #{fixture("conformant")} (0 directories)\n", human.out
-      assert_empty human.err
+      assert_equal "warning: --area is deprecated, use --dir\n", human.err
 
       data = json(okf("index", fixture("conformant"), "--area", "nope", "--json"))
       assert_equal 0, data["count"]

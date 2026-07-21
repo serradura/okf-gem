@@ -5,6 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`okf dirs <dir|@slug> [--json]`** — the bundle's directories (its clusters)
+  with the number of concepts living **directly** in each, root first and the
+  total last. Every dir the tree has, including the empty intermediates that
+  exist only to connect it — a dir holding nothing but sub-directories reads
+  `0`, not a hidden rollup, so the column sums to the bundle's concept count.
+  JSON: `{ bundle, total, count, dirs: [{ dir, count, subdirs }] }`.
+- **`--dir PATH`** joins the shared filter set on `search`, `catalog`, `files`,
+  `types` and `tags`, and `index` gains it as a repeatable selector. One rule:
+  a concept matches when its dir *is* the path or sits below it — so `--dir
+  platform` reaches `platform/services/api`, `--dir platform/services` narrows,
+  and `--dir .` means the root alone with no special case. `root` is the
+  unquoted spelling of `.`; matching folds case.
+- **`tags --by dir`** cuts the tag index by the whole directory path, where
+  `--by area` only ever saw the first segment.
+- **`stats` gains `dirs` and `by_dir`** (the full-path cut, direct counts), and
+  its human breakdown now reads **By dir**.
+- **Search rows carry `dir`** — the full path, `.` at the root — beside the
+  first-segment `area` they already had.
+
+### Deprecated
+
+- **`--area`, and `tags --by area`.** OKF's own vocabulary for grouping is
+  *directories* (`grep -ci area SPEC.md` → 0); "area" was this gem's invention,
+  and defining it as a concept id's first path segment threw away every level
+  below it. `dir` is now the only machine word — full path, `.` at the root,
+  rendered `(root)` for humans — and "cluster" stays prose for what a dir
+  groups. Both deprecated spellings keep their **old behavior exactly** and warn
+  once per run on stderr (`--json` on stdout is unaffected); they go in a later
+  release, along with `by_area` and the `area` row field.
+
 ## [1.10.0] - 2026-07-21
 
 ### Added
