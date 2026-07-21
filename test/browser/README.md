@@ -76,6 +76,7 @@ playwright.config.js   the two projects, the webServer that boots okf server
 paths.js               shared by config and global-setup (kept apart to avoid a cycle)
 global-setup.js        renders the static page
 helpers.js             the `app` fixture, the console-error watch, the DOM readers
+vendor-cache.js        serves the page's CDN libraries from a local vendor/ (see below)
 fixtures/bundle/       an OKF bundle shaped to reach the page's branches
 specs/
   boot.spec.js         what the page owes on arrival
@@ -113,6 +114,43 @@ specs/
 `helpers.js` sits beside the config rather than inside `specs/` on purpose —
 `specs/` is `testDir`, and a non-spec module in there is a file Playwright
 scans and ignores on every run.
+
+## The CDN cache
+
+The page loads Cytoscape, marked and DOMPurify from `cdn.jsdelivr.net` at boot
+and six more libraries lazily. `vendor-cache.js` puts a read-through disk cache
+in front of all of them: a miss fetches and writes `vendor/<flattened-url>`, a
+hit is served from there. `vendor/` is gitignored — it is build output, and
+deleting it costs one slow run.
+
+It is keyed on the **request URL**, not on a list of the versions the template
+pins. That is deliberate. A manifest would be a second copy of those pins, free
+to fall out of step with the template's, and the suite would then quietly test a
+library the page no longer loads — the one failure a cache is most likely to
+hide. Keyed on the URL, a version bump is simply a miss.
+
+**It does not make the suite faster.** It was built to, and the measurement said
+otherwise: 28.7s without it, 29.0s with it, on a 34-case subset pinned to one
+worker. Full-suite wall clock cannot answer the question — three runs of the
+same 412 cases came in at 3.4m, 3.6m and 2.8m — so the single-worker A/B is the
+number to trust. Chromium reuses these subresources across contexts inside a
+worker's browser process, so the per-test download the idea assumed was only
+ever paid once per worker; the suite is bound by CPU (~500% across 5 workers, on
+rendering and Cytoscape layout), which is where the CDN wait was already hiding.
+What the cache does buy is that a warm run needs **no network** — worth having
+on its own, and the standing reason the CI job is non-blocking.
+
+`OKF_NO_VENDOR_CACHE=1` bypasses it and goes to the CDN. That is how you check
+the pins still resolve: a warm cache will serve a version jsdelivr has stopped
+publishing for as long as you let it.
+
+Every spec gets the cache because every spec builds on the `base` exported from
+`helpers.js`. A spec that imported `test` from `"@playwright/test"` directly
+would silently opt out, so none does — the eleven that used to now take `test as
+base` from `helpers.js` instead. Page-level routes still win over it, which is
+what keeps the specs that abort or count a CDN script working unchanged; the one
+that lets the real load through uses `route.fallback()` rather than
+`route.continue()` so it lands on the cache instead of the network.
 
 ## The console watch
 

@@ -1,6 +1,5 @@
-import { test as base, expect } from "@playwright/test";
 import { hostilePage, HOSTILE_PORT } from "../paths.js";
-import { bootGraph } from "../helpers.js";
+import { test as base, expect, bootGraph } from "../helpers.js";
 
 // The two XSS defenses AGENTS.md calls load-bearing, asserted for the first
 // time. Until this file existed, the only checks were that the string

@@ -1,5 +1,4 @@
-import { test as base, expect } from "@playwright/test";
-import { bootGraph } from "../helpers.js";
+import { test as base, expect, bootGraph } from "../helpers.js";
 
 // The first-visit notes. Every other spec seeds okf-hello to dismiss them; this
 // one deliberately does not, so it lands on the first-visit path — the note, its

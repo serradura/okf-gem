@@ -155,9 +155,11 @@ test.describe("search", () => {
     // The full-text index is not built at boot: searchInput.onfocus calls
     // buildFtIndex, which loadScript-loads MiniSearch from the CDN. Route its
     // script with a flag: nothing requests it until the box is focused, then it
-    // is. (route.continue lets the real load through, so no console error.)
+    // is. (route.fallback lets the real load through, so no console error — and
+    // unlike continue() it defers to the context's vendor cache underneath
+    // rather than going straight to the network.)
     let loaded = false;
-    await app.route(/minisearch@7\.2\.0/, (route) => { loaded = true; return route.continue(); });
+    await app.route(/minisearch@7\.2\.0/, (route) => { loaded = true; return route.fallback(); });
 
     await app.waitForTimeout(300);
     expect(loaded, "MiniSearch is not loaded before any search interaction").toBe(false);

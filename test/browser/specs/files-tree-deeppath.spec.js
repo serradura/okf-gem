@@ -1,6 +1,5 @@
-import { test as base, expect } from "@playwright/test";
 import { deeppathPage, DEEPPATH_PORT } from "../paths.js";
-import { bootGraph, showView } from "../helpers.js";
+import { test as base, expect, bootGraph, showView } from "../helpers.js";
 
 // A bundle whose one real concept sits five directories down, so its folder's
 // authored index.md carries a path long enough to overflow a tree row. Served on

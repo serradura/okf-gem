@@ -1,4 +1,4 @@
-import { test as base, expect } from "@playwright/test";
+import { test as base, expect } from "../helpers.js";
 import { WORKSPACE_PORT, bundleDir } from "../paths.js";
 
 // The manager with its forms live — the registry-backed hub, which is the only

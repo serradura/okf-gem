@@ -1,6 +1,5 @@
-import { test as base, expect } from "@playwright/test";
 import { manytagsPage, MANYTAGS_PORT } from "../paths.js";
-import { bootGraph } from "../helpers.js";
+import { test as base, expect, bootGraph } from "../helpers.js";
 
 // A bundle with 45 distinct tags (tag01…tag45), served on its own port and baked
 // to its own static page like fixtures/hostile and fixtures/tree. It exists for

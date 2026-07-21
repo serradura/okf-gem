@@ -1,5 +1,4 @@
-import { test as base, expect } from "@playwright/test";
-import { test, bootGraph } from "../helpers.js";
+import { test as base, expect, test, bootGraph } from "../helpers.js";
 import { HUB_PORT } from "../paths.js";
 
 // The palette's third group: concepts, from every bundle the hub hosts, over

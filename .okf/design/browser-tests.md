@@ -4,7 +4,7 @@ title: The graph page is proven in a real browser
 description: A string assertion over rendered HTML cannot see a collapsed canvas or a folded breakpoint, so the page is driven in Chromium — in both render modes, with any thrown error failing the run.
 resource: test/browser
 tags: [testing, render, server, architecture]
-timestamp: 2026-07-20T18:00:00Z
+timestamp: 2026-07-21T12:00:00Z
 ---
 
 # Overview
@@ -62,6 +62,37 @@ the [trust boundary](server-trust-boundary.md) already names — so a red job ca
 mean a regression or can mean jsdelivr was slow, and a check that cries wolf on
 someone else's PR gets muted within a month. The job stays visibly red and
 uploads its traces; the run passes anyway.
+
+The suite now answers those requests from a local read-through cache
+(`test/browser/vendor-cache.js`): a miss fetches and writes a gitignored
+`vendor/`, a hit serves from disk, and a warm run touches no network at all —
+proven by making the fetch path `throw` and watching 64 cases still pass. It is
+keyed on the **request URL**, not on a list of the versions the template pins,
+because such a list is a second copy of those pins that can drift into serving a
+library the page no longer loads — the one failure a cache is most likely to
+hide. Keyed on the URL, a version bump is simply a miss.
+
+That does not retire the non-blocking judgement, and the distinction matters:
+`vendor/` is build output, so a CI runner starts cold and still fetches from
+jsdelivr on the first boot. The cache buys a *developer* an offline suite today;
+it would buy CI one only once the workflow restores the directory between runs.
+Until then the rationale above stands unchanged.
+
+The cache was built to make the suite *faster* and does not, which is worth
+recording because the arithmetic that predicted otherwise is easy to re-derive
+and wrong. It ran: Playwright gives each test a fresh context with an empty
+cache, so the ~330 ms of boot scripts is re-paid across 400-odd cases. Chromium
+in fact reuses those subresources across contexts inside a worker's browser
+process, so the download was only ever paid once per worker. The controlled
+measurement — 34 cases pinned to a single worker — is 28.7 s without the cache
+and 29.0 s with it. Full-suite wall clock cannot settle the question at all:
+three runs of the same 412 cases came in at 3.4 m, 3.6 m and 2.8 m, a spread
+several times the effect, and reading the 2.8 m as a win is the mistake the
+noise invites. The suite is bound by CPU — around 500% across five workers, on
+rendering and Cytoscape layout — which is where the CDN wait was already
+hiding. The lesson generalizes past this cache: a per-request timing multiplied
+by a case count is a hypothesis, and the only thing that settles it is an A/B
+with the parallelism held down.
 
 Which leaves the obligation where it was: a change to the template is not done
 until the suite is green locally. An automated gate nobody trusts is weaker

@@ -29,6 +29,24 @@
   HTML `pattern` whose character class is a valid Ruby regexp and invalid under
   the `v` flag a browser compiles it with, throwing on every keystroke where no
   integration assertion could see it.
+* **Sync**: the browser suite now serves the page's CDN libraries from a local
+  read-through cache, and [browser tests](design/browser-tests.md) records both
+  what that buys and what it does not. It is keyed on the request URL rather
+  than a manifest of the versions the template pins, because a manifest is a
+  second copy of those pins that can drift into serving a library the page no
+  longer loads — the one failure a cache is most likely to hide. A warm run
+  touches no network (proven by making the fetch path throw and watching 64
+  cases still pass), but `vendor/` is build output, so CI still starts cold and
+  the `continue-on-error` rationale stands until the workflow restores it.
+* **Correction**: the same note records that the cache does *not* make the suite
+  faster, against the arithmetic that predicted it would. The premise — a fresh
+  Playwright context per test re-paying ~330 ms of boot scripts across 400-odd
+  cases — is wrong: Chromium reuses those subresources across contexts inside a
+  worker's browser process. Controlled A/B at one worker, 28.7 s → 29.0 s; the
+  suite is CPU-bound at ~500% across five workers. Recorded because full-suite
+  wall clock is noisy enough (3.4 m, 3.6 m, 2.8 m on the same 412 cases) to
+  invite reading the fastest run as a win, and because the discarded hypothesis
+  is the part that would otherwise be re-derived from the per-request timings.
 
 ## 2026-07-20
 * **Fix**: the graph no longer collapses on return from another view — and the

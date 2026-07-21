@@ -1,6 +1,5 @@
-import { test as base, expect } from "@playwright/test";
 import { treePage, TREE_PORT } from "../paths.js";
-import { bootGraph, showView } from "../helpers.js";
+import { test as base, expect, bootGraph, showView } from "../helpers.js";
 
 // A nested-directory bundle — charter at the root, then platform/services/{api,
 // auth} and data/warehouse/events, each intermediate directory holding only a

@@ -1,6 +1,5 @@
-import { test as base, expect } from "@playwright/test";
 import { biggraphPage, BIGGRAPH_PORT } from "../paths.js";
-import { bootGraph, settledBox } from "../helpers.js";
+import { test as base, expect, bootGraph, settledBox } from "../helpers.js";
 
 // A 100-node ring, served on its own port and baked to its own static page like
 // the other purpose-built fixtures. It exists for one contract the flat

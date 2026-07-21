@@ -29,6 +29,10 @@ Gemfile.lock
 # and would otherwise stage a few dozen build artifacts.
 /test/browser/node_modules/
 /test/browser/.tmp/
+# The read-through cache of the page's CDN libraries (vendor-cache.js). Build
+# output, not source: it is populated by the first run that needs each file and
+# keyed on the URL, so deleting it only costs one slow suite.
+/test/browser/vendor/
 /test/browser/playwright-report/
 /test/browser/test-results/
 /test/browser/package-lock.json

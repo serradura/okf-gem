@@ -1,5 +1,4 @@
-import { test as base, expect } from "@playwright/test";
-import { bootGraph } from "../helpers.js";
+import { test as base, expect, bootGraph } from "../helpers.js";
 import { HUB_PORT } from "../paths.js";
 
 // The command palette's other half: switching bundles, which only exists when a

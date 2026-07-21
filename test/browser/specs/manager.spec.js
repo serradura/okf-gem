@@ -1,4 +1,4 @@
-import { test as base, expect } from "@playwright/test";
+import { test as base, expect } from "../helpers.js";
 import { HUB_PORT } from "../paths.js";
 
 // The hub's /b/ workspace manager. It carries no script at all, so what a

@@ -1,6 +1,22 @@
-import { test as base, expect } from "@playwright/test";
+import { test as playwright, expect } from "@playwright/test";
+import { installVendorCache } from "./vendor-cache.js";
 
 export { expect };
+
+// The layer under every spec in the suite, `app` fixture or not: the CDN
+// libraries the page boots with are served from a local read-through cache
+// instead of being re-downloaded per test. See vendor-cache.js for why that is
+// where the suite's time went.
+//
+// Specs that build their own page fixture import this as `base` — that is the
+// only reason it is exported. Importing `test as base` from "@playwright/test"
+// directly would skip the cache, so nothing in specs/ does.
+export const base = playwright.extend({
+  context: async ({ context }, use) => {
+    await installVendorCache(context);
+    await use(context);
+  },
+});
 
 // Every spec gets `app`: a booted page with the first-visit note already
 // dismissed, plus a console watch that fails the test on a page error.
