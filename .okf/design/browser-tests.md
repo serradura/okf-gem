@@ -4,7 +4,7 @@ title: The graph page is proven in a real browser
 description: A string assertion over rendered HTML cannot see a collapsed canvas or a folded breakpoint, so the page is driven in Chromium — in both render modes, with any thrown error failing the run.
 resource: test/browser
 tags: [testing, render, server, architecture]
-timestamp: 2026-07-21T12:00:00Z
+timestamp: 2026-07-21T16:00:00Z
 ---
 
 # Overview
@@ -70,7 +70,9 @@ proven by making the fetch path `throw` and watching 64 cases still pass. It is
 keyed on the **request URL**, not on a list of the versions the template pins,
 because such a list is a second copy of those pins that can drift into serving a
 library the page no longer loads — the one failure a cache is most likely to
-hide. Keyed on the URL, a version bump is simply a miss.
+hide. Keyed on the URL, a version bump is simply a miss. `OKF_NO_VENDOR_CACHE=1`
+bypasses it entirely, which is the way to check the template's pins still
+resolve against the real CDN rather than against whatever `vendor/` kept.
 
 That does not retire the non-blocking judgement, and the distinction matters:
 `vendor/` is build output, so a CI runner starts cold and still fetches from

@@ -1,6 +1,33 @@
 # Update Log
 
 ## 2026-07-21
+* **Correction**: a maintain pass against `CHANGELOG.md` found the drift running
+  the *other* way — the bundle was current and the changelog was not. Every
+  concept touched by this branch's server/page work had its body updated in the
+  same commit as the code (`bundles-manager`, `graph-server`,
+  `server-trust-boundary`, `registry` all speak `--read-only`, and a search for
+  `--allow-manage`/`--allow-edit` returns nothing), but `[Unreleased]` carried
+  none of it: the registry's browser surface and its four write gates,
+  cross-bundle search from the hub, the topbar box's count and bridge, the 404
+  rebuilt as a directory, the touch preview card, and additive type chips were
+  all shipped and undocumented. Written now, documenting the **net end state
+  only** — the flag is `--read-only` with management as the default, and the
+  intermediate `--allow-edit` → `--allow-manage` renames are deliberately not
+  named, because neither ever appeared in a release and a changelog that
+  describes states no user ever saw is a changelog nobody can use.
+* **Correction**: two timestamps were stale by up to two days —
+  [graph-server](capabilities/graph-server.md) stamped `07-19T03:00` with a body
+  last edited `07-21T14:43`, and [bundles-manager](capabilities/bundles-manager.md)
+  stamped `07-21T00:00` against `07-21T13:51`. The bodies were right both times;
+  only the closeout's timestamp bump was skipped. Worth recording as a pattern
+  rather than a slip: `timestamp` records *last written*, so a body edited in the
+  same commit that leaves the stamp alone makes every freshness answer — a
+  reader's, and `lint --stale-after`'s — quietly wrong in the direction that
+  looks fine.
+* **Update**: [browser-tests](design/browser-tests.md) gained the vendor cache's
+  bypass (`OKF_NO_VENDOR_CACHE=1`). The cache itself was already documented down
+  to the measurement that refuted its own rationale; the one lever a reader needs
+  to check the template's pins against the real CDN was the part missing.
 * **Addition**: the skill gained a **`refine` verb** and the CLI its two
   evidence views. `playbooks/refine.md` is the third authoring boundary —
   `curate` keeps the structure sound, `maintain` keeps the content true,

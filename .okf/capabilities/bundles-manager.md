@@ -4,7 +4,7 @@ title: Bundles list (the hub's /b/ page)
 description: The hub's /b/ page — every bundle it knows about with its size, health and default marker — and the four POST routes that change the registry, which the graph page's Bundles panel drives.
 resource: lib/okf/server/hub.rb
 tags: [server, registry, hub, ui]
-timestamp: 2026-07-21T00:00:00Z
+timestamp: 2026-07-21T16:00:00Z
 ---
 
 # Why it exists
