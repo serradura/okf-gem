@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`okf graph --hubs`** — the inbound ranking: every concept with at least one
+  inbound link, ranked by inbound degree, each with its links grouped by
+  *source area* (`core/status  ×3   flows 2, billing 1`). This is the refine
+  playbook's hub origin test made mechanical: a hub whose inbound majority is
+  foreign to its own area is a move candidate. JSON: `{ bundle, count, hubs:
+  [{ id, area, inbound, by_area }] }`.
 - **`okf` is extensible.** Any gem that puts `okf/plugin.rb` on its load path can
   register a verb, and it answers to `okf` — listed in `okf help` under
   `installed extensions:`, dispatched like a built-in. There is no list of known

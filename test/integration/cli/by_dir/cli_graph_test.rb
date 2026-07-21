@@ -59,5 +59,47 @@ module ByDir
 
       assert_equal %w[description id tags title type], node.keys.sort
     end
+
+    test "--hubs ranks concepts by inbound links, each with the areas the links come from" do
+      result = okf("graph", fixture("shapely"), "--hubs")
+
+      assert_equal 0, result.status
+      assert_match(/\AHubs — .*shapely \(2 of 4 concepts with inbound links\)\n\n/, result.out)
+      assert_match(%r{^  core/status\s+×3   flows 2, billing 1$}, result.out)
+      assert_match(%r{^  flows/activate\s+×1   flows 1$}, result.out)
+      assert_operator result.out.index("core/status"), :<, result.out.index("flows/activate"), "ranked by inbound degree"
+    end
+
+    test "--hubs --json emits the ranked rows with the per-source-area breakdown" do
+      data = json(okf("graph", fixture("shapely"), "--hubs", "--json"))
+
+      assert_equal 2, data.fetch("count")
+      assert_equal [ { "id" => "core/status", "area" => "core", "inbound" => 3, "by_area" => { "flows" => 2, "billing" => 1 } },
+                     { "id" => "flows/activate", "area" => "flows", "inbound" => 1, "by_area" => { "flows" => 1 } } ],
+        data.fetch("hubs")
+    end
+
+    test "--hubs labels a root-level source area (root), like every grouped view" do
+      data = json(okf("graph", fixture("rooted"), "--hubs", "--json"))
+
+      gateway = data.fetch("hubs").find { |row| row.fetch("id") == "services/gateway" }
+      assert_equal({ "(root)" => 1 }, gateway.fetch("by_area"))
+    end
+
+    test "--hubs on a linkless bundle reports zero hubs, not an error" do
+      result = okf("graph", fixture("minimal"), "--hubs")
+
+      assert_equal 0, result.status
+      assert_match(/0 of 1 concept with inbound links/, result.out)
+      assert_equal [], json(okf("graph", fixture("minimal"), "--hubs", "--json")).fetch("hubs")
+    end
+
+    test "--hubs composes with --pretty, and --minimal/--no-body change nothing it reads" do
+      pretty = okf("graph", fixture("shapely"), "--hubs", "--pretty")
+
+      assert_equal json(okf("graph", fixture("shapely"), "--hubs", "--json")), JSON.parse(pretty.out)
+      assert_equal okf("graph", fixture("shapely"), "--hubs").out,
+        okf("graph", fixture("shapely"), "--hubs", "--minimal", "--no-body").out
+    end
   end
 end

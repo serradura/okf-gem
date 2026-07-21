@@ -72,6 +72,25 @@ class OKF::BundleTest < OKF::TestCase
     assert_empty bundle.paths
   end
 
+  test "hubs ranks concepts by inbound degree with the source areas each link comes from" do
+    core = OKF::Concept.new(path: "core/status.md", frontmatter: { "type" => "Reference" }, body: "the hub")
+    a = OKF::Concept.new(path: "flows/a.md", frontmatter: { "type" => "Flow" }, body: "see [s](/core/status.md)")
+    b = OKF::Concept.new(path: "flows/b.md", frontmatter: { "type" => "Flow" }, body: "see [s](/core/status.md) and [a](/flows/a.md)")
+    root = OKF::Concept.new(path: "note.md", frontmatter: { "type" => "Note" }, body: "see [s](/core/status.md)")
+    bundle = OKF::Bundle.new(concepts: [ core, a, b, root ])
+
+    assert_equal [
+      { id: "core/status", area: "core", inbound: 3, by_area: { "flows" => 2, "(root)" => 1 } },
+      { id: "flows/a", area: "flows", inbound: 1, by_area: { "flows" => 1 } }
+    ], bundle.hubs
+  end
+
+  test "hubs is empty when nothing links, and pure — no disk involved" do
+    bundle = OKF::Bundle.new(concepts: [ OKF::Concept.new(path: "a.md", frontmatter: { "type" => "Note" }, body: "hi") ])
+
+    assert_equal [], bundle.hubs
+  end
+
   test "directory_index groups concepts by file-path directory, root first, with type/tag rollups" do
     bundle = OKF::Bundle.new(
       concepts: [

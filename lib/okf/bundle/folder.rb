@@ -46,6 +46,10 @@ module OKF
         @bundle.catalog
       end
 
+      def hubs
+        @bundle.hubs
+      end
+
       def directory_index
         @bundle.directory_index
       end

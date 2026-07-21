@@ -119,11 +119,29 @@ module OKF
           status: concept.frontmatter["status"]&.to_s,
           backlog_ref: concept.frontmatter["backlog_ref"]&.to_s,
           dir: File.dirname("#{id}.md"),
-          area: id.include?("/") ? id.split("/").first : "(root)",
+          area: area_of(id),
           links_out: out_degree[id],
           links_in: in_degree[id]
         }
       end.sort_by { |entry| entry[:id] }
+    end
+
+    # Concepts ranked by inbound link degree, each with the areas its inbound
+    # links come from — the evidence for "is this hub well-homed?": a hub whose
+    # inbound majority is foreign to its own area is a move candidate, one with
+    # a single dominant foreign area already names its better home. Only
+    # concepts with at least one inbound link appear. Pure: derived from the
+    # graph edges. Shared by the `okf graph --hubs` view.
+    def hubs
+      inbound = {}
+      graph(minimal: true).edges.each do |edge|
+        (inbound[edge[:target]] ||= Hash.new(0))[area_of(edge[:source])] += 1
+      end
+
+      inbound.map do |id, sources|
+        by_area = sources.sort_by { |area, count| [ -count, area ] }.to_h
+        { id: id, area: area_of(id), inbound: by_area.values.reduce(0, :+), by_area: by_area }
+      end.sort_by { |row| [ -row[:inbound], row[:id] ] }
     end
 
     # The progressive-disclosure map (spec §6): one entry per directory that holds
@@ -170,6 +188,12 @@ module OKF
     end
 
     private
+
+    # A concept's top-level area, derived from its id — the same derivation the
+    # catalog exposes, so every grouped view labels the bundle root "(root)".
+    def area_of(id)
+      id.include?("/") ? id.split("/").first : "(root)"
+    end
 
     # Every directory to show: those holding concepts or an index.md, plus each of
     # their ancestors up to the root, so the subdir tree stays connected even when
