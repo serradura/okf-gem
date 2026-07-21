@@ -35,9 +35,9 @@ export const HUB_PORT = PORT + 2;
 // own $OKF_HOME and its own throwaway copies of a bundle, because the specs
 // that drive those forms write to both — pointing it at the committed fixtures
 // would leave a rename behind in the working tree.
-export const workspaceHome = path.join(here, ".tmp", "okfhome");
-export const workspaceDir = path.join(here, ".tmp", "workspace");
-export const WORKSPACE_PORT = PORT + 3;
+export const managerHome = path.join(here, ".tmp", "okfhome");
+export const managerDir = path.join(here, ".tmp", "manager");
+export const MANAGER_PORT = PORT + 3;
 
 // A deliberately nested bundle — charter at the root, then platform/services/*
 // and data/warehouse/*, each intermediate dir holding only a subdirectory. It
@@ -71,3 +71,19 @@ export const DEEPPATH_PORT = PORT + 6;
 export const biggraphDir = path.join(here, "fixtures", "biggraph");
 export const biggraphPage = path.join(here, ".tmp", "biggraph.html");
 export const BIGGRAPH_PORT = PORT + 7;
+
+// The Bundles panel's own registry hub. It gets a world of its own for the
+// reason every other special fixture here does: its specs *write* — rename,
+// re-default, remove — and the /b/ manager's specs write to their
+// registry at the same time, in another worker. One registry read-modify-
+// written from two files is a lost entry waiting for a slow afternoon.
+export const panelHome = path.join(here, ".tmp", "panelhome");
+export const panelDir = path.join(here, ".tmp", "panel");
+export const PANEL_PORT = PORT + 8;
+
+
+// The same registry, served read-only — bound to 0.0.0.0 with no
+// --allow-manage, which is exactly the case that flag exists for. It shares
+// panelHome deliberately: a read-only server cannot write to it, so nothing
+// here can race the panel's own specs.
+export const RO_PORT = PORT + 9;

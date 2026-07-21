@@ -37,7 +37,7 @@ module OKF
       # route. They stay nil for a standalone server and for `okf render`, so a
       # static file never advertises a switcher or a search it cannot answer.
       def initialize(folder, title: nil, link: nil, layout: "cose", siblings: nil, self_slug: nil, hub_path: nil,
-                     search_endpoint: nil)
+                     search_endpoint: nil, manage_root: nil, manage_token: nil)
         @folder = folder
         @title = title
         @link = link
@@ -46,6 +46,8 @@ module OKF
         @self_slug = self_slug
         @hub_path = hub_path
         @search_endpoint = search_endpoint
+        @manage_root = manage_root
+        @manage_token = manage_token
       end
 
       def call(env)
@@ -103,7 +105,8 @@ module OKF
       def page
         @page ||= OKF::Render::Graph.new(
           graph, title: @title || @folder.name, link: @link, layout: @layout,
-          siblings: @siblings, self_slug: @self_slug, hub_path: @hub_path, search_endpoint: @search_endpoint
+          siblings: @siblings, self_slug: @self_slug, hub_path: @hub_path, search_endpoint: @search_endpoint,
+          manage_root: @manage_root, manage_token: @manage_token
         ).render
       end
 

@@ -55,11 +55,21 @@ test.describe("search bridge — the count", () => {
     await app.locator("#search").fill("orders");
     await expect(cnt(app)).toBeVisible();
 
-    const shown = await app.evaluate(() =>
-      cy.nodes().filter((n) => !n.isParent() && n.style("display") !== "none").length);
-    const total = await app.evaluate(() => cy.nodes().filter((n) => !n.isParent()).length);
-    await expect(cnt(app)).toHaveText(`${shown}/${total}`);
-    expect(shown).toBeLessThan(total);
+    // Both readings taken in one evaluate, at one instant. Sampling the chip
+    // and the graph in two round-trips races the lazy MiniSearch index, which
+    // lands mid-test and narrows the result under the first reading's feet —
+    // and a spec that compares two different moments fails on the page being
+    // *right* twice.
+    const seen = await app.evaluate(() => {
+      const live = cy.nodes().filter((n) => !n.isParent() && !n.hasClass("dir") && !n.hasClass("ix"));
+      return {
+        chip: document.getElementById("s-cnt").textContent,
+        shown: live.filter((n) => n.style("display") !== "none").length,
+        total: live.length,
+      };
+    });
+    expect(seen.chip).toBe(`${seen.shown}/${seen.total}`);
+    expect(seen.shown).toBeLessThan(seen.total);
   });
 
   test("clearing the box takes the count away again", async ({ app }) => {

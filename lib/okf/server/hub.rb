@@ -20,7 +20,7 @@ module OKF
     #   GET /search?q=…     ranked concepts across *every* hosted bundle (JSON) —
     #                       the only route that answers about the whole set, and
     #                       so the one route that can only live here
-    #   GET /b/             the workspace manager — every bundle, its health, and
+    #   GET /b/             the bundles manager — every bundle, its health, and
     #                       (when writable) the forms that manage the registry
     #   GET /b/<slug>       301 -> /b/<slug>/      (query string preserved)
     #   GET /b/<slug>/...   delegated to that bundle's App (the prefix stripped)
@@ -85,7 +85,7 @@ module OKF
         code{background:var(--line);padding:.15rem .4rem;border-radius:.35rem}
         .def{margin-left:.5rem;padding:.05rem .45rem;border-radius:99px;background:var(--line);font-size:.75rem}
 
-        /* ── the workspace manager ── */
+        /* ── the bundles manager ── */
         body.mgr{display:block;place-items:initial}
         body.mgr main{max-width:60rem;width:auto;margin:0 auto;padding:3rem 2rem 4rem}
         .mhead{margin-bottom:1.5rem}
@@ -264,6 +264,7 @@ module OKF
         query = request.query_string.to_s
         return landing(base, query) if [ "", "/" ].include?(path)
         return search(request.params["q"]) if path == "/search"
+        return bundles_json if path == "/bundles"
         return html(200, index_page(base, request.params)) if [ MOUNT, "#{MOUNT}/" ].include?(path)
 
         slug, rest = split(path)
@@ -293,20 +294,44 @@ module OKF
       def write(request, base)
         verb = request.path_info.sub("/registry/", "")
         return not_found unless WRITES.include?(verb)
-        return refused(base, 403, "This server is read-only. Restart it with --allow-manage to manage bundles here.") unless @writable
-        return refused(base, 409, "These bundles were named on the command line, so there is no registry to change.") if @boot_registry.nil?
-        return refused(base, 403, "That request did not come from this page. Reload and try again.") unless authentic?(request)
 
-        apply(verb, request.params, base)
+        # How the outcome is *rendered* — never what it is. The manager is a
+        # document and wants a page; the graph page's Bundles panel stays where
+        # it is and wants the answer as data. Both go through the guards below
+        # in the same order and get the same statuses out.
+        as_json = wants_json?(request)
+        return deny(base, as_json, 403, "This server is read-only. Restart it with --allow-manage to manage bundles here.") unless @writable
+        return deny(base, as_json, 409, "These bundles were named on the command line, so there is no registry to change.") if @boot_registry.nil?
+        return deny(base, as_json, 403, "That request did not come from this page. Reload and try again.") unless authentic?(request)
+
+        apply(verb, request.params, base, as_json)
       end
 
-      def apply(verb, params, base)
+      def apply(verb, params, base, as_json)
         registry = OKF::Registry.new(@boot_registry.path)
         message = mutate(verb, registry, params)
         reload(registry)
+        return json("ok" => true, "message" => message) if as_json
+
         redirect("#{base}#{MOUNT}/?ok=#{Rack::Utils.escape(message)}", 303)
       rescue OKF::Error => e
-        refused(base, 400, e.message)
+        deny(base, as_json, 400, e.message)
+      end
+
+      # A caller that asked for JSON gets the refusal as JSON. Asking is not a
+      # way around anything — this runs after every gate, on whatever the gate
+      # decided.
+      def deny(base, as_json, status, message)
+        return [ status, { "content-type" => "application/json; charset=utf-8" }, [ JSON.generate("ok" => false, "error" => message) ] ] if as_json
+
+        refused(base, status, message)
+      end
+
+      # A form post from the manager sends `Accept: text/html,…`; fetch() from
+      # the panel names JSON outright. Anything ambiguous is treated as the
+      # document case, because that is the one a browser address bar produces.
+      def wants_json?(request)
+        request.get_header("HTTP_ACCEPT").to_s.include?("application/json")
       end
 
       # Every branch ends in the sentence the manager will show. The core does
@@ -429,6 +454,31 @@ module OKF
         )
       end
 
+      # The /b/ manager's own rows, as JSON — what the graph page's Bundles panel
+      # reads. One source for both surfaces, so the panel and the page cannot
+      # disagree about what is registered, how big it is, or how healthy.
+      #
+      # Fetched rather than baked into every page because the registry is
+      # re-read per request: a rename made in another terminal shows the next
+      # time the panel is opened, where a boot snapshot would go stale silently.
+      #
+      # `writable` and `registry` are two different reasons the panel might offer
+      # nothing, and it says different things for each — a read-only bind names
+      # the flag, an ephemeral set names the terminal. The token is deliberately
+      # absent: it is baked into the page that may use it, and a credential in a
+      # listing endpoint is a habit worth not forming.
+      def bundles_json
+        json(
+          "writable" => @writable,
+          "registry" => !@boot_registry.nil?,
+          "bundles" => manager_rows.map { |row| stringify_row(row) }
+        )
+      end
+
+      def stringify_row(row)
+        row.each_with_object({}) { |(key, value), memo| memo[key.to_s] = value }
+      end
+
       # [ slug, bundle ] for every hosted bundle — the in-memory model behind each
       # on-disk folder, which is all the search engine reads.
       def pairs
@@ -478,7 +528,13 @@ module OKF
             # Relative for the same reason siblings are: every page lives at
             # <prefix>/b/<slug>/, so "../../search" reaches the hub's own route
             # under any mount without knowing the prefix.
-            search_endpoint: "../../search"
+            search_endpoint: "../../search",
+            # Where the Bundles panel reads /bundles and posts /registry/<verb>,
+            # by the same relative rule. The token rides along only where a write
+            # could actually be honoured — a read-only or ephemeral hub bakes
+            # nothing, so the page holds no credential it may not use.
+            manage_root: "../../",
+            manage_token: (@writable && @boot_registry ? token : nil)
           )
         end
       end
@@ -502,7 +558,7 @@ module OKF
         BODY
       end
 
-      # The /b/ page — the workspace manager, and the browser counterpart of the
+      # The /b/ page — the bundles manager, and the browser counterpart of the
       # TUI's bundles view. Every fact a person needs to choose between bundles
       # is on the row: size, health, which one `/` opens, and whether the folder
       # is still there. A registry-backed hub reads the file per request rather
@@ -610,8 +666,8 @@ module OKF
 
       def remove_form(base, slug)
         inner = form(base, "remove", slug) do
-          %(<p class="warn-copy">Remove <code>@#{escape(slug)}</code> from this workspace? ) +
-            %(The folder stays where it is.</p>) +
+          %(<p class="warn-copy">Remove <code>@#{escape(slug)}</code> from the registry? ) +
+            %(The folder stays where it is — only this server stops listing it.</p>) +
             %(<button class="lnk go danger" type="submit">Remove</button>)
         end
         disclose("Remove", inner)
@@ -696,7 +752,7 @@ module OKF
       # a curation finding is a warning and never a conformance error, so a thin
       # bundle keeps its link and only a non-conformant one reads as broken.
       # Memoised like #counts — every stray 404 renders a bundle list too, and
-      # linting the whole workspace per request is not a page render.
+      # linting every hosted bundle per request is not a page render.
       def health(bundle)
         @health ||= {}
         @health[bundle.slug] ||= verdict_for(bundle)

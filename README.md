@@ -226,7 +226,7 @@ docker run --rm -v "$PWD:/data" -p 8808:8808 ghcr.io/serradura/okf server . --bi
 ```
 
 A container has to bind `0.0.0.0` for the host to reach it at all, which is
-exactly the bind that makes the hub's workspace manager read-only. Reading the
+exactly the bind that makes the hub's bundles manager read-only. Reading the
 graph is unaffected; add `--allow-manage` only if you also want to manage the
 registry from that page, and only when you know who can reach the port.
 
@@ -344,7 +344,14 @@ entry to the front. Behind the hub each bundle mounts at `/b/<slug>/`, and the
 once** — type a few words and the matching concepts appear with their bundle and
 a snippet, from wherever you are.
 
-`/b/` is the **workspace manager**: every bundle with its size, its health
+The ⚙ in the rail opens **Bundles** — the registry on the graph page itself, so
+switching the default, renaming an entry or dropping one no longer means finding
+`/b/` first. Each row carries its size, its health as a *word*, and which one `/`
+opens. There is no Add: registering a bundle means naming a filesystem path,
+which a browser cannot hand over and an agent can (`okf registry set <dir>`), and
+the panel says so instead of leaving the absence to be noticed.
+
+`/b/` is the **bundles manager**: every bundle with its size, its health
 (conformance plus curation, so a warning is a warning and not a failure), the
 default marked, and any entry whose folder has gone missing shown rather than
 quietly dropped. On a loopback server it is also where you manage the registry

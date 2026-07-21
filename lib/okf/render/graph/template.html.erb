@@ -106,7 +106,12 @@
  .ident .muted{color:var(--muted);font-weight:400;margin-left:9px;font-size:12.5px}
  .ident .src{color:var(--accent-ink);text-decoration:none;margin-left:8px}
  .ident .src:hover{text-decoration:underline}
- #views{flex:1;min-height:0;position:relative;background:var(--bg)}
+ /* overflow:hidden is load-bearing, not tidiness: a slide-over parked or
+    *animating* off the right edge widens the document unless something clips
+    it, and #views is the containing block for any panel that belongs to more
+    than one view. #stage has always done this job for the Filters panel, which
+    is exactly why that one never showed the bug. */
+ #views{flex:1;min-height:0;position:relative;background:var(--bg);overflow:hidden}
  .view{position:absolute;inset:0;display:none;flex-direction:column;min-height:0}
  .view.active{display:flex}
 
@@ -241,6 +246,91 @@
  .cat-types{align-items:center;gap:10px} .cat-types #cat-types{display:flex;flex-wrap:wrap;gap:7px}
  .link{background:none;border:0;color:var(--accent-ink);font:inherit;font-size:12.5px;cursor:pointer;padding:0;font-weight:500}
  .link:hover{text-decoration:underline}
+
+ /* ── bundles slide-over (⚙ in the rail) ──
+    The registry, surfaced on the page, so choosing which bundle `/` opens no
+    longer means leaving the graph for /b/ — and knowing /b/ exists. --warn is
+    the one added hue; ok and error reuse --ok and --accent-ink, so the health
+    trio stays the page's own. ── */
+ :root{--warn:#9a6700}
+ :root[data-theme=dark]{--warn:#d4a72c}
+ a.rail-brand{display:block;cursor:pointer;border-radius:9px}
+ a.rail-brand:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+ #ws-ovl{position:absolute;inset:0;z-index:5;background:rgba(15,17,22,.28)}
+ #ws-ovl[hidden]{display:none}
+ #ws{width:340px}
+ /* Parked off-canvas, a slide-over STILL OCCUPIES LAYOUT — and #views does not
+    clip, which the Filters panel only gets away with because #stage does. The
+    closed panel widened the document by its own 340px: a horizontal scrollbar
+    on every page, from a panel nobody had opened. So it is out of the box
+    entirely while closed; display is restored one frame before .open so the
+    slide still animates, and taken away again once the slide back has ended. */
+ #ws[hidden]{display:none}
+ .ws-head-t{margin-right:auto;min-width:0}
+ .ws-sub{font-size:11px;color:var(--faint);margin-top:1px}
+ #ws-flash{font-size:11.5px;color:var(--muted);background:var(--panel-2);border-bottom:1px solid var(--line);padding:7px 14px}
+ #ws-flash[hidden]{display:none}
+ #ws-flash.err{color:var(--accent-ink)}
+ .ws-row{padding:11px 2px;border-bottom:1px solid var(--line-2);display:flex;align-items:flex-start;gap:8px}
+ .ws-row:last-child{border-bottom:0}
+ .ws-row-main{min-width:0;flex:1}
+ .ws-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+ .ws-title{font-size:13px;font-weight:600;color:var(--ink);background:none;border:0;padding:0;cursor:pointer;
+  font-family:inherit;text-align:left;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .ws-title:hover{color:var(--accent-ink);text-decoration:underline}
+ .ws-title.off{color:var(--faint);cursor:default}
+ .ws-title.off:hover{color:var(--faint);text-decoration:none}
+ .ws-pill{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:1px 7px;
+  border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--line-2);flex:none}
+ .ws-pill.def{color:var(--accent-ink);background:var(--accent-soft);border-color:transparent}
+ .ws-meta{display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--muted);margin-top:3px;flex-wrap:wrap}
+ .ws-slug{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--faint)}
+ .ws-health.ok{color:var(--ok)} .ws-health.warn{color:var(--warn)}
+ .ws-health.error,.ws-health.missing{color:var(--accent-ink)}
+ .ws-slug-edit{height:24px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;padding:0 7px;width:150px;border-radius:6px}
+ /* One ⋯ per row, and the verbs inside it. Three same-weight text links under
+    every row meant eighteen down the panel, none of which looked pressable and
+    one of which was destructive in the same clothes as the harmless two. In a
+    menu they can be ordered, separated and coloured by consequence. */
+ .ws-menu-btn{flex:none;width:28px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);
+  color:var(--muted);cursor:pointer;display:grid;place-items:center;font-family:inherit;line-height:1;
+  transition:color .15s,border-color .15s,background .15s}
+ .ws-menu-btn:hover{color:var(--ink);border-color:var(--accent);background:var(--panel)}
+ .ws-menu-btn[aria-expanded=true]{color:var(--accent-ink);border-color:var(--accent);background:var(--accent-soft)}
+ .ws-menu-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+ .ws-menu-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+ .ws-menu{position:absolute;z-index:8;min-width:180px;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;box-shadow:var(--shadow);padding:5px;display:flex;flex-direction:column}
+ .ws-menu[hidden]{display:none}
+ .ws-menu button{display:flex;align-items:center;gap:9px;width:100%;padding:7px 9px;border:0;border-radius:7px;
+  background:none;color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer;text-align:left}
+ .ws-menu button:hover{background:var(--line-2)}
+ .ws-menu button:disabled{color:var(--faint);cursor:default;background:none}
+ .ws-menu button.danger{color:var(--accent-ink)}
+ .ws-menu button.danger:hover{background:var(--accent-soft)}
+ .ws-menu .sep{height:1px;background:var(--line);margin:4px 2px}
+ /* A rename and a removal both need a second thought, so both take over the row
+    and state themselves — no armed link hiding a second meaning in its colour,
+    and no timed revert asking the reader to be quick. */
+ .ws-edit{margin-top:7px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+ .ws-hint{font-size:10.5px;color:var(--faint);margin-top:5px}
+ .ws-confirm{margin-top:7px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2)}
+ .ws-confirm p{margin:0 0 8px;font-size:11.5px;color:var(--ink-soft);line-height:1.5}
+ .ws-confirm .crow{display:flex;gap:8px}
+ .btn-sm{height:26px;padding:0 10px;border-radius:7px;border:1px solid var(--line);background:var(--panel);
+  color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+ .btn-sm:hover{border-color:var(--accent)}
+ .btn-sm.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+ .btn-sm.primary:hover{filter:brightness(1.07)}
+ /* Read-only is a state to explain, not a set of controls to hide silently: the
+    reader keeps every fact and gets one sentence naming who may change them. */
+ .ws-ro-note{margin:0 0 4px;padding:9px 10px;border:1px solid var(--line);border-left:2px solid var(--warn);
+  border-radius:8px;background:var(--panel-2);font-size:11.5px;color:var(--muted);line-height:1.55}
+ .ws-ro-note code,.ws-empty code,.ws-foot code{background:var(--line-2);border:1px solid var(--line);padding:1px 5px;
+  border-radius:5px;font-size:.92em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-soft)}
+ .ws-empty{margin:0;padding:22px 16px;font-size:12.5px;color:var(--muted);line-height:1.7;text-align:center}
+ .ws-foot{border-top:1px solid var(--line);padding:11px 14px;font-size:11.5px;color:var(--muted);line-height:1.6}
+ @media (max-width:768px){#ws{width:100%;max-width:100%}}
 
  /* ── inspector content ── */
  .type{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--ink);
@@ -666,9 +756,13 @@
 <body>
 <div id="app" data-view="graph">
  <nav id="rail" aria-label="Views">
-  <span class="rail-brand" title="<%= escaped_name %> — <%= @graph.nodes.length %> concepts · <%= @graph.edges.length %> links">
+  <%# Behind a hub the mark is the way back to every bundle — the missing-navbar
+      fix in miniature, and "../" reaches it under any mount because every page
+      lives at <prefix>/b/<slug>/. Standalone and static have nowhere to go, so
+      there it stays the plain identity badge it has always been. %>
+  <%= rail_brand_open %><%= escaped_name %> — <%= @graph.nodes.length %> concepts · <%= @graph.edges.length %> links">
    <svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#1a1a1a"/><polygon points="38,44 62,44 50,82" fill="#7a0a1e"/><polygon points="18,44 38,44 50,82" fill="#a8112c"/><polygon points="62,44 82,44 50,82" fill="#a8112c"/><polygon points="35,28 18,44 38,44" fill="#dc1e3c"/><polygon points="65,28 82,44 62,44" fill="#dc1e3c"/><polygon points="35,28 65,28 62,44 38,44" fill="#f43f5e"/><polygon points="36,29 49,29 42,42" fill="#fff" opacity=".38"/><polygon points="35,28 65,28 82,44 50,82 18,44" fill="none" stroke="#ff6b7f" stroke-width="2" stroke-linejoin="round"/></svg>
-  </span>
+  <%= rail_brand_close %>
   <button class="rail-item active" data-view="graph"><span class="ri-ico"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="9" r="2.4"/><circle cx="9" cy="18" r="2.4"/><path d="M7.7 7.3 15.9 8.6M7.5 16 8.2 8.3M10.9 16.4 16.3 10.5"/></svg></span><span class="ri-lbl">Graph</span></button>
   <button class="rail-item" data-view="index"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 9.6h10.5M4 14.2h16M4 18.8h7.5"/></svg></span><span class="ri-lbl">Index</span></button>
   <button class="rail-item" data-view="files"><span class="ri-ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span><span class="ri-lbl">Files</span></button>
@@ -680,6 +774,10 @@
    <button class="btn" id="btn-switch" type="button" hidden aria-label="Switch bundle (⌘K)" title="Switch bundle (⌘K)">
     <svg viewBox="0 0 24 24"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3Z"/></svg>
     <span class="swcount" id="sw-count" hidden>0</span></button>
+   <%# Only a registry-backed hub has anything here to manage; the JS reveals it
+       off MANAGE_ROOT, the same way the switcher reveals itself off HUB_PATH. %>
+   <button class="btn" id="btn-ws" type="button" hidden aria-label="Bundles (registry)" title="Bundles (registry)" aria-expanded="false">
+    <svg viewBox="0 0 24 24" style="stroke-width:1.8"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
    <button class="btn" id="btn-theme" type="button" aria-label="Toggle theme">
     <svg class="moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg>
     <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.5 1.5M17.3 17.3l1.5 1.5M18.8 5.2l-1.5 1.5M6.7 17.3l-1.5 1.5"/></svg></button>
@@ -841,6 +939,20 @@
      </div>
     </div>
    </section>
+
+   <%# The Bundles panel lives in #views rather than #stage, so it is reachable
+       from every view — which is also why its closed state has to be `hidden`
+       and not merely translated: #stage clips, #views does not. %>
+   <div id="ws-ovl" hidden></div>
+   <aside id="ws" class="slideover" aria-label="Bundles" hidden>
+    <div class="fhead">
+     <div class="ws-head-t"><h3>Bundles</h3><div class="ws-sub" id="ws-sub"></div></div>
+     <button class="btn" id="ws-close" type="button" aria-label="Close bundles" style="width:28px;height:28px"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div id="ws-flash" role="status" hidden></div>
+    <div class="fbody" id="ws-list"></div>
+    <div class="ws-foot" id="ws-foot">Adding a bundle is done from the terminal — <code>okf registry set &lt;dir&gt;</code> — usually by your agent.</div>
+   </aside>
   </div>
  </div>
 </div>
@@ -946,6 +1058,13 @@ const SIBLINGS=<%= siblings_json %>, SELF_SLUG=<%= self_slug_json %>, HUB_PATH=<
 /* The hub's cross-bundle search, mount-relative — null for a standalone server
    and for `okf render`, where there is no set of bundles to search. */
 const SEARCH_ENDPOINT=<%= search_endpoint_json %>;
+/* The hub root, mount-relative — where the Bundles panel reads /bundles and
+   posts /registry/<verb>. Null for a standalone server and for `okf render`,
+   and that null is the gate: neither has a registry behind it, so neither ever
+   shows the ⚙. MANAGE_TOKEN is null wherever a write would be refused anyway
+   (a read-only bind, an ephemeral set), so the page holds no credential it
+   cannot use — and the panel reads that null to explain itself. */
+const MANAGE_ROOT=<%= manage_root_json %>, MANAGE_TOKEN=<%= manage_token_json %>;
 /* null when served live (`okf server`) — the getters below fetch the endpoints
    above. `okf render` injects a payload {catalog,index,logs,bodies}, and every
    getter resolves from it instead (the /node/meta fragment derived from the
@@ -2321,6 +2440,195 @@ function bridgeReport(v,shown,total){if(bridge)bridge.report(v,shown,total);}
  const ov=document.getElementById('sw');
  if(ov&&window.MutationObserver)new MutationObserver(()=>{if(ov.hidden)sync();}).observe(ov,{attributes:true,attributeFilter:[ 'hidden' ]});
  sync();
+})();
+
+/* ── bundles slide-over (⚙): the registry, on the page ───────────────────────
+   Choosing which bundle `/` opens used to mean leaving the graph for /b/ — and
+   knowing /b/ was there at all. This is the same list, in the same place the
+   reader already is.
+
+   It reads GET <MANAGE_ROOT>bundles on every open rather than baking the list
+   in: the hub re-reads the registry per request, so an `okf registry rename` in
+   another terminal shows the next time the panel is opened. A boot snapshot
+   would go stale and say nothing about it.
+
+   Writes POST <MANAGE_ROOT>registry/<verb> with Accept: application/json, so
+   the hub answers with the outcome instead of the redirect the /b/ manager's
+   forms want. Every gate is the server's; this only renders what it decides.
+
+   No Add. Registering a bundle means naming a filesystem path, a browser cannot
+   hand one over (the File System Access API yields an opaque handle, never a
+   path, and is Chromium-only), and it is the agent's act anyway. The footer
+   says so rather than leaving the absence to be noticed.
+
+   MANAGE_TOKEN is null on a read-only hub, which is what the panel reads to
+   decide between offering the menus and explaining why it does not. ── */
+(function(){
+ if(MANAGE_ROOT===null)return;
+ const btn=document.getElementById('btn-ws'),panel=document.getElementById('ws'),ovl=document.getElementById('ws-ovl');
+ const list=document.getElementById('ws-list'),sub=document.getElementById('ws-sub'),flash=document.getElementById('ws-flash');
+ const foot=document.getElementById('ws-foot');
+ if(!btn||!panel)return;
+ btn.hidden=false;
+ let rows=[],writable=false,hasRegistry=false,editing=null,confirming=null,menuFor=null,flashT=0;
+
+ /* Out of the box while closed (see the CSS): display is restored one frame
+    before .open so the slide still animates, and taken away again when the
+    slide back has finished — a panel parked off-canvas still widens the page. */
+ function open(){
+  panel.hidden=false;ovl.hidden=false;btn.setAttribute('aria-expanded','true');
+  requestAnimationFrame(()=>panel.classList.add('open'));
+  load();}
+ function close(){
+  panel.classList.remove('open');ovl.hidden=true;btn.setAttribute('aria-expanded','false');
+  editing=null;confirming=null;menuFor=null;closeMenu();
+  const done=()=>{if(!panel.classList.contains('open'))panel.hidden=true;};
+  if(reduce())done(); else setTimeout(done,240);}
+ btn.addEventListener('click',()=>panel.classList.contains('open')?close():open());
+ document.getElementById('ws-close').addEventListener('click',close);
+ ovl.addEventListener('click',close);
+ /* Escape peels one layer at a time: an open menu first, then the panel. Closing
+    the whole panel out from under an open menu throws away more than was asked
+    for, and doing nothing at all — which is what an unguarded `if(!menuFor)`
+    does — leaves the reader pressing a key that answers nothing. */
+ addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||!panel.classList.contains('open'))return;
+  if(menuFor){e.stopPropagation();closeMenu();return;}
+  close();});
+
+ function load(){
+  fetch(MANAGE_ROOT+'bundles',{headers:{'accept':'application/json'}})
+   .then(r=>r.json())
+   .then(data=>{rows=data.bundles||[];writable=!!data.writable;hasRegistry=!!data.registry;render();})
+   .catch(()=>{list.innerHTML='<p class="ws-empty">The bundle list could not be loaded.</p>';});}
+
+ /* Two different reasons there is nothing to change, and they need different
+    sentences: a read-only bind names the flag, an ephemeral set names the
+    terminal. "No controls" with no explanation is the failure both share. */
+ function manageable(){return writable&&hasRegistry&&MANAGE_TOKEN!==null;}
+ function note(){
+  if(manageable())return '';
+  if(!hasRegistry)return '<p class="ws-ro-note">These bundles were named on the command line, so there is no registry to change. '+
+   '<code>okf registry set &lt;dir&gt;</code> registers one for good.</p>';
+  return '<p class="ws-ro-note">Read-only — this server is bound to an address other than loopback, so nothing here changes '+
+   'the registry. Restart it with <code>--allow-manage</code>, or use <code>okf registry</code> in the terminal.</p>';}
+
+ function render(){
+  closeMenu();
+  sub.textContent=rows.length+' bundle'+(rows.length===1?'':'s')+(hasRegistry?' in the registry':' on this server');
+  foot.hidden=!hasRegistry;
+  /* An empty list rendering *nothing* reads as a broken page. It is a real
+     state — the one a fresh install is in — so it says so and names the way out. */
+  if(!rows.length){
+   list.innerHTML='<p class="ws-empty">Nothing is registered yet.<br>Register a bundle with <code>okf registry set &lt;dir&gt;</code>.</p>';
+   return;}
+  list.innerHTML=note()+rows.map(row).join('');
+  wire();}
+
+ function row(b){
+  const cur=b.mount!==null&&b.mount===SELF_SLUG;
+  const pills=(b['default']?'<span class="ws-pill def">default</span>':'')+(cur?'<span class="ws-pill cur">current</span>':'');
+  /* A row the hub could not load links nowhere, because there is nowhere to
+     link — but it is still a row: "where did my bundle go?" is the question it
+     exists to answer. */
+  const title=b.mount!==null
+   ?'<a class="ws-title" href="../'+encodeURIComponent(b.mount)+'/">'+esc(b.title)+'</a>'
+   :'<span class="ws-title off">'+esc(b.title)+'</span>';
+  const count=b.count===null?'':'<span>'+b.count+' concept'+(b.count===1?'':'s')+'</span>';
+  const body='<div class="ws-row-main"><div class="ws-t">'+title+pills+'</div>'+
+   '<div class="ws-meta"><span class="ws-slug">@'+esc(b.slug)+'</span>'+count+
+   '<span class="ws-health '+esc(b.health)+'">'+esc(b.word)+'</span></div>'+
+   (editing===b.slug?edit(b):'')+(confirming===b.slug?confirm(b):'')+'</div>';
+  return '<div class="ws-row" data-slug="'+esc(b.slug)+'">'+body+(manageable()?menuBtn(b):'')+'</div>';}
+
+ function menuBtn(b){
+  return '<button class="ws-menu-btn" type="button" aria-haspopup="true" aria-expanded="false" '+
+   'aria-label="Actions for @'+esc(b.slug)+'" data-menu="'+esc(b.slug)+'">'+
+   '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r=".9" fill="currentColor" stroke="none"/>'+
+   '<circle cx="12" cy="12" r=".9" fill="currentColor" stroke="none"/>'+
+   '<circle cx="19" cy="12" r=".9" fill="currentColor" stroke="none"/></svg></button>';}
+
+ function edit(b){
+  return '<div class="ws-edit"><input class="field ws-slug-edit" value="'+esc(b.slug)+'" '+
+   'aria-label="New name for @'+esc(b.slug)+'" data-edit="'+esc(b.slug)+'">'+
+   '<button class="btn-sm primary" type="button" data-save="'+esc(b.slug)+'">Save</button>'+
+   '<button class="btn-sm" type="button" data-cancel="1">Cancel</button></div>'+
+   '<div class="ws-hint">Lowercase letters, numbers and hyphens. The folder is not touched.</div>';}
+
+ function confirm(b){
+  return '<div class="ws-confirm"><p>Remove <code>@'+esc(b.slug)+'</code> from the registry? '+
+   'The folder stays where it is — only this server stops listing it.</p>'+
+   '<div class="crow"><button class="btn-sm primary" type="button" data-remove="'+esc(b.slug)+'">Remove</button>'+
+   '<button class="btn-sm" type="button" data-cancel="1">Cancel</button></div></div>';}
+
+ /* The menu is appended to the panel rather than to the row, so a row with no
+    height left cannot clip it and no row needs overflow:visible to be usable. */
+ function openMenu(slug,anchor){
+  closeMenu();
+  const b=rows.filter(r=>r.slug===slug)[0];if(!b)return;
+  const isDefault=!!b['default'];
+  const el=document.createElement('div');
+  el.className='ws-menu';el.setAttribute('role','menu');
+  el.innerHTML='<button type="button" data-act="default"'+(isDefault||b.mount===null?' disabled':'')+'>'+
+    (isDefault?'Already the default':'Make default')+'</button>'+
+   '<button type="button" data-act="rename">Rename…</button>'+
+   '<div class="sep"></div>'+
+   '<button type="button" class="danger" data-act="remove">Remove…</button>';
+  panel.appendChild(el);
+  const a=anchor.getBoundingClientRect(),p=panel.getBoundingClientRect();
+  el.style.top=(a.bottom-p.top+4)+'px';
+  el.style.right=(p.right-a.right)+'px';
+  anchor.setAttribute('aria-expanded','true');
+  menuFor=slug;
+  el.addEventListener('click',e=>{
+   const item=e.target.closest('button[data-act]');if(!item||item.disabled)return;
+   const act=item.dataset.act;closeMenu();
+   if(act==='default')post('default',{slug:slug});
+   else if(act==='rename'){editing=slug;confirming=null;render();focusEdit();}
+   else{confirming=slug;editing=null;render();}});}
+ function closeMenu(){
+  const el=panel.querySelector('.ws-menu');if(el)el.remove();
+  const open=panel.querySelector('.ws-menu-btn[aria-expanded=true]');if(open)open.setAttribute('aria-expanded','false');
+  menuFor=null;}
+
+ function focusEdit(){const f=list.querySelector('.ws-slug-edit');if(f){f.focus();f.select();}}
+
+ function wire(){
+  list.querySelectorAll('.ws-menu-btn').forEach(b=>b.addEventListener('click',e=>{
+   e.stopPropagation();
+   const slug=b.dataset.menu;
+   if(menuFor===slug){closeMenu();return;}
+   openMenu(slug,b);}));
+  list.querySelectorAll('[data-cancel]').forEach(b=>b.addEventListener('click',()=>{editing=null;confirming=null;render();}));
+  list.querySelectorAll('[data-save]').forEach(b=>b.addEventListener('click',()=>save(b.dataset.save)));
+  list.querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>post('remove',{slug:b.dataset.remove})));
+  list.querySelectorAll('.ws-slug-edit').forEach(f=>f.addEventListener('keydown',e=>{
+   if(e.key==='Enter'){e.preventDefault();save(f.dataset.edit);}
+   else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();editing=null;render();}}));}
+ panel.addEventListener('click',e=>{if(!e.target.closest('.ws-menu')&&!e.target.closest('.ws-menu-btn'))closeMenu();});
+
+ function save(slug){
+  const f=list.querySelector('.ws-slug-edit');if(!f)return;
+  post('rename',{slug:slug,to:f.value});}
+
+ function post(verb,params){
+  const body=new URLSearchParams();
+  Object.keys(params).forEach(k=>body.append(k,params[k]));
+  body.append('token',MANAGE_TOKEN);
+  fetch(MANAGE_ROOT+'registry/'+verb,{method:'POST',headers:{
+    'accept':'application/json','content-type':'application/x-www-form-urlencoded'},body:body.toString()})
+   .then(r=>r.json().then(d=>({ok:r.ok,data:d})))
+   .then(res=>{
+    editing=null;confirming=null;
+    say(res.ok?res.data.message:res.data.error,!res.ok);
+    /* Re-read rather than patch the row in place: a write rebuilds the hub's
+       whole set, so the list after it is the server's answer, not a guess. */
+    load();})
+   .catch(()=>{say('That change could not be sent.',true);});}
+
+ function say(message,bad){
+  flash.textContent=message||'';flash.classList.toggle('err',!!bad);flash.hidden=!message;
+  clearTimeout(flashT);flashT=setTimeout(()=>{flash.hidden=true;},6000);}
 })();
 
 /* ── mobile: the rail as a drawer, the topbar controls as a sheet, and a

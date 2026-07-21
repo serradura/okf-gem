@@ -19,17 +19,17 @@ Reading the 49 commits yielded **204 raw behavioral contracts**, **54** of them
 regression-fixes. After removing the superseded ones (reverted or replaced later
 in history — the Index-view→tabs→tree arc, the reverted landing page, the
 index-layer accent flip-flop, the 5× number-key remaps, the `#mnote` note folded
-into `#hello2`), **191 net-live contracts are rowed** in the area tables below
+into `#hello2`), **208 net-live contracts are rowed** in the area tables below
 (superseded micro-contracts are summarised, not individually rowed; A7-10 is kept
 as a rowed ⊘ because it read as a live gap until the history was checked).
 
-**Coverage of those 191 net-live contracts (tallied from the tables, they sum
+**Coverage of those 208 net-live contracts (tallied from the tables, they sum
 exactly):**
 
 | | Count | % |
 |---|---:|---:|
-| ✓ covered | **186** | 97% |
-| ~ partial | 1 | 1% |
+| ✓ covered | **203** | 98% |
+| ~ partial | 1 | <1% |
 | ✗ uncovered | 4 | 2% |
 
 The **4 uncovered** rows are what is left after Priority 1 (cleared), every
@@ -60,9 +60,9 @@ map-visibility observable A2-24 already owns.
 | 5 — Files view, file tree, reserved files | 28 | 0 | 0 | 28 |
 | 6 — Mobile / responsive | 14 | 0 | 0 | 14 |
 | 7 — First-visit notes | 9 | 0 | 0 | 9 |
-| 8 — Command palette, hub, help, keyboard sheet | 14 | 0 | 2 | 16 |
+| 8 — Command palette, hub, help, keyboard sheet | 31 | 0 | 2 | 33 |
 | 9 — Deep links, theme, splitters, diagram, static/server, interiors | 26 | 0 | 0 | 26 |
-| **Total** | **186** | **1** | **4** | **191** |
+| **Total** | **203** | **1** | **4** | **208** |
 
 **Every area but 2 and 8 is now fully covered** (0 ✗, 0 ~). The 4 remaining ✗ sit
 in just those two: **Area 2 (2 ✗)** — A2-26 (absence-proof) and A2-37 (node
@@ -312,6 +312,23 @@ Commits with **no page-behavior contracts**: 8dbdbd2, b4e01f9, 30786af (OG/meta)
 | A8-14 | 01d39a5 | FEAT | Esc closes the sheet; a second `?` toggles it | kbClose | ✓ | help › Esc closes it |
 | A8-15 | (suite) | FEAT | Help sheet manages focus: close on open, opener on close | focus mgmt | ✓ | help › the sheet manages focus |
 | A8-16 | (unbuilt) | — | Help sheet focus *trap* (Tab cycling within modal) | — | ✗ | **feature does not exist** (Tier 3) |
+| A8-17 | (panel) | FEAT | ⚙ in the rail opens a Bundles slide-over, subtitled with the count | `#btn-ws`, `#ws`, `#ws-sub` | ✓ | bundles-panel › the ⚙ in the rail opens a slide-over that says what it is and how much |
+| A8-18 | (panel) | FEAT | A row carries the title (linked), @slug, concept count and health **word** | `.ws-row`, `.ws-health` | ✓ | bundles-panel › a row carries every fact a reader chooses between bundles by |
+| A8-19 | (panel) | FEAT | The default and the bundle being read are each marked, and differently | `.ws-pill.def`, `.ws-pill.cur` | ✓ | bundles-panel › the default and the one being read are each marked, and differently |
+| A8-20 | (panel) | FEAT | Behind a hub the wordmark is a link back to the bundle list | `a.rail-brand` | ✓ | bundles-panel › the wordmark is the way back to every bundle |
+| A8-21 | (panel) | REG | A closed slide-over takes no layout — `hidden`, not merely translated | `#ws[hidden]` | ✓ | bundles-panel › a closed panel takes no layout · closed means display:none, not merely off-canvas |
+| A8-22 | (panel) | REG | Nor does one mid-slide: `#views` clips, as `#stage` always did for Filters | `#views{overflow:hidden}` | ✓ | bundles-panel › nor does one mid-slide, which is where it actually showed (scrollWidth sampled across the whole animation) |
+| A8-23 | (panel) | FEAT | One ⋯ per row; Make default / Rename… / Remove…, the last in red | `.ws-menu-btn`, `.ws-menu` | ✓ | bundles-panel › each row carries one ⋯, and the verbs live in its menu |
+| A8-24 | (panel) | FEAT | Make default is disabled on the row that already is, and says so | `button[data-act=default][disabled]` | ✓ | bundles-panel › the default row's Make default is disabled, and says why |
+| A8-25 | (panel) | REG | esc peels one layer — the menu first, then the panel — never nothing | keydown guard on `menuFor` | ✓ | bundles-panel › esc peels one layer: the menu first, then the panel · two menus are never open at once |
+| A8-26 | (panel) | FEAT | Rename takes over the row with a field and a hint; Cancel restores it | `.ws-edit`, `.ws-hint` | ✓ | bundles-panel › Rename takes over the row, and Cancel puts it back untouched |
+| A8-27 | (panel) | FEAT | Save renames and the list re-reads from the server, mount and all | POST registry/rename | ✓ | bundles-panel › Rename saves, and the whole list comes back knowing the new name |
+| A8-28 | (panel) | FEAT | Make default moves the badge, and `/` agrees on the next request | POST registry/default | ✓ | bundles-panel › Make default moves the badge, and the server agrees |
+| A8-29 | (panel) | FEAT | Remove confirms in the row, naming what does *not* happen to the folder | `.ws-confirm` | ✓ | bundles-panel › Remove states what it will and will not do · Remove removes, and the bundle stops being served |
+| A8-30 | (panel) | REG | An empty list says so and names the way out, rather than rendering nothing | `.ws-empty` | ✓ | bundles-panel › with nothing left, the panel says so and names the way out |
+| A8-31 | (panel) | FEAT | Read-only keeps every fact, drops every control, and explains which and how | `.ws-ro-note`, `MANAGE_TOKEN` null | ✓ | bundles-panel › read-only › every fact stays, and every control goes · and a sentence says why, and how · the page holds no token it may not use |
+| A8-32 | (panel) | FEAT | No registry behind the page means no ⚙ at all, and no token in it | `MANAGE_ROOT` null | ✓ | bundles-panel › no registry behind the page means no ⚙ at all |
+| A8-33 | (panel) | FEAT | No Add — registering is the agent's act, and the footer says where | `.ws-foot` | ✓ | bundles-panel › the footer says who adds a bundle, because the panel does not |
 
 ## Area 9 — Deep links, theme, splitters, diagram, static/server, interiors
 

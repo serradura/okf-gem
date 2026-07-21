@@ -138,7 +138,7 @@ what turns registering from "tell the server" into "give this bundle a name":
 verb needs a path once the bundle has a slug.
 
 It is also no longer terminal-only. The hub's
-[workspace manager](capabilities/workspace-manager.md) drives the same four
+[bundles manager](capabilities/bundles-manager.md) drives the same four
 operations — `default`, `rename`, `remove`, `add` — from a browser, through this
 class and its messages rather than around them. The file stays the record: every
 write goes through here, and the manager re-reads it per request rather than

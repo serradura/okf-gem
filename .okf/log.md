@@ -1,6 +1,63 @@
 # Update Log
 
 ## 2026-07-21
+* **Feature**: the graph page stops hiding what it can do. The topbar box said
+  "search concepts…", *filtered* the current view, emptied the graph in silence
+  when nothing matched, and never mentioned the ⌘K palette that searches every
+  bundle. It now carries the chord as a chip, a live `7/8` count — so an empty
+  result is a number that reached zero rather than a view that went blank — and,
+  on zero, a panel naming the bundle and the query with the way on: `⏎` hands
+  the query to the palette prefilled and already searching. The escalation is
+  the TUI's own, arriving four surfaces late. It will fire rarely, and that is
+  the design working: the box's index reaches full bodies wherever the page
+  holds them, so most real words match *something* locally.
+* **Feature**: the registry moved onto the page. A ⚙ in the rail opens a
+  **Bundles** slide-over — every registered bundle with its size, its health as
+  a word, the default marked and the one being read marked differently, and a
+  `⋯` per row carrying Make default, Rename… and Remove…. It reads a new
+  `GET /bundles` (the [manager](capabilities/bundles-manager.md)'s own rows, as
+  JSON) on every open rather than baking the list in, because the hub re-reads
+  the registry per request and a boot snapshot goes stale silently. The four
+  `POST` verbs gained a JSON rendering for it; every gate, status and sentence
+  is unchanged, and asking for JSON is not a way around any of them. No **Add**:
+  a browser cannot hand over a filesystem path, and registering is the agent's
+  act — the footer says so rather than leaving the absence to be noticed.
+* **Fix**: a slide-over parked at `translateX(100%)` **still occupies layout**,
+  and `#views` did not clip — the Filters panel escapes this only because
+  `#stage` does. The closed panel widened the document by its own 340px, and
+  writing the spec found the half a prototype could not: it does the same *while
+  sliding*, so fixing only the closed state still flashes a horizontal scrollbar
+  on every open. `hidden` while closed plus `overflow:hidden` on `#views` settle
+  both, and the spec samples `scrollWidth` across the whole animation — measured
+  after it lands, the scrollbar has already gone. The hazard was latent for any
+  panel added outside `#stage`, so the clip is the fix that matters.
+* **Fix**: the hub's 404 was a centred card in a chrome that existed nowhere
+  else in the product — the page a reader reaches by being wrong was also the
+  page telling them they had left. It is now the app shell with nothing to show:
+  the same rail, mark, theme toggle, topbar and row anatomy, plus the asked path
+  as a chip, a did-you-mean, and a filterable list. The guess is Levenshtein
+  with a shared-prefix shortcut, which is the part that earns its keep —
+  truncation is the commonest way a slug comes out wrong, and plain edit distance
+  scores `ord` three edits from `orders`. It is rendered in Ruby, not from an
+  inlined payload: this is where someone lands when something has already gone
+  wrong, and a page that needs JavaScript to say what happened has picked the
+  worst possible moment to need it.
+* **Note**: `--allow-edit` is now **`--allow-manage`**, with no alias — it had
+  not shipped in a release. The flag is a permission grant, so the `allow-`
+  prefix was right; the noun was wrong. Nothing edits anything: what it permits
+  is adding, renaming, removing and re-defaulting *registry entries*, which are
+  references, and "allow edit" invited the fear that a reader's markdown had
+  become writable from a browser. The rename came with the test that was
+  missing — a POST straight at a read-only hub, carrying a valid same-origin
+  token, asserting 403 *and* a byte-identical registry file. It passed on the
+  first run, which is the point: the guard was real and unproven, and unproven
+  is how a guard quietly stops being real.
+* **Note**: "workspace" is retired. It appeared only in the server layer and in
+  this bundle, never in anything a user types — `registry` is the CLI verb
+  family, `$OKF_HOME`, `OKF::Registry`; **Bundles** is what the surface has
+  always called itself, in the TUI's view and in `/b/`'s own `<h1>`. It is also
+  the only word true in both modes, since the hub serves ephemeral sets with no
+  registry at all: a panel titled "Registry" would be lying half the time.
 * **Feature**: the server reaches what the TUI reaches, through a browser. Three
   pieces, shipped in order. **Cross-bundle search**: the hub answers
   `GET /search?q=`, `Search.across` over every hosted bundle on one shared index,
@@ -12,8 +69,8 @@
   capability, and it is also the right engine here for a reason the CLI's default
   does not share: a long-lived server amortizes an index build over every
   keystroke, and the browser's own MiniSearch is a port of it, so a palette hit
-  and an in-page search rank alike. **The [workspace
-  manager](capabilities/workspace-manager.md)**: `/b/` went from a bare list to
+  and an in-page search rank alike. **The [bundles
+  manager](capabilities/bundles-manager.md)**: `/b/` went from a bare list to
   the browser counterpart of the TUI's bundles view — size, health verdict,
   default marker, and the entries the hub *cannot* host shown muted rather than
   omitted, because leaving them off answers "where did my bundle go?" with

@@ -2,6 +2,7 @@
 
 require "test_helper"
 
+require "json"
 require "rack/test"
 
 require "okf"
@@ -192,6 +193,54 @@ class OKF::Server::HubWritesTest < OKF::TestCase
     assert_equal 409, last_response.status
   end
 
+  # ── the same verbs, answered as JSON ──────────────────────────────────────
+  #
+  # The /b/ manager is a document: it posts a form and gets a page back. The
+  # graph page's Bundles panel is not — it stays where it is and re-reads the
+  # list. So a request that says it wants JSON gets the outcome as data, and
+  # every guard, every message and every exit code stays exactly the same. Two
+  # answers to one question, never two decisions.
+
+  test "an Accept: application/json write answers with the outcome, not a redirect" do
+    post_write("/registry/default", slug: "beta", accept: :json)
+
+    assert_equal 200, last_response.status, "no redirect: the panel never left the page it is on"
+    assert_match %r{application/json}, last_response.content_type
+    assert_equal true, json_body["ok"]
+    assert_includes json_body["message"], "@beta", "the same sentence the manager would have flashed"
+    assert_equal %w[beta alpha], reloaded.slugs, "and the file is still the record"
+  end
+
+  test "a JSON write that is refused says why, at the same status the form gets" do
+    boot("alpha", "beta", writable: false)
+
+    post_write("/registry/remove", slug: "beta", accept: :json)
+
+    assert_equal 403, last_response.status, "the guard is the guard; only the rendering changed"
+    assert_equal false, json_body["ok"]
+    assert_includes json_body["error"], "--allow-manage"
+    assert_equal %w[alpha beta], reloaded.slugs
+  end
+
+  test "a core refusal reaches the panel as JSON, carrying the core's own sentence" do
+    # A collision, not a malformed slug: the core *normalizes* what it is given,
+    # so "Not A Slug" would quietly become @not-a-slug and succeed.
+    post_write("/registry/rename", slug: "alpha", to: "beta", accept: :json)
+
+    assert_equal 400, last_response.status
+    assert_equal false, json_body["ok"]
+    refute_empty json_body["error"].to_s, "a refusal nobody can read is a refusal that teaches nothing"
+    assert_equal %w[alpha beta], reloaded.slugs
+  end
+
+  test "a JSON write still needs the token and the origin" do
+    post "/registry/remove", { slug: "beta" }, csrf_env.merge("HTTP_ACCEPT" => "application/json")
+
+    assert_equal 403, last_response.status
+    assert_equal false, json_body["ok"]
+    assert_equal %w[alpha beta], reloaded.slugs, "asking for JSON is not a way around the locks"
+  end
+
   # ── the page the forms live on ────────────────────────────────────────────
 
   test "the manager offers one form per action, each carrying the token" do
@@ -269,7 +318,14 @@ class OKF::Server::HubWritesTest < OKF::TestCase
     { "HTTP_ORIGIN" => "http://example.org" }
   end
 
+  # `accept: :json` asks for the panel's answer shape; without it this is the
+  # manager's own form post, and both go through the identical guards.
   def post_write(path, params)
-    post path, params.merge(token: token), csrf_env
+    env = params.delete(:accept) == :json ? csrf_env.merge("HTTP_ACCEPT" => "application/json") : csrf_env
+    post path, params.merge(token: token), env
+  end
+
+  def json_body
+    JSON.parse(last_response.body)
   end
 end

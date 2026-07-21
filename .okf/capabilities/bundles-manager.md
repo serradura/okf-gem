@@ -1,6 +1,6 @@
 ---
 type: Capability
-title: Workspace manager (the hub's /b/ page)
+title: Bundles manager (the hub's /b/ page)
 description: The browser counterpart of `okf registry` — every hosted bundle with its size, health and default marker, and, on a loopback server, the forms that add, rename, remove and re-default them.
 resource: lib/okf/server/hub.rb
 tags: [server, registry, hub, ui]
@@ -12,7 +12,7 @@ timestamp: 2026-07-21T00:00:00Z
 The [registry](../registry.md) has always been a terminal thing: `okf registry
 set`, `del`, `default`, `rename`. That is the right surface for the people who
 write the bundles, and the wrong one for the people who read them. A meeting with
-non-technical readers settled it — the workspace needed a point-and-click
+non-technical readers settled it — the registry needed a point-and-click
 surface, and the [server](graph-server.md) was already most of the way there.
 
 The `/b/` page used to be a bare list of links. It is now the browser
@@ -93,7 +93,7 @@ directory, no concepts in it, already registered under another slug.
 `test/integration/server/hub_writes_test.rb` is the critical layer: every verb's
 happy path, every refusal, and each of the three gates, asserting both that the
 registry file changed *and* that the live hub reflects it without a restart.
-`test/browser/specs/workspace.spec.js` drives the forms in Chromium against a
+`test/browser/specs/manager-writes.spec.js` drives the forms in Chromium against a
 registry-backed server with its own `$OKF_HOME` — serial, and each spec puts back
 what it changed, because they share one live registry.
 <!-- rule:okf-prove-the-write-lands -->

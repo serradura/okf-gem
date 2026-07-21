@@ -1,5 +1,5 @@
 import { test as base, expect } from "../helpers.js";
-import { WORKSPACE_PORT, bundleDir } from "../paths.js";
+import { MANAGER_PORT, bundleDir } from "../paths.js";
 
 // The manager with its forms live — the registry-backed hub, which is the only
 // mode that has them. The integration suite proves what each POST does to the
@@ -10,7 +10,7 @@ import { WORKSPACE_PORT, bundleDir } from "../paths.js";
 //
 // Serial, and every spec puts back what it changed. These run against one live
 // registry, and a parallel rename would race a parallel remove for the same row.
-const WORKSPACE = `http://127.0.0.1:${WORKSPACE_PORT}/b/`;
+const WORKSPACE = `http://127.0.0.1:${MANAGER_PORT}/b/`;
 
 const test = base.extend({
   ws: async ({ page }, use) => {
@@ -42,11 +42,11 @@ test.describe.configure({ mode: "serial" });
 // rename in one races a remove in the other. manager.spec.js covers the page's
 // read-only half, and this file owns the writes.
 test.skip(() => test.info().project.name !== "server",
-  "the workspace manager exists only under a served hub");
+  "the bundles manager exists only under a served hub");
 
 const rowFor = (page, slug) => page.locator(".row").filter({ hasText: `@${slug}` });
 
-test.describe("workspace manager — writes", () => {
+test.describe("bundles manager — writes", () => {
   test("a loopback server offers the forms, and every one of them is guarded", async ({ ws }) => {
     await expect(ws.locator("form")).not.toHaveCount(0);
     const forms = await ws.locator("form").count();
@@ -129,7 +129,7 @@ test.describe("workspace manager — writes", () => {
     await expect(ws.locator(".flash.ok")).toContainText("Its folder is untouched");
     await expect(rowFor(ws, "added")).toHaveCount(0);
     // the mount goes with it — the hub rebuilt, it did not merely redraw
-    const gone = await ws.request.get(`http://127.0.0.1:${WORKSPACE_PORT}/b/added/`);
+    const gone = await ws.request.get(`http://127.0.0.1:${MANAGER_PORT}/b/added/`);
     expect(gone.status()).toBe(404);
   });
 

@@ -1,7 +1,7 @@
 import { test as base, expect } from "../helpers.js";
 import { HUB_PORT } from "../paths.js";
 
-// The hub's /b/ workspace manager. It carries no script at all, so what a
+// The hub's /b/ bundles manager. It carries no script at all, so what a
 // browser adds over the integration test is the half a string assertion cannot
 // reach: that the verdict edge is actually painted, that the columns line up,
 // and that the row folds rather than overflows on a phone.
@@ -25,7 +25,7 @@ const test = base.extend({
 const edgeColor = (page, index) =>
   page.evaluate((i) => getComputedStyle(document.querySelectorAll(".row")[i], "::before").backgroundColor, index);
 
-test.describe("workspace manager", () => {
+test.describe("bundles manager", () => {
   test("one row per hosted bundle, each with its ref, count and verdict", async ({ mgr }) => {
     await expect(mgr.locator(".row")).toHaveCount(2);
     await expect(mgr.locator(".row").first().locator(".slug")).toHaveText("@bundle");

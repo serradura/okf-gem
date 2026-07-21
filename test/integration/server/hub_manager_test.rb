@@ -9,7 +9,7 @@ require "okf/registry"
 require "okf/server/hub"
 
 # The hub's /b/ page — the browser counterpart of the TUI's bundles view. It was
-# a bare list of links; it is now the workspace manager, which means every fact
+# a bare list of links; it is now the bundles manager, which means every fact
 # a person needs to choose between bundles has to be *on* it: how big each one
 # is, which one `/` opens, whether it is healthy, and whether its folder is
 # still there at all.

@@ -68,7 +68,7 @@ all — proving the defense while the hole stood open.
 # A second boundary: the server can now be asked to change something
 
 Everything above is about content coming *in* to the page. The
-[workspace manager](../capabilities/workspace-manager.md) opened the other
+[bundles manager](../capabilities/bundles-manager.md) opened the other
 direction — four `POST` routes that write the [registry](../registry.md) — and it
 carries its own three locks rather than borrowing these: writable-at-all (loopback
 by default, `--allow-manage` otherwise), a registry to write to, and same-origin

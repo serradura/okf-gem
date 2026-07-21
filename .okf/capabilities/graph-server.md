@@ -57,7 +57,7 @@ rewriting, no per-mount configuration. The rough edges are all navigational: a
 redirect preserves the query string (a deep link survives the hop), and an unknown
 slug answers `404` with a *page listing the hosted bundles*, so a bookmark left
 stale by a rename gets a way home instead of bare text. `/b/` itself is the
-[workspace manager](workspace-manager.md) — a hub is navigable without the
+[bundles manager](bundles-manager.md) — a hub is navigable without the
 switcher, and the empty registry lands on a page that says so rather than
 redirecting nowhere. Those pages are self-contained and theme-aware like the graph
 page: no external requests.
@@ -117,6 +117,38 @@ view's search where it has one, and `?` answers with a sheet of every binding �
 reachable from a rail button too, because a shortcut list you can only open with
 a shortcut helps whoever needs it least. The sheet is written against the key
 handler it documents, so it cannot drift from what the keys do.
+
+# The registry, on the page
+
+`/b/` answered "which bundles are there?" for anyone who knew `/b/` existed. The
+⚙ in the rail asks it where the reader already is: a **Bundles** slide-over
+listing every registered bundle with its size, its health as a word, and which
+one `/` opens — plus, per row, a `⋯` carrying *Make default*, *Rename…* and
+*Remove…*. Rename and Remove take the row over and state themselves; a removal
+says the one thing a reader actually fears is not going to happen ("the folder
+stays where it is").
+
+There is no **Add**. Registering means naming a filesystem path; a browser
+cannot hand one over — the File System Access API yields an opaque handle, never
+a path, and is Chromium-only — and it is the agent's act anyway. The footer says
+where it is done rather than leaving the absence to be noticed.
+
+The panel reads `GET /bundles` on every open rather than baking the list into
+the page, because the hub re-reads the registry per request: a rename made in
+another terminal shows the next time it is opened. Writes POST the same
+`/registry/<verb>` routes the `/b/` forms do, with `Accept: application/json`,
+so the hub answers with the outcome instead of the redirect a document wants.
+Every gate is the server's — the page only renders what it decides, and
+`MANAGE_TOKEN` is null wherever a write would be refused anyway, so the page
+holds no credential it cannot use. Read-only is explained rather than hidden:
+the same facts, no `⋯`, and one sentence naming `--allow-manage`.
+
+One bug is worth keeping named, because it is latent for any panel added later.
+A slide-over parked at `translateX(100%)` **still occupies layout**, and `#views`
+did not clip — the Filters panel only escapes it because `#stage` does. Closed,
+the panel widened the document by its own 340px; mid-slide it did the same. Both
+halves are fixed (`hidden` while closed, `overflow:hidden` on `#views`) and both
+are pinned by a spec that samples `scrollWidth` across the whole animation.
 
 # The box filters, the palette finds — and the box now says so
 
@@ -421,7 +453,7 @@ Under a hub every path above keeps its shape, mounted under its bundle's prefix
 |------|--------|
 | `/` | redirect to the default bundle (empty-state page when none) |
 | `/search?q=` | ranked concepts across every hosted bundle (JSON) |
-| `/b/` | the [workspace manager](workspace-manager.md) |
+| `/b/` | the [bundles manager](bundles-manager.md) |
 | `POST /registry/{default,rename,remove,add}` | the manager's four writes |
 
 # Responses are gzipped on the wire

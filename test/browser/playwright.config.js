@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import { repoRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, HUB_PORT,
-  workspaceHome, WORKSPACE_PORT, treeDir, TREE_PORT, manytagsDir, MANYTAGS_PORT,
+  managerHome, MANAGER_PORT, panelHome, PANEL_PORT, RO_PORT, treeDir, TREE_PORT, manytagsDir, MANYTAGS_PORT,
   deeppathDir, DEEPPATH_PORT, biggraphDir, BIGGRAPH_PORT } from "./paths.js";
 
 const serve = (dir, port) => ({
@@ -31,14 +31,22 @@ const serveHub = (dirs, port) => ({
 // cannot reach the developer's real one. reuseExistingServer stays off here:
 // this server holds registry state in memory and rebuilds it on every write, so
 // a leftover process from the last run would answer with the last run's world.
-const serveWorkspace = (port) => ({
+const serveRegistry = (port, home) => ({
   command: `bundle exec ruby -Ilib exe/okf server -p ${port}`,
   cwd: repoRoot,
-  env: { ...process.env, OKF_HOME: workspaceHome },
+  env: { ...process.env, OKF_HOME: home },
   url: `http://127.0.0.1:${port}/b/`,
   reuseExistingServer: false,
   stdout: "pipe",
   stderr: "pipe",
+});
+
+// `--bind 0.0.0.0` is what makes a hub read-only, and it is still reachable at
+// 127.0.0.1 — so this proves the flag's real effect rather than a simulation of
+// it. It shares panelHome because it cannot write to it.
+const serveReadOnly = (port, home) => ({
+  ...serveRegistry(port, home),
+  command: `bundle exec ruby -Ilib exe/okf server -p ${port} --bind 0.0.0.0`,
 });
 
 // The template renders in two modes and they diverge in one load-bearing way:
@@ -93,6 +101,8 @@ export default defineConfig({
     serve(deeppathDir, DEEPPATH_PORT),
     serve(biggraphDir, BIGGRAPH_PORT),
     serveHub([ bundleDir, hostileDir ], HUB_PORT),
-    serveWorkspace(WORKSPACE_PORT),
+    serveRegistry(MANAGER_PORT, managerHome),
+    serveRegistry(PANEL_PORT, panelHome),
+    serveReadOnly(RO_PORT, panelHome),
   ],
 });
