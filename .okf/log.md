@@ -1,6 +1,96 @@
 # Update Log
 
 ## 2026-07-20
+* **Fix**: the graph no longer collapses on return from another view — and the
+  cause was misdiagnosed for months. The [browser suite](design/browser-tests.md)
+  held it open as a `test.fixme` on the theory it was a resize race (setView's rAF
+  firing at 0×0, the ResizeObserver's 240ms debounce). Tracing it with the
+  browser tools — trapping every zoom change, then `cy.animate`'s caller — showed
+  the one animation that ran was a *fit*, not a resize: `fitGraph` reads the
+  container's own width, and the one-shot boot fit (`setTimeout(fitGraph, 400)`
+  after load) fires on whatever view is up by then. Leave the graph inside that
+  window and it fits a hidden 0×0 canvas, `(w-2*pad)/bb.w` goes negative, and the
+  zoom clamps to minZoom — staying there on return. Fixed by guarding `fitGraph`
+  to skip a zero-size canvas (the template already guarded the `?view=` deep-link
+  start for this exact reason, just not the navigate-away case). The `fixme` is
+  now a normal `views.spec.js` test that fires the hidden fit by hand and asserts
+  the zoom is untouched — deterministic in both modes, red before the guard, green
+  after. The lesson: the old repro's load-sensitivity (deterministic alone, flaky
+  under parallel workers) was not noise to route around with a `fixme` — it was
+  the symptom of a timer racing boot. Under load, boot ran past 400ms and the fit
+  landed while the graph was still visible, so it fit correctly and the bug
+  "vanished." Reading the actual animation, not the plausible mechanism, found it.
+* **Update**: `one-camera-move-per-click` (ed6c0af) is now covered — the #1
+  uncovered regression fix, pushing [browser coverage](design/browser-tests.md)
+  to ~50 of 94. It could not be closed with a cleverer test: every end-state
+  observable (settled position, pan-event bursts, motion span) failed to tell the
+  fix from a gutted `centerOn`, because the fix's contract is *when and how often*
+  the pan commits, which the end state erases. So the page was made observable
+  instead — a **product change**, deliberately the lightest kind (Tier 1): a
+  test-only counter, `window.__camCenters`, bumped just before each committed
+  centre-pan, invisible to users and there only to be read. The spec reads it at
+  the one discriminating instant — synchronously right after the tap, before the
+  260ms defer fires: 0 when the pan is correctly deferred, 1 when an immediate pan
+  fired. Mutation-checked by flipping the defer off (`if(false)`), which turns
+  that read 0→1 and reddens the test in both render modes. The honest shape of
+  the closure, and the note it leaves: instrumentation earns its keep only when
+  the contract is a sub-frame timing the end state cannot see.
+* **Update**: [browser test coverage](design/browser-tests.md) climbed from ~10
+  of the page's ~94 shipped-bug fixes to ~46, worked gap by gap down
+  `test/browser/COVERAGE.md` — dim/highlight ordering, Indexes-only, link
+  resolution, the file-tree collapse machine, the mobile chrome, two layout
+  races, the untouched surfaces (palette, help, deep links, theme,
+  catalog/tags/stats, splitters), the first-visit notes, the index layer
+  (synthesized-vs-authored edges, ixVisibility), the fullscreen Mermaid diagram
+  viewer, and — pushed to ~49 of 94 — the command palette's hub bundle-switcher
+  (reached through a two-bundle server the config boots) and the ? sheet's focus
+  management, plus the ⌘⏎ new-tab chord a bundle row honours (window.open, not a
+  same-tab nav), the Mermaid re-theme that re-renders an inline diagram on a
+  theme toggle, and the `prefers-color-scheme` boot fallback. The graph-collapse
+  known bug is now a `test.fixme`, not a `test.fail`: its race reproduces
+  deterministically run alone but is load-sensitive under the full suite's
+  parallel workers, so a `test.fail` flipped to an intermittent *unexpected pass*
+  — a coin-flip red that trains the reader to ignore the very signal it raises.
+  `fixme` keeps the bug on the record and the suite deterministically green.
+  Every new spec was mutation-checked against the
+  code it covers. Two dividends: the work found that selecting a node in cluster
+  mode faded the whole graph (a compound parent's opacity cascades to its nodes)
+  — reproduced red, **fixed**, pinned by `effectiveOpacity`; and that a log's
+  "Open in graph" button stayed visible though the code hides it, because
+  `.btn.text{display:inline-flex}` outranked `.btn[hidden]` at equal specificity
+  — **fixed** with a `.btn.text[hidden]` rule, the precedent already used for
+  `.fp-head`. The camera fix `one-camera-move-per-click` was left uncovered here
+  on purpose — the panel-open `cy.resize()` re-centres the graph last, so the
+  node settles identically with the pan removed, and a settled-state test would
+  green with the fix deleted (the lesson this log keeps relearning: a test that
+  cannot fail is worse than none). It was closed in a later pass, but only by a
+  product change; see below.
+* **Addition**: [browser tests](design/browser-tests.md) — the graph page is now
+  driven in real Chromium, every spec in both render modes, with any thrown error
+  failing the run. Two findings worth more than the suite itself. The page has a
+  real bug: dwell ~300ms on another view, return to Graph, and the graph redraws
+  at a tenth of its size; both resize paths run and neither is sufficient. And
+  the first version of the test for it **could not fail** — it read `cy.width()`,
+  which reports the live container while the render is collapsed, so it passed
+  with every resize path deleted. A test that cannot fail is worse than none,
+  because it is counted; mutation-check a new spec or it is not proven.
+* **Correction**: [server trust boundary](design/server-trust-boundary.md)
+  claimed both XSS paths were closed. They were *implemented*, but nothing
+  asserted either: the tests checked that the string `DOMPurify` appears and that
+  it is a function at boot, both of which a render path skipping the sanitizer
+  passes. Measuring the browser suite against the page's own 44-commit history —
+  ~230 behaviors, ~94 of them fixes for bugs that really shipped — is what
+  surfaced it. The lesson repeats the overview.md one below at a different
+  altitude: a claim nobody checks drifts from the code, and "we sanitize" is a
+  claim, not a test.
+* **Update**: both guards are now asserted, against a hostile fixture bundle
+  whose payloads set flags on `window` — so the test says *the script did not
+  run*, not *the markup looks clean*. Each was mutation-checked. The one worth
+  remembering: with the sanitizer removed, the `<script>` payload did **not**
+  fire, because `innerHTML` does not execute script tags; only `<img onerror>`
+  did. A fixture of script tags alone would have gone green against a page with
+  no sanitizer at all — the security-test version of the same trap as the
+  `cy.width()` test above, where the assertion was incapable of failing.
 * **Correction**: a sweep for stale prose before merge, and the two that mattered
   had **nothing to do with this branch**. `overview.md` still said "exactly two
   runtime dependencies" — `minifts` made it three at 1.9.0, and this log records

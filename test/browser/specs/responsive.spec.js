@@ -1,0 +1,78 @@
+import { test, expect } from "../helpers.js";
+
+const css = (page, sel, prop) =>
+  page.locator(sel).evaluate((el, p) => getComputedStyle(el)[p], prop);
+
+// The ≤768px block is ~60 lines of CSS that no string assertion can check:
+// it turns the rail into a drawer and folds the tools row into a sheet, and
+// both only exist as computed style at a viewport width. This is the part of
+// the template that most needs a real browser.
+test.describe("phone (375px)", () => {
+  test.use({ viewport: { width: 375, height: 720 } });
+
+  test("the rail becomes a fixed drawer parked off-screen", async ({ app }) => {
+    expect(await css(app, "#rail", "position")).toBe("fixed");
+    // translateX(-76px): parked, not display:none — it has to animate in.
+    expect(await css(app, "#rail", "transform")).toBe("matrix(1, 0, 0, 1, -76, 0)");
+  });
+
+  test("the hamburger and the controls toggle appear", async ({ app }) => {
+    expect(await css(app, "#btn-menu", "display")).not.toBe("none");
+    expect(await css(app, "#btn-controls", "display")).not.toBe("none");
+  });
+
+  test("the hamburger slides the drawer in and marks itself expanded", async ({ app }) => {
+    await app.locator("#btn-menu").click();
+    await expect(app.locator("#btn-menu")).toHaveAttribute("aria-expanded", "true");
+    await expect(app.locator("#app")).toHaveClass(/nav-open/);
+    await expect.poll(() => css(app, "#rail", "transform")).toBe("none");
+  });
+
+  test("the backdrop closes the drawer", async ({ app }) => {
+    await app.locator("#btn-menu").click();
+    await expect(app.locator("#app")).toHaveClass(/nav-open/);
+    await app.locator("#nav-bk").dispatchEvent("mousedown");
+    await expect(app.locator("#app")).not.toHaveClass(/nav-open/);
+    await expect(app.locator("#btn-menu")).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("picking a view from the drawer closes it", async ({ app }) => {
+    await app.locator("#btn-menu").click();
+    await app.locator('.rail-item[data-view="catalog"]').click();
+    await expect(app.locator("#app")).toHaveAttribute("data-view", "catalog");
+    await expect(app.locator("#app")).not.toHaveClass(/nav-open/);
+  });
+
+  test("the controls toggle folds the tools row into a sheet", async ({ app }) => {
+    await app.locator("#btn-controls").click();
+    await expect(app.locator("#btn-controls")).toHaveAttribute("aria-expanded", "true");
+    await expect(app.locator("#app")).toHaveClass(/controls-open/);
+    await expect(app.locator("#search")).toBeVisible();
+  });
+
+  test("opening Filters folds the sheet away so it cannot cover the panel", async ({ app }) => {
+    await app.locator("#btn-controls").click();
+    await expect(app.locator("#app")).toHaveClass(/controls-open/);
+    await app.locator("#btn-filters").click();
+    await expect(app.locator("#app")).not.toHaveClass(/controls-open/);
+    await expect(app.locator("#filters")).toHaveClass(/open/);
+  });
+
+  test("nothing overflows the viewport horizontally", async ({ app }) => {
+    expect(await app.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+  });
+});
+
+test.describe("desktop (1280px)", () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test("the rail is in the layout and the mobile chrome is gone", async ({ app }) => {
+    expect(await css(app, "#rail", "position")).not.toBe("fixed");
+    expect(await css(app, "#btn-menu", "display")).toBe("none");
+    expect(await css(app, "#btn-controls", "display")).toBe("none");
+  });
+
+  test("search sits in the bar, not behind a toggle", async ({ app }) => {
+    await expect(app.locator("#search")).toBeVisible();
+  });
+});

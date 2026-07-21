@@ -237,6 +237,9 @@ bin/setup                          # install dependencies
 bundle exec rake                   # test + rubocop — the default task, what CI runs
 bundle exec rake test              # just the suite (SimpleCov report in coverage/)
 bundle exec rake test:integration  # the critical layer alone + coverage/integration/
+bundle exec rake test:browser      # the graph page in a real Chromium (needs browser:setup)
+bundle exec rake browser:ui        # the same suite, interactive — pick specs and watch
+bundle exec rake serve             # the browser fixture bundle, served for poking by hand
 ruby -Ilib exe/okf <cmd> <dir>     # the CLI from the checkout, no install
 ruby -Ilib exe/okf server <dir>    # boot the graph server locally
 bundle exec rake plugin:sync       # regenerate the plugin's skill copy + version stamp
@@ -244,6 +247,43 @@ bundle exec rake plugin:sync       # regenerate the plugin's skill copy + versio
 
 CI (`.github/workflows/main.yml`) runs the default task on every supported Ruby,
 2.4 through the current stable. A change is not done until that matrix is green.
+
+## Testing the graph page
+
+`lib/okf/render/graph/template.html.erb` is ~1,300 lines of inline JS and CSS,
+and its regressions are the kind a string assertion cannot see: a view that
+returns with a canvas Cytoscape measured at 0×0, a filter that stops composing
+with the search box, the ≤768px block folding the wrong element, a handler
+that throws where the DOM still looks plausible. `test/integration/render/`
+proves the page is *emitted* correctly; it cannot prove the page *works*.
+
+`test/browser/` does — Playwright driving real Chromium, asserting DOM state
+and computed CSS at real viewport widths, and failing any test where the page
+threw. **Every spec runs twice**, once against `okf server` and once against a
+`file://` static `okf render`, because the two modes diverge (fetched
+endpoints vs. baked `EMBED`) and a pass in one proves nothing about the other.
+
+It is deliberately outside the default `rake` task: it needs node and a ~120MB
+Chromium, neither of which belongs on the 2.4 matrix, and the gem takes on no
+dependency from it. CI runs it in a **separate, non-blocking job** — the page
+boots against a CDN (Cytoscape, marked, DOMPurify), so a jsdelivr hiccup must
+not gate a merge. `continue-on-error` keeps the run green while still showing
+the job red, and traces upload on failure so a real regression is
+distinguishable from a network blip.
+
+Non-blocking means it is still a maintainer obligation, not an automated gate:
+**a change to the template is not done until `rake test:browser` is green**,
+and a bug in the page earns a red spec there before it earns a patch — the same
+rule `test/integration/cli/` already carries. A red browser job that nobody
+reads is worth nothing.
+
+Both halves of the template open with a section map, and the JS one also names
+the three seams that actually couple the sections (`applyGraphFilter`,
+`setView`, the lazy caches). Read it before editing; `grep -n '── '` on the
+template prints the same list with live line numbers.
+
+`test/browser/README.md` covers the fixture, the console-error watch, and the
+assertion mistakes the suite's first run shook out.
 
 ## Pull requests
 

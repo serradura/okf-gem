@@ -6,6 +6,20 @@ require "bundler/gem_tasks"
 # Ruby — minitest's own task class needs minitest 5.16+, which needs Ruby 2.6.
 require "rake/testtask"
 
+BROWSER_DIR = File.expand_path("test/browser", __dir__)
+
+# Every browser task shells out to npx from test/browser. `env` carries the
+# knobs playwright.config.js reads: OKF_SLOWMO (pause between actions, so a
+# headed run is watchable) and OKF_VIDEO (record each spec to .webm).
+def browser_sh(command, env = {})
+  Dir.chdir(BROWSER_DIR) { sh(env, command) }
+end
+
+# A headed or recorded run is scoped to one spec file against the live server:
+# headed mode opens a window per worker, and the whole suite at watchable speed
+# is minutes of flashing windows.
+BROWSER_ONE_FILE = "--project=server --workers=1"
+
 Rake::TestTask.new(:test) do |t|
   t.libs << "test" << "lib"
   t.test_files = FileList["test/**/*_test.rb"]
@@ -24,6 +38,67 @@ namespace :test do
     t.test_files = FileList["test/integration/**/*_test.rb"]
     t.warning = false
   end
+
+  # The graph page is ~1,300 lines of inline JS and CSS in one ERB template,
+  # and the things that break there — a view that returns with a collapsed
+  # canvas, a filter that stops composing, the ≤768px block folding the wrong
+  # element — are invisible to a string assertion over the rendered HTML. This
+  # task drives the real page in a real Chromium: DOM, computed CSS, media
+  # queries, and any error the page throws while a spec is running.
+  #
+  # Deliberately outside the default task. It needs node and a ~120MB Chromium,
+  # neither of which belongs on the Ruby 2.4 CI matrix, and the gem itself
+  # gains no dependency from it.
+  desc "Run the browser suite against the graph page (needs node; `rake browser:setup` first)"
+  task :browser do
+    unless File.directory?(File.join(BROWSER_DIR, "node_modules"))
+      abort "browser suite not installed: run `bundle exec rake browser:setup`"
+    end
+    browser_sh("npx playwright test")
+  end
+end
+
+namespace :browser do
+  desc "Install the browser suite's node dependencies and Chromium"
+  task :setup do
+    browser_sh("npm install")
+    browser_sh("npx playwright install chromium")
+  end
+
+  desc "Open the browser suite's interactive runner (pick specs, watch them drive a real page)"
+  task :ui do
+    browser_sh("npx playwright test --ui")
+  end
+
+  #   rake browser:watch                  # inspector.spec.js, 400ms per action
+  #   rake browser:watch[filters]         # a different file
+  #   rake browser:watch[inspector,900]   # slower
+  desc "Watch a real browser run a spec file (args: [spec,slowmo_ms])"
+  task :watch, [ :spec, :slowmo ] do |_t, args|
+    browser_sh(
+      "npx playwright test #{args[:spec] || "inspector"} #{BROWSER_ONE_FILE} --headed",
+      "OKF_SLOWMO" => args[:slowmo] || "400"
+    )
+  end
+
+  desc "Record a spec file's run to video (args: [spec])"
+  task :video, [ :spec ] do |_t, args|
+    browser_sh("npx playwright test #{args[:spec] || "inspector"} #{BROWSER_ONE_FILE}", "OKF_VIDEO" => "1")
+    puts "\nvideos: test/browser/.tmp/results/**/*.webm"
+  end
+
+  desc "Show the last browser run's HTML report (traces, screenshots, timings)"
+  task :report do
+    browser_sh("npx playwright show-report .tmp/report")
+  end
+end
+
+# Boot the graph page on the same fixture the browser suite drives, for poking
+# at by hand. `rake test:browser` boots its own server on 8899; this one is
+# yours to leave running.
+desc "Serve the browser suite's fixture bundle at http://127.0.0.1:8808"
+task :serve do
+  sh "ruby -Ilib exe/okf server test/browser/fixtures/bundle"
 end
 
 task "test:integration" => :set_integration_coverage_dir

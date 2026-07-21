@@ -27,6 +27,26 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
+/* ═══ CSS sections, in file order ═══════════════════════════════════════════
+   Each is opened by a `── name ──` banner; `grep -n '── ' template.html.erb`
+   prints this list with current line numbers, which is the reliable version.
+
+     app shell: rail + main        main column
+     shared controls               section head
+     chips / badges                graph view
+     filters slide-over            inspector content
+     markdown body                 fullscreen diagram viewer
+     bundle switcher (hub)         the ? sheet
+     bundle-count badge (hub)      mobile nav + first-visit note
+     catalog                       files
+     tags                          stats
+     type autocomplete             synthesized-map listing
+     ≤768px compact chrome         ≥769px pane folding
+
+   The last two rebuild the layout at a breakpoint and are checked by
+   test/browser/specs/responsive.spec.js — computed style at a real viewport
+   width, which is the only way that block can be checked at all.
+   ═════════════════════════════════════════════════════════════════════════ */
  :root{
   --bg:#ffffff; --panel:#ffffff; --panel-2:#f6f7f8; --canvas:#f4f5f7; --ink:#1f2328; --ink-soft:#333333;
   --muted:#63697a; --faint:#9298a4; --line:#e6e8eb; --line-2:#eef0f2;
@@ -110,6 +130,10 @@
  .btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
  .btn[hidden]{display:none}
  .btn.text{width:auto;display:inline-flex;align-items:center;padding:0 12px;gap:7px;font-size:13px;font-weight:500;color:var(--ink)}
+ /* `.btn.text` sets display, which outranks `.btn[hidden]` above at equal
+    specificity — so hiding a text button (e.g. #fp-graph on a log) needs its own
+    [hidden] rule to win, same as .fp-head[hidden] does below. */
+ .btn.text[hidden]{display:none}
  .btn .fbadge{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--accent);
   color:#fff;font-size:10px;font-weight:600;display:none;place-items:center;line-height:1}
  .btn.on-filter .fbadge{display:grid}
@@ -816,6 +840,48 @@
 </div>
 
 <script>
+/* ═══ JS sections, in file order ════════════════════════════════════════════
+   Same `── name ──` banners as the CSS above; same grep prints them with live
+   line numbers.
+
+     payload + derived indexes     Cytoscape (style, instance)
+     Mermaid (lazy)                fullscreen diagram viewer
+     inspector                     drag-resize splitters
+     graph filters                 layout
+     cluster by area               file-tree mode
+     the authored layer            fit to screen
+     view switching                full-text search
+     catalog                       files
+     tags                          stats
+     theme / fullscreen            §6 map payload · §7 log payload
+     command palette               mobile drawer + sheet
+     keyboard                      deep links · first visit
+
+   ── What actually couples these ──────────────────────────────────────────
+   The sections are tidy lexically and entangled at runtime, which is why a
+   change in one breaks another. Three seams carry almost all of it:
+
+   1. `applyGraphFilter()` is the shared sink. The search box, the three chip
+      groups in the slide-over, the inspector's focus chips and cluster mode
+      all funnel into it, and it reads `q.graph`, `hiddenTypes`, `activeTags`,
+      `activeAreas` and `ftMatch()` together. Touching any one caller can
+      change what the other four produce.
+   2. `setView()` reaches into nearly every section — it toggles the tool
+      groups, seeds a view on first entry via `inited`, and has to
+      `cy.resize()` on the way back to the graph, because Cytoscape measures a
+      hidden container as 0×0 and returns collapsed without it.
+   3. The lazy caches — `CATALOG`, `INDEX`, `LOGS`, `ftIndex` — are each
+      filled by one section and read by three or four. A stale one is
+      invisible until an unrelated view renders wrong.
+
+   The mode flags (`clustered`, `treeMode`, `ixNodes`, `ixOnly`, `view`) are
+   read across boundaries too: each rebuilds the graph's elements and must
+   undo itself exactly, or its nodes leak into the plain view.
+
+   All of the above is pinned by test/browser/ — `bundle exec rake
+   test:browser`. Run it before and after editing this file; it drives the
+   real page in Chromium and fails on any error the page throws.
+   ═════════════════════════════════════════════════════════════════════════ */
 const NODES=<%= nodes_json %>, EDGES=<%= edges_json %>, TYPES=<%= types_json %>, TAGS=<%= tags_json %>;
 const NODE_ENDPOINT=<%= @node_endpoint.to_json %>, META_ENDPOINT=<%= @meta_endpoint.to_json %>;
 const BUNDLE=<%= name_json %>;
@@ -1113,17 +1179,32 @@ function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Unty
    container is still animating (--side-w, .22s), so pan now and the debounced
    cy.resize() would shift the view again a moment later — the double movement.
    Instead wait for the panel to settle, resize once, then pan. cy.stop() first
-   so rapid clicks replace the animation instead of queueing repeats. */
-let centerTimer;
+   so rapid clicks replace the animation instead of queueing repeats.
+
+   window.__camCenters mirrors a counter bumped just before each committed
+   centre-pan. It is test-only instrumentation, invisible to users, and it
+   exists because this fix has no other external observable: a panel-opening
+   click must commit exactly one pan, and it must be the *deferred* one — read
+   synchronously right after the tap the counter is still 0 (nothing fired), it
+   reaches 1 once the 260ms defer elapses, and it never doubles. An immediate
+   pan would read 1 on that first synchronous read.
+   test/browser/specs/camera-races.spec.js pins all three. */
+let centerTimer,centerCommits=0;window.__camCenters=0;
 function centerOn(ele,delay){clearTimeout(centerTimer);
- const go=()=>{cy.resize();cy.stop();cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});};
- if(delay)centerTimer=setTimeout(go,260);else{cy.stop();cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});}}
+ const go=()=>{cy.resize();cy.stop();window.__camCenters=++centerCommits;cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});};
+ if(delay)centerTimer=setTimeout(go,260);else{cy.stop();window.__camCenters=++centerCommits;cy.animate({center:{eles:ele},duration:450,easing:'ease-in-out-cubic'});}}
 /* Emphasise a node and its immediate neighbourhood. One gesture for a concept,
    a folder and a map: selection should mean the same thing on this canvas
    whatever was selected, and it used to mean three things — a concept dimmed the
    rest, a map did nothing, a folder node did nothing either. */
 function focusNode(ele,opened){if(!ele||!ele.length)return;
- cy.elements().removeClass('hl').addClass('dim');
+ /* Dim the leaves and edges, never the compound area boxes: a parent's opacity
+    cascades to the nodes inside it (effectiveOpacity), so dimming the boxes fades
+    the whole graph — the selection and its neighbourhood included — and emphasis
+    reads as nothing at all in cluster mode. The boxes stay put; the leaves carry
+    the state. (Outside cluster mode there are no :parent nodes, so this is a
+    no-op there.) */
+ cy.elements().removeClass('hl');cy.elements().not(':parent').addClass('dim');
  ele.closedNeighborhood().removeClass('dim');ele.addClass('hl');
  centerOn(ele,opened);}
 function select(id){const ele=cy.getElementById(id);if(!ele.length)return;const opened=show(id);
@@ -1399,7 +1480,13 @@ function relaxZoom(){const bb=fitBox(),w=cy.width(),h=cy.height();
 // and let the handler take every layout after it.
 cy.on('layoutstop',relaxZoom);relaxZoom();
 
-function fitGraph(){relaxZoom();const bb=fitBox();if(!bb)return;
+/* A fit reads the container's own width to compute the zoom, so fitting a hidden
+   0×0 canvas clamps straight to minZoom — and the graph then returns from another
+   view as a few dots in the corner. The boot fit (setTimeout after load, below)
+   is the caller that reaches this hidden: leave the graph inside its 400ms window
+   and it lands on nothing. Skip the fit when the canvas has no size — the graph
+   keeps its last good zoom across the round trip. */
+function fitGraph(){if(!cyEl.clientWidth||!cyEl.clientHeight)return;relaxZoom();const bb=fitBox();if(!bb)return;
  /* padding scales with the canvas — 60px is right on a desktop but eats a third
     of a phone's width */
  const w=cy.width(),h=cy.height(),pad=Math.min(60,Math.max(16,Math.round(w*.06)));

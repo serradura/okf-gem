@@ -43,3 +43,49 @@ jobs:
           bundler-cache: true
       - name: Run the default task
         run: bundle exec rake
+
+  # The graph page driven in real Chromium (test/browser). Deliberately its own
+  # job and deliberately non-blocking: it needs node and a ~120MB browser that
+  # have no place on the Ruby matrix above, and it boots the page against a CDN
+  # (Cytoscape, marked, DOMPurify), so a jsdelivr hiccup is a failure this suite
+  # cannot prevent. `continue-on-error` lets the run pass while still showing
+  # the job red, so a real regression is visible without gating a merge on the
+  # network.
+  browser:
+    name: Browser (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # No package-lock.json is committed (same reasoning as Gemfile.lock), so
+      # `npm ci` has nothing to read — `npm install` is the right verb here.
+      - name: Install the suite
+        working-directory: test/browser
+        run: npm install
+      - name: Install Chromium
+        working-directory: test/browser
+        run: npx playwright install --with-deps chromium
+      - name: Run the browser suite
+        working-directory: test/browser
+        run: npx playwright test
+      # Uploaded on failure only, and it is the whole point of a non-blocking
+      # job: the traces and screenshots are how you tell a real regression from
+      # a CDN blip without reproducing locally.
+      - name: Upload traces and report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: test/browser/.tmp/
+          retention-days: 7
