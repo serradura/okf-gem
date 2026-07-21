@@ -226,9 +226,9 @@ docker run --rm -v "$PWD:/data" -p 8808:8808 ghcr.io/serradura/okf server . --bi
 ```
 
 A container has to bind `0.0.0.0` for the host to reach it at all, which is
-exactly the bind that makes the hub's bundles manager read-only. Reading the
-graph is unaffected; add `--allow-manage` only if you also want to manage the
-registry from that page, and only when you know who can reach the port.
+exactly the bind that makes the registry read-only. Reading the graph is
+unaffected, and there is no flag that opens the registry on that bind — it is a
+per-user file, managed from the machine that owns it or from `okf registry`.
 
 Then open <http://127.0.0.1:8808>. Images are published for `linux/amd64` and
 `linux/arm64` on
@@ -354,15 +354,18 @@ opens. There is no Add: registering a bundle means naming a filesystem path,
 which a browser cannot hand over and an agent can (`okf registry set <dir>`), and
 the panel says so instead of leaving the absence to be noticed.
 
-`/b/` is the **bundles manager**: every bundle with its size, its health
+`/b/` is the **bundles list**: every bundle with its size, its health
 (conformance plus curation, so a warning is a warning and not a failure), the
 default marked, and any entry whose folder has gone missing shown rather than
-quietly dropped. On a loopback server it is also where you manage the registry
-without a terminal — make default, rename, remove, and add a bundle by pasting
-its folder path. Those controls are the one thing that does not follow you onto
-a network: bind anywhere but loopback and the page turns read-only unless you
-pass `--allow-manage`, since `--bind 0.0.0.0` is how a personal tool becomes a
-public one. Writes rebuild the hub's set as they go, so a rename takes effect on
+quietly dropped.
+
+Managing the registry without a terminal happens on the graph page instead, in
+the ⚙ **Bundles** panel — make default, rename, remove, where you are already
+reading. Those controls are the one thing that does not follow you onto a
+network: bind anywhere but loopback and they are refused outright, with no flag
+that says otherwise, since `--bind 0.0.0.0` is how a personal tool becomes a
+public one. `--read-only` declines them on loopback too, and is the only switch
+there is. Writes rebuild the hub's set as they go, so a rename takes effect on
 the next click; a registry change made *elsewhere* while it runs still wants a
 restart to be served. Set `$OKF_HOME` to point every verb at a different registry.
 

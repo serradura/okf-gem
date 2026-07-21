@@ -23,7 +23,7 @@ lib/okf/
   render/graph.rb + graph/template.html.erb  shell  the whole UI in one self-contained ERB file — `okf render` bakes it (.static), the server serves the same
   server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types, /index, /log
   server/hub.rb           shell  N bundles at /b/<slug>/, plus the routes only a set can answer:
-                                 GET /search (cross-bundle), GET /b/ (the bundles manager),
+                                 GET /search (cross-bundle), GET /b/ (the bundles list),
                                  POST /registry/{default,rename,remove,add} — the only writes in the server
   server/runner.rb        shell  built-in WEBrick <-> Rack bridge (replaces any rackup need)
   skill.rb + skill/       shell  the companion agent skill + its installer

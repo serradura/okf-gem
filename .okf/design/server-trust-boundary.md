@@ -68,10 +68,10 @@ all — proving the defense while the hole stood open.
 # A second boundary: the server can now be asked to change something
 
 Everything above is about content coming *in* to the page. The
-[bundles manager](../capabilities/bundles-manager.md) opened the other
+[registry routes](../capabilities/bundles-manager.md) opened the other
 direction — four `POST` routes that write the [registry](../registry.md) — and it
 carries its own three locks rather than borrowing these: writable-at-all (loopback
-by default, `--allow-manage` otherwise), a registry to write to, and same-origin
+by default, declined with `--read-only`, refused outright anywhere else), a registry to write to, and same-origin
 plus a per-boot token. Sanitizing has nothing to say about a well-formed request
 that should not have been honoured, which is why that gate is described where it
 lives instead of being folded in here.

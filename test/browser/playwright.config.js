@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import { repoRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, HUB_PORT,
-  managerHome, MANAGER_PORT, panelHome, PANEL_PORT, RO_PORT, treeDir, TREE_PORT, manytagsDir, MANYTAGS_PORT,
+  panelHome, PANEL_PORT, RO_PORT, treeDir, TREE_PORT, manytagsDir, MANYTAGS_PORT,
   deeppathDir, DEEPPATH_PORT, biggraphDir, BIGGRAPH_PORT } from "./paths.js";
 
 const serve = (dir, port) => ({
@@ -25,7 +25,7 @@ const serveHub = (dirs, port) => ({
   stderr: "pipe",
 });
 
-// Zero dirs is the *registry* hub — the only mode whose /b/ manager can change
+// Zero dirs is the *registry* hub — the only mode whose Bundles panel can change
 // anything, because it is the only one with a registry behind it. It gets its
 // own $OKF_HOME (seeded in global-setup.js) so a spec that renames an entry
 // cannot reach the developer's real one. reuseExistingServer stays off here:
@@ -101,7 +101,6 @@ export default defineConfig({
     serve(deeppathDir, DEEPPATH_PORT),
     serve(biggraphDir, BIGGRAPH_PORT),
     serveHub([ bundleDir, hostileDir ], HUB_PORT),
-    serveRegistry(MANAGER_PORT, managerHome),
     serveRegistry(PANEL_PORT, panelHome),
     serveReadOnly(RO_PORT, panelHome),
   ],

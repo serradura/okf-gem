@@ -100,8 +100,7 @@ specs/
   palette.spec.js      the ⌘K command palette (standalone: jump to a view)
   palette-hub.spec.js  the ⌘K palette in hub mode (switch bundle)
   global-search.spec.js the ⌘K palette's Concepts group, over the hub's /search
-  manager.spec.js      the hub's /b/ bundles manager (verdict edge, columns, phone)
-  manager-writes.spec.js the /b/ manager's registry forms, driven live (serial, own $OKF_HOME)
+  manager.spec.js      the hub's /b/ bundles list (verdict edge, columns, phone)
   search-bridge.spec.js the topbar box's ⌘K chip, live count, and dead-end panel
   bundles-panel.spec.js the rail's ⚙ Bundles slide-over (serial, own $OKF_HOME + hub)
   help.spec.js         the ? sheet and the / search key

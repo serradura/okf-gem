@@ -1,6 +1,25 @@
 # Update Log
 
 ## 2026-07-21
+* **Change**: the `/b/` manager's registry forms are gone, and the page stayed.
+  For a stretch both surfaces carried the same four verbs — the forms here and
+  the graph page's ⚙ Bundles panel — which is two implementations of one
+  contract and the shape that drifts. The panel wins because managing a set is
+  something you do while reading it, not on a detour to a page you had to know
+  existed. `/b/` keeps the jobs only it can do: the list, the redirect target
+  when no bundle is named, the way back from a 404, and the empty state a hub
+  with no bundles has no graph page to show. It now carries no forms, no script
+  and no token — a page with nothing to post has no business holding the
+  credential — and the four `POST /registry/<verb>` routes answer JSON to one
+  caller instead of two shapes to two.
+* **Note**: `--allow-manage` is now **`--read-only`**, and the axis flipped. The
+  old flag read as the on switch and was not one — a loopback bind was already
+  writable, and all `--allow-manage` did was widen that to a bind nobody should
+  widen it to. So the opt-in is gone outright: a non-loopback bind is refused
+  with no flag that opens it, because the registry is a per-user file and the
+  machine that owns it is the machine that manages it. What is left is the way
+  *out*, named for the word the hub's own refusal already used. A flag that
+  cannot be misread as permission beats one that has to be read carefully.
 * **Fix**: on a touch screen, tapping a concept destroyed the graph. At `≤768px`
   the inspector is `grid-template-columns:0 1fr`, so a tap measured `#stage` at
   **0 px wide** — the graph was not covered, it was gone, and exploring became

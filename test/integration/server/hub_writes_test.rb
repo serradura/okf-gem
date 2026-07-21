@@ -9,9 +9,10 @@ require "okf"
 require "okf/registry"
 require "okf/server/hub"
 
-# The server's first state-changing requests: the manager's default / rename /
-# remove / add, POSTed from plain forms. Three things have to hold on every one
-# of them, and each has cost somebody a bad afternoon somewhere:
+# The server's only state-changing requests: default / rename / remove / add,
+# POSTed by the graph page's Bundles panel and answered as data. Three things
+# have to hold on every one of them, and each has cost somebody a bad afternoon
+# somewhere:
 #
 #   * the registry file on disk actually changed;
 #   * the *live* hub reflects it without a restart — a write that leaves the
@@ -39,8 +40,8 @@ class OKF::Server::HubWritesTest < OKF::TestCase
   test "default moves the entry to the front, on disk and in the live hub" do
     post_write("/registry/default", slug: "beta")
 
-    assert_equal 303, last_response.status
-    assert_equal "/b/", last_response.headers["location"].split("?").first
+    assert_equal 200, last_response.status
+    assert_equal true, json_body["ok"]
     assert_equal %w[beta alpha], reloaded.slugs, "the file is the record"
 
     get "/"
@@ -50,7 +51,7 @@ class OKF::Server::HubWritesTest < OKF::TestCase
   test "rename gives the entry a new slug and a new mount" do
     post_write("/registry/rename", slug: "alpha", to: "handbook")
 
-    assert_equal 303, last_response.status
+    assert_equal 200, last_response.status
     assert_includes reloaded.slugs, "handbook"
 
     get "/b/handbook/"
@@ -65,7 +66,7 @@ class OKF::Server::HubWritesTest < OKF::TestCase
 
     post_write("/registry/remove", slug: "beta")
 
-    assert_equal 303, last_response.status
+    assert_equal 200, last_response.status
     assert_equal %w[alpha], reloaded.slugs
     assert File.directory?(dir), "removing a reference never deletes the bundle"
 
@@ -78,7 +79,7 @@ class OKF::Server::HubWritesTest < OKF::TestCase
 
     post_write("/registry/add", path: File.join(@root, "gamma"))
 
-    assert_equal 303, last_response.status
+    assert_equal 200, last_response.status
     assert_includes reloaded.slugs, "gamma"
 
     get "/b/gamma/"
@@ -175,15 +176,83 @@ class OKF::Server::HubWritesTest < OKF::TestCase
     assert_equal %w[alpha beta], reloaded.slugs
   end
 
-  test "a read-only hub refuses every write and shows no controls" do
+  test "a read-only hub refuses every write, and says so where the panel reads" do
     boot("alpha", "beta", writable: false)
 
-    get "/b/"
-    refute_includes last_response.body, "<form", "a control nobody may use is not offered"
+    # /b/ carries no controls either way now, so the honest signal is the one
+    # the Bundles panel actually reads before it decides what to offer.
+    get "/bundles"
+    assert_equal false, JSON.parse(last_response.body)["writable"]
 
     post_write("/registry/remove", slug: "beta")
     assert_equal 403, last_response.status
     assert_equal %w[alpha beta], reloaded.slugs
+  end
+
+  # A read-only hub is what a public deployment binds, so "refuses writes" has to
+  # mean *every* write, not the one a test happened to pick. Each verb is posted
+  # with everything a legitimate caller would carry — same origin, this boot's
+  # token, valid arguments — and the registry file is compared byte for byte
+  # afterwards, because a 403 that still wrote is the failure this guards.
+  test "a read-only hub refuses all four verbs, and the file on disk never moves" do
+    make_bundle("gamma")
+    boot("alpha", "beta", writable: false)
+    before = File.read(OKF::Registry.load(home: @home).path)
+
+    writes = [
+      [ "/registry/default", { slug: "beta" } ],
+      [ "/registry/rename", { slug: "alpha", to: "handbook" } ],
+      [ "/registry/remove", { slug: "beta" } ],
+      [ "/registry/add", { path: File.join(@root, "gamma") } ]
+    ]
+    writes.each do |path, params|
+      post_write(path, params)
+      assert_equal 403, last_response.status, "#{path} answered #{last_response.status}"
+      assert_equal false, json_body["ok"]
+    end
+
+    assert_equal before, File.read(OKF::Registry.load(home: @home).path), "not one byte reached the registry"
+    assert_equal %w[alpha beta], reloaded.slugs
+  end
+
+  test "a read-only hub is refused before the token is even considered" do
+    # Gate order is the security property, not an implementation detail: a
+    # read-only server must not become writable to whoever can produce a token,
+    # and must not leak whether a token was right by answering differently.
+    boot("alpha", "beta", writable: false)
+
+    post "/registry/remove", { slug: "beta", token: token }, csrf_env
+    with_token = last_response.status
+    post "/registry/remove", { slug: "beta", token: "not-the-token" }, csrf_env
+
+    assert_equal 403, with_token
+    assert_equal with_token, last_response.status, "a wrong token and a right one get the same answer"
+    assert_equal %w[alpha beta], reloaded.slugs
+  end
+
+  test "a read-only hub bakes no token into the page a scraper would read" do
+    # The panel's credential is baked into the graph page as MANAGE_TOKEN. On a
+    # read-only hub it is null — so a page pulled off a public deployment holds
+    # nothing to replay, and the gate above is not the only thing standing there.
+    boot("alpha", "beta", writable: false)
+
+    get "/b/alpha/"
+
+    assert_includes last_response.body, "MANAGE_TOKEN=null"
+    refute_includes last_response.body, @app.send(:token), "the page carries no credential it cannot use"
+  end
+
+  test "no route on the whole server answers a non-GET but /registry/*" do
+    # The blast radius, stated as a test. If a write surface is ever added to a
+    # bundle's own App, this fails and whoever added it has to come and say so
+    # here — which is the point, because a public deployment's guarantee is
+    # "nothing writes", not "the registry does not write".
+    boot("alpha", "beta", writable: false)
+
+    [ "/", "/b/", "/b/alpha/", "/b/alpha/node?id=a", "/bundles", "/search?q=a" ].each do |path|
+      post path, {}, csrf_env
+      assert_equal 404, last_response.status, "POST #{path} answered #{last_response.status}"
+    end
   end
 
   test "an ephemeral hub has no registry to write to" do
@@ -193,15 +262,14 @@ class OKF::Server::HubWritesTest < OKF::TestCase
     assert_equal 409, last_response.status
   end
 
-  # ── the same verbs, answered as JSON ──────────────────────────────────────
+  # ── the shape the panel reads ─────────────────────────────────────────────
   #
-  # The /b/ manager is a document: it posts a form and gets a page back. The
-  # graph page's Bundles panel is not — it stays where it is and re-reads the
-  # list. So a request that says it wants JSON gets the outcome as data, and
-  # every guard, every message and every exit code stays exactly the same. Two
-  # answers to one question, never two decisions.
+  # The panel stays where it is and re-reads the list, so a write answers with
+  # the outcome rather than a page. That used to be one of two renderings, the
+  # other being the redirect /b/'s forms wanted; with the forms gone it is the
+  # only one, and Accept decides nothing.
 
-  test "an Accept: application/json write answers with the outcome, not a redirect" do
+  test "a write answers with the outcome, not a redirect" do
     post_write("/registry/default", slug: "beta", accept: :json)
 
     assert_equal 200, last_response.status, "no redirect: the panel never left the page it is on"
@@ -218,7 +286,7 @@ class OKF::Server::HubWritesTest < OKF::TestCase
 
     assert_equal 403, last_response.status, "the guard is the guard; only the rendering changed"
     assert_equal false, json_body["ok"]
-    assert_includes json_body["error"], "--allow-manage"
+    assert_includes json_body["error"], "--read-only"
     assert_equal %w[alpha beta], reloaded.slugs
   end
 
@@ -241,42 +309,58 @@ class OKF::Server::HubWritesTest < OKF::TestCase
     assert_equal %w[alpha beta], reloaded.slugs, "asking for JSON is not a way around the locks"
   end
 
-  # ── the page the forms live on ────────────────────────────────────────────
+  # ── the page the forms used to live on ────────────────────────────────────
+  #
+  # /b/ managed the registry with plain forms, and the Bundles panel then did
+  # the same four verbs from the graph page. Two implementations of one contract
+  # is the thing that drifts, so the forms are gone and the routes stayed: /b/ is
+  # the list, the landing and the empty state, and management happens where the
+  # reader already is.
 
-  test "the manager offers one form per action, each carrying the token" do
+  test "the manager carries no forms, and no token to put in one" do
     get "/b/"
 
-    assert_includes last_response.body, %(action="/registry/default")
-    assert_includes last_response.body, %(action="/registry/rename")
-    assert_includes last_response.body, %(action="/registry/remove")
-    assert_includes last_response.body, %(action="/registry/add")
-    assert_equal last_response.body.scan('name="token"').length,
-      last_response.body.scan("<form").length, "every form is guarded, not just the first"
+    refute_includes last_response.body, "<form"
+    refute_includes last_response.body, "registry/"
+    refute_includes last_response.body, token,
+      "a page with nothing to post has no business holding the credential"
   end
 
-  test "the default row offers no make-default button, since it already is" do
+  test "the rows are still there, and still link into their bundles" do
     get "/b/"
 
-    forms = last_response.body.scan(%r{<form[^>]*registry/default.*?</form>}m)
-    assert_equal 1, forms.length, "two bundles, one of them already default"
+    assert_includes last_response.body, %(href="/b/alpha/")
+    assert_includes last_response.body, %(href="/b/beta/")
   end
 
-  test "a write redirects back to the manager, which reports what happened" do
-    post_write("/registry/rename", slug: "alpha", to: "handbook")
-    follow_redirect!
+  test "a write answers as data whatever the caller said it wanted" do
+    # The redirect existed for a form that no longer exists. There is one caller
+    # now and it is a fetch(), so there is one rendering — asking for HTML does
+    # not resurrect a page-shaped answer that nothing would read.
+    post "/registry/rename", { slug: "alpha", to: "handbook", token: token },
+      csrf_env.merge("HTTP_ACCEPT" => "text/html")
 
     assert_equal 200, last_response.status
-    assert_includes last_response.body, "handbook"
-    assert_match(/class="flash/, last_response.body)
+    assert_equal "application/json; charset=utf-8", last_response.headers["content-type"]
+    assert_equal true, json_body["ok"]
+    assert_equal %w[beta handbook], reloaded.slugs.sort
   end
 
-  test "under a mounted prefix the forms and the redirect stay inside it" do
-    get "/b/", {}, "SCRIPT_NAME" => "/kb"
-    assert_includes last_response.body, %(action="/kb/registry/rename")
+  test "a refusal is data too, rather than a page carrying the reason" do
+    post "/registry/rename", { slug: "alpha", to: "beta", token: token },
+      csrf_env.merge("HTTP_ACCEPT" => "text/html")
 
+    assert_equal 400, last_response.status
+    assert_equal false, json_body["ok"]
+    refute_includes last_response.body, "<html"
+  end
+
+  test "a write under a mounted prefix is answered inside it" do
     post "/registry/rename", { slug: "alpha", to: "handbook", token: token },
       csrf_env.merge("SCRIPT_NAME" => "/kb")
-    assert_equal "/kb/b/", last_response.headers["location"].split("?").first
+
+    assert_equal 200, last_response.status
+    assert_equal true, json_body["ok"]
   end
 
   private
@@ -306,10 +390,12 @@ class OKF::Server::HubWritesTest < OKF::TestCase
     OKF::Registry.load(home: @home)
   end
 
-  # The page's own token, read back off the manager the way a browser would.
+  # This boot's token. It used to be scraped off /b/, which is exactly what a
+  # browser did with the forms there; now the only page that carries it is the
+  # graph page (baked as MANAGE_TOKEN), so the test asks the hub directly rather
+  # than reaching through a second app to read a value this one owns.
   def token
-    get "/b/"
-    last_response.body[/name="token" value="([^"]+)"/, 1]
+    @app.send(:token)
   end
 
   # A same-origin POST: rack-test's default host, named the way a browser names
@@ -318,8 +404,9 @@ class OKF::Server::HubWritesTest < OKF::TestCase
     { "HTTP_ORIGIN" => "http://example.org" }
   end
 
-  # `accept: :json` asks for the panel's answer shape; without it this is the
-  # manager's own form post, and both go through the identical guards.
+  # `accept: :json` sends the header the panel's fetch() sends. It changes
+  # nothing — that is the point, and two tests above post `text/html` to prove
+  # it — but posting the way the real caller does keeps the default honest.
   def post_write(path, params)
     env = params.delete(:accept) == :json ? csrf_env.merge("HTTP_ACCEPT" => "application/json") : csrf_env
     post path, params.merge(token: token), env

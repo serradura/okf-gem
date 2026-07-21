@@ -57,7 +57,7 @@ rewriting, no per-mount configuration. The rough edges are all navigational: a
 redirect preserves the query string (a deep link survives the hop), and an unknown
 slug answers `404` with a *page listing the hosted bundles*, so a bookmark left
 stale by a rename gets a way home instead of bare text. `/b/` itself is the
-[bundles manager](bundles-manager.md) — a hub is navigable without the
+[bundles list](bundles-manager.md) — a hub is navigable without the
 switcher, and the empty registry lands on a page that says so rather than
 redirecting nowhere. Those pages are self-contained and theme-aware like the graph
 page: no external requests.
@@ -120,8 +120,9 @@ handler it documents, so it cannot drift from what the keys do.
 
 # The registry, on the page
 
-`/b/` answered "which bundles are there?" for anyone who knew `/b/` existed. The
-⚙ in the rail asks it where the reader already is: a **Bundles** slide-over
+`/b/` answered "which bundles are there?" for anyone who knew `/b/` existed, and
+grew forms to change them. The ⚙ in the rail asks the same question where the
+reader already is: a **Bundles** slide-over
 listing every registered bundle with its size, its health as a word, and which
 one `/` opens — plus, per row, a `⋯` carrying *Make default*, *Rename…* and
 *Remove…*. Rename and Remove take the row over and state themselves; a removal
@@ -135,13 +136,16 @@ where it is done rather than leaving the absence to be noticed.
 
 The panel reads `GET /bundles` on every open rather than baking the list into
 the page, because the hub re-reads the registry per request: a rename made in
-another terminal shows the next time it is opened. Writes POST the same
-`/registry/<verb>` routes the `/b/` forms do, with `Accept: application/json`,
-so the hub answers with the outcome instead of the redirect a document wants.
+another terminal shows the next time it is opened. Writes POST the
+`/registry/<verb>` routes and the hub answers with the outcome as data. For a
+while `/b/`'s forms posted those same four routes, and two implementations of one
+contract is the thing that drifts — so the forms came out, and `/b/` kept the
+jobs only it can do (the list, the landing, the way back from a 404, and the
+empty state a hub with no bundles has no graph page to show).
 Every gate is the server's — the page only renders what it decides, and
 `MANAGE_TOKEN` is null wherever a write would be refused anyway, so the page
 holds no credential it cannot use. Read-only is explained rather than hidden:
-the same facts, no `⋯`, and one sentence naming `--allow-manage`.
+the same facts, no `⋯`, and one sentence naming what decides it.
 
 One bug is worth keeping named, because it is latent for any panel added later.
 A slide-over parked at `translateX(100%)` **still occupies layout**, and `#views`
@@ -497,7 +501,7 @@ Under a hub every path above keeps its shape, mounted under its bundle's prefix
 |------|--------|
 | `/` | redirect to the default bundle (empty-state page when none) |
 | `/search?q=` | ranked concepts across every hosted bundle (JSON) |
-| `/b/` | the [bundles manager](bundles-manager.md) |
+| `/b/` | the [bundles list](bundles-manager.md) |
 | `POST /registry/{default,rename,remove,add}` | the manager's four writes |
 
 # Responses are gzipped on the wire

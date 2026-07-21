@@ -179,10 +179,10 @@ test.describe("bundles panel — the menu", () => {
   });
 });
 
-// A hub bound to anything but loopback is read-only unless --allow-manage says
-// otherwise. The panel's job there is not to hide quietly: hidden controls with
+// A hub bound to anything but loopback is read-only, full stop — there is no
+// flag that opens it. The panel's job there is not to hide quietly: hidden controls with
 // no explanation read as a broken page, and the reader cannot tell a permission
-// from a bug. Its own fixture, on a real 0.0.0.0 bind, so this proves the flag's
+// from a bug. Its own fixture, on a real 0.0.0.0 bind, so this proves the rule's
 // actual effect rather than a simulation of it.
 const roTest = base.extend({
   ro: async ({ page }, use) => {
@@ -224,7 +224,7 @@ roTest.describe("bundles panel — read-only", () => {
     await expect(note).toContainText("Read-only");
     await expect(note).toContainText("loopback");
     // the way in is named, not left to be guessed
-    await expect(note).toContainText("--allow-manage");
+    await expect(note).toContainText("--read-only");
     await expect(note).toContainText("okf registry");
   });
 });

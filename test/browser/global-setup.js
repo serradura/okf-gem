@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { repoRoot, bundleDir, staticPage, hostileDir, hostilePage, managerHome, managerDir, panelHome, panelDir, treeDir, treePage, manytagsDir, manytagsPage, deeppathDir, deeppathPage, biggraphDir, biggraphPage } from "./paths.js";
+import { repoRoot, bundleDir, staticPage, hostileDir, hostilePage, panelHome, panelDir, treeDir, treePage, manytagsDir, manytagsPage, deeppathDir, deeppathPage, biggraphDir, biggraphPage } from "./paths.js";
 
 // Bake the static page the `static` project loads over file://. Rendering it
 // here rather than committing it keeps the suite honest: every run tests the
@@ -14,29 +14,16 @@ export default function globalSetup() {
   render(manytagsDir, manytagsPage, "Many Tags");
   render(deeppathDir, deeppathPage, "Deep Path");
   render(biggraphDir, biggraphPage, "Big Graph");
-  seedManager();
   seedPanel();
 }
 
-// The registry the /b/ manager's specs write to: two copies of the bundle fixture,
-// registered into a $OKF_HOME of its own. Rebuilt from scratch every run — the
-// specs that drive the manager's forms rename and remove entries, and a run
-// that inherited the last one's leftovers would pass or fail on history.
-function seedManager() {
-  fs.rmSync(managerHome, { recursive: true, force: true });
-  fs.rmSync(managerDir, { recursive: true, force: true });
-  fs.mkdirSync(managerHome, { recursive: true });
-  for (const name of [ "alpha", "beta" ]) {
-    const dest = path.join(managerDir, name);
-    fs.cpSync(bundleDir, dest, { recursive: true });
-    okf([ "registry", "set", dest, "--as", name ], { OKF_HOME: managerHome });
-  }
-}
-
 // The Bundles panel's registry: three bundles, so a remove still leaves a list
-// and a re-default has somewhere to move to. Its own $OKF_HOME for the same
-// reason the manager's own has one — these specs write, and two files writing
-// one registry file from two workers is how an entry goes missing.
+// and a re-default has somewhere to move to. It gets its own $OKF_HOME and its
+// own throwaway copies of a bundle, because these specs *write* — pointing them
+// at the committed fixtures would leave a rename behind in the working tree,
+// and two files writing one registry from two workers is how an entry goes
+// missing. Rebuilt from scratch every run, so nothing passes or fails on
+// history.
 function seedPanel() {
   fs.rmSync(panelHome, { recursive: true, force: true });
   fs.rmSync(panelDir, { recursive: true, force: true });

@@ -30,15 +30,6 @@ export const HOSTILE_PORT = PORT + 1;
 // Reached by URL directly, so it needs no Playwright project of its own.
 export const HUB_PORT = PORT + 2;
 
-// A *registry-backed* hub, which the ephemeral one above can never be: the
-// manager's forms only exist where there is a registry to change. It gets its
-// own $OKF_HOME and its own throwaway copies of a bundle, because the specs
-// that drive those forms write to both — pointing it at the committed fixtures
-// would leave a rename behind in the working tree.
-export const managerHome = path.join(here, ".tmp", "okfhome");
-export const managerDir = path.join(here, ".tmp", "manager");
-export const MANAGER_PORT = PORT + 3;
-
 // A deliberately nested bundle — charter at the root, then platform/services/*
 // and data/warehouse/*, each intermediate dir holding only a subdirectory. It
 // gets its own server and static page like the hostile one, for the same
@@ -74,16 +65,16 @@ export const BIGGRAPH_PORT = PORT + 7;
 
 // The Bundles panel's own registry hub. It gets a world of its own for the
 // reason every other special fixture here does: its specs *write* — rename,
-// re-default, remove — and the /b/ manager's specs write to their
-// registry at the same time, in another worker. One registry read-modify-
-// written from two files is a lost entry waiting for a slow afternoon.
+// re-default, remove — and pointing them at the developer's registry, or at the
+// committed fixtures, would leave those writes behind. One registry read-
+// modify-written from two workers is a lost entry waiting for a slow afternoon.
 export const panelHome = path.join(here, ".tmp", "panelhome");
 export const panelDir = path.join(here, ".tmp", "panel");
 export const PANEL_PORT = PORT + 8;
 
 
-// The same registry, served read-only — bound to 0.0.0.0 with no
-// --allow-manage, which is exactly the case that flag exists for. It shares
-// panelHome deliberately: a read-only server cannot write to it, so nothing
-// here can race the panel's own specs.
+// The same registry, served read-only — bound to 0.0.0.0, which is refused
+// outright and has no flag that opens it. It shares panelHome deliberately: a
+// read-only server cannot write to it, so nothing here can race the panel's
+// own specs.
 export const RO_PORT = PORT + 9;

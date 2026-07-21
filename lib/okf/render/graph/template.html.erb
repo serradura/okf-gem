@@ -2596,7 +2596,7 @@ function bridgeReport(v,shown,total){if(bridge)bridge.report(v,shown,total);}
   if(!hasRegistry)return '<p class="ws-ro-note">These bundles were named on the command line, so there is no registry to change. '+
    '<code>okf registry set &lt;dir&gt;</code> registers one for good.</p>';
   return '<p class="ws-ro-note">Read-only — this server is bound to an address other than loopback, so nothing here changes '+
-   'the registry. Restart it with <code>--allow-manage</code>, or use <code>okf registry</code> in the terminal.</p>';}
+   'the registry. Restart it on a loopback bind, without <code>--read-only</code>, or use <code>okf registry</code> in the terminal.</p>';}
 
  function render(){
   closeMenu();

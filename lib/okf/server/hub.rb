@@ -20,15 +20,18 @@ module OKF
     #   GET /search?q=…     ranked concepts across *every* hosted bundle (JSON) —
     #                       the only route that answers about the whole set, and
     #                       so the one route that can only live here
-    #   GET /b/             the bundles manager — every bundle, its health, and
-    #                       (when writable) the forms that manage the registry
+    #   GET /b/             the bundles list — every bundle, its health, and the
+    #                       way into it. Read-only: managing the registry belongs
+    #                       to the graph page's Bundles panel, which is where the
+    #                       reader already is
     #   GET /b/<slug>       301 -> /b/<slug>/      (query string preserved)
     #   GET /b/<slug>/...   delegated to that bundle's App (the prefix stripped)
     #   GET (unknown slug)  404 on the app shell (Hub::NotFound) — the asked
     #                       path, a did-you-mean, and the hosted bundles, so a
     #                       stale bookmark after a rename gets a way home
     #   POST /registry/<verb>  default | rename | remove | add — the only routes
-    #                       that change anything, gated three ways (see #write)
+    #                       that change anything, gated four ways (see #write),
+    #                       answering JSON to the Bundles panel's fetch()
     #
     # +bundles+ is an ordered array of Hub::Bundle (slug, folder, title). Apps are
     # built up front, each carrying the *other* bundles as siblings so the in-page
@@ -140,63 +143,12 @@ module OKF
         .row[data-health=missing] .who .name{color:var(--faint)}
         .mnote{margin:1.4rem 0 0;color:var(--faint);font-size:.85rem}
 
-        /* ── what just happened ── */
-        .flash{margin:0 0 1rem;padding:.6rem .85rem;border-left:3px solid var(--ok);
-        border-radius:0 6px 6px 0;background:var(--line-2);font-size:.9rem}
-        .flash.err{border-left-color:var(--err);color:var(--ink)}
-
-        /* ── the actions column ──
-           Text buttons, not filled ones: three filled buttons per row on a list
-           of four rows is a page that shouts. The row is the object; these are
-           what you can do to it, and they stay quiet until wanted. */
-        /* A column, not a trailing cluster: fixed width so the facts to its left
-           keep one axis whether a row offers two actions or three. */
-        .acts{display:flex;gap:.9rem;align-items:baseline;justify-content:flex-end;
-        flex:none;min-width:15rem;margin-left:1.4rem}
-        .lnk{appearance:none;background:none;border:0;padding:0;font:inherit;font-size:.85rem;
-        color:var(--muted);cursor:pointer;text-decoration:none}
-        .lnk:hover{color:var(--ink);text-decoration:underline}
-        .lnk:focus-visible,.dis summary:focus-visible,.fld:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-        .lnk.go{color:var(--accent);font-weight:600}
-        .lnk.danger{color:var(--err)}
-        .dis summary{list-style:none;cursor:pointer;font-size:.85rem;color:var(--muted)}
-        .dis summary::-webkit-details-marker{display:none}
-        .dis summary:hover{color:var(--ink);text-decoration:underline}
-        .dis[open] summary{color:var(--ink)}
-        /* The disclosure opens *below* the row rather than pushing the columns
-           around inside it, so opening one never moves the others. */
-        .dis-body{position:absolute;right:.9rem;margin-top:.5rem;z-index:1;
-        padding:.75rem .85rem;background:var(--panel);border:1px solid var(--line);border-radius:10px;
-        box-shadow:0 8px 24px rgba(0,0,0,.12)}
-        .dis-body form{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
-        .warn-copy{margin:0 0 .1rem;font-size:.85rem;color:var(--muted);max-width:20rem}
-        .fld{font:inherit;font-size:.85rem;padding:.3rem .5rem;color:var(--ink);
-        background:var(--bg);border:1px solid var(--line);border-radius:7px}
-
-        /* ── add a bundle ── */
-        .addbox{margin:2rem 0 0;padding:1.25rem 1.4rem 1.4rem;background:var(--panel);
-        border:1px solid var(--line);border-radius:12px}
-        .addbox h2{margin:0;font-size:1rem}
-        .addbox .sub{margin:.4rem 0 1rem;max-width:38rem}
-        .addbox form{display:flex;flex-wrap:wrap;gap:.55rem .9rem;align-items:center}
-        .lbl{font-size:.8rem;color:var(--muted)}
-        .lbl .opt{color:var(--faint)}
-        .fld.path{flex:1 1 24rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8rem}
-        .chk{display:flex;gap:.4rem;align-items:center;font-size:.85rem;color:var(--muted)}
-        /* The one filled control on the page. Everything else acts on a row that
-           is already there; this is the only thing that makes something new, and
-           spending the page's single emphatic gesture on it is the point of
-           having kept every other control quiet. */
-        .addbox .lnk.go{padding:.42rem .95rem;border-radius:8px;background:var(--accent);color:#fff}
-        .addbox .lnk.go:hover{text-decoration:none;filter:brightness(1.08)}
         /* Stacked, the fixed slots stop being columns and become indentation on
            a row that has nothing to put in one — so they collapse to their
            content, and an empty one takes no space at all. */
         @media(max-width:640px){body.mgr main{padding:2rem 1.1rem 3rem}
         .facts{margin-left:0;gap:.9rem}.f-count,.f-health,.f-flag{min-width:0;text-align:left}
-        .facts span:empty{display:none}
-        .acts{min-width:0;margin-left:0;justify-content:flex-start}
-        .dis-body{right:auto;left:0}}
+        .facts span:empty{display:none}}
       CSS
 
       # The hosted bundles in mount order, and the one `/` redirects to — so a
@@ -214,10 +166,11 @@ module OKF
       # The object carries its own path, so the manager re-reads the file per
       # request rather than trusting a snapshot taken at boot.
       # +writable+ decides whether the manager offers the registry forms and
-      # whether the POST routes answer at all. The CLI sets it: loopback binds
-      # get it for free, and any other address has to opt in with --allow-manage,
-      # because `--bind 0.0.0.0` turns a personal tool into a public one and the
-      # write surface should not follow it there by accident.
+      # whether the POST routes answer at all. The CLI sets it: a loopback bind
+      # gets it for free and `--read-only` declines it, while any other address
+      # is refused outright with no flag that says otherwise — `--bind 0.0.0.0`
+      # turns a personal tool into a public one, and the write surface does not
+      # follow it there at all.
       def initialize(bundles, layout: "cose", registry: nil, writable: false)
         @bundles = bundles
         @default = bundles.first
@@ -257,7 +210,7 @@ module OKF
         # Everything this class *emits* must carry the prefix a host mounted it
         # under; PATH_INFO is already relative to it.
         base = env["SCRIPT_NAME"].to_s
-        return write(request, base) if request.post? && request.path_info.start_with?("/registry/")
+        return write(request) if request.post? && request.path_info.start_with?("/registry/")
         return not_found unless request.get?
 
         path = request.path_info
@@ -265,7 +218,7 @@ module OKF
         return landing(base, query) if [ "", "/" ].include?(path)
         return search(request.params["q"]) if path == "/search"
         return bundles_json if path == "/bundles"
-        return html(200, index_page(base, request.params)) if [ MOUNT, "#{MOUNT}/" ].include?(path)
+        return html(200, index_page(base)) if [ MOUNT, "#{MOUNT}/" ].include?(path)
 
         slug, rest = split(path)
         app = slug && @apps[slug]
@@ -282,56 +235,40 @@ module OKF
       #
       #   1. the verb is one of WRITES, or there is nothing here to talk about;
       #   2. this hub is writable at all (see #initialize) — a read-only server
-      #      shows no forms, and refuses the request that skipped them anyway;
+      #      offers no controls, and refuses the request that skipped them anyway;
       #   3. there is a registry to write to — an ephemeral hub is serving
       #      directories somebody typed, and has no list to edit;
       #   4. the request is same-origin and carries this boot's token.
       #
-      # A success is a redirect (POST/redirect/GET), so a reload never re-posts.
-      # A refusal renders the manager *with the reason on it* rather than
-      # redirecting: the message is the whole point of refusing, and the audience
-      # this page was built for cannot read a status code.
-      def write(request, base)
+      # The answer is always data. It used to be a redirect, because /b/ managed
+      # the registry with plain forms and a POST/redirect/GET keeps a reload from
+      # re-posting. Those forms are gone: the graph page's Bundles panel does the
+      # same four verbs where the reader already is, and two implementations of
+      # one contract is the thing that drifts. So there is one caller, it is a
+      # fetch(), and asking for HTML no longer resurrects a page-shaped answer
+      # that nothing would read.
+      def write(request)
         verb = request.path_info.sub("/registry/", "")
         return not_found unless WRITES.include?(verb)
 
-        # How the outcome is *rendered* — never what it is. The manager is a
-        # document and wants a page; the graph page's Bundles panel stays where
-        # it is and wants the answer as data. Both go through the guards below
-        # in the same order and get the same statuses out.
-        as_json = wants_json?(request)
-        return deny(base, as_json, 403, "This server is read-only. Restart it with --allow-manage to manage bundles here.") unless @writable
-        return deny(base, as_json, 409, "These bundles were named on the command line, so there is no registry to change.") if @boot_registry.nil?
-        return deny(base, as_json, 403, "That request did not come from this page. Reload and try again.") unless authentic?(request)
+        return deny(403, "This server is read-only. Bundles are managed from a loopback bind, without --read-only.") unless @writable
+        return deny(409, "These bundles were named on the command line, so there is no registry to change.") if @boot_registry.nil?
+        return deny(403, "That request did not come from this page. Reload and try again.") unless authentic?(request)
 
-        apply(verb, request.params, base, as_json)
+        apply(verb, request.params)
       end
 
-      def apply(verb, params, base, as_json)
+      def apply(verb, params)
         registry = OKF::Registry.new(@boot_registry.path)
         message = mutate(verb, registry, params)
         reload(registry)
-        return json("ok" => true, "message" => message) if as_json
-
-        redirect("#{base}#{MOUNT}/?ok=#{Rack::Utils.escape(message)}", 303)
+        json("ok" => true, "message" => message)
       rescue OKF::Error => e
-        deny(base, as_json, 400, e.message)
+        deny(400, e.message)
       end
 
-      # A caller that asked for JSON gets the refusal as JSON. Asking is not a
-      # way around anything — this runs after every gate, on whatever the gate
-      # decided.
-      def deny(base, as_json, status, message)
-        return [ status, { "content-type" => "application/json; charset=utf-8" }, [ JSON.generate("ok" => false, "error" => message) ] ] if as_json
-
-        refused(base, status, message)
-      end
-
-      # A form post from the manager sends `Accept: text/html,…`; fetch() from
-      # the panel names JSON outright. Anything ambiguous is treated as the
-      # document case, because that is the one a browser address bar produces.
-      def wants_json?(request)
-        request.get_header("HTTP_ACCEPT").to_s.include?("application/json")
+      def deny(status, message)
+        [ status, { "content-type" => "application/json; charset=utf-8" }, [ JSON.generate("ok" => false, "error" => message) ] ]
       end
 
       # Every branch ends in the sentence the manager will show. The core does
@@ -427,13 +364,6 @@ module OKF
       # a cookie jar is a whole subsystem to defend for a page four people see.
       def token
         @token ||= SecureRandom.hex(16)
-      end
-
-      # A refusal is the manager page again, carrying the reason. Same body a
-      # GET would produce, so the reader keeps their bearings instead of landing
-      # on a bare status.
-      def refused(base, status, message)
-        html(status, index_page(base, "err" => message))
       end
 
       # Cross-bundle search, straight from the pure OKF::Bundle::Search.across —
@@ -563,27 +493,13 @@ module OKF
       # is on the row: size, health, which one `/` opens, and whether the folder
       # is still there. A registry-backed hub reads the file per request rather
       # than a boot snapshot, so an edit made elsewhere shows on a refresh.
-      def index_page(base, params = {})
+      def index_page(base)
         rows = manager_rows
         manager_page("OKF · bundles", <<~BODY)
           <header class="mhead"><h1>Bundles</h1><p class="sub">#{escape(manager_summary(rows))}</p></header>
-          #{flash(params)}
           <ol class="rows">#{rows.map { |row| manager_row(base, row) }.join}</ol>
-          #{add_panel(base)}
           #{manager_note}
         BODY
-      end
-
-      # What just happened, said once. `ok` arrives on the redirect a write ends
-      # with; `err` is passed straight in by #refused, which never redirects.
-      def flash(params)
-        error = params["err"]
-        return %(<p class="flash err" role="alert">#{escape(error)}</p>) unless OKF.blank?(error)
-
-        done = params["ok"]
-        return "" if OKF.blank?(done)
-
-        %(<p class="flash ok" role="status">#{escape(done)}</p>)
       end
 
       # One row per bundle this server knows about — which is not the same as
@@ -628,82 +544,7 @@ module OKF
           # The row shows the tail; the tooltip is where the whole path stays
           # reachable, since nothing else on the page carries it.
           %(<span class="dir" title="#{escape(row[:dir])}"><bdi>#{escape(row[:dir])}</bdi></span></div></div>) +
-          %(<div class="facts">#{facts(row)}</div>#{actions(base, row)}</li>)
-      end
-
-      # The actions column. Plain forms, no script: this page is a document, and
-      # a document that needs JavaScript to remove a row is a worse document.
-      #
-      # Rename and Remove hide inside <details> because both need a second
-      # thought — one needs a field, the other needs a confirmation, and a bare
-      # Remove button next to a name is a click nobody meant to make. <details>
-      # is the browser's own disclosure, so it costs no script and works with a
-      # keyboard for free.
-      def actions(base, row)
-        return "" unless @writable && @boot_registry
-
-        buttons = []
-        # A bundle the hub cannot open must not become the one `/` opens: the
-        # registry would take the write, and the next visit would land nowhere.
-        buttons << make_default_form(base, row[:slug]) if row[:mount] && !row[:default]
-        buttons << rename_form(base, row[:slug])
-        buttons << remove_form(base, row[:slug])
-        %(<div class="acts">#{buttons.join}</div>)
-      end
-
-      def make_default_form(base, slug)
-        form(base, "default", slug) { %(<button class="lnk" type="submit">Make default</button>) }
-      end
-
-      def rename_form(base, slug)
-        inner = form(base, "rename", slug) do
-          %(<input class="fld" type="text" name="to" value="#{escape(slug)}" ) +
-            %(aria-label="New name for @#{escape(slug)}" pattern="[a-z0-9]+(-[a-z0-9]+)*" required>) +
-            %(<button class="lnk go" type="submit">Rename</button>)
-        end
-        disclose("Rename", inner)
-      end
-
-      def remove_form(base, slug)
-        inner = form(base, "remove", slug) do
-          %(<p class="warn-copy">Remove <code>@#{escape(slug)}</code> from the registry? ) +
-            %(The folder stays where it is — only this server stops listing it.</p>) +
-            %(<button class="lnk go danger" type="submit">Remove</button>)
-        end
-        disclose("Remove", inner)
-      end
-
-      def disclose(label, inner)
-        %(<details class="dis"><summary>#{escape(label)}</summary><div class="dis-body">#{inner}</div></details>)
-      end
-
-      # Every form carries the token. It is one line, and the day it is not on
-      # one of them is the day that form is the hole.
-      def form(base, verb, slug = nil)
-        fields = %(<input type="hidden" name="token" value="#{escape(token)}">)
-        fields += %(<input type="hidden" name="slug" value="#{escape(slug)}">) if slug
-        %(<form method="post" action="#{escape(base)}/registry/#{verb}">#{fields}#{yield}</form>)
-      end
-
-      # Adding a bundle is typing a path, because a browser cannot hand one over
-      # — the File System Access API yields an opaque handle, never a filesystem
-      # path, and it is Chromium-only besides. So: a field, an example, and a
-      # server that says exactly what is wrong with what was typed.
-      def add_panel(base)
-        return "" unless @writable && @boot_registry
-
-        body = form(base, "add") do
-          %(<label class="lbl" for="add-path">Folder</label>) +
-            %(<input class="fld path" id="add-path" type="text" name="path" required ) +
-            %(placeholder="/Users/you/projects/handbook/.okf" aria-describedby="add-help">) +
-            %(<label class="lbl" for="add-as">Name <span class="opt">optional</span></label>) +
-            %(<input class="fld" id="add-as" type="text" name="as" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="handbook">) +
-            %(<label class="chk"><input type="checkbox" name="default" value="1"> Open this one by default</label>) +
-            %(<button class="lnk go" type="submit">Add bundle</button>)
-        end
-        %(<section class="addbox"><h2>Add a bundle</h2>) +
-          %(<p class="sub" id="add-help">Paste the full path to a folder of OKF markdown. It stays where it is — ) +
-          %(this only records where to find it.</p>#{body}</section>)
+          %(<div class="facts">#{facts(row)}</div></li>)
       end
 
       # Three slots, always all three, so the columns line up down the page even
@@ -727,15 +568,15 @@ module OKF
         gone.zero? ? line : "#{line} #{tally(gone, "entry")} cannot be opened."
       end
 
-      # An ephemeral hub has no registry, so there is nothing on this page to
-      # rename, remove or make default — the same answer the TUI gives when it
-      # has no registry to change. Saying so beats leaving a reader to wonder
-      # why the controls they were told about are absent.
+      # An ephemeral hub has no registry behind it, which is why these bundles
+      # will not be here next run — and why the Bundles panel offers nothing on
+      # them either. Saying so beats leaving a reader to wonder why the controls
+      # they were told about are absent.
       def manager_note
         return "" unless registry.nil?
 
         %(<p class="mnote">These bundles were named on the command line and are ) +
-          %(<strong>not registered</strong> — there is nothing here to manage. ) +
+          %(<strong>not registered</strong> — they last as long as this server does. ) +
           %(<code>okf registry set &lt;dir&gt;</code> registers one for good.</p>)
       end
 

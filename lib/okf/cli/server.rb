@@ -24,7 +24,7 @@ module OKF
         require "okf/server/app"
         require "rack/deflater"
 
-        options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose", allow_manage: false }
+        options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose", read_only: false }
         parser = OptionParser.new do |o|
           o.banner = "Usage: okf server [DIR|@slug…] [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url]"
           o.on("-p", "--port PORT", Integer, "port to serve on (default #{options[:port]})") { |v| options[:port] = v }
@@ -32,7 +32,7 @@ module OKF
           o.on("-t", "--title TITLE", "graph title, single bundle only (default: parent/bundle dir name)") { |v| options[:title] = v }
           o.on("-l", "--link URL", "source URL shown in the header, single bundle only") { |v| options[:link] = v }
           o.on("--layout NAME", OKF::Render::Graph::LAYOUTS, "initial layout (#{OKF::Render::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
-          o.on("--allow-manage", "manage the registry from the browser on a non-loopback bind") { options[:allow_manage] = true }
+          o.on("--read-only", "serve the bundles list without its registry controls") { options[:read_only] = true }
           help_flag(o)
         end
         dirs = positional_dirs(parser, argv) or return 2
@@ -151,17 +151,21 @@ module OKF
       # May the browser change the registry? On a loopback bind, yes: the server
       # is reachable only from this machine, and the audience this was built for
       # should not need a flag to use the page they were pointed at. Anywhere
-      # else it takes --allow-manage, because `--bind 0.0.0.0` is how a personal
-      # tool becomes a public one and a write surface must not follow it there by
-      # accident. 0.0.0.0 is *not* loopback — it is every interface, which is the
-      # exact case this guards.
+      # else, no — and there is no flag that says otherwise, because the registry
+      # is a per-user file and the machine that owns it is the machine that
+      # manages it. `--bind 0.0.0.0` is how a personal tool becomes a public one,
+      # and 0.0.0.0 is *not* loopback: it is every interface, which is the exact
+      # case this guards.
       #
-      # The flag is named for what it permits, and *manage* is the whole of it:
-      # adding, renaming, removing and re-defaulting registry entries, which are
-      # references. Nothing here makes a reader's markdown writable from a
-      # browser, and "allow edit" was a name that invited exactly that fear.
+      # So the only flag is the way *out*. It was `--allow-manage`, an opt-in
+      # that read as the on switch and was not one — the loopback default had
+      # already turned management on, and the flag only widened it to a bind
+      # nobody should widen it to. Naming the exception instead means the flag
+      # cannot be misread as permission: `--read-only` is the word the hub's own
+      # refusal already uses, and this server never writes a reader's markdown
+      # anyway, so in context it can only mean the registry.
       def writable?(options)
-        options[:allow_manage] || loopback?(options[:bind])
+        !options[:read_only] && loopback?(options[:bind])
       end
 
       def loopback?(bind)
