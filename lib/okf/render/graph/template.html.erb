@@ -3155,7 +3155,6 @@ const KEYS=[
  [ '/', 'search the current view (where it has one)' ],
  [ '\\', 'show or hide the inspector — graph' ],
  [ '0', 'fit the graph to the screen — graph' ],
- [ 'f', 'fullscreen' ],
  [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K',
    SEARCH_ENDPOINT!==null?'search every bundle, switch bundle, or jump to a view':
    HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
@@ -3186,7 +3185,7 @@ addEventListener('keydown',e=>{if(!dgv.hidden){if(e.key==='Escape')closeDiagram(
  else if(e.key==='\\'&&view==='graph'){setSide(gbody.getAttribute('data-side')==='hidden'?'default':'hidden');}
  else if(e.key==='0'&&view==='graph'){fitGraph();}
  else if(e.key==='Escape'&&view==='graph'){deselect();}
- else if(e.key==='f'){btnFull.click();}});
+});
 
 /* ── deep links ── */
 const Q=new URLSearchParams(location.search),QL=Q.get('layout'),QS=Q.get('select');

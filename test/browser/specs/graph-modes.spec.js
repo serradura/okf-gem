@@ -132,11 +132,11 @@ test.describe("graph modes", () => {
     }
   });
 
-  test("the f key requests fullscreen on the app element", async ({ app }) => {
-    // btnFull's handler reads appEl.requestFullscreen at click time and calls it,
-    // and `f` clicks the button. Real fullscreen is unreliable headless and is
-    // the browser's job, not the page's — the page's contract is that it *asks*.
-    // Spy on the API (a test-side stub, not a product change) and press f.
+  test("f is not a shortcut — only the button requests fullscreen", async ({ app }) => {
+    // `f` is a letter, and a bare letter bound globally fires on every stray
+    // keystroke the page did not route into an input. The button stays; the
+    // binding goes. Real fullscreen is unreliable headless and is the browser's
+    // job anyway, so spy on the API (a test-side stub) and check who calls it.
     await app.evaluate(() => {
       window.__fsTarget = null;
       document.getElementById("app").requestFullscreen = function () {
@@ -145,7 +145,17 @@ test.describe("graph modes", () => {
       };
     });
     await app.keyboard.press("f");
+    expect(await app.evaluate(() => window.__fsTarget)).toBe(null);
+
+    await app.locator("#btn-full").click();
     expect(await app.evaluate(() => window.__fsTarget)).toBe("app");
+  });
+
+  test("the shortcut sheet does not advertise f", async ({ app }) => {
+    // A list that names a key nothing is bound to is worse than no list.
+    await app.keyboard.press("?");
+    const keys = await app.locator("#kb-list dt kbd").allTextContents();
+    expect(keys).not.toContain("f");
   });
 
   test("a lazy layout whose CDN fails falls back to cose", async ({ app }) => {
