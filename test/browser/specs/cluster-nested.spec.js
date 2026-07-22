@@ -37,6 +37,150 @@ const parentOf = (page, id) => page.evaluate((i) => {
   return p.nonempty() ? p[0].id() : null;
 }, id);
 
+// Where every leaf sits, rounded. A node the cluster layout never placed keeps
+// the coordinates the force layout left it at — byte-identical, which is what
+// makes "did the layout reach this node?" observable at all. Asserting a node
+// sits *inside* its box cannot do it: a compound parent is sized from its
+// children, so that holds by construction even when nothing was laid out.
+// A point on the box's own body, clear of every descendant. The band matters: a
+// compound parent is only hit-testable across its middle — measured, the label
+// strip at the top (~15%) and the bottom ~20% fall through to the canvas — so
+// aiming outside it silently tests the background instead of the box, and a
+// "dragging the box pans" assertion would pass even with the box still grabbable.
+const aimAtBoxBody = (page, id) => page.evaluate((boxId) => {
+  const box = cy.getElementById(boxId);
+  const b = box.renderedBoundingBox();
+  const kids = box.descendants().map((n) => n.renderedBoundingBox());
+  for (let fy = 0.3; fy <= 0.65; fy += 0.05) {
+    for (let fx = 0.1; fx <= 0.95; fx += 0.05) {
+      const x = b.x1 + (b.x2 - b.x1) * fx, y = b.y1 + (b.y2 - b.y1) * fy;
+      if (!kids.some((k) => x >= k.x1 && x <= k.x2 && y >= k.y1 && y <= k.y2)) return { x, y };
+    }
+  }
+  return null;
+}, id);
+
+// Wait for the layout to stop moving things, rather than guessing at a duration.
+// A fixed sleep raced the end-transition: the drag would land mid-animation, the
+// animation would win, and the test failed about once in three.
+const settle = async (page) => {
+  let last = null;
+  await expect.poll(async () => {
+    const now = await page.evaluate(() => JSON.stringify(
+      cy.nodes().map((n) => [ Math.round(n.position().x), Math.round(n.position().y) ])));
+    const same = now === last;
+    last = now;
+    return same;
+  }, { timeout: 15000, intervals: [ 250 ] }).toBe(true);
+};
+
+const positions = (page) => page.evaluate(() => Object.fromEntries(cy.nodes()
+  .filter((n) => !n.isParent())
+  .map((n) => [ n.id(), `${Math.round(n.position().x)},${Math.round(n.position().y)}` ])));
+
+test.describe("cluster mode — the layout covers what a cleared filter brings back", () => {
+  // The layout runs over `:visible` only — deliberately, because fcose throws on
+  // a node whose label went display:none mid-run. That leaves whatever a filter
+  // was hiding unplaced, and clearing the filter brings those nodes back at
+  // their pre-cluster coordinates, stretching the box drawn around them.
+  test("a filter narrowed before clustering does not strand the rest", async ({ tree }) => {
+    await tree.locator("#search").fill("api");
+    const before = await positions(tree);
+    await tree.locator("#btn-cluster").click();
+    await expect(tree.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
+
+    await tree.locator("#search").fill("");
+    await expect.poll(async () => {
+      const now = await positions(tree);
+      return Object.keys(before).filter((id) => before[id] === now[id]);
+    }, { timeout: 7000 }).toEqual([]);
+  });
+
+  // The sharper case: nothing visible when clustering is switched on, so the
+  // layout returns early and places nobody at all.
+  test("clustering while the filter matches nothing still lays out on clear", async ({ tree }) => {
+    await tree.locator("#search").fill("zzzz-matches-nothing");
+    const before = await positions(tree);
+    await tree.locator("#btn-cluster").click();
+    await expect(tree.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
+
+    await tree.locator("#search").fill("");
+    await expect.poll(async () => {
+      const now = await positions(tree);
+      return Object.keys(before).filter((id) => before[id] === now[id]);
+    }, { timeout: 7000 }).toEqual([]);
+  });
+});
+
+test.describe("cluster mode — a box is scenery, not a handle", () => {
+  // A big cluster is mostly box: its empty interior is the largest drag target on
+  // the canvas. While that interior grabbed the compound node, dragging to look
+  // around dragged the *directory* instead of the view, and the bigger the
+  // cluster the harder the page was to navigate.
+  test("dragging a box's empty interior pans the canvas, leaving the box put", async ({ tree }) => {
+    await tree.locator("#btn-cluster").click();
+    await expect(tree.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => tree.evaluate(() => cy.getElementById("box::platform").length)).toBe(1);
+    await settle(tree); // geometry must be stable to aim at
+
+    const canvas = await tree.locator("#cy").boundingBox();
+    const at = await aimAtBoxBody(tree, "box::platform");
+    expect(at, "the fixture must leave some empty box interior to aim at").not.toBeNull();
+
+    const read = () => tree.evaluate(() => JSON.stringify([ cy.getElementById("box::platform").position(), cy.pan() ]));
+    const [ b0, p0 ] = JSON.parse(await read());
+    await tree.mouse.move(canvas.x + at.x, canvas.y + at.y);
+    await tree.mouse.down();
+    await tree.mouse.move(canvas.x + at.x + 60, canvas.y + at.y + 40, { steps: 8 });
+    await tree.mouse.up();
+    await tree.waitForTimeout(300);
+    const [ b1, p1 ] = JSON.parse(await read());
+
+    expect({ dx: Math.round(b1.x - b0.x), dy: Math.round(b1.y - b0.y) }).toEqual({ dx: 0, dy: 0 });
+    expect({ dx: Math.round(p1.x - p0.x), dy: Math.round(p1.y - p0.y) }).toEqual({ dx: 60, dy: 40 });
+  });
+
+  // Moving a box is still a real gesture, just no longer the default one: the
+  // common action (look around) stays unmodified and the rare one (tidy a box)
+  // takes Alt. Ctrl is deliberately not the key — on macOS Ctrl+mousedown is the
+  // system secondary click.
+  test("Alt turns a box back into a handle, and releasing it gives the pan back", async ({ tree }) => {
+    await tree.locator("#btn-cluster").click();
+    await expect(tree.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => tree.evaluate(() => cy.getElementById("box::platform").length)).toBe(1);
+    await settle(tree);
+
+    const canvas = await tree.locator("#cy").boundingBox();
+    const aim = () => aimAtBoxBody(tree, "box::platform");
+    const read = () => tree.evaluate(() => JSON.stringify([ cy.getElementById("box::platform").position(), cy.pan() ]));
+    const drag = async (at) => {
+      await tree.mouse.move(canvas.x + at.x, canvas.y + at.y);
+      await tree.mouse.down();
+      await tree.mouse.move(canvas.x + at.x + 60, canvas.y + at.y + 40, { steps: 8 });
+      await tree.mouse.up();
+      await tree.waitForTimeout(300);
+    };
+
+    const held = await aim();
+    const [ b0, p0 ] = JSON.parse(await read());
+    await tree.keyboard.down("Alt");
+    await drag(held);
+    await tree.keyboard.up("Alt");
+    const [ b1, p1 ] = JSON.parse(await read());
+    expect(Math.round(b1.x - b0.x) !== 0 || Math.round(b1.y - b0.y) !== 0, "Alt+drag must move the box").toBe(true);
+    expect({ dx: Math.round(p1.x - p0.x), dy: Math.round(p1.y - p0.y) }).toEqual({ dx: 0, dy: 0 });
+
+    // and the release restores panning — a modifier that leaks its state is worse
+    // than no modifier
+    const after = await aim();
+    const [ b2, p2 ] = JSON.parse(await read());
+    await drag(after);
+    const [ b3, p3 ] = JSON.parse(await read());
+    expect({ dx: Math.round(b3.x - b2.x), dy: Math.round(b3.y - b2.y) }).toEqual({ dx: 0, dy: 0 });
+    expect({ dx: Math.round(p3.x - p2.x), dy: Math.round(p3.y - p2.y) }).toEqual({ dx: 60, dy: 40 });
+  });
+});
+
 test.describe("cluster mode — nested boxes", () => {
   test("depth 1 draws the flat view: one box per first segment, plus the root", async ({ tree }) => {
     await tree.locator("#btn-cluster").click();

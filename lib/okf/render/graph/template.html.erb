@@ -1534,6 +1534,11 @@ function applyGraphFilter(){const s=q.graph.toLowerCase();const ids=ftMatch(q.gr
     it off the canvas. One pass still does it, because the predicate is what
     knows about depth, not the loop. */
  cy.nodes(':parent').forEach(p=>p.style('display',p.descendants().some(c=>!c.isParent()&&c.style('display')!=='none')?'element':'none'));
+ /* A loosened filter brings back nodes the layout never placed — they return at
+    whatever coordinates the pre-cluster force layout left them at, dragging
+    their box across the canvas. Re-tile when that happens. Narrowing never
+    re-runs: the visible set only shrinks, and every survivor is already laid. */
+ if(clustered&&clusterLaid&&cy.nodes(':visible').some(n=>!n.isParent()&&!clusterLaid.has(n.id())))clusterLayout();
  ixVisibility();
  relaxZoom();
  bridgeSync();}
@@ -1634,7 +1639,18 @@ async function ensureLayout(name){const ext=LAYOUT_EXT[name];if(!ext||loadedExt[
    keeps a real gap between boxes in cose; avoidOverlap + spacingFactor do the
    same for the geometric layouts. Extras are ignored by layouts that don't know
    them. */
-function layoutOpts(name){const base={animate:true,padding:40,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2,nodeDimensionsIncludeLabels:true};
+/* Past this many concepts a layout transition stops being orientation and starts
+   being the reason the tab is unresponsive. Measured in nodes rather than edges
+   because it is the node re-render that costs. */
+const ANIMATE_MAX=250;
+/* `'end'`, never `true`. The force layouts read `animate:true` as "render every
+   tick of the simulation" — that is the visible bounce, and it is hundreds of
+   full re-renders for one settle. `'end'` runs the same simulation headless and
+   moves the nodes once, into the same final positions. Above ANIMATE_MAX even
+   that one transition is dropped: at that size the move itself is the jank, and
+   a graph that appears laid out beats a graph that arrives slowly. */
+function animateMode(){return cy.nodes().filter(n=>!n.isParent()).length>ANIMATE_MAX?false:'end';}
+function layoutOpts(name){const base={animate:animateMode(),padding:40,nodeOverlap:24,avoidOverlap:true,spacingFactor:1.2,nodeDimensionsIncludeLabels:true};
  if(name==='fcose')return{...base,name:'fcose',quality:'default',nodeRepulsion:6500,idealEdgeLength:160,nodeSeparation:100,packComponents:true};
  if(name==='dagre')return{...base,name:'dagre',rankDir:'TB',nodeSep:26,rankSep:55,edgeSep:12};
  if(name==='cola')return{...base,name:'cola',maxSimulationTime:2500,edgeLength:160,nodeSpacing:8};
@@ -1652,6 +1668,11 @@ layoutSel.value='<%= @layout %>';
    Both are mode state — turning clustering off has to undo them together, or
    the boxes leak into the plain graph. */
 let clustered=false,clusterDepth=1;const btnCluster=document.getElementById('btn-cluster');
+/* Which leaves the last cluster layout actually placed. The layout runs over the
+   visible subset (see clusterLayout), so this is what tells a *loosened* filter
+   apart from a tightened one: a node that comes back but is not in here has
+   never been tiled. null while unclustered. */
+let clusterLaid=null;
 const depthSel=document.getElementById('cluster-depth'),depthWrap=document.getElementById('cluster-depth-wrap');
 const BOX='box::';
 /* `dir::` is taken — file-tree mode's folder nodes wear it — so the boxes get a
@@ -1670,11 +1691,36 @@ function boxesAt(depth){const set=new Set();
  NODES.forEach(n=>{const d=dirOf(n.id);if(d==='.'){set.add('.');return;}
   let t=dirTrunc(d,depth);while(t){set.add(t);t=dirParent(t);}});
  return [...set].sort((a,b)=>dirDepth(a)-dirDepth(b)||(a<b?-1:a>b?1:0));}
+/* `grabbable:false, pannable:true` is what keeps a box scenery rather than a
+   handle — the pair, not either alone: ungrabbable stops the box moving, but the
+   node still swallows the drag, and it is `pannable` that hands the gesture to
+   the canvas the way empty background does. A cluster's
+   empty interior is the largest drag target on the canvas, so while it grabbed
+   the compound node, dragging to look around dragged the *directory* — and the
+   bigger the cluster, the less of the view was pannable. Leaves stay grabbable:
+   moving a concept is a real gesture, moving its folder is not. */
 function addBoxes(){
  cy.add(boxesAt(clusterDepth).map(d=>{const data={id:BOX+d,label:dirLabel(d)};
-  const p=d==='.'?null:dirParent(d);if(p)data.parent=BOX+p;return {group:'nodes',data:data};}));
+  const p=d==='.'?null:dirParent(d);if(p)data.parent=BOX+p;
+  return {group:'nodes',data:data,grabbable:false,pannable:true};}));
+ setBoxHandles();
  cy.batch(()=>NODES.forEach(n=>{const e=cy.getElementById(n.id);
   if(e.length)e.move({parent:BOX+dirTrunc(dirOf(n.id),clusterDepth)});}));}
+/* Alt hands a box back its handle. The two gestures are split by frequency, not
+   by preference: looking around is constant and stays unmodified, tidying a box
+   is occasional and takes the modifier. Alt rather than Ctrl because on macOS
+   Ctrl+mousedown is the system secondary click, and a modifier that opens a
+   context menu instead of dragging is not a modifier.
+
+   `blur` is not defensive clutter — a keyup that lands on another window never
+   reaches us, so without it the boxes would still be handles when the reader
+   comes back and every drag would move the wrong thing. */
+let altHeld=false;
+function setBoxHandles(){cy.nodes(':parent').forEach(n=>{
+ if(altHeld){n.grabify();n.unpanify();}else{n.ungrabify();n.panify();}});}
+addEventListener('keydown',e=>{if(e.key==='Alt'&&!altHeld){altHeld=true;setBoxHandles();}});
+addEventListener('keyup',e=>{if(e.key==='Alt'&&altHeld){altHeld=false;setBoxHandles();}});
+addEventListener('blur',()=>{if(altHeld){altHeld=false;setBoxHandles();}});
 /* Unparent first, then take the boxes out as one collection — removing a nested
    parent while its children still point at it is how a teardown leaves orphans. */
 function removeBoxes(){cy.batch(()=>{
@@ -1696,16 +1742,22 @@ function removeBoxes(){cy.batch(()=>{
    concept has no business influencing where the visible ones land. Nothing
    visible means nothing to lay out. */
 function clusterLayout(){ensureLayout('fcose').then(ok=>{if(!clustered)return;
- const eles=cy.elements(':visible');if(!eles.nodes().nonempty())return;
- cy.layout(ok?{name:'fcose',eles:eles,quality:'proof',animate:true,padding:40,nodeRepulsion:6500,idealEdgeLength:90,
+ const eles=cy.elements(':visible');
+ /* Recorded before the early return, not after: "nothing was visible" and
+    "nothing has been laid out" are the same fact, and the empty set is what
+    makes clearing that filter re-tile everything rather than nothing. */
+ clusterLaid=new Set(eles.nodes().filter(n=>!n.isParent()).map(n=>n.id()));
+ if(!eles.nodes().nonempty())return;
+ cy.layout(ok?{name:'fcose',eles:eles,quality:'proof',animate:animateMode(),padding:40,nodeRepulsion:6500,idealEdgeLength:90,
    nodeSeparation:100,nestingFactor:.1,gravityCompound:1.5,tile:true,tilingPaddingVertical:14,
    tilingPaddingHorizontal:14,packComponents:true,nodeDimensionsIncludeLabels:true}
-  :{name:'cose',eles:eles,animate:true,padding:40,nodeRepulsion:8000,idealEdgeLength:70,nodeOverlap:24,nestingFactor:1.2,gravity:.7}).run();});}
+  :{name:'cose',eles:eles,animate:animateMode(),padding:40,nodeRepulsion:8000,idealEdgeLength:70,nodeOverlap:24,nestingFactor:1.2,gravity:.7}).run();});}
 function setClustered(on){if(on===clustered)return;if(on&&treeMode)setTree(false);
  clustered=on;btnCluster.setAttribute('aria-pressed',String(on));layoutSel.disabled=on;
  /* A flat bundle has one level and therefore no choice to offer — the control
     stays away rather than presenting a select with a single option. */
  depthWrap.hidden=!(on&&maxDirDepth>1);
+ clusterLaid=null;
  if(on){
   addBoxes();
   /* A box is made for every directory; if a search or filter was already
@@ -3107,6 +3159,7 @@ const KEYS=[
  [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K',
    SEARCH_ENDPOINT!==null?'search every bundle, switch bundle, or jump to a view':
    HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
+ [ '⌥ drag', 'move a cluster box — a plain drag pans the canvas' ],
  [ '?', 'this list' ],
  [ 'Esc', 'close what is open, or clear the graph selection' ]
 ];

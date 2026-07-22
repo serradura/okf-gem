@@ -7,6 +7,44 @@ import { test, expect } from "../helpers.js";
 // against the bug. These read the *settled* state instead (positions stable
 // across two samples), the way settledBox does for the canvas box.
 test.describe("camera + layout", () => {
+  // The force layouts used to animate every tick of the simulation — the visible
+  // "bounce". On a small graph that reads as the layout settling; at a few
+  // hundred concepts it is hundreds of full re-renders a second and the browser
+  // stops keeping up. Watch the cause (the options handed to cy.layout), because
+  // the effect is a frame rate no assertion can read.
+  const spy = (page) => page.evaluate(() => {
+    window.__opts = [];
+    const orig = cy.layout.bind(cy);
+    cy.layout = (o) => { window.__opts.push({ name: o && o.name, animate: o && o.animate }); return orig(o); };
+  });
+
+  test("a force layout never animates per tick — it settles, then moves once", async ({ app }) => {
+    await spy(app);
+    await app.locator("#layout").selectOption("cose");
+
+    await expect.poll(() => app.evaluate(() => window.__opts.map((o) => o.name))).toContain("cose");
+    const run = await app.evaluate(() => window.__opts.find((o) => o.name === "cose"));
+    expect(run.animate, "animate:true is the per-tick bounce; 'end' transitions once").not.toBe(true);
+    expect(run.animate).toBe("end");
+  });
+
+  test("past a few hundred nodes the transition is dropped entirely", async ({ app }) => {
+    // The fixture is 8 concepts, so the branch is unreachable without building
+    // the condition it turns on: add enough nodes that the page is in the size
+    // class the complaint came from, then ask for a layout.
+    await app.evaluate(() => {
+      const add = [];
+      for (let i = 0; i < 320; i++) add.push({ group: "nodes", data: { id: `synthetic::${i}`, title: `n${i}` } });
+      cy.add(add);
+    });
+    await spy(app);
+    await app.locator("#layout").selectOption("cose");
+
+    await expect.poll(() => app.evaluate(() => window.__opts.map((o) => o.name))).toContain("cose");
+    const run = await app.evaluate(() => window.__opts.find((o) => o.name === "cose"));
+    expect(run.animate, "a big graph gets no transition at all").toBe(false);
+  });
+
   test("un-clustering restores the chosen layout, not a hardcoded cose", async ({ app }) => {
     // adf96ff — un-clustering hardcoded a cose run and threw away whichever
     // layout the select was on. Every attempt to read this from the *result*
