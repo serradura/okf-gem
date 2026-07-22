@@ -289,8 +289,9 @@ would read as a partial answer to a query that matched nothing.
 the pair walks down a level at a time.
 
 **On a bundle of any size the map is unreadable whole** — every directory is a
-section — so reach for the two together rather than paging it: `--depth 1
---no-body` is the orientation, `--dir <branch> --depth 1` is the next step down,
+section, and even `--no-body` keeps one listing row per *concept* — so narrow
+rather than paging it: `okf dirs` is the orientation, `--dir <branch> --depth 1`
+is the step down into it,
 and `--except body,listing` on top of either is the lean JSON skeleton. Full
 `index` output on a few hundred concepts runs to hundreds of KB; the same map at
 `--depth 1` is a couple of KB.
@@ -335,9 +336,11 @@ reads "a/b and one level under it" without your first working out how deep `a/b`
 is. `--depth 0` is the starting point alone. A `--depth` that is not a whole
 number is a usage error (exit 2).
 
-**This is the first command to run on a bundle you do not know.** `okf dirs <dir>
---depth 1` is a few hundred bytes and tells you the shape and where the weight
-sits; you then descend with `--dir`, one level at a time.
+**This is the first command to run on a bundle you do not know** — the same first
+move [SKILL.md](../SKILL.md) prescribes. `okf dirs <dir>` is one row per
+directory, so its size tracks the tree rather than the concept count: it tells
+you the shape and where the weight sits, `--depth 1` trims it further on a deep
+bundle, and you then descend with `okf index --dir`, one level at a time.
 
 The root prints `(root)` and stores `.` — the split every grouped view keeps, so
 a table and its `--json` never disagree about which spelling is the data. JSON:

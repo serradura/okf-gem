@@ -85,8 +85,8 @@ flags. The division of labour is the whole game:
   exists, what links where, where a term lives, what's stale, the map. Every read
   verb takes `--json` and the list views filter by type/dir/tag, so ask the narrow
   question instead of paging the bundle.
-- **Skeleton first, bodies last.** `index --no-body`, `search`, `graph --minimal`,
-  and `--fields` projections each answer for a fraction of a dump's bytes; full
+- **Skeleton first, bodies last.** `dirs`, `search`, `graph --minimal`, and
+  `--fields` projections each answer for a fraction of a dump's bytes; full
   bodies are the final step of a retrieval, never the first. <!-- rule:okf-skeleton-first -->
 - **You judge — the CLI can't —** meaning: contradictions, semantic staleness
   (parses fine, no longer true), whether a loose file is terminal-by-design, whether
@@ -102,12 +102,15 @@ shapes, the tag-curation views, the server's trust boundary.
 
 ## Orient before you touch anything
 
-Picking up a bundle you don't already know — to consume or maintain — run `okf
-index <dir|@slug>` (the §6 map: every directory's index body, rollups, and listings) and
-read `log.md` (the §7 baseline of what changed last) **before** greping or opening
-leaves. It is the cheapest high-signal context, and the only reliable way to catch
-enumeration drift: **grep cannot find an index entry that is missing** — you can't
-search for the word that should be there but isn't. <!-- rule:okf-orient-index -->
+Picking up a bundle you don't already know — to consume or maintain — start with
+`okf dirs <dir|@slug>`: one row per *directory*, so it stays small on a bundle of
+any size and it names the branches every other view narrows to. Then open the one
+you want with `okf index <dir|@slug> --dir <branch>` (the §6 map: that directory's
+index body, rollups, and listing), and read `log.md` (the §7 baseline of what
+changed last) — all of it **before** greping or opening leaves. Reach for `index`
+rather than grep for the one reason that outranks convenience: **grep cannot find
+an index entry that is missing**, so enumeration drift is invisible to it — you
+can't search for the word that should be there but isn't. <!-- rule:okf-orient-index -->
 Per-verb steps are in the
 playbooks (the Commands table below; no `okf` installed? read the root
 `index.md` plus each area's `index.md`).

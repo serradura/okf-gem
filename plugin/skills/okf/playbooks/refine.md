@@ -19,8 +19,9 @@ relationship rides links and tags, never new directories. And cohesion outranks
 balance — a move has semantic cost, so balance is a tiebreaker and a fatness
 alarm, never the objective. <!-- rule:okf-cohesion-over-balance -->
 
-1. **Orient.** `okf index <dir|@slug> --no-body` (areas, fan-out, depth),
-   `log.md` (how the bundle grew), `okf stats` (totals). Additive growth
+1. **Orient.** `okf dirs <dir|@slug>` (directories, fan-out, depth — and
+   `subtree` says where the weight sits), `log.md` (how the bundle grew), `okf
+   stats` (totals). Additive growth
    optimizes each pass locally, never the whole — that is the drift this
    playbook corrects.
 2. **Measure — the CLI is the evidence.** Baseline `validate` / `lint

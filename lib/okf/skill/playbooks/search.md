@@ -12,12 +12,12 @@ reads, and full bodies are read last, and only the winners.
    the root `index.md` then each relevant area's `index.md` by hand. No bundle in
    the cwd? `okf registry list` names the registered ones — address them by
    `@slug`, don't hunt sibling directories.
-2. **Ingest the map and decide where to look.** `okf index <dir|@slug> --no-body` is
-   the skeleton: every directory with its concept count, types, tags, children.
-   *You* do the semantic matching here — the question names a meaning, the map
-   names areas; connect them by judgment, not string equality. When an area
-   looks right, `okf index <dir> --dir <name>` buys its authored index body and
-   listing (titles + descriptions) for the price of one directory.
+2. **Ingest the map and decide where to look.** `okf dirs <dir|@slug>` is the
+   skeleton: every directory with what lives under it. *You* do the semantic
+   matching here — the question names a meaning, the map names directories;
+   connect them by judgment, not string equality. When one looks right, `okf
+   index <dir|@slug> --dir <name>` buys its authored index body and listing
+   (titles + descriptions) for the price of one directory.
    <!-- rule:okf-search-map-first -->
 3. **Cut across with the finder when the question is lexical.** An exact
    symbol, an error code, a column name, a phrase — things structure won't
