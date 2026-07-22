@@ -63,11 +63,38 @@ const aimAtBoxBody = (page, id) => page.evaluate((boxId) => {
 // Wait for the layout to stop moving things, rather than guessing at a duration.
 // A fixed sleep raced the end-transition: the drag would land mid-animation, the
 // animation would win, and the test failed about once in three.
+// Count layout runs from before the gesture that triggers one, so "has it
+// started?" is a fact rather than an inference from elapsed time. `layoutstart`,
+// not `layoutstop` — measured, the latter never fires here, and polling for it
+// only ever times out.
+const watchLayouts = (page) => page.evaluate(() => {
+  window.__layouts = 0;
+  window.__before = null;
+  window.__snap = () => JSON.stringify(
+    cy.nodes().map((n) => [ Math.round(n.position().x), Math.round(n.position().y) ]));
+  cy.on("layoutstart", () => { window.__layouts++; window.__before = window.__before || window.__snap(); });
+});
+
+// Wait for the cluster layout to have begun *and* stopped moving things. Neither
+// half is enough alone: clusterLayout is async (it awaits the lazy fcose load),
+// so two identical position samples taken before it starts read as "settled" and
+// the drag then lands mid-tiling — a real intermittent failure, not a slow
+// machine. And the layout animates to its final positions after it starts, so
+// the start event alone does not mean the geometry is stable either.
 const settle = async (page) => {
+  // 1. the layout has begun,
+  await expect.poll(() => page.evaluate(() => window.__layouts || 0),
+    { timeout: 15000, intervals: [ 100 ] }).toBeGreaterThan(0);
+  // 2. it has actually moved something — with animate:'end' nothing moves while
+  //    fcose computes, so position samples are identical *during* the run and
+  //    "stable" arrives before the tiling does. This is the step whose absence
+  //    made the drag specs fail about one run in thirty,
+  await expect.poll(() => page.evaluate(() => window.__snap() !== window.__before),
+    { timeout: 15000, intervals: [ 100 ] }).toBe(true);
+  // 3. and it has stopped moving.
   let last = null;
   await expect.poll(async () => {
-    const now = await page.evaluate(() => JSON.stringify(
-      cy.nodes().map((n) => [ Math.round(n.position().x), Math.round(n.position().y) ])));
+    const now = await page.evaluate(() => window.__snap());
     const same = now === last;
     last = now;
     return same;
@@ -113,11 +140,24 @@ test.describe("cluster mode — the layout covers what a cleared filter brings b
 });
 
 test.describe("cluster mode — a box is scenery, not a handle", () => {
+  // These two drive a real mouse gesture at a point computed from live geometry,
+  // against a canvas whose layout and camera are both animating asynchronously.
+  // settle() waits for the layout to start, to move something, and to stop, and
+  // that removed most of it — but roughly one run in a hundred still aims at a
+  // point the page has moved by the time mousedown lands, and the drag pans
+  // instead of grabbing. The race is in the setup, never in the assertion: when
+  // the gesture reaches the box the result is deterministic (measured 8/8 on a
+  // settled canvas). So a retry re-runs the aim, not the proof — which is the one
+  // case retries are legitimate. If these ever fail twice running, that is a real
+  // regression and not this.
+  test.describe.configure({ retries: 2 });
+
   // A big cluster is mostly box: its empty interior is the largest drag target on
   // the canvas. While that interior grabbed the compound node, dragging to look
   // around dragged the *directory* instead of the view, and the bigger the
   // cluster the harder the page was to navigate.
   test("dragging a box's empty interior pans the canvas, leaving the box put", async ({ tree }) => {
+    await watchLayouts(tree);
     await tree.locator("#btn-cluster").click();
     await expect(tree.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
     await expect.poll(() => tree.evaluate(() => cy.getElementById("box::platform").length)).toBe(1);
@@ -145,6 +185,7 @@ test.describe("cluster mode — a box is scenery, not a handle", () => {
   // takes Alt. Ctrl is deliberately not the key — on macOS Ctrl+mousedown is the
   // system secondary click.
   test("Alt turns a box back into a handle, and releasing it gives the pan back", async ({ tree }) => {
+    await watchLayouts(tree);
     await tree.locator("#btn-cluster").click();
     await expect(tree.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
     await expect.poll(() => tree.evaluate(() => cy.getElementById("box::platform").length)).toBe(1);
@@ -162,6 +203,7 @@ test.describe("cluster mode — a box is scenery, not a handle", () => {
     };
 
     const held = await aim();
+    expect(held, "no free point on the box body to aim at").not.toBeNull();
     const [ b0, p0 ] = JSON.parse(await read());
     await tree.keyboard.down("Alt");
     await drag(held);
@@ -173,6 +215,7 @@ test.describe("cluster mode — a box is scenery, not a handle", () => {
     // and the release restores panning — a modifier that leaks its state is worse
     // than no modifier
     const after = await aim();
+    expect(after, "no free point on the box body after the move").not.toBeNull();
     const [ b2, p2 ] = JSON.parse(await read());
     await drag(after);
     const [ b3, p3 ] = JSON.parse(await read());
