@@ -48,20 +48,32 @@ quietly stopped rendering" is exactly the failure this file keeps producing.
 It is also the only thing giving the suite reach into surfaces it does not
 otherwise test.
 
-# Outside the default task, and non-blocking in CI
+# Outside the default task, and outside CI
 
 It needs node and a ~120MB Chromium, neither of which belongs on the
 [Ruby 2.4 floor](ruby-floor.md) matrix, and the gem takes on no
 [runtime dependency](runtime-dependencies.md) from it. So it is opt-in locally
-(`rake test:browser`) and runs in CI as a separate job marked
-`continue-on-error`.
+(`rake test:browser`) and does not run in CI at all.
 
-Non-blocking is a judgement about *what the signal is worth*, not a hedge. The
-page loads Cytoscape, marked and DOMPurify from a CDN at boot — a dependency
-the [trust boundary](server-trust-boundary.md) already names — so a red job can
-mean a regression or can mean jsdelivr was slow, and a check that cries wolf on
-someone else's PR gets muted within a month. The job stays visibly red and
-uploads its traces; the run passes anyway.
+It did, for several releases, as a separate job marked `continue-on-error` — red
+when it failed, but never gating a merge. The argument was that this is a
+judgement about *what the signal is worth*: the page loads Cytoscape, marked and
+DOMPurify from a CDN at boot — a dependency the
+[trust boundary](server-trust-boundary.md) already names — so a red job can mean
+a regression or can mean jsdelivr was slow.
+
+The measurement settled it against the job. It failed **5 of its last 7 runs**
+while the Ruby matrix stayed green, so the check was wrong far more often than it
+was right, and the same sentence that justified it ("a check that cries wolf gets
+muted within a month") describes what it became. It also cost something the
+argument never priced: a ✗ on the repository's front page is read by a visitor as
+a broken gem, not as a slow CDN, and that reading is the expensive one.
+
+So the suite is a maintainer obligation run locally, enforced by nothing — the
+same standing as the 2.4 Docker floor and the PR shape. Restoring it to CI needs
+the flakiness gone first, not a second hedge on top of the first: cache
+`test/browser/vendor/` between runs so a cold runner stops reaching for jsdelivr,
+and only then judge the signal on what is left.
 
 The suite now answers those requests from a local read-through cache
 (`test/browser/vendor-cache.js`): a miss fetches and writes a gitignored
@@ -74,11 +86,10 @@ hide. Keyed on the URL, a version bump is simply a miss. `OKF_NO_VENDOR_CACHE=1`
 bypasses it entirely, which is the way to check the template's pins still
 resolve against the real CDN rather than against whatever `vendor/` kept.
 
-That does not retire the non-blocking judgement, and the distinction matters:
-`vendor/` is build output, so a CI runner starts cold and still fetches from
-jsdelivr on the first boot. The cache buys a *developer* an offline suite today;
-it would buy CI one only once the workflow restores the directory between runs.
-Until then the rationale above stands unchanged.
+That cache is a developer's offline suite, not CI's: `vendor/` is build output, so
+a runner starts cold and still fetches from jsdelivr on the first boot. Which is
+why it did nothing for the failure rate above, and why restoring the directory
+between runs is the first move if the job is ever brought back.
 
 The cache was built to make the suite *faster* and does not, which is worth
 recording because the arithmetic that predicted otherwise is easy to re-derive

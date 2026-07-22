@@ -268,17 +268,23 @@ endpoints vs. baked `EMBED`) and a pass in one proves nothing about the other.
 
 It is deliberately outside the default `rake` task: it needs node and a ~120MB
 Chromium, neither of which belongs on the 2.4 matrix, and the gem takes on no
-dependency from it. CI runs it in a **separate, non-blocking job** — the page
-boots against a CDN (Cytoscape, marked, DOMPurify), so a jsdelivr hiccup must
-not gate a merge. `continue-on-error` keeps the run green while still showing
-the job red, and traces upload on failure so a real regression is
-distinguishable from a network blip.
+dependency from it. **It does not run in CI at all**, and that is the whole of
+the arrangement: it is a local obligation.
 
-Non-blocking means it is still a maintainer obligation, not an automated gate:
-**a change to the template is not done until `rake test:browser` is green**,
-and a bug in the page earns a red spec there before it earns a patch — the same
-rule `test/integration/cli/` already carries. A red browser job that nobody
-reads is worth nothing.
+It used to run as a non-blocking job, on the argument that a red-but-passing
+check made a regression visible without gating a merge on someone else's CDN.
+That argument lost on the evidence. The job failed **5 of its last 7 runs** while
+the Ruby matrix stayed green, almost all of it jsdelivr rather than the page —
+and the file this section already carried the verdict: *a red browser job that
+nobody reads is worth nothing.* A check that is usually red teaches its readers
+to ignore it, and a visitor to the repository reads the ✗ as "the gem is broken"
+rather than "a CDN was slow". Both costs are real and the signal was not.
+
+So the obligation is unmoved and now unhedged: **a change to the template is not
+done until `rake test:browser` is green**, and a bug in the page earns a red spec
+there before it earns a patch — the same rule `test/integration/cli/` already
+carries. Nothing enforces it, exactly as nothing enforces the PR shape or the
+2.4 Docker run. Run it and say what it said.
 
 Both halves of the template open with a section map, and the JS one also names
 the three seams that actually couple the sections (`applyGraphFilter`,
