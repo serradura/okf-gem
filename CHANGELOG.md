@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.11.0] - 2026-07-22
 
 ### Added
 
@@ -23,8 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--depth 0` is the starting point alone; anything but a whole number is a
   usage error (exit 2). This is what makes `index` usable at scale — every
   directory in it is a section, so a few hundred concepts is a map nobody reads
-  whole. On one such bundle `index --no-body` went 12.5 KB → 1.3 KB at
-  `--depth 1`, and `index --json` 311 KB → 2.6 KB with `--depth 1 --except
+  whole. On one 414-concept bundle `index --no-body` went 12.5 KB → 1.3 KB at
+  `--depth 1`, and `index --json` 313 KB → 2.8 KB with `--depth 1 --except
   body,listing`.
 - **`--dir` on `index` and `dirs` brings the chain up to the root with it**, so a
   branch is never shown adrift of the authored context that says what it is —
@@ -187,6 +187,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The empty-box rule read a compound's direct children, and a box holding only
   sub-boxes has none, so it always counted as empty. It reads leaf descendants
   now.
+
+### Removed
+
+- **`OKF::Server::Hub::SEARCH_LIMIT` and `Hub::SEARCH_ENGINE`.** Both moved to
+  `OKF::Server::App`, which now defines the `/search` payload both hosts answer
+  with (`App.search_payload`). The hub's copies were left behind unreferenced —
+  two constants for one cap is two places to raise it and one of them silently
+  losing. Use `OKF::Server::App::SEARCH_LIMIT` / `App::SEARCH_ENGINE`.
 
 ### Deprecated
 
@@ -1124,6 +1132,7 @@ Initial release.
 
 - Runs on Ruby >= 2.4 with two runtime dependencies: rack and webrick.
 
+[1.11.0]: https://github.com/serradura/okf-gem/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/serradura/okf-gem/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/serradura/okf-gem/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/serradura/okf-gem/compare/v1.7.0...v1.8.0
