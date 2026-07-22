@@ -171,6 +171,63 @@ class OKF::Server::AppTest < OKF::TestCase
     assert_equal [], JSON.parse(last_response.body)["logs"]
   end
 
+  # A server pointed at one bundle still has a bundle to search, so the palette
+  # works there too. The rows are the hub's rows minus `slug` — one bundle has no
+  # slug to carry, and inventing one would make a standalone server answer as if
+  # it were a set.
+  test "GET /search ranks concepts in the one bundle being served" do
+    get "/search", q: "orders"
+
+    assert_equal 200, last_response.status
+    assert_match %r{application/json}, last_response.content_type
+
+    body = JSON.parse(last_response.body)
+    assert_equal "orders", body["query"]
+    assert_equal 1, body["total"]
+
+    row = body["results"].first
+    assert_equal "tables/orders", row["id"]
+    assert_equal "Orders", row["title"]
+    assert_equal "Table", row["type"]
+    refute row.key?("slug"), "a single-bundle server has no slug to answer with"
+    assert_includes row["matched"], "title"
+    assert_kind_of Numeric, row["score"]
+    refute body["truncated"]
+  end
+
+  # The build is ~95% of the index engine's cost, and a server has every
+  # subsequent keystroke to amortize it over — where a one-shot CLI process has
+  # nothing. Rebuilding per request made every search pay the whole corpus again.
+  test "the index is built once and reused across searches" do
+    builds = 0
+    original = OKF::Bundle::Search::Index.method(:prepare)
+    OKF::Bundle::Search::Index.stub(:prepare, ->(documents) { builds += 1; original.call(documents) }) do
+      get "/search", q: "orders"
+      assert_equal 1, JSON.parse(last_response.body)["total"]
+      get "/search", q: "pinned"
+      assert_equal 1, JSON.parse(last_response.body)["total"]
+      get "/search", q: "bold"
+    end
+
+    assert_equal 1, builds, "three searches must share one index, not build three"
+  end
+
+  test "GET /search with no term is an empty result, not an error" do
+    get "/search"
+
+    assert_equal 200, last_response.status
+    body = JSON.parse(last_response.body)
+    assert_equal "", body["query"]
+    assert_equal [], body["results"]
+    assert_equal 0, body["total"]
+  end
+
+  test "the page advertises its own search endpoint, so the palette offers it" do
+    get "/"
+
+    assert_match(/const SEARCH_ENDPOINT="search"/, last_response.body)
+  end
+
   private
 
   def write(path, content)

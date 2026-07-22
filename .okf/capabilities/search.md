@@ -41,9 +41,32 @@ index path's cost at every size, and the gap widens with the bundle.
 The headline number points the other way — `minifts` sustains
 [~44–56× the query throughput](https://github.com/serradura/minifts) of a scan —
 and that is the right measure for a **long-lived** index (a browser page, a
-server) and the wrong one for a one-shot process. When a
-[cached prebuilt index](../design/search-engines.md) lands, this arithmetic
-changes and the default is worth revisiting.
+server) and the wrong one for a one-shot process. So the arithmetic above governs
+the CLI only, and the server takes the other branch.
+
+# The server holds the index, the CLI cannot
+
+`Search.prepare` builds a **Corpus** — the documents, the key → concept map, and
+the built index — and `Search.with` queries it without rebuilding. That is the
+whole difference between the two callers: `okf server` prepares one at boot
+(`warm_search`), so the build lands in startup where it is attributable, and
+every search after it is a query alone.
+
+| 414 concepts, served | before | after |
+|---|---|---|
+| boot | — | 1.39 s (once) |
+| each search | 1.45 s | 0.016 – 0.052 s |
+
+Measured 2026-07-22 through the Rack app, Ruby 4.0.5. Flat before, because each
+request rebuilt the corpus it had just thrown away.
+
+The cost is staleness: a corpus is a **snapshot**, so a body edited after it was
+built is searchable only once the holder drops it — the hub does exactly that
+when a registry write changes the served set. The graph is memoized on the same
+terms, so this is the boundary the server already had, not a new one.
+
+The CLI still builds per call and still defaults to the scan: a one-shot process
+has nothing to amortize over, which is the asymmetry this whole section is about.
 
 Speed is not the only reason. Raw-text matching has **no tokenizer**, so it has
 no tokenizer-shaped recall holes — see below.

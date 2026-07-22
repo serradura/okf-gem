@@ -205,6 +205,12 @@ module OKF
       end
       private_class_method :load_entry
 
+      # See App#warm_search — same reason, one corpus over every hosted bundle.
+      def warm_search
+        search_corpus
+        self
+      end
+
       def call(env)
         request = Rack::Request.new(env)
         # Everything this class *emits* must carry the prefix a host mounted it
@@ -339,6 +345,9 @@ module OKF
         @apps = build_apps(@layout)
         @counts = nil
         @health = nil
+        # The corpus is a snapshot of the set, so a write that changes the set
+        # invalidates it. Without this a removed bundle keeps answering /search.
+        @search_corpus = nil
       end
 
       # Same-origin *and* the token. Neither alone is enough: the token lives in
@@ -374,14 +383,14 @@ module OKF
       # keystroke, and the box starts empty. `fuzzy: true` matches both the TUI
       # and the page's own MiniSearch, so all three forgive the same typos.
       def search(query)
-        terms = query.to_s.split(/\s+/).reject(&:empty?)
-        rows = terms.empty? ? [] : OKF::Bundle::Search.across(pairs, terms, fuzzy: true, engine: SEARCH_ENGINE)
-        json(
-          "query" => query.to_s.strip,
-          "total" => rows.length,
-          "truncated" => rows.length > SEARCH_LIMIT,
-          "results" => rows.first(SEARCH_LIMIT)
-        )
+        json(App.search_payload(search_corpus, query))
+      end
+
+      # One index over every hosted bundle — one corpus, so BM25 weighs a term
+      # against the whole set exactly as .across intends. Dropped whenever the
+      # bundle set changes, which is the only thing that can invalidate it.
+      def search_corpus
+        @search_corpus ||= OKF::Bundle::Search.prepare(pairs, engine: App::SEARCH_ENGINE)
       end
 
       # The /b/ manager's own rows, as JSON — what the graph page's Bundles panel

@@ -35,6 +35,18 @@ class OKF::Server::HubWritesTest < OKF::TestCase
     FileUtils.rm_rf(@root)
   end
 
+  test "removing a bundle drops it from search, not just from the list" do
+    get "/search", q: "beta"
+    assert_equal 1, JSON.parse(last_response.body)["total"], "beta is in the corpus to begin with"
+
+    post_write("/registry/remove", slug: "beta")
+    assert_equal 200, last_response.status
+
+    get "/search", q: "beta"
+    assert_equal 0, JSON.parse(last_response.body)["total"],
+      "an index held across requests must not outlive the bundle set it was built from"
+  end
+
   # ── the four verbs ────────────────────────────────────────────────────────
 
   test "default moves the entry to the front, on disk and in the live hub" do
@@ -382,7 +394,9 @@ class OKF::Server::HubWritesTest < OKF::TestCase
   def make_bundle(slug)
     dir = File.join(@root, slug)
     FileUtils.mkdir_p(dir)
-    File.write(File.join(dir, "a.md"), "---\ntype: Note\ntitle: A\n---\n\nA concept.\n")
+    # The body names its own bundle, so a search result can be traced back to the
+    # set it came from — which is the only way to see a held index outliving it.
+    File.write(File.join(dir, "a.md"), "---\ntype: Note\ntitle: A\n---\n\nA concept in #{slug}.\n")
     dir
   end
 

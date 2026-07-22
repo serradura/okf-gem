@@ -63,6 +63,7 @@ module OKF
         # minimal: the banner wants a count, not bodies — and Folder#graph is not
         # memoized, so a full build here parses every concept a second time (the
         # App builds its own) purely to print one number.
+        app.warm_search
         count = folder.graph(minimal: true).nodes.size
         @out.puts "serving #{count} #{pluralize(count, "concept")} at http://#{options[:bind]}:#{options[:port]} (Ctrl-C to stop)"
         serve(app, options)
@@ -92,6 +93,7 @@ module OKF
         # could not host — a folder deleted out from under one is the question
         # "where did my bundle go?", and only the registry can answer it.
         hub = OKF::Server::Hub.new(bundles, layout: options[:layout], registry: reg, writable: writable?(options))
+        hub.warm_search
         concepts = bundles.inject(0) { |sum, bundle| sum + bundle.folder.graph(minimal: true).nodes.size }
         @out.puts "serving #{bundles.size} #{pluralize(bundles.size,
           "bundle")}, #{concepts} #{pluralize(concepts, "concept")} at http://#{options[:bind]}:#{options[:port]} (Ctrl-C to stop)"
