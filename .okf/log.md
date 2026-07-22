@@ -1,6 +1,17 @@
 # Update Log
 
 ## 2026-07-22
+* **Correction**: [browser-tests](design/browser-tests.md) drops the CI job. The
+  concept argued a non-blocking check was worth its noise because a red job still
+  makes a regression visible; the measurement went the other way — 5 failures in
+  its last 7 runs while the Ruby matrix stayed green, nearly all of them the CDN
+  the page boots against rather than the page. The same sentence that justified
+  the job ("a check that cries wolf gets muted within a month") had come to
+  describe it. It also cost what the argument never priced: a ✗ on the
+  repository's front page reads as a broken gem, not as a slow jsdelivr. The
+  suite is a local obligation now, enforced by nothing, and the note records what
+  restoring it would take first — caching `vendor/` between runs so a cold runner
+  stops reaching for the CDN at all.
 * **Update**: [graph-server](capabilities/graph-server.md) names a bundle by its
   slug. Every row that offered a choice between bundles — the ⌘K switcher, the
   Bundles panel, the hub's own `/b/` page — led with `Folder.label`, the derived
