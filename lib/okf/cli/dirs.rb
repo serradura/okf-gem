@@ -92,9 +92,6 @@ module OKF
         rows.reject { |row| row["ancestor"] }.map { |row| row["count"] }.reduce(0, :+)
       end
 
-      # `.` is the stored value and "(root)" the human one — the same split every
-      # grouped view keeps, so a table and its --json never disagree about which
-      # spelling is the data.
       def print_dirs(dir, rows)
         @out.puts "Dirs — #{bundle_label(dir)}"
         @out.puts
@@ -113,10 +110,6 @@ module OKF
           @out.puts
         end
         @out.puts "  #{rows.size} #{pluralize(rows.size, "dir")} · #{total(rows)} #{pluralize(total(rows), "concept")}"
-      end
-
-      def dir_label(dir)
-        dir == "." ? "(root)" : dir
       end
     end
 

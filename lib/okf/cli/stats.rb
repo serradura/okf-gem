@@ -68,7 +68,7 @@ module OKF
         # One grouping word in the human view: `by_area` stays in --json for the
         # deprecation window, but a screen that printed both would be teaching the
         # vocabulary the rest of this change is retiring.
-        print_stat_breakdown("By dir", stats[:by_dir]) { |label| label == "." ? "(root)" : label }
+        print_stat_breakdown("By dir", stats[:by_dir]) { |label| dir_label(label) }
       end
 
       def print_stat_breakdown(title, counts)

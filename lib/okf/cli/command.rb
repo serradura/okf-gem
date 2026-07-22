@@ -282,7 +282,6 @@ module OKF
       # `a/b`. Same flag, one meaning, because it is asked about two different
       # kinds of row.
       def ancestors_flag(parser, options)
-        options[:ancestors] = true
         parser.on("--[no-]ancestors", "with --dir, also show the chain up to the root",
           "so the branch is placed (default: yes)") { |v| options[:ancestors] = v }
       end
@@ -298,11 +297,11 @@ module OKF
       #
       # The deprecated --area gains no chain either: it is exact, and a deprecated
       # flag that quietly answers with more than it used to is worse than one that
+      # is merely old.
       # Matching folds case, but a row is found by its *stored* spelling, so the
       # chain is walked folded and handed back in the map's own words. Returning
       # the folded string instead dropped every ancestor a bundle spelled with a
       # capital — the rows are selected with `include?`, which does not fold.
-      # is merely old.
       def ancestor_dirs(options, known)
         return [] unless options[:ancestors]
 

@@ -100,10 +100,9 @@ module OKF
       # `.` prints "(root)" bare; every other dir carries the trailing slash that
       # says it is one. The deprecated --by area already stores "(root)" itself.
       def group_label(key, dim)
-        return "(root)" if dim == :dir && key == "."
-        return key if key == "(root)" || dim == :type
+        return key if dim == :type
 
-        "#{key}/"
+        dir_label(key, slash: true)
       end
 
       def print_grouped_tags(dir, dim, groups, titles)

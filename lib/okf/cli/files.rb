@@ -47,7 +47,7 @@ module OKF
         entries.group_by { |entry| entry[:dir] }.sort_by(&:first).each do |folder, group|
           width = group.map { |entry| File.basename("#{entry[:id]}.md").length }.max
           @out.puts
-          @out.puts "  #{folder == "." ? "(root)" : "#{folder}/"}"
+          @out.puts "  #{dir_label(folder, slash: true)}"
           group.each do |entry|
             @out.puts "    #{File.basename("#{entry[:id]}.md").ljust(width)}  #{entry[:title]}"
           end

@@ -118,7 +118,7 @@ module OKF
           timestamp: concept.timestamp&.to_s,
           status: concept.frontmatter["status"]&.to_s,
           backlog_ref: concept.frontmatter["backlog_ref"]&.to_s,
-          dir: File.dirname("#{id}.md"),
+          dir: OKF.dir_of(id),
           area: area_of(id),
           links_out: out_degree[id],
           links_in: in_degree[id]

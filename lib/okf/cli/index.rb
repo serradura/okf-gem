@@ -118,7 +118,7 @@ module OKF
       end
 
       def index_dir_label(entry)
-        base = entry[:dir] == "." ? "(root)" : "#{entry[:dir]}/"
+        base = dir_label(entry[:dir], slash: true)
         entry[:present] ? base : "#{base}  (no index.md)"
       end
 
