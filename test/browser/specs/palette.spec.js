@@ -54,14 +54,15 @@ test.describe("command palette", () => {
     await expect(app.locator("#btn-switch")).toBeHidden();
   });
 
-  test("a query matching nothing shows the no-matches note", async ({ app }) => {
-    // Standalone has no cross-bundle /search, so FINDS is false and the palette
-    // never renders a Concepts group. A query that matches no view therefore
-    // falls all the way through to the empty-state note (render's `if(!h)`),
-    // rather than a "no concepts match" that only a live finder produces.
+  test("a query matching nothing shows the no-matches note", async ({ app }, testInfo) => {
+    // Two empty states, and which one you get says whether a finder ran. A
+    // static file has none, so the query falls through to the generic note
+    // (render's `if(!h)`); a served bundle asks its /search, gets nothing, and
+    // says so in those words.
     await app.keyboard.press("Control+k");
     await app.locator("#sw-input").fill("zzznomatchxyz");
-    await expect(app.locator("#sw-list a.none")).toContainText("no matches");
+    await expect(app.locator("#sw-list a.none")).toContainText(
+      testInfo.project.name === "static" ? "no matches" : "no concepts match");
     // and it is inert — a note, not an option
     await expect(app.locator("#sw-list a[data-view], #sw-list a[data-path]")).toHaveCount(0);
   });

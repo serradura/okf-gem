@@ -2438,10 +2438,15 @@ var openPalette=null;
     and layout a bundle switch preserves are exactly what a node has to override.
     A hit in *this* bundle is not a navigation at all; go() selects it in place
     and this href only exists for ⌘-click, where a second tab is the point. */
- const hitHref=c=>(c.slug===SELF_SLUG?'':'../'+encodeURIComponent(c.slug)+'/')+'?select='+encodeURIComponent(c.id);
+ /* Three cases, not two. A hub row names another bundle and is addressed
+    relative to its mount; a hub row for *this* bundle stays put; and a
+    standalone row carries no slug at all, because one bundle has none to carry.
+    Folding that third case into the first built '../undefined/' — a 404 on
+    every result the palette returned. */
+ const hitHref=c=>(c.slug==null||c.slug===SELF_SLUG?'':'../'+encodeURIComponent(c.slug)+'/')+'?select='+encodeURIComponent(c.id);
  const hitHtml=c=>`<span class="hit-top"><span class="hit-t">${hilite(c.title||c.id,hitTerms)}</span>`+
   (c.type?`<span class="hit-type">${esc(c.type)}</span>`:'')+
-  `<span class="slug">${esc(c.slug)}</span></span>`+
+  (c.slug==null?'':`<span class="slug">${esc(c.slug)}</span>`)+`</span>`+
   (c.snippet?`<span class="hit-s">${hilite(c.snippet,hitTerms)}</span>`:'');
  /* Bundles lead, and on an empty box they are the only thing here: switching
     bundles is what the palette is for, and six views above them would push the
@@ -2480,7 +2485,7 @@ var openPalette=null;
    if(heads)h+=grp('Concepts');
    h+=cs.map((c,i)=>opt(bs.length+vs.length+i,{
     cls:' sw-hit',
-    attrs:`href="${esc(hitHref(c))}" data-hit="${esc(c.id)}" data-slug="${esc(c.slug)}"`,
+    attrs:`href="${esc(hitHref(c))}" data-hit="${esc(c.id)}" data-slug="${esc(c.slug==null?'':c.slug)}"`,
     html:hitHtml(c)})).join('');
    /* The cap is reported, never silent: a palette that shows 50 of 214 and says
       nothing has told the reader the answer is complete. */
@@ -2514,10 +2519,15 @@ var openPalette=null;
   const id=a.dataset.hit;
   /* A concept in this bundle is already loaded — selecting it in place keeps the
      camera, the filters and the layout the reader built. Only a hit in another
-     bundle is worth a page load. */
+     bundle is worth a page load.
+     Empty slug means a standalone server: one bundle, so every hit is this one.
+     It reads as '' rather than SELF_SLUG's null because the row simply has no
+     slug key, and comparing the two directly sent every standalone hit down the
+     page-load branch — the whole index reloaded to reach a node already on
+     screen. */
   if(id!==undefined){const t=a.getAttribute('href');
    if(newTab){window.open(t,'_blank');close();return;}
-   if(a.dataset.slug===SELF_SLUG){close();goToGraph(id);return;}
+   if(a.dataset.slug===''||a.dataset.slug===SELF_SLUG){close();goToGraph(id);return;}
    location.href=t;return;}
   const p=a.dataset.path;if(!p)return;const t=target(p);
   if(newTab){window.open(t,'_blank');close();}else{location.href=t;}}
@@ -2563,9 +2573,13 @@ var openPalette=null;
     is switching bundles. Standalone has neither, so there the view is the job.
     The ⇄ button keeps the bundle wording in every mode: it draws a swap, and a
     control whose tooltip disagrees with its icon teaches the wrong thing. */
- const label=FINDS?'Search all bundles':HUB?'Switch bundle':'Jump to a view';
+ /* FINDS no longer implies HUB: a standalone server answers /search over the one
+    bundle it was given, so the copy has to name what is actually on offer rather
+    than assume a set is behind it. Four states, because both bits are real. */
+ const label=FINDS?(HUB?'Search all bundles':'Search concepts'):HUB?'Switch bundle':'Jump to a view';
  const btnLabel=HUB?'Switch bundle':label;
- input.placeholder=FINDS?'search concepts, switch bundle, or a view…':HUB?'switch bundle, or type a view…':'jump to a view…';
+ input.placeholder=FINDS?(HUB?'search concepts, switch bundle, or a view…':'search concepts, or a view…')
+  :HUB?'switch bundle, or type a view…':'jump to a view…';
  input.setAttribute('aria-label',label);
  ov.setAttribute('aria-label',FINDS?label:HUB?'Switch bundle':'Command palette');
  document.getElementById('sw-hint').textContent='↑↓ move · ⏎ open · '+(HUB?(isMac?'⌘⏎':'Ctrl-⏎')+' new tab · ':'')+'Esc close';
@@ -3156,8 +3170,9 @@ const KEYS=[
  [ '\\', 'show or hide the inspector — graph' ],
  [ '0', 'fit the graph to the screen — graph' ],
  [ /Mac|iP/.test(navigator.platform||'')?'⌘K':'Ctrl-K',
-   SEARCH_ENDPOINT!==null?'search every bundle, switch bundle, or jump to a view':
-   HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
+   SEARCH_ENDPOINT!==null?(HUB_PATH!==null?'search every bundle, switch bundle, or jump to a view'
+     :'search this bundle, or jump to a view')
+   :HUB_PATH!==null?'switch bundle, or jump to a view':'jump to a view' ],
  [ '⌥ drag', 'move a cluster box — a plain drag pans the canvas' ],
  [ '?', 'this list' ],
  [ 'Esc', 'close what is open, or clear the graph selection' ]
