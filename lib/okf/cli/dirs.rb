@@ -36,6 +36,7 @@ module OKF
         parser = OptionParser.new do |o|
           o.banner = "Usage: okf dirs <dir|@slug> [--dir PATH] [--depth N] [--json]"
           json_flags(o, options, "emit the dirs as JSON")
+          projection_flags(o, options)
           o.on("--dir PATH", "only this directory and the ones below it",
             "(repeatable; `root` for the bundle root)") { |v| (options[:dirs] ||= []) << v }
           depth_flag(o, options)

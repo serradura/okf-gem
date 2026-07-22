@@ -14,6 +14,7 @@ module ByDir
       "concepts" => [ "catalog", :dir ],
       "files" => [ "files", :dir ],
       "directories" => [ "index", :dir ],
+      "dirs" => [ "dirs", :dir ],
       "matches" => [ "search", :dir, "orders" ]
     }.freeze
 

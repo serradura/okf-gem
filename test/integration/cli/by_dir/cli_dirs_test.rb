@@ -239,6 +239,41 @@ module ByDir
       assert_empty filtered.out
     end
 
+    test "the ancestor chain survives a directory spelled with capitals" do
+      # `cased` holds Docs/Guides — the chain is built by folding the path, so a
+      # dir whose real spelling is not its folded one must still be found by the
+      # rows that print it, or the branch comes back adrift.
+      result = okf("dirs", fixture("cased"), "--dir", "Docs/Guides")
+
+      assert_equal 0, result.status
+      assert_equal [ ".", "Docs", "Docs/Guides" ], dirs_of_human(result)
+      assert_match(/^  ↑ Docs\s+0\s+2$/, result.out)
+    end
+
+    test "--dir accepts the trailing slash the human views print" do
+      # `okf index` labels the row `tables/`; copying that label back into --dir
+      # has to select the directory it names, not nothing at all.
+      slashed = okf("dirs", fixture("conformant"), "--dir", "tables/", "--json")
+
+      assert_equal 0, slashed.status
+      assert_equal dirs_of(okf("dirs", fixture("conformant"), "--dir", "tables", "--json")), dirs_of(slashed)
+      assert_equal 2, json(slashed).fetch("total")
+    end
+
+    test "--fields projects the rows, --except drops one" do
+      only = okf("dirs", fixture("conformant"), "--json", "--fields", "dir,subtree")
+      assert_equal 0, only.status
+      assert_equal %w[dir subtree], json(only).fetch("dirs").first.keys
+
+      except = okf("dirs", fixture("conformant"), "--json", "--except", "subdirs")
+      assert_equal 0, except.status
+      refute_includes json(except).fetch("dirs").first.keys, "subdirs"
+
+      typo = okf("dirs", fixture("conformant"), "--json", "--fields", "nope")
+      assert_equal 2, typo.status
+      assert_match(/available:/, typo.err)
+    end
+
     test "-h prints the usage and exits 0 without reading a bundle" do
       result = okf("dirs", "-h")
 
@@ -263,6 +298,14 @@ module ByDir
 
     def dirs_of(result)
       json(result).fetch("dirs").map { |row| row["dir"] }
+    end
+
+    # The dir column as the table actually prints it, chain marker stripped —
+    # the human view is where a missing ancestor row is visible as a gap.
+    def dirs_of_human(result)
+      labels = result.out.lines.map { |line| line[/\A  (?:↑ )?(\S.*?)(?:\s{2,}|\n)/, 1] }.compact
+      rows = labels.reject { |label| label == "Dir" || label =~ /\A\d+ dirs/ }
+      rows.map { |label| label == "(root)" ? "." : label }
     end
   end
 end

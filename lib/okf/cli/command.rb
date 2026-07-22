@@ -214,15 +214,34 @@ module OKF
       end
 
       def fold_area(value)
-        folded = fold(value)
+        folded = trim_slash(fold(value))
         folded == "root" ? "(root)" : folded
       end
 
       # `.` is the stored spelling of the root everywhere; `root` is the one a
       # shell needs no quoting for, and the only reason the two exist.
       def fold_dir(value)
-        folded = fold(value)
-        folded == "root" ? "." : folded
+        folded = trim_slash(fold(value))
+        folded.empty? || folded == "root" ? "." : folded
+      end
+
+      # The human views print a directory with the slash that says it is one —
+      # `tables/`, `docs/api/` — so the flag has to accept the label the CLI
+      # itself just printed. Without this, pasting a row back into --dir matched
+      # nothing and exited 0: an empty answer that reads like a real one.
+      def trim_slash(value)
+        value.sub(%r{/+\z}, "")
+      end
+
+      # The inverse of fold_dir: `.` is the stored spelling of the root and
+      # "(root)" the human one, and every grouped view keeps that split so a
+      # table and its --json never disagree about which spelling is the data.
+      # `slash:` adds the trailing slash the listing views use to say "directory"
+      # — the same one fold_dir now accepts back.
+      def dir_label(dir, slash: false)
+        return "(root)" if [ ".", "(root)" ].include?(dir)
+
+        slash ? "#{dir}/" : dir
       end
 
       # How many path segments deep a directory sits. The root is 0.
@@ -279,18 +298,22 @@ module OKF
       #
       # The deprecated --area gains no chain either: it is exact, and a deprecated
       # flag that quietly answers with more than it used to is worse than one that
+      # Matching folds case, but a row is found by its *stored* spelling, so the
+      # chain is walked folded and handed back in the map's own words. Returning
+      # the folded string instead dropped every ancestor a bundle spelled with a
+      # capital — the rows are selected with `include?`, which does not fold.
       # is merely old.
       def ancestor_dirs(options, known)
         return [] unless options[:ancestors]
 
-        folded = known.map { |dir| fold(dir) }
+        stored = known.each_with_object({}) { |dir, out| out[fold(dir)] = dir }
         Array(options[:dirs]).each_with_object([]) do |path, out|
           base = fold_dir(path)
-          next unless folded.include?(base)
+          next unless stored.key?(base)
 
           current = dir_parent(base)
           while current
-            out << current
+            out << stored.fetch(current, current)
             current = dir_parent(current)
           end
         end.uniq

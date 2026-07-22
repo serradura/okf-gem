@@ -49,6 +49,12 @@ module OKF
         dir = positional_dir(parser, argv) or return 2
         bad_depth = depth_error(options)
         return bad_depth if bad_depth
+        # --area is exact and names no starting point, so --depth has nothing to
+        # be relative *to*: the pair used to union the area with every directory
+        # at that depth from the root. Refusing beats answering with more.
+        if options[:areas] && options[:depth]
+          return usage_error("--area and --depth do not combine: use --dir")
+        end
 
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)

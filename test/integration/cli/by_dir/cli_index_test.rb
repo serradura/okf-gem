@@ -360,6 +360,34 @@ module ByDir
       assert_match(/^    • Good — A valid concept living among malformed ones\.$/, result.out)
     end
 
+    test "the ancestor chain survives a directory spelled with capitals" do
+      result = okf("index", fixture("cased"), "--dir", "Docs/Guides", "--json")
+
+      assert_equal 0, result.status
+      assert_equal [ ".", "Docs", "Docs/Guides" ], map_dirs(result)
+      chain = json(result).fetch("directories").select { |row| row["ancestor"] }
+      assert_equal [ ".", "Docs" ], chain.map { |row| row["dir"] }
+    end
+
+    test "--dir accepts the trailing slash the map itself prints" do
+      slashed = okf("index", fixture("conformant"), "--dir", "tables/", "--json")
+
+      assert_equal 0, slashed.status
+      assert_equal map_dirs(okf("index", fixture("conformant"), "--dir", "tables", "--json")), map_dirs(slashed)
+      assert_includes map_dirs(slashed), "tables"
+    end
+
+    test "--area and --depth do not combine (exit 2)" do
+      # The deprecated flag is exact and --depth is relative to a starting point
+      # it never sets, so the pair used to union the area with every directory
+      # at that depth — extra rows that read like an answer.
+      result = okf("index", fixture("edge-cases"), "--area", "deeply", "--depth", "0")
+
+      assert_equal 2, result.status
+      assert_match(/--area and --depth/, result.err)
+      assert_empty result.out
+    end
+
     test "usage errors exit 2: missing dir, no dir, bad flag" do
       missing = okf("index", File.join(BUNDLES, "does-not-exist"))
       assert_equal 2, missing.status
