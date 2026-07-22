@@ -8,15 +8,26 @@ Gem::Specification.new do |spec|
   spec.authors = [ "Rodrigo Serradura" ]
   spec.email = [ "rodrigo.serradura@gmail.com" ]
 
-  spec.summary = "The complete toolkit for the Open Knowledge Format: an agent skill, a CLI and library, and a live knowledge graph. 100% local."
+  spec.summary = "The complete Open Knowledge Format toolkit: an agent skill, a CLI and library, ranked search, and a live knowledge graph. 100% local."
   spec.description = <<~DESC
     OKF (Open Knowledge Format) is portable knowledge: Markdown files with YAML
     frontmatter that both humans and agents read from one source. This gem is the
-    Ruby-native way to work with it. Its companion agent skill authors and curates
-    a bundle; the `okf` command-line tool validates the result for v0.1 (§9)
-    conformance, lints its curation quality, and serves it as an interactive graph
-    (a mountable Rack app). The same validate, lint, and graph run in-process
-    through a library API (OKF::Bundle and friends).
+    Ruby-native way to work with it.
+
+    Its companion agent skill authors and curates a bundle. The `okf` command-line
+    tool validates the result for v0.1 (§9) conformance, lints its curation
+    quality, and answers questions about it: ranked full-text search, and a
+    progressive-disclosure map that reads a large bundle a directory at a time
+    rather than loading it whole. `okf server` opens it as an interactive
+    knowledge graph and `okf render` bakes that same page into one self-contained
+    HTML file you can host anywhere. A per-user registry names your bundles, so
+    every verb reaches them by @slug from any directory and one search can span
+    them all.
+
+    Everything the CLI does also runs in-process through a library API
+    (OKF::Bundle and friends), and the graph server is a mountable Rack app. It
+    adds no service to your stack: rack, webrick and minifts are the only runtime
+    dependencies, and it runs on every Ruby since 2.4.
   DESC
   spec.homepage = "https://github.com/serradura/okf-gem"
   spec.license = "Apache-2.0"
