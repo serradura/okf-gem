@@ -7,8 +7,41 @@ const css = (page, sel, prop) =>
 // it turns the rail into a drawer and folds the tools row into a sheet, and
 // both only exist as computed style at a viewport width. This is the part of
 // the template that most needs a real browser.
+// A tablet in landscape is wider than the phone breakpoint and still zooms on
+// focus, so the rule needs the pointer condition as well as the width one — and
+// that half is only reachable with touch emulation, at a width the ≤768px block
+// never sees. Chromium reports pointer:coarse here, which is what makes the
+// second half of the media query provable rather than merely asserted.
+test.describe("tablet landscape (1024px, touch)", () => {
+  test.use({ viewport: { width: 1024, height: 768 }, hasTouch: true, isMobile: true });
+
+  test("the width breakpoint does not apply, and the fields are still ≥16px", async ({ app }) => {
+    expect(await app.evaluate(() => matchMedia("(max-width: 768px)").matches),
+      "this must be the pointer half of the rule, not the width half").toBe(false);
+    expect(await app.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(true);
+
+    const small = await app.evaluate(() => [ ...document.querySelectorAll(".field") ]
+      .map((el) => ({ id: el.id || el.className, px: parseFloat(getComputedStyle(el).fontSize) }))
+      .filter((f) => f.px < 16));
+    expect(small).toEqual([]);
+  });
+});
+
 test.describe("phone (375px)", () => {
   test.use({ viewport: { width: 375, height: 720 } });
+
+  // iOS Safari zooms the whole page when a focused control's font-size is under
+  // 16px, and it does not zoom back out — the reader is left pinching after every
+  // `/`. Nothing in Chromium reproduces that zoom, so the spec pins the condition
+  // that causes it instead: no control may be under 16px where the page is being
+  // read on a phone.
+  test("no form control is small enough to trigger the iOS focus zoom", async ({ app }) => {
+    const small = await app.evaluate(() => [ ...document.querySelectorAll(".field") ]
+      .map((el) => ({ id: el.id || el.className, px: parseFloat(getComputedStyle(el).fontSize) }))
+      .filter((f) => f.px < 16));
+
+    expect(small).toEqual([]);
+  });
 
   test("the rail becomes a fixed drawer parked off-screen", async ({ app }) => {
     expect(await css(app, "#rail", "position")).toBe("fixed");

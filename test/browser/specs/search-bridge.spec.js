@@ -150,12 +150,18 @@ test.describe("search bridge — the dead end", () => {
     await expect(app.locator(".sb-msg")).toContainText("<img src=x");
   });
 
-  test("a standalone bundle offers no global search, because it has none", async ({ app }) => {
+  test("the escalation exists exactly where a finder does", async ({ app }, testInfo) => {
     await app.locator("#search").fill("zzzznothing");
-
     await expect(bridge(app)).toBeVisible();
-    await expect(app.locator("#sb-go")).toBeHidden(
-      "there is no elsewhere to send anyone to — the panel still names the dead end");
+
+    // A served bundle has a /search the in-page box cannot match — it indexes
+    // bodies the page never fetched — so escalating is real. A static file has
+    // no finder behind it, and the panel names the dead end instead.
+    if (testInfo.project.name === "static") {
+      await expect(app.locator("#sb-go")).toBeHidden("there is no elsewhere to send anyone to");
+    } else {
+      await expect(app.locator("#sb-go")).toBeVisible();
+    }
   });
 });
 

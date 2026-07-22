@@ -23,9 +23,12 @@ module OKF
       def call(argv)
         options = { json: false, by: nil }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf tags <dir|@slug> [--by type|area] [--type T] [--area A] [--json]"
+          o.banner = "Usage: okf tags <dir|@slug> [--by type|dir] [--type T] [--dir D] [--json]"
           json_flags(o, options, "emit the tag index as JSON")
-          o.on("--by DIM", %w[type area], "group the tags by a concept dimension (type | area)") { |v| options[:by] = v.to_sym }
+          o.on("--by DIM", %w[type dir area], "group the tags by a concept dimension (type | dir)") do |v|
+            options[:by] = v.to_sym
+            deprecated("--by area", "--by dir") if options[:by] == :area
+          end
           filter_flags(o, options, :type, :area)
           help_flag(o)
         end
@@ -38,10 +41,10 @@ module OKF
 
       private
 
-      # `tags --by type|area`: the tag index re-cut per concept type or top-level
-      # area, with within-group counts — the curation view. A tag confined to one
+      # `tags --by type|dir`: the tag index re-cut per concept type or directory,
+      # with within-group counts — the curation view. A tag confined to one
       # group at count 1 is scattered; one recurring across groups is connective.
-      # The --type/--area filters narrow the concepts first, then the grouping cuts.
+      # The --type/--dir filters narrow the concepts first, then the grouping cuts.
       def grouped_tags(dir, options)
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)
@@ -66,7 +69,7 @@ module OKF
             entry = by_id[id]
             next if entry.nil?
 
-            key = options[:by] == :type ? entry_type(entry) : entry[:area]
+            key = group_key(entry, options[:by])
             ((groups[key] ||= {})[tag] ||= []) << id
             totals[tag] += 1
           end
@@ -83,10 +86,29 @@ module OKF
         OKF.blank?(entry[:type]) ? "Untyped" : entry[:type]
       end
 
+      # The group a concept falls in, in its *stored* spelling — `.` for the root
+      # under --by dir, never "(root)". The human label is applied at print time,
+      # so the JSON and the table cannot disagree about which one is the data.
+      def group_key(entry, dim)
+        case dim
+        when :type then entry_type(entry)
+        when :dir then entry[:dir]
+        else entry[:area]
+        end
+      end
+
+      # `.` prints "(root)" bare; every other dir carries the trailing slash that
+      # says it is one. The deprecated --by area already stores "(root)" itself.
+      def group_label(key, dim)
+        return key if dim == :type
+
+        dir_label(key, slash: true)
+      end
+
       def print_grouped_tags(dir, dim, groups, titles)
         @out.puts "Tags — #{bundle_label(dir)} (#{distinct_tags(groups)} distinct, by #{dim})"
         groups.each do |key, rows|
-          label = dim == :area && key != "(root)" ? "#{key}/" : key
+          label = group_label(key, dim)
           @out.puts
           @out.puts "  #{label} (#{rows.size} #{pluralize(rows.size, "tag")})"
           width = rows.map { |row| row[:tag].length }.max || 0

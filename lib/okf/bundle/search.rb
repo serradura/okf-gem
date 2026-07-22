@@ -186,12 +186,89 @@ module OKF
         new(bundles, terms, fields: fields, regexp: regexp, fuzzy: fuzzy, engine: engine, engines: engines).results
       end
 
+      # The searchable text of one concept, by field. Here rather than on an
+      # instance because a Corpus builds documents with no query in hand.
+      def self.field_texts(concept)
+        {
+          "id" => concept.id,
+          "title" => concept.title.to_s,
+          "type" => concept.type.to_s,
+          "description" => concept.description.to_s,
+          "tags" => Array(concept.tags).join(" "),
+          "body" => concept.body
+        }
+      end
+
+      # A corpus prepared once and queried many times: the documents, the key →
+      # concept map, and each engine's built index.
+      #
+      # This is the asymmetry the engine choice was always argued from. A CLI
+      # process loads a bundle, asks one question and exits, so an index build has
+      # exactly one query to amortize over and the scan wins. A server is the
+      # other case — the build is ~95% of the index path's cost, and paying it per
+      # request made every search re-read the whole corpus. Held once, it is paid
+      # once.
+      #
+      # Pure: it holds concepts, never disk. Which is also the cost — the corpus
+      # is a snapshot, so a body edited after it was built is searchable only
+      # after the holder drops it. That matches the graph, which is memoized the
+      # same way and for the same reason.
+      class Corpus
+        attr_reader :bundles, :documents, :sources
+
+        def initialize(bundles)
+          @bundles = bundles
+          @documents = []
+          @sources = {}
+          @indexes = {}
+          bundles.each do |slug, bundle|
+            bundle.concepts.each do |concept|
+              key = "#{slug}#{KEY_SEPARATOR}#{concept.id}"
+              @sources[key] = [ slug, concept ]
+              @documents << Search.field_texts(concept).merge("key" => key)
+            end
+          end
+        end
+
+        # nil for an engine with nothing to prebuild — the scan reads raw text and
+        # has no index to hold — so the option only ever reaches one that declared
+        # it can. Memoized per engine id: two engines over one corpus is legal.
+        def index_for(engine)
+          return nil unless engine.respond_to?(:prepare)
+
+          @indexes[engine.id] ||= engine.prepare(@documents)
+        end
+      end
+
+      # Prepare a corpus for a long-lived caller. Hand the result back to .with
+      # for every query.
+      #
+      # `engine:` builds that engine's index *now* rather than on the first query.
+      # Without it the corpus holds only the documents, and the expensive half —
+      # the index — is still built lazily, which puts the whole cost on whoever
+      # searches first. A server knows its engine at boot, so it can pay there.
+      def self.prepare(bundles, engine: nil, engines: nil)
+        corpus = Corpus.new(bundles)
+        return corpus if OKF.blank?(engine)
+
+        corpus.index_for(engine_for([], engines: engines || self.engines, name: engine))
+        corpus
+      end
+
+      # Query a prepared corpus. Same rows as .across, without rebuilding what the
+      # corpus already holds.
+      def self.with(corpus, terms, fields: nil, regexp: false, fuzzy: false, engine: nil, engines: nil)
+        new(corpus.bundles, terms, fields: fields, regexp: regexp, fuzzy: fuzzy,
+          engine: engine, engines: engines, corpus: corpus).results
+      end
+
       # Raises RegexpError on an invalid pattern with `regexp: true`, and
       # UnsupportedQuery when no engine can answer — the caller owns turning
       # either into a usage error. `engines:` overrides the registry, which is how
       # the "nothing qualifies" path stays reachable without an addon installed.
-      def initialize(bundles, terms, fields: nil, regexp: false, fuzzy: false, engine: nil, engines: nil)
+      def initialize(bundles, terms, fields: nil, regexp: false, fuzzy: false, engine: nil, engines: nil, corpus: nil)
         @bundles = bundles
+        @corpus = corpus
         @terms = Array(terms).reject { |term| OKF.blank?(term) }.map(&:to_s)
         @fields = fields.nil? || fields.empty? ? FIELDS : fields
         @regexp = regexp
@@ -202,7 +279,7 @@ module OKF
       end
 
       # Ranked match rows, catalog-style identity plus where the terms hit:
-      # [{ slug:, id:, title:, type:, area:, tags:, matched: [field, …], score:, snippet: }, …]
+      # [{ slug:, id:, title:, type:, dir:, area:, tags:, matched: [field, …], score:, snippet: }, …]
       # ordered by score descending, then slug, then id. `slug` is present only
       # when searching across bundles. No terms means no matches.
       def results
@@ -242,6 +319,7 @@ module OKF
       # what it can act on, so there is nothing left for it to ignore.
       def engine_options(chosen)
         options = { fields: @fields }
+        options[:prepared] = @corpus.index_for(chosen) if @corpus
         ROUTABLE.each do |capability|
           options[capability] = requested[capability] if chosen.capabilities.include?(capability)
         end
@@ -255,6 +333,13 @@ module OKF
       # Every concept as an indexable document, keyed uniquely across bundles.
       # @sources keeps the way back, so the index stores no fields of its own.
       def documents
+        # The corpus already walked every concept and kept the map that turns a
+        # hit back into a row; taking its sources is what makes that reuse whole.
+        if @corpus
+          @sources = @corpus.sources
+          return @corpus.documents
+        end
+
         docs = []
         @bundles.each do |slug, bundle|
           bundle.concepts.each do |concept|
@@ -269,14 +354,7 @@ module OKF
       # { field => original-case text } for every searchable field. The index reads
       # all of them; `fields:` narrows the search, not the document.
       def field_texts(concept)
-        {
-          "id" => concept.id,
-          "title" => concept.title.to_s,
-          "type" => concept.type.to_s,
-          "description" => concept.description.to_s,
-          "tags" => Array(concept.tags).join(" "),
-          "body" => concept.body
-        }
+        Search.field_texts(concept)
       end
 
       # `slug` leads the row so a merged result reads bundle-first, and drops
@@ -288,6 +366,7 @@ module OKF
           id: concept.id,
           title: (concept.title || concept.id).to_s,
           type: concept.type.to_s,
+          dir: OKF.dir_of(concept.id),
           area: area_of(concept.id),
           tags: Array(concept.tags).map(&:to_s),
           matched: matched,
@@ -342,7 +421,8 @@ module OKF
         end
       end
 
-      # A concept's top-level area, mirroring the catalog's definition.
+      # A concept's top-level area, mirroring the catalog's definition. Deprecated
+      # in favour of OKF.dir_of, which keeps the levels this one throws away.
       def area_of(id)
         id.include?("/") ? id.split("/").first : "(root)"
       end

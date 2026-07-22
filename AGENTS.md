@@ -296,6 +296,56 @@ reused those files across contexts.
 `test/browser/README.md` covers the fixture, the console-error watch, the
 assertion mistakes the suite's first run shook out, and the cache in full.
 
+## The README
+
+**The site owns the manual; the README is the front door.** Every verb is
+documented at [okfgem.com/docs](https://okfgem.com/docs/), so the README spends
+its space on *value and usage* — what this is for, what it buys you, the shortest
+path to a working bundle — and links out for the rest. When a passage starts
+enumerating flags, spec clauses, API surface or category lists, it has become
+reference material: move it to the site and leave a sentence and a link.
+
+What earns its place: the problem in the opening paragraph, the three pieces, the
+two diagrams, the comparison table, the four-step start, what a bundle actually
+looks like, and one worked example per surface. What does not: clause-by-clause
+§9, the six lint categories enumerated, exhaustive library listings, a Ruby
+version matrix, or an essay per flag. The version this replaced carried all of
+those; they are all still true and all still one link away.
+
+Four rules that outrank taste, because each has already gone wrong here:
+
+- **Every command shown must run, exactly as written.** Not "looks right" — run
+  it against this repo's own `.okf` and check the exit status. A README whose
+  commands have drifted spends a new reader's trust on their first minute.
+- **Every number is measured now, not copied.** Byte counts, concept counts and
+  timings go stale as fixtures grow. Re-measure before printing, and if it cannot
+  be measured, do not print it. The `index --json` figure carried over from the
+  CHANGELOG as 311 KB → 2.6 KB and measured 313 KB → 2.8 KB the same afternoon —
+  close enough to look fine, wrong enough to be a fabricated number.
+- **A deprecated spelling never appears.** After any CLI change, grep the README
+  for the flag you just retired. `--area` outlived its deprecation there by a
+  whole feature branch.
+- **A new verb ships with its README line**, the same obligation as its test
+  file. A verb absent from the command block does not exist to a reader.
+
+**Benchmarks name the shape of what was measured, never where it lives** — "a
+400-concept bundle", not a path. Scratch material under `tmp/` is a working
+reference, not part of the published record, and must not be named in the README,
+the CHANGELOG, `.okf/`, or the skill.
+
+**Alt text carries the whole content of its image.** The hero and overview PNGs
+say everything the diagram says, in prose, because the README is read in
+terminals, by screen readers, and by agents that never fetch the image.
+
+**Link depth downward, breadth outward.** Each capability row links to the `.okf/`
+concept documenting it — this gem's own knowledge is an OKF bundle, and pointing
+at it is the argument that the format works. The manual, the guides and the demo
+are absolute links to the site.
+
+The prose is the maintainer's, in the README's established voice. Match it rather
+than flattening it into neutral documentation register; the same attribution rule
+as commits applies (see [Git](#git)).
+
 ## Pull requests
 
 Every PR is a written argument for its own diff, and they share one skeleton.

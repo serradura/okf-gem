@@ -126,6 +126,50 @@ module ByDir
       assert_equal %w[links-in-fences reference-style target], rooted.fetch("concepts").map { |row| row["id"] }
     end
 
+    test "--dir selects a directory and everything beneath it" do
+      # One rule: a concept matches its own dir and any ancestor of it. So the
+      # empty intermediate `deeply` still reaches the concept three levels down,
+      # which is what --area could only do for the *first* segment.
+      nested = json(okf("catalog", fixture("edge-cases"), "--dir", "deeply", "--json"))
+      assert_equal [ "deeply/nested/path/concept" ], nested.fetch("concepts").map { |row| row["id"] }
+      assert_equal "deeply/nested/path", nested.fetch("concepts").first.fetch("dir")
+
+      assert_equal 1, json(okf("catalog", fixture("edge-cases"), "--dir", "deeply/nested", "--json")).fetch("count")
+      assert_equal 1, json(okf("catalog", fixture("edge-cases"), "--dir", "deeply/nested/path", "--json")).fetch("count")
+      # a path segment is matched whole — `deep` is not a prefix of `deeply`
+      assert_equal 0, json(okf("catalog", fixture("edge-cases"), "--dir", "deep", "--json")).fetch("count")
+    end
+
+    test "--dir . is the root alone, spellable as `root`, and folds case" do
+      # Nothing starts with "./", so the one prefix rule already means root-only —
+      # no special case, and `root` is the same thing without the shell quoting.
+      dot = json(okf("catalog", fixture("edge-cases"), "--dir", ".", "--json"))
+      assert_equal %w[links-in-fences reference-style target], dot.fetch("concepts").map { |row| row["id"] }
+      assert_equal dot, json(okf("catalog", fixture("edge-cases"), "--dir", "root", "--json"))
+      assert_equal dot, json(okf("catalog", fixture("edge-cases"), "--dir", "ROOT", "--json"))
+
+      assert_equal 2, json(okf("catalog", fixture("conformant"), "--dir", "TABLES", "--json")).fetch("count")
+    end
+
+    test "--dir composes with the other filters and with a projection" do
+      data = json(okf("catalog", fixture("conformant"), "--dir", "tables", "--tag", "orders", "--fields", "id"))
+      assert_equal [ { "id" => "tables/orders" } ], data.fetch("concepts")
+
+      empty = okf("catalog", fixture("conformant"), "--dir", "tables", "--type", "BigQuery Dataset", "--json")
+      assert_equal 0, empty.status
+      assert_equal [], json(empty).fetch("concepts")
+    end
+
+    test "--area still filters, and says on stderr that it is deprecated" do
+      result = okf("catalog", fixture("conformant"), "--area", "tables", "--json")
+
+      assert_equal 0, result.status
+      assert_equal "warning: --area is deprecated, use --dir\n", result.err
+      assert_equal 2, json(result).fetch("count") # the old behavior, unchanged
+      refute_match(/warning/, result.out) # the warning never pollutes the machine substrate
+      assert_empty okf("catalog", fixture("conformant"), "--dir", "tables", "--json").err
+    end
+
     test "--tag selects concepts carrying a tag, case-insensitively" do
       data = json(okf("catalog", fixture("conformant"), "--tag", "ORDERS", "--json"))
 

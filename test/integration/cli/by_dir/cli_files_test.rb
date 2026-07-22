@@ -110,6 +110,26 @@ module ByDir
       assert_equal 3, rooted.fetch("count")
     end
 
+    test "--dir selects a directory and everything beneath it, and takes `root`" do
+      data = json(okf("files", fixture("conformant"), "--dir", "TABLES", "--json"))
+      assert_equal %w[tables/customers.md tables/orders.md], data.fetch("files").map { |row| row["path"] }
+
+      nested = json(okf("files", fixture("edge-cases"), "--dir", "deeply/nested", "--json"))
+      assert_equal [ "deeply/nested/path/concept.md" ], nested.fetch("files").map { |row| row["path"] }
+
+      rooted = json(okf("files", fixture("edge-cases"), "--dir", "root", "--json"))
+      assert_equal 3, rooted.fetch("count") # the root's own files, nothing beneath them
+    end
+
+    test "--area still selects, and warns on stderr" do
+      result = okf("files", fixture("conformant"), "--area", "tables", "--json")
+
+      assert_equal 0, result.status
+      assert_equal "warning: --area is deprecated, use --dir\n", result.err
+      assert_equal 2, json(result).fetch("count")
+      assert_empty okf("files", fixture("conformant"), "--dir", "tables", "--json").err
+    end
+
     # The row carries no `tags` key, but --tag still filters: the narrowing runs over
     # the catalog metadata behind the view, not over the projected row.
     test "--tag selects concepts carrying a tag, case-insensitively" do

@@ -520,7 +520,7 @@ class OKF::CLITest < OKF::TestCase
     assert_equal [ "alpha" ], data["query"]
     assert_equal 2, data["count"]
     assert_equal "features/a", data["matches"].first["id"]
-    assert_equal %w[area id matched score snippet tags title type], data["matches"].first.keys.sort
+    assert_equal %w[area dir id matched score snippet tags title type], data["matches"].first.keys.sort
   end
 
   test "search terms are ANDed across fields" do

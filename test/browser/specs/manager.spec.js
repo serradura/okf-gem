@@ -28,7 +28,9 @@ const edgeColor = (page, index) =>
 test.describe("bundles manager", () => {
   test("one row per hosted bundle, each with its ref, count and verdict", async ({ mgr }) => {
     await expect(mgr.locator(".row")).toHaveCount(2);
-    await expect(mgr.locator(".row").first().locator(".slug")).toHaveText("@bundle");
+    // The ref *is* the name now — one element doing the job the name and a
+    // separate `.slug` span were splitting between them.
+    await expect(mgr.locator(".row").first().locator(".name")).toHaveText("@bundle");
     await expect(mgr.locator(".row").first().locator(".f-count")).toHaveText("8 concepts");
     await expect(mgr.locator(".row").first().locator(".hv-word")).toHaveText("no problems");
     await expect(mgr.locator(".row").first().locator(".def")).toHaveText("default");

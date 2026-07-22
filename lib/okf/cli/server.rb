@@ -59,10 +59,16 @@ module OKF
       # Build the single-bundle Rack app and hand it to the runner (WEBrick by
       # default, injected so tests drive this without a socket).
       def run_server(folder, options)
-        app = OKF::Server::App.new(folder, title: options[:title] || folder.name, link: options[:link], layout: options[:layout])
+        # search_endpoint is named here rather than defaulted in App: the page
+        # resolves it against the URL the reader is on, and this is the layer that
+        # knows the app is mounted at the root. An embedding host mounting App
+        # elsewhere passes its own.
+        app = OKF::Server::App.new(folder, title: options[:title] || folder.name, link: options[:link],
+          layout: options[:layout], search_endpoint: "search")
         # minimal: the banner wants a count, not bodies — and Folder#graph is not
         # memoized, so a full build here parses every concept a second time (the
         # App builds its own) purely to print one number.
+        app.warm_search
         count = folder.graph(minimal: true).nodes.size
         @out.puts "serving #{count} #{pluralize(count, "concept")} at http://#{options[:bind]}:#{options[:port]} (Ctrl-C to stop)"
         serve(app, options)
@@ -92,6 +98,7 @@ module OKF
         # could not host — a folder deleted out from under one is the question
         # "where did my bundle go?", and only the registry can answer it.
         hub = OKF::Server::Hub.new(bundles, layout: options[:layout], registry: reg, writable: writable?(options))
+        hub.warm_search
         concepts = bundles.inject(0) { |sum, bundle| sum + bundle.folder.graph(minimal: true).nodes.size }
         @out.puts "serving #{bundles.size} #{pluralize(bundles.size,
           "bundle")}, #{concepts} #{pluralize(concepts, "concept")} at http://#{options[:bind]}:#{options[:port]} (Ctrl-C to stop)"

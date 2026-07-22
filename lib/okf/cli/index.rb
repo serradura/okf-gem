@@ -5,9 +5,15 @@ module OKF
     # The progressive-disclosure map (spec §6): every directory that holds concepts
     # or carries an index.md, with its authored index body, a type/tag rollup, its
     # child directories, and — for a directory with no index.md — the listing
-    # synthesized from the concepts there. The "orient before you read" view. `--area`
-    # is repeatable (one or many directories; `root` is the bundle root); `--no-body`
-    # drops the prose to a skeleton; advisory, exit 0.
+    # synthesized from the concepts there. The "orient before you read" view. `--dir`
+    # is repeatable and selects a directory *and its subtree* (`root` is the bundle
+    # root), `--depth N` bounds how far below the starting point that goes, and
+    # `--no-body` drops the prose to a skeleton; advisory, exit 0.
+    #
+    # The two narrowings are what make the map usable on a deep bundle: every
+    # directory is a section, so a few hundred concepts is a map nobody reads at
+    # once. `--depth 1` is the top of the tree, `--dir X --depth 1` is one branch
+    # of it, and the pair walks down a level at a time.
     class Index < Command
       def self.id
         :index
@@ -19,26 +25,47 @@ module OKF
 
       def self.help_rows
         [
-          [ "index     <dir|@slug> [--json] [--area A] [--no-body]", "the index map: dirs, their listings and rollups" ]
+          [ "index     <dir|@slug> [--dir D] [--depth N] [--no-body]", "the index map: dirs, their listings and rollups" ]
         ]
       end
 
       def call(argv)
-        options = { json: false, body: true, areas: nil }
+        options = { json: false, body: true, dirs: nil, areas: nil, depth: nil, ancestors: true }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf index <dir|@slug> [--area AREA] [--no-body] [--json]"
+          o.banner = "Usage: okf index <dir|@slug> [--dir PATH] [--depth N] [--no-body] [--json]"
           json_flags(o, options, "emit the index map as JSON")
           projection_flags(o, options)
-          o.on("--area AREA", "only this directory/area (repeatable; `root` for the bundle root)") { |v| (options[:areas] ||= []) << v }
+          o.on("--dir PATH", "only this directory and the ones below it",
+            "(repeatable; `root` for the bundle root)") { |v| (options[:dirs] ||= []) << v }
+          depth_flag(o, options)
+          ancestors_flag(o, options)
+          o.on("--area AREA", "deprecated: use --dir (this directory exactly)") do |v|
+            (options[:areas] ||= []) << v
+            deprecated("--area", "--dir")
+          end
           o.on("--[no-]body", "include each index's prose body (default: yes)") { |v| options[:body] = v }
           help_flag(o)
         end
         dir = positional_dir(parser, argv) or return 2
+        bad_depth = depth_error(options)
+        return bad_depth if bad_depth
+        # --area is exact and names no starting point, so --depth has nothing to
+        # be relative *to*: the pair used to union the area with every directory
+        # at that depth from the root. Refusing beats answering with more.
+        #
+        # --dir is refused for the same reason and not a weaker one: one flag is
+        # exact and the other a prefix, so the pair came back with the area *and*
+        # the subtree — an answer to neither question, from a combination only
+        # someone mid-migration would type. A deprecated flag that quietly widens
+        # is worse than one that is merely old.
+        if options[:areas] && (options[:depth] || options[:dirs])
+          return usage_error("--area and #{options[:dirs] ? "--dir" : "--depth"} do not combine: use --dir")
+        end
 
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)
         entries = folder.directory_index
-        selected = select_directories(entries, options[:areas])
+        selected, chain = select_directories(entries, options)
         if options[:json]
           # --no-body is shorthand for --except body, so asking for the body by
           # name in the same breath is a contradiction. Letting --fields quietly
@@ -48,30 +75,44 @@ module OKF
           end
 
           options[:except] = Array(options[:except]) + [ "body" ] unless options[:body] || options[:fields]
-          return print_index_map_json(dir, selected, options)
+          return print_index_map_json(dir, selected, chain, options)
         end
-        print_index_map(dir, selected, options[:body])
+        print_index_map(dir, selected, chain, options[:body])
         0
       end
 
       private
 
-      # Narrow the map to the named directories/areas — case-insensitive, `root`
-      # matching the bundle root (".") so no shell quoting is needed. No --area passed
-      # keeps the whole map.
-      def select_directories(entries, areas)
-        return entries if areas.nil? || areas.empty?
+      # Narrow the map — case-insensitive, `root` matching the bundle root (".").
+      # --dir takes the named directory *and its subtree* and --depth bounds how
+      # far below the starting point that reaches, both through the shared
+      # select_dirs so the whole CLI answers "which directories?" one way. The
+      # deprecated --area keeps its old exact match beside them, because a
+      # deprecated flag that quietly widens is worse than one that is merely old.
+      # Nothing passed keeps the whole map.
+      def select_directories(entries, options)
+        areas = Array(options[:areas]).map { |area| fold_dir(area) }
+        scoped = !options[:dirs].nil? || !options[:depth].nil?
+        return [ entries, [] ] if areas.empty? && !scoped
 
-        wanted = areas.map { |area| area.downcase == "root" ? "." : area.downcase }
-        entries.select { |entry| wanted.include?(entry[:dir].downcase) }
+        all_dirs = entries.map { |entry| entry[:dir] }
+        wanted = scoped ? select_dirs(all_dirs, options) : []
+        chain = ancestor_dirs(options, all_dirs) - wanted
+        selected = entries.select do |entry|
+          areas.include?(fold(entry[:dir])) || wanted.include?(entry[:dir]) || chain.include?(entry[:dir])
+        end
+        [ selected, chain ]
       end
 
-      def print_index_map(dir, entries, body)
+      def print_index_map(dir, entries, chain, body)
         noun = entries.size == 1 ? "directory" : "directories"
         @out.puts "Index map — #{bundle_label(dir)} (#{entries.size} #{noun})"
         entries.each do |entry|
           @out.puts
-          @out.puts "  #{index_dir_label(entry)}#{index_dir_meta(entry)}"
+          # ↑ marks a row the reader did not ask for: it is here to place the
+          # branch, not to answer about it.
+          up = chain.include?(entry[:dir]) ? "↑ " : ""
+          @out.puts "  #{up}#{index_dir_label(entry)}#{index_dir_meta(entry)}"
           subdirs = entry[:subdirs]
           @out.puts "    → #{subdirs.map { |sub| "#{File.basename(sub)}/" }.join("  ")}" unless subdirs.empty?
           if entry[:present]
@@ -83,7 +124,7 @@ module OKF
       end
 
       def index_dir_label(entry)
-        base = entry[:dir] == "." ? "(root)" : "#{entry[:dir]}/"
+        base = dir_label(entry[:dir], slash: true)
         entry[:present] ? base : "#{base}  (no index.md)"
       end
 
@@ -107,13 +148,14 @@ module OKF
         end
       end
 
-      def print_index_map_json(dir, entries, options)
-        emit_list_json(dir, "directories", entries.map { |entry| index_map_entry_json(entry) }, options)
+      def print_index_map_json(dir, entries, chain, options)
+        rows = entries.map { |entry| index_map_entry_json(entry, chain.include?(entry[:dir])) }
+        emit_list_json(dir, "directories", rows, options)
       end
 
-      def index_map_entry_json(entry)
+      def index_map_entry_json(entry, ancestor)
         {
-          "dir" => entry[:dir], "index_path" => entry[:index_path],
+          "dir" => entry[:dir], "ancestor" => ancestor, "index_path" => entry[:index_path],
           "present" => entry[:present], "synthesized" => entry[:synthesized],
           "count" => entry[:count], "types" => entry[:types], "tags" => entry[:tags],
           "subdirs" => entry[:subdirs], "body" => entry[:body],

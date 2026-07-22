@@ -22,7 +22,7 @@ module OKF
       def call(argv)
         options = { json: false }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf files <dir|@slug> [--type T] [--area A] [--tag T] [--json]"
+          o.banner = "Usage: okf files <dir|@slug> [--type T] [--dir D] [--tag T] [--json]"
           json_flags(o, options, "emit the file tree as JSON")
           projection_flags(o, options)
           filter_flags(o, options, :type, :area, :tag)
@@ -47,7 +47,7 @@ module OKF
         entries.group_by { |entry| entry[:dir] }.sort_by(&:first).each do |folder, group|
           width = group.map { |entry| File.basename("#{entry[:id]}.md").length }.max
           @out.puts
-          @out.puts "  #{folder == "." ? "(root)" : "#{folder}/"}"
+          @out.puts "  #{dir_label(folder, slash: true)}"
           group.each do |entry|
             @out.puts "    #{File.basename("#{entry[:id]}.md").ljust(width)}  #{entry[:title]}"
           end

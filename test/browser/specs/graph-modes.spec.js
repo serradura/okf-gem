@@ -8,13 +8,18 @@ test.describe("graph modes", () => {
   const total = (page) => page.evaluate(() => cy.nodes().length);
   const parents = (page) => page.evaluate(() => cy.nodes().filter((n) => n.isParent()).map((n) => n.id()).sort());
 
-  test("cluster wraps the concepts in one compound parent per area", async ({ app }) => {
+  test("cluster wraps the concepts in one compound parent per dir", async ({ app }) => {
+    // The continuity pin: this fixture is flat, so depth 1 (the default) must
+    // draw exactly what the mode drew before it could nest at all — one box per
+    // directory, the root's spelled `.` in the id and (root) only on the label.
+    // cluster-nested.spec.js owns the depths above 1, on a bundle that has them.
     await app.locator("#btn-cluster").click();
     await expect(app.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
     expect(await parents(app)).toEqual([
-      "area::(root)", "area::datasets", "area::decisions", "area::runbooks", "area::services",
+      "box::.", "box::datasets", "box::decisions", "box::runbooks", "box::services",
     ]);
     expect(await total(app)).toBe(13);
+    await expect(app.locator("#cluster-depth")).toBeHidden(); // one level, no choice to offer
   });
 
   test("cluster undoes itself completely", async ({ app }) => {
@@ -102,22 +107,22 @@ test.describe("graph modes", () => {
   test("a filter still applies inside cluster mode", async ({ app }) => {
     await app.locator("#btn-cluster").click();
     await app.locator("#btn-filters").click();
-    await app.locator('#fareas .chip[data-area="services"]').click();
+    await app.locator('#fdirs .chip[data-dir="services"]').click();
     await expect.poll(() => visibleNodeIds(app)).toEqual([ "services/billing", "services/gateway" ]);
   });
 
-  test("clustering re-applies the active filter, and an emptied area box hides", async ({ app }) => {
+  test("clustering re-applies the active filter, and an emptied dir box hides", async ({ app }) => {
     // A2-15: setClustered runs applyGraphFilter before tiling, so a filter set
     // *before* clustering still takes. A2-14: a compound area box whose concepts
     // are all filtered away hides too, while one with a survivor stays. Filter to
     // area services first, then cluster — the services box stands, datasets is gone.
     await app.locator("#btn-filters").click();
-    await app.locator('#fareas .chip[data-area="services"]').click();
+    await app.locator('#fdirs .chip[data-dir="services"]').click();
     await app.locator("#btn-cluster").click();
     await expect(app.locator("#btn-cluster")).toHaveAttribute("aria-pressed", "true");
 
-    await expect.poll(() => app.evaluate(() => cy.getElementById("area::services").style("display"))).toBe("element");
-    await expect.poll(() => app.evaluate(() => cy.getElementById("area::datasets").style("display"))).toBe("none");
+    await expect.poll(() => app.evaluate(() => cy.getElementById("box::services").style("display"))).toBe("element");
+    await expect.poll(() => app.evaluate(() => cy.getElementById("box::datasets").style("display"))).toBe("none");
   });
 
   test("switching layouts keeps every node on the canvas", async ({ app }) => {
@@ -127,11 +132,11 @@ test.describe("graph modes", () => {
     }
   });
 
-  test("the f key requests fullscreen on the app element", async ({ app }) => {
-    // btnFull's handler reads appEl.requestFullscreen at click time and calls it,
-    // and `f` clicks the button. Real fullscreen is unreliable headless and is
-    // the browser's job, not the page's — the page's contract is that it *asks*.
-    // Spy on the API (a test-side stub, not a product change) and press f.
+  test("f is not a shortcut — only the button requests fullscreen", async ({ app }) => {
+    // `f` is a letter, and a bare letter bound globally fires on every stray
+    // keystroke the page did not route into an input. The button stays; the
+    // binding goes. Real fullscreen is unreliable headless and is the browser's
+    // job anyway, so spy on the API (a test-side stub) and check who calls it.
     await app.evaluate(() => {
       window.__fsTarget = null;
       document.getElementById("app").requestFullscreen = function () {
@@ -140,7 +145,17 @@ test.describe("graph modes", () => {
       };
     });
     await app.keyboard.press("f");
+    expect(await app.evaluate(() => window.__fsTarget)).toBe(null);
+
+    await app.locator("#btn-full").click();
     expect(await app.evaluate(() => window.__fsTarget)).toBe("app");
+  });
+
+  test("the shortcut sheet does not advertise f", async ({ app }) => {
+    // A list that names a key nothing is bound to is worse than no list.
+    await app.keyboard.press("?");
+    const keys = await app.locator("#kb-list dt kbd").allTextContents();
+    expect(keys).not.toContain("f");
   });
 
   test("a lazy layout whose CDN fails falls back to cose", async ({ app }) => {

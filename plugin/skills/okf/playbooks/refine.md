@@ -19,14 +19,15 @@ relationship rides links and tags, never new directories. And cohesion outranks
 balance — a move has semantic cost, so balance is a tiebreaker and a fatness
 alarm, never the objective. <!-- rule:okf-cohesion-over-balance -->
 
-1. **Orient.** `okf index <dir|@slug> --no-body` (areas, fan-out, depth),
-   `log.md` (how the bundle grew), `okf stats` (totals). Additive growth
+1. **Orient.** `okf dirs <dir|@slug>` (directories, fan-out, depth — and
+   `subtree` says where the weight sits), `log.md` (how the bundle grew), `okf
+   stats` (totals). Additive growth
    optimizes each pass locally, never the whole — that is the drift this
    playbook corrects.
 2. **Measure — the CLI is the evidence.** Baseline `validate` / `lint
    --stale-after` / `loose` first: refine assumes a sound bundle, and hard
    errors are [curate](curate.md)'s job. Then the two structural reads:
-   - `okf tags <dir> --by area` — each row carries `count/total`, so a tag's
+   - `okf tags <dir> --by dir` — each row carries `count/total`, so a tag's
      **locality** reads directly: a tag wholly inside one area names a *domain*
      (the directories are right); one spread across areas names a *concern*.
    - `okf graph <dir> --hubs` — concepts ranked by inbound links, each with

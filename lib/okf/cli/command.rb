@@ -118,13 +118,15 @@ module OKF
       # reproduced on the CLI so an agent can read the same knowledge without one.
       # Each prints a scannable human view by default and machine JSON with --json;
       # all are advisory reads (exit 0). They share OKF::Bundle#catalog for their data,
-      # and (with `types`) narrow through the same --type/--area/--tag filters the
+      # and (with `types`) narrow through the same --type/--dir/--tag filters the
       # server UI offers, so browser and CLI can answer the same questions.
       #
-      # ── their shared --type/--area/--tag narrowing ──
+      # ── their shared --type/--dir/--tag narrowing ──
       # Each view takes the filters orthogonal to it (tags can't filter by tag).
-      # Matching is case-insensitive and exact; a concept at the bundle root lives in
-      # the "(root)" area, which --area also accepts as plain `root` (no shell quoting).
+      # Matching is case-insensitive; --type and --tag are exact, --dir is a prefix
+      # over the whole path (see #under_dir?). The bundle root is `.`, spellable
+      # `root` so no shell quoting is needed. --area is --dir's deprecated
+      # predecessor and keeps its old first-segment-only behavior.
 
       # The shared back half of `tags` and `types`: load, narrow, print.
       def print_inverted_index(dir, label, key, plural, options)
@@ -177,7 +179,14 @@ module OKF
 
       def filter_flags(parser, options, *keys)
         parser.on("--type TYPE", "only concepts of this type") { |v| options[:type] = v } if keys.include?(:type)
-        parser.on("--area AREA", "only concepts in this top-level area") { |v| options[:area] = v } if keys.include?(:area)
+        if keys.include?(:area)
+          parser.on("--dir PATH", "only concepts in this directory or below it",
+            "(`root` — or `.` — for the bundle root)") { |v| options[:dir] = v }
+          parser.on("--area AREA", "deprecated: use --dir (matches the first path segment only)") do |v|
+            options[:area] = v
+            deprecated("--area", "--dir")
+          end
+        end
         parser.on("--tag TAG", "only concepts carrying this tag") { |v| options[:tag] = v } if keys.include?(:tag)
       end
 
@@ -185,8 +194,19 @@ module OKF
         entries.select do |entry|
           (options[:type].nil? || fold(entry[:type]) == fold(options[:type])) &&
             (options[:area].nil? || fold(entry[:area]) == fold_area(options[:area])) &&
+            (options[:dir].nil? || under_dir?(entry[:dir], options[:dir])) &&
             (options[:tag].nil? || entry[:tags].any? { |tag| fold(tag) == fold(options[:tag]) })
         end
+      end
+
+      # The one rule --dir is built on: a dir names itself and everything beneath
+      # it. `--dir foo` reaches foo/bar, `--dir foo/bar` narrows, and `--dir .`
+      # needs no special case at all — nothing starts with "./", so the root
+      # selects only what lives directly in it.
+      def under_dir?(entry_dir, wanted)
+        entry = fold(entry_dir)
+        path = fold_dir(wanted)
+        entry == path || entry.start_with?("#{path}/")
       end
 
       def fold(value)
@@ -194,8 +214,150 @@ module OKF
       end
 
       def fold_area(value)
-        folded = fold(value)
+        folded = trim_slash(fold(value))
         folded == "root" ? "(root)" : folded
+      end
+
+      # `.` is the stored spelling of the root everywhere; `root` is the one a
+      # shell needs no quoting for, and the only reason the two exist.
+      def fold_dir(value)
+        folded = trim_slash(fold(value))
+        folded.empty? || folded == "root" ? "." : folded
+      end
+
+      # The human views print a directory with the slash that says it is one —
+      # `tables/`, `docs/api/` — so the flag has to accept the label the CLI
+      # itself just printed. Without this, pasting a row back into --dir matched
+      # nothing and exited 0: an empty answer that reads like a real one.
+      def trim_slash(value)
+        value.sub(%r{/+\z}, "")
+      end
+
+      # The inverse of fold_dir: `.` is the stored spelling of the root and
+      # "(root)" the human one, and every grouped view keeps that split so a
+      # table and its --json never disagree about which spelling is the data.
+      # `slash:` adds the trailing slash the listing views use to say "directory"
+      # — the same one fold_dir now accepts back.
+      def dir_label(dir, slash: false)
+        return "(root)" if [ ".", "(root)" ].include?(dir)
+
+        slash ? "#{dir}/" : dir
+      end
+
+      # How many path segments deep a directory sits. The root is 0.
+      def dir_depth(dir)
+        dir == "." ? 0 : dir.count("/") + 1
+      end
+
+      # --depth N: how many directory levels below the *starting point* to keep,
+      # where the starting point is each --dir when one is given and the bundle
+      # root otherwise. Relative rather than absolute on purpose: `--dir a/b
+      # --depth 1` reads "a/b and one level under it" without the caller first
+      # working out how deep a/b already is — and the two flags then compose the
+      # way a reader descending a tree actually moves.
+      def depth_flag(parser, options)
+        parser.on("--depth N", "keep only this many directory levels below the",
+          "starting point (--dir when given, else the bundle root)") { |v| options[:depth] = v }
+      end
+
+      # Checked here rather than with OptionParser's Integer coercion, which
+      # accepts "-1" and "0x2" and reports in its own words. Returns the exit
+      # status to hand back, or nil when the value is fine.
+      def depth_error(options)
+        raw = options[:depth]
+        return nil if raw.nil? || raw.to_s =~ /\A\d+\z/
+
+        usage_error("--depth takes a whole number of levels (got #{raw.inspect})")
+      end
+
+      # The chain from the bundle root down to each --dir, so a branch is never
+      # shown adrift. On by default in the *directory* views (`index`, `dirs`):
+      # the map's job there is orientation, and a subtree printed with nothing
+      # above it has dropped the authored context that says what it is — the root
+      # index.md's prose first among it. Off with --no-ancestors, which restores
+      # the subtree alone.
+      #
+      # Deliberately not offered on the concept filters (search/catalog/files/…):
+      # there --dir narrows *concepts*, and a concept in `a/` is simply not in
+      # `a/b`. Same flag, one meaning, because it is asked about two different
+      # kinds of row.
+      def ancestors_flag(parser, options)
+        parser.on("--[no-]ancestors", "with --dir, also show the chain up to the root",
+          "so the branch is placed (default: yes)") { |v| options[:ancestors] = v }
+      end
+
+      # Every proper ancestor of each --dir, root included. Empty unless --dir
+      # named something below the root: with no --dir the whole bundle is already
+      # the starting point, and `--dir .` has nothing above it.
+      #
+      # `known` is the map's own directory list, and a base outside it contributes
+      # no chain. Without that check `--dir typo` came back with the root — a
+      # chain to a place that does not exist, which reads as a partial answer to
+      # a query that in fact matched nothing.
+      #
+      # The deprecated --area gains no chain either: it is exact, and a deprecated
+      # flag that quietly answers with more than it used to is worse than one that
+      # is merely old.
+      # Matching folds case, but a row is found by its *stored* spelling, so the
+      # chain is walked folded and handed back in the map's own words. Returning
+      # the folded string instead dropped every ancestor a bundle spelled with a
+      # capital — the rows are selected with `include?`, which does not fold.
+      def ancestor_dirs(options, known)
+        return [] unless options[:ancestors]
+
+        stored = known.each_with_object({}) { |dir, out| out[fold(dir)] = dir }
+        Array(options[:dirs]).each_with_object([]) do |path, out|
+          base = fold_dir(path)
+          next unless stored.key?(base)
+
+          current = dir_parent(base)
+          while current
+            out << stored.fetch(current, current)
+            current = dir_parent(current)
+          end
+        end.uniq
+      end
+
+      # nil above the root, so the walk above terminates on it rather than on ".".
+      def dir_parent(dir)
+        return nil if dir == "."
+
+        slash = dir.rindex("/")
+        slash ? dir[0, slash] : "."
+      end
+
+      # The directories a --dir/--depth pair selects, out of the map's own
+      # ordered list. Neither flag given keeps everything — these narrow a view,
+      # they do not define one. The ancestor chain is unioned on top by the
+      # caller, which is also what tells a row apart from context.
+      def select_dirs(dirs, options)
+        bases = Array(options[:dirs]).map { |path| fold_dir(path) }
+        depth = options[:depth]&.to_i
+        return dirs if bases.empty? && depth.nil?
+        # No --dir means the whole bundle is the starting point, which is *not*
+        # `--dir .`: that one selects the root alone, by the same prefix rule
+        # everything else here uses.
+        return dirs.select { |dir| dir_depth(dir) <= depth } if bases.empty?
+
+        dirs.select do |dir|
+          bases.any? do |base|
+            # --depth bounds the *descent*; the chain above is the ascent, and the
+            # two are separate axes. That is what keeps `--depth 0` meaning "the
+            # named directory alone" even while its chain is printed with it.
+            under_dir?(dir, base) && (depth.nil? || dir_depth(dir) - dir_depth(base) <= depth)
+          end
+        end
+      end
+
+      # A deprecated spelling still does what it always did — never silently
+      # something else — and says so once per run, on stderr so a --json
+      # consumer's stdout stays a clean machine substrate.
+      def deprecated(what, instead)
+        @deprecated ||= {}
+        return if @deprecated[what]
+
+        @deprecated[what] = true
+        @err.puts "warning: #{what} is deprecated, use #{instead}"
       end
 
       # Turn an inverted index ({ value => [id, …] }) into display rows ordered by
@@ -212,7 +374,7 @@ module OKF
       # The ids the filters select, resolved through the catalog metadata — or nil
       # when no filter is active, meaning keep everything.
       def filter_ids(folder, options)
-        return nil if options[:type].nil? && options[:area].nil? && options[:tag].nil?
+        return nil if options[:type].nil? && options[:area].nil? && options[:dir].nil? && options[:tag].nil?
 
         filter_entries(folder.catalog, options).map { |entry| entry[:id] }
       end

@@ -44,7 +44,7 @@ module OKF
       def loose_files(graph)
         titles = graph.nodes.map { |node| [ node[:id], node[:title] ] }.to_h
         graph.unlinked_ids
-             .map { |id| { id: id, title: titles[id], dir: File.dirname("#{id}.md") } }
+             .map { |id| { id: id, title: titles[id], dir: OKF.dir_of(id) } }
              .sort_by { |file| file[:id] }
       end
 
@@ -58,7 +58,7 @@ module OKF
         files.group_by { |file| file[:dir] }.sort_by(&:first).each do |folder, group|
           width = group.map { |file| File.basename("#{file[:id]}.md").length }.max
           @out.puts
-          @out.puts "  #{folder == "." ? "(root)" : "#{folder}/"}"
+          @out.puts "  #{dir_label(folder, slash: true)}"
           group.each do |file|
             @out.puts "    #{File.basename("#{file[:id]}.md").ljust(width)}  #{file[:title]}"
           end

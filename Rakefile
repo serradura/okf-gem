@@ -15,6 +15,30 @@ def browser_sh(command, env = {})
   Dir.chdir(BROWSER_DIR) { sh(env, command) }
 end
 
+# The README's graph shot, in both themes: boots the server on this repo's own
+# .okf and hands it to shots.mjs, which drives Chromium and writes the two PNGs.
+# It has nothing to do with the test suite beyond borrowing its Chromium — it
+# lives beside it because that is the one place in the repo that already has a
+# browser to drive, and because the pair it replaced went three releases stale
+# while regenerating them was a manual job nobody had a command for.
+def regenerate_shots
+  unless File.directory?(File.join(BROWSER_DIR, "node_modules"))
+    abort "browser suite not installed: run `bundle exec rake browser:setup`"
+  end
+
+  port = ENV.fetch("SHOT_PORT", "8877")
+  server = spawn(RbConfig.ruby, "-I#{__dir__}/lib", "#{__dir__}/exe/okf",
+    "server", "#{__dir__}/.okf", "-p", port, "--title", "okf-gem",
+    out: File::NULL, err: File::NULL)
+  begin
+    sleep 2 # WEBrick's boot; the script's own goto retries nothing
+    browser_sh("node shots.mjs", "SHOT_PORT" => port)
+  ensure
+    Process.kill("TERM", server)
+    Process.wait(server)
+  end
+end
+
 # A headed or recorded run is scoped to one spec file against the live server:
 # headed mode opens a window per worker, and the whole suite at watchable speed
 # is minutes of flashing windows.
@@ -69,6 +93,9 @@ namespace :browser do
   task :ui do
     browser_sh("npx playwright test --ui")
   end
+
+  desc "Regenerate the README's .github/server-{light,dark}.png from this repo's own .okf"
+  task(:shots) { regenerate_shots }
 
   #   rake browser:watch                  # inspector.spec.js, 400ms per action
   #   rake browser:watch[filters]         # a different file

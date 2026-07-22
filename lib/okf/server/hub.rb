@@ -45,22 +45,9 @@ module OKF
       # names" is how a router becomes an eval.
       WRITES = %w[default rename remove add].freeze
 
-      # How many rows /search answers with. The palette shows a handful and the
-      # rest is scroll nobody reaches, but the count is reported alongside so a
-      # capped answer never reads as a complete one.
-      SEARCH_LIMIT = 50
-
-      # The engine /search runs on, named rather than inferred. `fuzzy: true`
-      # would route here on its own today — the index is the only registered
-      # engine that offers it — but that is correctness by coincidence, and an
-      # addon declaring :fuzzy would silently take the route.
-      #
-      # It is also the *right* engine here for a reason the CLI's default does
-      # not share: `okf search` is one-shot and cannot amortize an index build,
-      # while this is a long-lived server answering keystroke after keystroke.
-      # And the page's own MiniSearch is what minifts is a port of, so a palette
-      # hit and an in-page search rank alike instead of nearly alike.
-      SEARCH_ENGINE = :index
+      # The /search cap and engine live on App, which now defines the payload both
+      # hosts answer with (App.search_payload). Two copies of a constant is two
+      # places to raise the cap and one of them silently losing.
 
       # One hosted bundle: its +slug+ (unique mount key), the on-disk +folder+, and
       # its display +title+.
@@ -205,6 +192,12 @@ module OKF
       end
       private_class_method :load_entry
 
+      # See App#warm_search — same reason, one corpus over every hosted bundle.
+      def warm_search
+        search_corpus
+        self
+      end
+
       def call(env)
         request = Rack::Request.new(env)
         # Everything this class *emits* must carry the prefix a host mounted it
@@ -339,6 +332,9 @@ module OKF
         @apps = build_apps(@layout)
         @counts = nil
         @health = nil
+        # The corpus is a snapshot of the set, so a write that changes the set
+        # invalidates it. Without this a removed bundle keeps answering /search.
+        @search_corpus = nil
       end
 
       # Same-origin *and* the token. Neither alone is enough: the token lives in
@@ -374,14 +370,14 @@ module OKF
       # keystroke, and the box starts empty. `fuzzy: true` matches both the TUI
       # and the page's own MiniSearch, so all three forgive the same typos.
       def search(query)
-        terms = query.to_s.split(/\s+/).reject(&:empty?)
-        rows = terms.empty? ? [] : OKF::Bundle::Search.across(pairs, terms, fuzzy: true, engine: SEARCH_ENGINE)
-        json(
-          "query" => query.to_s.strip,
-          "total" => rows.length,
-          "truncated" => rows.length > SEARCH_LIMIT,
-          "results" => rows.first(SEARCH_LIMIT)
-        )
+        json(App.search_payload(search_corpus, query))
+      end
+
+      # One index over every hosted bundle — one corpus, so BM25 weighs a term
+      # against the whole set exactly as .across intends. Dropped whenever the
+      # bundle set changes, which is the only thing that can invalidate it.
+      def search_corpus
+        @search_corpus ||= OKF::Bundle::Search.prepare(pairs, engine: App::SEARCH_ENGINE)
       end
 
       # The /b/ manager's own rows, as JSON — what the graph page's Bundles panel
@@ -533,14 +529,26 @@ module OKF
           count: nil, health: "missing", word: word, default: false }
       end
 
+      # A bundle is addressed by its slug — `@orders` on the CLI, `/b/orders/`
+      # here — so the slug is its name and the folder is a fact about it. The row
+      # led with Folder.label instead, which put the address where the name goes;
+      # in a real registry that label is `…/.okf` on nearly every line, so the
+      # loudest column repeated the one word that tells no two bundles apart.
+      #
+      # The short label is gone rather than demoted: it only ever stood in for the
+      # path, and the path is right here on the row's second line.
+      #
+      # The name keeps its `@`, which the ref line used to carry: it is the exact
+      # spelling `okf lint @orders` takes, so the row teaches the CLI for free —
+      # and one element now does the whole job two were splitting.
       def manager_row(base, row)
         name = if row[:mount]
-                 %(<a class="name" href="#{escape(base)}#{MOUNT}/#{escape(row[:mount])}/">#{escape(row[:title])}</a>)
+                 %(<a class="name" href="#{escape(base)}#{MOUNT}/#{escape(row[:mount])}/">@#{escape(row[:slug])}</a>)
                else
-                 %(<span class="name off">#{escape(row[:title])}</span>)
+                 %(<span class="name off">@#{escape(row[:slug])}</span>)
                end
         %(<li class="row" data-health="#{escape(row[:health])}">) +
-          %(<div class="who">#{name}<div class="ref"><span class="slug">@#{escape(row[:slug])}</span>) +
+          %(<div class="who">#{name}<div class="ref">) +
           # The row shows the tail; the tooltip is where the whole path stays
           # reachable, since nothing else on the page carries it.
           %(<span class="dir" title="#{escape(row[:dir])}"><bdi>#{escape(row[:dir])}</bdi></span></div></div>) +

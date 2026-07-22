@@ -34,6 +34,25 @@ module ByDir
       assert_match(%r{<title>OKF · fixtures/conformant</title>}, page)
     end
 
+    # The App defaults to advertising nothing, because only the caller knows
+    # where it is mounted and the page resolves the endpoint relative to the URL
+    # the reader is on. `okf server` mounts it at the root, so it is the one that
+    # can name it — and the palette must still search the bundle it was given.
+    test "a single-bundle server names its own search endpoint, so the palette searches it" do
+      _result, booted = okf_server(fixture("conformant"))
+      app = booted_app(booted.first)
+
+      _status, _headers, page = get_page(app)
+      assert_match(/const SEARCH_ENDPOINT="search"/, page)
+
+      status, _headers, body = app.call(
+        "REQUEST_METHOD" => "GET", "PATH_INFO" => "/search", "QUERY_STRING" => "q=orders",
+        "rack.input" => StringIO.new("")
+      )
+      assert_equal 200, status
+      assert_equal "tables/orders", JSON.parse(body.join).fetch("results").first.fetch("id")
+    end
+
     test "two dirs boot a hub with ephemeral slugs, gzipped like a single bundle" do
       result, booted = okf_server(fixture("conformant"), fixture("minimal"))
       app, = booted

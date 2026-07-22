@@ -161,6 +161,32 @@ module ByRegistry
       end
     end
 
+    test "--dir selects a directory and its subtree through a ref" do
+      with_registry("conformant", "edge-cases") do
+        data = json(okf("catalog", "@conformant", "--dir", "TABLES", "--json"))
+        assert_equal 2, data.fetch("count")
+        assert_equal "conformant", data.fetch("slug"), "a filtered view keeps the identity contract"
+
+        nested = json(okf("catalog", "@edge-cases", "--dir", "deeply", "--json"))
+        assert_equal [ "deeply/nested/path/concept" ], nested.fetch("concepts").map { |row| row["id"] }
+
+        rooted = json(okf("catalog", "@edge-cases", "--dir", "root", "--json"))
+        assert_equal %w[links-in-fences reference-style target], rooted.fetch("concepts").map { |row| row["id"] }
+        assert_equal "edge-cases", rooted.fetch("slug")
+      end
+    end
+
+    test "--area still filters through a ref, and warns on stderr" do
+      with_registry("conformant") do
+        result = okf("catalog", "@conformant", "--area", "tables", "--json")
+
+        assert_equal 0, result.status
+        assert_equal "warning: --area is deprecated, use --dir\n", result.err
+        assert_equal 2, json(result).fetch("count")
+        assert_equal "conformant", json(result).fetch("slug")
+      end
+    end
+
     test "--tag selects concepts carrying a tag, case-insensitively" do
       with_registry("conformant") do
         data = json(okf("catalog", "@conformant", "--tag", "ORDERS", "--json"))

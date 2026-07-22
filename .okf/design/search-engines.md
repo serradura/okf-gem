@@ -4,7 +4,7 @@ title: Search engines are adapters, and the facade owns the row
 description: One facade over N retrieval engines — the scan by default, the index when a query needs it or names it — with a shared conformance suite standing in for the oracle rule that multiple engines made impossible.
 resource: lib/okf/bundle/search.rb
 tags: [architecture, search, extensibility, testing]
-timestamp: 2026-07-18T22:00:00Z
+timestamp: 2026-07-22T12:00:00Z
 ---
 
 # Overview
@@ -73,8 +73,14 @@ parity with the browser page — is now reached by asking. That the *page* still
 runs MiniSearch means the CLI and the page rank identically only under
 `--engine index`; the claim used to be unconditional and is not any more.
 
-This is expected to be revisited: a cached prebuilt index removes the build from
-the comparison entirely, at which point the arithmetic above no longer holds.
+This has now been revisited on the server side. An engine may expose `prepare`,
+which builds whatever it would otherwise build per call and hands it back; a
+`Search::Corpus` holds one per engine id and passes it as `prepared:`. The scan
+declares no `prepare` and is handed none — the seam is opt-in, so adding it broke
+no engine and required nothing of an addon. The arithmetic above still holds for
+the CLI, which has one query to amortize over; it does not for a server, which
+has every keystroke after boot. See
+[the search capability](../capabilities/search.md).
 
 `available?` is not decorative. The base gem's two engines are always available —
 `minifts` is a hard dependency with no native extension — but an addon backed by

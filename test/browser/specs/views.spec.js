@@ -23,6 +23,33 @@ test.describe("view switching", () => {
     await expect(app.locator("#fp-body")).toContainText("Checkout Platform");
   });
 
+  // Index and Files are one view, so `data-view` cannot tell them apart — and the
+  // rail was reading nothing else, which left Files lit on the one screen the
+  // reader reached by asking for Index. The open file is the only thing that
+  // distinguishes them, so it is what the rail has to read.
+  test("the rail says Index while the root map is open, and Files once it is not", async ({ app }) => {
+    await app.locator('.rail-item[data-view="index"]').click();
+    await expect(app.locator("#app")).toHaveAttribute("data-view", "files");
+    await expect(app.locator('.rail-item[data-view="index"]')).toHaveClass(/active/);
+    await expect(app.locator('.rail-item[data-view="files"]')).not.toHaveClass(/active/);
+
+    await app.locator("#ftree-list .file[data-id]").first().click();
+    await expect(app.locator('.rail-item[data-view="files"]')).toHaveClass(/active/);
+    await expect(app.locator('.rail-item[data-view="index"]')).not.toHaveClass(/active/);
+  });
+
+  // Only the *root* map is what the Index rail item opens. A nested one is a file
+  // in the tree like any other, so lighting Index there would claim the reader is
+  // somewhere they never asked to be.
+  test("a nested index.md is Files, not Index", async ({ app }) => {
+    await app.locator('.rail-item[data-view="index"]').click();
+    await app.locator('#ftree-list .file[data-path="services/index.md"]').click();
+
+    await expect(app.locator("#fp-title")).toHaveText("services/index.md");
+    await expect(app.locator('.rail-item[data-view="files"]')).toHaveClass(/active/);
+    await expect(app.locator('.rail-item[data-view="index"]')).not.toHaveClass(/active/);
+  });
+
   test("each view populates rather than staying on its loading placeholder", async ({ app }) => {
     await showView(app, "catalog");
     await expect(app.locator("#cat-cnt")).toHaveText("8 of 8 concepts");

@@ -150,7 +150,7 @@ as Ruby regular expressions with `--regexp`/`-e` (an invalid pattern is a usage
 error, exit 2). `--fuzzy` forgives typos; pairing it with `-e` is a usage error,
 since a pattern is matched literally rather than by edit distance.
 `--in a,b` restricts the searched fields (title, id, tags, type, description,
-body); the shared `--type/--area/--tag` filters narrow the candidates *first*,
+body); the shared `--type/--dir/--tag` filters narrow the candidates *first*,
 so a search scoped by what `index` taught you stays surgical.
 
 **The default is exact, so an exact query means what it looks like.** A phrase in
@@ -273,8 +273,30 @@ there, its child directories, and the concept listing. Run it first when picking
 an existing bundle: it is the cheapest high-signal orientation, and it surfaces
 enumeration drift a grep can't (you can't grep for a listing entry that is *missing*).
 
-`--area A` narrows to a directory and is **repeatable** — `--area model --area
-format` shows both; `root` names the bundle root. `--no-body` drops the prose to a
+`--dir PATH` narrows to a directory **and everything below it**, and is
+**repeatable** — `--dir model --dir format` shows both; `root` (or `.`) names the
+bundle root. A `--dir` also brings the **chain from the root down to it**, so a branch is
+never shown adrift of the authored context that says what it is — the root
+`index.md`'s prose first among it. Those rows print with a leading `↑` and carry
+`ancestor: true`; `--no-ancestors` drops them. Ascent and descent are separate
+axes, so `--depth` never bounds the chain: `--dir X --depth 0` is X alone, plus
+how you get to X. A `--dir` that names nothing gains no chain — a lone root row
+would read as a partial answer to a query that matched nothing.
+
+`--depth N` bounds how far below the starting point the map reaches
+(the `--dir` when one is given, else the bundle root), counted **relatively**:
+`--depth 1` is the top of the tree, `--dir X --depth 1` is one branch of it, and
+the pair walks down a level at a time.
+
+**On a bundle of any size the map is unreadable whole** — every directory is a
+section, and even `--no-body` keeps one listing row per *concept* — so narrow
+rather than paging it: `okf dirs` is the orientation, `--dir <branch> --depth 1`
+is the step down into it,
+and `--except body,listing` on top of either is the lean JSON skeleton. Full
+`index` output on a few hundred concepts runs to hundreds of KB; the same map at
+`--depth 1` is a couple of KB.
+
+`--no-body` drops the prose to a
 skeleton (headers, rollups, child pointers). For a directory that has concepts but
 **no `index.md`**, the listing is **synthesized** from the concepts' descriptions
 and tagged `(no index.md)` — §6 explicitly permits synthesizing a map on the fly.
@@ -283,7 +305,49 @@ It is a **read view**: advisory, always exit 0. A synthesized directory is a
 *signal* (a map worth writing), never a defect — `index` emits no lint findings and
 never fails a bundle. JSON: `{ bundle, count, directories: [{ dir, index_path,
 present, synthesized, count, types, tags, subdirs, body, listing: [{ id, title,
-description, type, tags }] }] }`.
+description, type, tags }] }] }` — `ancestor` marks a row that is there to place
+the branch rather than to answer about it.
+
+## dirs — the bundle's clusters and their sizes
+
+`okf dirs <dir>` lists every directory the bundle has — the ones holding
+concepts, the ones carrying an `index.md`, and the empty intermediates that only
+exist to connect the tree — with the number of concepts living **directly** in
+each and the number in its **subtree**. A cluster *is* a directory here, so this
+is the view that tells you what `--dir` can be pointed at and how much sits
+behind each choice.
+
+Two numbers, because one cannot answer the question. `count` is direct, so the
+column sums to the bundle's concept total and a dir holding only sub-directories
+reads `0` rather than a hidden rollup. `subtree` is defined as *exactly what
+`--dir <that row>` returns*, so the row and the flag can never disagree — which
+is also why the root's subtree is its own direct count (`.` is a prefix of
+nothing). Without it a truncated listing is all zeroes at the top of a deep tree,
+which is where you most need to know where the mass is. The human table shows the
+second column only where some dir actually nests.
+
+`--dir PATH` (repeatable) narrows to a directory and its subtree, and brings the
+**chain up to the root** with it so the branch is placed rather than shown
+adrift — those rows are marked `↑`, carry `ancestor: true`, and stay out of
+`total` (`--no-ancestors` drops them). `--depth N` keeps only N levels below the
+starting point — the `--dir` when one is given,
+the bundle root otherwise. Relative, not absolute, so `--dir a/b --depth 1`
+reads "a/b and one level under it" without your first working out how deep `a/b`
+is. `--depth 0` is the starting point alone. A `--depth` that is not a whole
+number is a usage error (exit 2).
+
+**This is the first command to run on a bundle you do not know** — the same first
+move [SKILL.md](../SKILL.md) prescribes. `okf dirs <dir>` is one row per
+directory, so its size tracks the tree rather than the concept count: it tells
+you the shape and where the weight sits, `--depth 1` trims it further on a deep
+bundle, and you then descend with `okf index --dir`, one level at a time.
+
+The root prints `(root)` and stores `.` — the split every grouped view keeps, so
+a table and its `--json` never disagree about which spelling is the data. JSON:
+`{ bundle, total, count, dirs: [{ dir, ancestor, count, subtree, subdirs }] }`,
+root first. `count` is rows printed, chain included; `total` sums the direct
+counts of the rows you actually asked for, which is what keeps a row's `subtree`
+equal to the `total` that `--dir` on that row returns.
 
 ## catalog / files / tags / types / stats — the server views, as text
 
@@ -293,7 +357,8 @@ All are advisory reads (exit 0) sharing one data source (per-concept metadata pl
 in/out link degree). Add `--json` to any for a machine substrate.
 
 - **`catalog`** — every concept with its metadata (type, status, tags, timestamp,
-  in/out link degree, description), grouped by top-level area. The "what's here, in
+  in/out link degree, description), grouped by top-level area (`dir` on every row
+  carries the full path). The "what's here, in
   detail" view. JSON: `{ bundle, count, concepts: [{ id, title, type, description,
   tags, timestamp, status, backlog_ref, dir, area, links_out, links_in }] }`.
 - **`files`** — the folder tree: each concept's filename + title, grouped by
@@ -301,7 +366,7 @@ in/out link degree). Add `--json` to any for a machine substrate.
   id, dir, type, title, description }] }`.
 - **`tags`** — every tag with the concepts that carry it, ordered by count
   descending. The "what themes dominate" view. JSON: `{ bundle, count, tags: [{ tag,
-  count, concepts: [id, …] }] }`. `--by type|area` regroups the list per concept
+  count, concepts: [id, …] }] }`. `--by type|dir` regroups the list per concept
   dimension with **within-group** counts (a tag spanning groups appears in each);
   each row also carries the tag's **total** across the narrowed set, printed
   `count/total` when they differ — so a tag's locality reads per row (a plain
@@ -313,18 +378,32 @@ in/out link degree). Add `--json` to any for a machine substrate.
 - **`types`** — every type with the concepts that carry it, ordered by count
   descending. The "what kinds of knowledge" view. JSON: `{ bundle, count, types:
   [{ type, count, concepts: [id, …] }] }`.
-- **`stats`** — bundle rollups: concept / area / type / cross-link / distinct-tag
-  totals plus per-type and per-area breakdowns. The "shape at a glance" view. JSON:
-  `{ bundle, concepts, areas, concept_types, cross_links, distinct_tags, by_type, by_area }`.
+- **`stats`** — bundle rollups: concept / dir / type / cross-link / distinct-tag
+  totals plus per-type and per-dir breakdowns. The "shape at a glance" view. JSON:
+  `{ bundle, concepts, dirs, areas, concept_types, cross_links, distinct_tags,
+  by_type, by_dir, by_area }` (`areas`/`by_area` are the deprecated first-segment
+  cut, kept for one release). `dirs`/`by_dir` cover every directory `okf dirs`
+  lists — counts are direct, so a directory holding nothing itself is present at
+  `0` rather than missing, and `by_dir.keys` is a complete list of what `--dir`
+  can address.
 
 The four list views narrow with the same filters the browser panels offer —
-`--type TYPE`, `--area AREA`, `--tag TAG`; each takes the ones orthogonal to
-itself (`tags` can't filter by tag). Matching is case-insensitive and exact; a
-concept at the bundle root lives in the `(root)` area, which `--area` also accepts
-as plain `root` (no shell quoting). A filter that matches nothing is an empty view,
-not an error: `okf tags <dir> --area billing --json` answers "which tags does the
-billing area use?", `okf catalog <dir> --tag auth` answers "what carries the auth
-tag?".
+`--type TYPE`, `--dir PATH`, `--tag TAG`; each takes the ones orthogonal to
+itself (`tags` can't filter by tag). Matching is case-insensitive; `--type` and
+`--tag` are exact, `--dir` takes the named directory **and everything below it**
+(`--dir platform` reaches `platform/services/api`). A concept at the bundle root
+lives in `.`, which `--dir` also accepts as plain `root` (no shell quoting). A
+filter that matches nothing is an empty view, not an error: `okf tags <dir> --dir
+billing --json` answers "which tags does the billing cluster use?",
+`okf catalog <dir> --tag auth` answers "what carries the auth tag?".
+
+**`--area` is deprecated.** It still works — matching the *first path segment*
+only, its old behavior unchanged — and prints `warning: --area is deprecated, use
+--dir` on stderr (stdout stays clean, so a `--json` consumer is unaffected). Same
+for `tags --by area`. Both go in a later release; write `--dir` in anything new.
+On `index` it combines with neither `--depth` nor `--dir` — exit 2, because it is
+*exact* and both of those select a range, so the pair used to return the area
+plus whatever the other flag selected: an answer to neither question.
 
 Reach for `stats` first to size a bundle, `catalog`/`files` to enumerate it, `tags`
 to find thematic clusters — all without standing up the server.
@@ -340,10 +419,13 @@ in a body render as diagrams, and a click (or tap) opens the diagram full
 screen with drag-to-pan and wheel/pinch zoom. Concepts render as nodes
 coloured by `type` and sized by degree, links as edges, with a detail panel
 (rendered markdown, "Links to" / "Linked from" backlinks), layout switching,
-type/area/tag filters on every view, and search. The authored layer is in the
+type/dir/tag filters on every view (the dir chips take a directory *and* its
+subtree, the same rule `--dir` uses), and search. Cluster mode groups the
+concepts into one box per directory, nested to a depth picked beside the layout
+select — depth 1 is the flat view, and a flat bundle is offered no control. The authored layer is in the
 UI too: the Files view carries **Files | Indexes** tabs — the Indexes tab
 lists the log first (the chronological index), then every `index.md` — and
-folder nodes in file-tree mode and area boxes in cluster mode open a
+folder nodes in file-tree mode and directory boxes in cluster mode open a
 directory's §6 map in the inspector (authored, or synthesized when none
 exists). Links to an `index.md`, `log.md`, or bare directory navigate instead
 of dead-ending, and the log is fetched fresh on every read, so a

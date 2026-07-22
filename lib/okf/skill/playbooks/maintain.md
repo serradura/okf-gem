@@ -5,8 +5,9 @@ up. Restructuring the bundle itself — moving concepts, adding areas — is
 [refine](refine.md), not maintain. The modelling craft behind steps 3 and 7
 lives in [authoring.md](../reference/authoring.md).
 
-1. **Orient before hunting.** Run `okf index <dir>` (the §6 map — every directory's
-   index body, rollups, and listings), read `log.md` (the §7 baseline: what changed
+1. **Orient before hunting.** Run `okf dirs <dir>` (the shape), then `okf index
+   <dir> --dir <branch>` on the branch the change touches (the §6 map: its index
+   body, rollups and listing), read `log.md` (the §7 baseline: what changed
    last), and `okf stats <dir>` (size and shape) *before* you grep. It is the
    cheapest context and it primes the hunt — and it is the only reliable way to
    catch enumeration drift, because **grep cannot find an index entry that is
@@ -45,7 +46,7 @@ lives in [authoring.md](../reference/authoring.md).
      defect.** Loose ≠ orphan: an index listing makes a file *reachable* (not an
      orphan) but is not a graph edge, so an indexed file can still float here.
 7. **Curate the tag vocabulary** when the pass
-   touched tags, or when `okf tags <dir>` shows a long tail of singletons. Run `okf tags <dir> --by area` and
+   touched tags, or when `okf tags <dir>` shows a long tail of singletons. Run `okf tags <dir> --by dir` and
    `--by type` — the grouped view is the analysis; read each group top-down:
    - **twins** — two tags riding the exact same concepts (equal counts sort them
      adjacent). Merge into one unless each genuinely names a different theme.

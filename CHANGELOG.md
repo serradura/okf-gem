@@ -5,6 +5,208 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-07-22
+
+### Added
+
+- **`okf dirs <dir|@slug> [--json]`** — the bundle's directories (its clusters)
+  with the number of concepts living **directly** in each, root first and the
+  total last. Every dir the tree has, including the empty intermediates that
+  exist only to connect it — a dir holding nothing but sub-directories reads
+  `0`, not a hidden rollup, so the column sums to the bundle's concept count.
+  JSON: `{ bundle, total, count, dirs: [{ dir, count, subdirs }] }`.
+- **`--depth N` on `index` and `dirs`** — how many directory levels below the
+  starting point to keep, where the starting point is the `--dir` when one is
+  given and the bundle root otherwise. Relative rather than absolute, so
+  `--dir a/b --depth 1` reads "a/b and one level under it" without first working
+  out how deep `a/b` is, and the two flags walk a tree a level at a time.
+  `--depth 0` is the starting point alone; anything but a whole number is a
+  usage error (exit 2). This is what makes `index` usable at scale — every
+  directory in it is a section, so a few hundred concepts is a map nobody reads
+  whole. On one 414-concept bundle `index --no-body` went 12.5 KB → 1.3 KB at
+  `--depth 1`, and `index --json` 313 KB → 2.8 KB with `--depth 1 --except
+  body,listing`.
+- **`--dir` on `index` and `dirs` brings the chain up to the root with it**, so a
+  branch is never shown adrift of the authored context that says what it is —
+  the root `index.md`'s prose first among it. Those rows print with a leading
+  `↑`, carry `ancestor: true`, and stay out of `total`; `--no-ancestors` drops
+  them. Ascent and descent are separate axes, so `--depth` never bounds the
+  chain: `--dir X --depth 0` is X alone, plus how you get to X. A `--dir` that
+  names nothing gains no chain, since a lone root row would read as a partial
+  answer to a query that in fact matched nothing.
+- **`dirs` gains `--dir` (repeatable) and a `subtree` count** per row: the
+  concepts at or below that directory, defined as exactly what `--dir` on the
+  row returns, so the number and the flag can never disagree. Without it a
+  truncated listing is all zeroes at the top of a deep tree — which is where
+  "where is the mass?" is actually asked. The human table shows the column only
+  where some directory nests; `--json` always carries it.
+- **`--dir PATH`** joins the shared filter set on `search`, `catalog`, `files`,
+  `types` and `tags`, and `index` gains it as a repeatable selector. One rule:
+  a concept matches when its dir *is* the path or sits below it — so `--dir
+  platform` reaches `platform/services/api`, `--dir platform/services` narrows,
+  and `--dir .` means the root alone with no special case. `root` is the
+  unquoted spelling of `.`; matching folds case.
+- **`tags --by dir`** cuts the tag index by the whole directory path, where
+  `--by area` only ever saw the first segment.
+- **`stats` gains `dirs` and `by_dir`** (the full-path cut, direct counts), and
+  its human breakdown now reads **By dir**. Both are read off the same map `okf
+  dirs` lists and `--dir` is answered against, so the two verbs cannot report a
+  different number of directories — a directory holding nothing directly appears
+  at `0` rather than being dropped, since it is still one `--dir` addresses.
+- **Search rows carry `dir`** — the full path, `.` at the root — beside the
+  first-segment `area` they already had.
+- **`dirs` takes `--fields`/`--except`** like the other list views, over the row
+  shape it already declared.
+- **A single-bundle `okf server` answers `GET /search?q=`.** The route was the
+  hub's alone — conceived as the *cross-bundle* one — which left `okf server
+  ./docs` with a ⌘K palette that could find nothing, though one bundle is a legal
+  one-element set. `App` owns the payload and the hub calls it, so the shape is
+  defined once; a row from a single-bundle server carries no `slug`, which is how
+  it avoids answering as if it were a set. A static `okf render` still advertises
+  no endpoint: there is no server behind it to ask.
+  - **The route always answers; advertising it is the caller's call.** The page
+    resolves the endpoint *relative to the URL the reader is on*, so only whoever
+    mounted the app knows what to call it: `okf server` mounts at the root and
+    passes `search`, while `App.new(folder)` on its own advertises nothing, since
+    a default would point an app mounted at `/knowledge` back at its host's root.
+- **The search index is built once and held.** Every request used to rebuild the
+  whole corpus — measured 1.45 s per search on a 414-concept bundle, flat across
+  repeats, with the build ~95% of it. `Search.prepare` holds a corpus (documents,
+  the key→concept map, the built index) and `Search.with` queries it: **0.016 –
+  0.052 s** per search, with the 1.39 s build moved into boot, where `okf server`
+  warms it deliberately. An engine opts in by exposing `prepare`; the scan
+  declares none and is handed none, so no engine or addon had to change. The
+  trade is staleness — a corpus is a snapshot, like the graph — and the hub drops
+  its corpus on any registry write, since a held index outliving the set it was
+  built from is a wrong answer rather than a slow one.
+- **`⌥ drag` moves a cluster box**, and is listed in the `?` sheet.
+
+### Changed
+
+- **A bundle is named by its slug, everywhere it is chosen.** The ⌘K switcher,
+  the Bundles panel and the hub's `/b/` page all led with the derived
+  `parent/dir` label and left the slug in muted grey beside it — the address in
+  the name's place, when a bundle is addressed by `@okf-gem` and `/b/okf-gem/`.
+  Rows now carry `@slug` as the name and the folder as the fact under it, shown
+  only where it is not the name repeated. `/b/` drops the short label outright:
+  it only ever stood in for the full path, which is on the row already.
+- **A `.okf` directory is labelled by the project that holds it.**
+  `Bundle::Folder.label` reads `repo/.okf` as `repo`. The `parent/dir` pair
+  exists because a bundle directory's own name is rarely unique — except when it
+  is `.okf`, the conventional container, and then a registry of eight projects
+  was eight rows all saying `.okf`. This also reaches `okf registry list` and the
+  default `okf server` title. (A `.okf` with no parent to borrow keeps its own
+  name; that case used to compose into `//.okf`.)
+- **A force layout settles, then moves once.** `animate:true` reads to these
+  engines as "render every tick of the simulation" — the visible bounce, and
+  hundreds of full re-renders for one settle. It is `'end'` now: the same
+  simulation run headless, the nodes moved once into the same final positions.
+  Past 250 nodes even that transition is dropped, because at that size the move
+  itself is the jank.
+- **A cluster box is scenery, not a handle.** Its empty interior is the largest
+  drag target on the canvas, so dragging to look around dragged the *directory*
+  instead of the view — worse the bigger the cluster. It takes `grabbable:false`
+  **and** `pannable:true`: ungrabbable alone stops the box moving, but the node
+  still swallows the drag, and it is `pannable` that hands the gesture to the
+  canvas the way empty background does. `Alt`+drag gives the handle back, since
+  moving a box is a real gesture, just not the constant one — `Alt` rather than
+  `Ctrl`, which on macOS is the system secondary click. A tap still opens the
+  directory's map.
+- **`f` is no longer a shortcut.** A bare letter bound globally fires on every
+  keystroke the page did not route into an input, and fullscreen is not a mode to
+  enter by accident. The button stays and is now the only way in; the shortcut
+  sheet no longer advertises a key nothing is bound to.
+- **The skill names one first move.** It had prescribed three different ones
+  across seven places — SKILL.md, four playbooks and the CLI reference — and that
+  disagreement is the deliberation an agent pays for on every retrieval. Every
+  site now says `okf dirs` first, then `okf index --dir <branch>` to descend,
+  chosen structurally: `dirs` emits one row per *directory* where `index` emits
+  one listing row per *concept* even under `--no-body`, so the two scale with
+  different things.
+
+- **Cluster mode nests.** The graph page grouped concepts into one flat row of
+  boxes, one per *first path segment* — the same lossy projection `--area` was.
+  A cluster is a directory now, and the boxes nest as the directories do, to a
+  depth picked from a select beside the layout one. Depth **1** is the default
+  and draws exactly the old view; a flat bundle is offered no control at all.
+  At depth N every directory of depth ≤ N gets a box (intermediates that hold no
+  concepts of their own included, since they hold sub-boxes), and a concept
+  attaches to its own directory's box truncated to N. The root box still holds
+  direct-root concepts and never nests another. Box ids carry the directory
+  verbatim (`box::platform/services`, `box::.`), so a tap opens that directory's
+  map with no label to unmangle.
+- **The page speaks `dir` too**: the filter group is **Dirs**, listing every
+  directory (not just first segments) and filtering by the same
+  directory-and-below rule `--dir` uses — in the graph, catalog and tags views —
+  and the Stats panel's breakdown is **By dir**, keyed by the whole path.
+
+### Fixed
+
+- **The rail marks Index while the root map is open.** Index is a shortcut into
+  Files, so the two share one `data-view` — and the rail read only that, lighting
+  **Files** on the one screen a reader reached by clicking **Index**. The open
+  file is what distinguishes them, so it is what the rail reads; a *nested*
+  `index.md` is still Files.
+- **`--dir` accepts the label the views print.** `fold_dir` never stripped a
+  trailing slash, while `okf index` labels a row `tables/` — so pasting a printed
+  row back into the flag matched nothing and exited 0, an empty result under a
+  count that agreed with it.
+- **The `--dir` chain keeps its case.** It was walked over case-folded paths and
+  then matched against the map with `include?`, which does not fold, so every
+  ancestor of a directory spelled with a capital vanished from the chain that
+  exists to place the branch.
+- **`--area` with `--depth` or `--dir` is refused (exit 2)** instead of unioning
+  the area with what the other flag selects. The deprecated flag is exact: with
+  `--depth` it names no starting point to be relative to, and with `--dir` one
+  side is exact where the other is a prefix, so the map came back with the area
+  *and* the subtree — an answer to neither question. A deprecated flag that
+  quietly widens is worse than one that is merely old.
+- **A cleared filter no longer leaves a cluster unlaid.** The tiling runs over
+  the visible elements only (fcose throws on a node whose label went
+  `display:none` mid-run), but nothing re-tiled when a filter was later loosened —
+  so concepts hidden when clustering began came back at their pre-cluster
+  coordinates and stretched their box across the canvas. Worst case the filter
+  matched nothing, the layout returned early, and clearing it showed a view
+  nothing had laid out at all.
+- **A palette hit in a single-bundle server no longer 404s or reloads the page.**
+  A row with no `slug` was read as naming a *foreign* bundle, so the href became
+  `../undefined/`, the row rendered an "undefined" chip, and the click took the
+  page-load branch — reloading the whole index to reach a node already on screen.
+  Three sites, one absent field.
+- **A focused form field no longer zooms the page on iOS.** Safari zooms whenever
+  a focused control is under 16px and never zooms back out, so on a phone every
+  `/` left the reader pinching to recover. Keyed on `(max-width:768px)` *or*
+  `(pointer:coarse)`, because neither covers the other — a phone is narrow, a
+  tablet in landscape is not and zooms just the same.
+- **A nested cluster no longer throws when a filter empties it mid-layout.**
+  fcose measures every node it is handed, so hiding nodes while its tiling
+  animation ran threw on a label it could no longer measure. The layout is
+  handed the visible elements only — which is also the right answer, since a
+  hidden concept has no business influencing where the visible ones land.
+- **An intermediate directory box no longer takes its branch off the canvas.**
+  The empty-box rule read a compound's direct children, and a box holding only
+  sub-boxes has none, so it always counted as empty. It reads leaf descendants
+  now.
+
+### Removed
+
+- **`OKF::Server::Hub::SEARCH_LIMIT` and `Hub::SEARCH_ENGINE`.** Both moved to
+  `OKF::Server::App`, which now defines the `/search` payload both hosts answer
+  with (`App.search_payload`). The hub's copies were left behind unreferenced —
+  two constants for one cap is two places to raise it and one of them silently
+  losing. Use `OKF::Server::App::SEARCH_LIMIT` / `App::SEARCH_ENGINE`.
+
+### Deprecated
+
+- **`--area`, and `tags --by area`.** OKF's own vocabulary for grouping is
+  *directories* (`grep -ci area SPEC.md` → 0); "area" was this gem's invention,
+  and defining it as a concept id's first path segment threw away every level
+  below it. `dir` is now the only machine word — full path, `.` at the root,
+  rendered `(root)` for humans — and "cluster" stays prose for what a dir
+  groups. Both deprecated spellings keep their **old behavior exactly** and warn
+  once per run on stderr (`--json` on stdout is unaffected); they go in a later
+  release, along with `by_area` and the `area` row field.
+
 ## [1.10.0] - 2026-07-21
 
 ### Added
@@ -930,6 +1132,7 @@ Initial release.
 
 - Runs on Ruby >= 2.4 with two runtime dependencies: rack and webrick.
 
+[1.11.0]: https://github.com/serradura/okf-gem/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/serradura/okf-gem/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/serradura/okf-gem/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/serradura/okf-gem/compare/v1.7.0...v1.8.0

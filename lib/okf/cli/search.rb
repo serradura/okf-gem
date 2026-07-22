@@ -34,7 +34,7 @@ module OKF
       def call(argv)
         options = { json: false, regexp: false, fuzzy: false, engine: nil }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf search <dir|@slug…|@all> <term…> [--engine NAME] [--regexp|--fuzzy] [--in FIELDS] [--type T] [--area A] [--tag T] [--json]"
+          o.banner = "Usage: okf search <dir|@slug…|@all> <term…> [--engine NAME] [--regexp|--fuzzy] [--in FIELDS] [--type T] [--dir D] [--tag T] [--json]"
           search_engine_note(o)
           json_flags(o, options, "emit the matches as JSON")
           projection_flags(o, options)

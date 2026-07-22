@@ -25,6 +25,15 @@ module OKF
     value.respond_to?(:empty?) ? value.empty? : false
   end
 
+  # The directory a concept lives in, derived from its §2 id: the id *is* the
+  # path minus `.md`, so putting the suffix back and taking the dirname is the
+  # definition rather than a parse of it. One home for it because three views
+  # answer with a `dir` — the catalog, the search rows, the linter's per-directory
+  # checks — and a rule spelled three times is three things to keep in step.
+  def self.dir_of(id)
+    File.dirname("#{id}.md")
+  end
+
   require "okf/version"
 
   # ── kernel: cross-cutting primitives ──

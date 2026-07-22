@@ -324,7 +324,7 @@ module OKF
       end
 
       def concepts_in(dir)
-        @concepts.select { |concept| File.dirname("#{concept.id}.md") == dir }
+        @concepts.select { |concept| OKF.dir_of(concept.id) == dir }
       end
 
       def index_path_for(dir)

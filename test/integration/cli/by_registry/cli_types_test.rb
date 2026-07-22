@@ -108,6 +108,30 @@ module ByRegistry
       end
     end
 
+    test "--dir narrows by directory prefix through a ref" do
+      with_registry("conformant", "edge-cases") do
+        tables = json(okf("types", "@conformant", "--dir", "tables", "--json"))
+        assert_equal 1, tables.fetch("count")
+        assert_equal 2, tables.fetch("types").first.fetch("count")
+        assert_equal "conformant", tables.fetch("slug"), "a filtered view keeps the identity contract"
+
+        nested = json(okf("types", "@edge-cases", "--dir", "deeply", "--json"))
+        assert_equal [ "deeply/nested/path/concept" ], nested.fetch("types").first.fetch("concepts")
+
+        rooted = json(okf("types", "@edge-cases", "--dir", "root", "--json"))
+        assert_equal %w[links-in-fences reference-style target], rooted.fetch("types").first.fetch("concepts")
+      end
+    end
+
+    test "--area still narrows through a ref, and warns on stderr" do
+      with_registry("conformant") do
+        result = okf("types", "@conformant", "--area", "tables", "--json")
+
+        assert_equal "warning: --area is deprecated, use --dir\n", result.err
+        assert_equal 1, json(result).fetch("count")
+      end
+    end
+
     test "--tag narrows to the concepts carrying a tag" do
       with_registry("conformant") do
         data = json(okf("types", "@conformant", "--tag", "orders", "--json"))

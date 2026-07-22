@@ -30,12 +30,57 @@ module OKF
     #   GET /log            the §7 history for the Log panel: { logs: [ {path,
     #                       dir, content} ] } (JSON; content read live from disk,
     #                       like a body — the log is the file that changes most)
+    #   GET /search?q=…     ranked concepts in this bundle, for the ⌘K palette:
+    #                       { query, total, truncated, results: [ …rows… ] } (JSON)
     class App
+      # How many rows /search answers with. The palette shows a handful and the
+      # rest is scroll nobody reaches, but the count is reported alongside so a
+      # capped answer never reads as a complete one.
+      SEARCH_LIMIT = 50
+
+      # The engine /search runs on, named rather than inferred. `fuzzy: true`
+      # would route here on its own today — the index is the only registered
+      # engine that offers it — but that is correctness by coincidence, and an
+      # addon declaring :fuzzy would silently take the route.
+      #
+      # It is also the *right* engine here for a reason the CLI's default does
+      # not share: `okf search` is one-shot and cannot amortize an index build,
+      # while this is a long-lived server answering keystroke after keystroke.
+      # And the page's own MiniSearch is what minifts is a port of, so a palette
+      # hit and an in-page search rank alike instead of nearly alike.
+      SEARCH_ENGINE = :index
+
+      # The /search payload, defined once because two hosts answer it: this one
+      # bundle, or every bundle the hub hosts. The only difference is the corpus
+      # handed in — and a nil slug drops the `slug` key from a row, so a
+      # standalone server never answers as if it were a set.
+      #
+      # It takes a prepared corpus rather than the pairs, because that is what
+      # makes the index survive the request that built it.
+      def self.search_payload(corpus, query)
+        terms = query.to_s.split(/\s+/).reject(&:empty?)
+        rows = terms.empty? ? [] : OKF::Bundle::Search.with(corpus, terms, fuzzy: true, engine: SEARCH_ENGINE)
+        {
+          "query" => query.to_s.strip,
+          "total" => rows.length,
+          "truncated" => rows.length > SEARCH_LIMIT,
+          "results" => rows.first(SEARCH_LIMIT)
+        }
+      end
+
       # +siblings+/+self_slug+/+hub_path+ are set only when this app is hosted under
       # a hub (OKF::Server::Hub): the other bundles the in-page switcher offers, this
       # bundle's own mount slug, the hub root, and the hub's cross-bundle search
       # route. They stay nil for a standalone server and for `okf render`, so a
       # static file never advertises a switcher or a search it cannot answer.
+      #
+      # +search_endpoint+ belongs to that group for the same reason, even though
+      # this app now answers /search itself: the page resolves it *relative to the
+      # URL the reader is on*, so only whoever mounted the app knows what to call
+      # it. `okf server` mounts at the root and passes "search"; a host doing
+      # `mount App.new(folder) => "/knowledge"` needs its own spelling, and a
+      # default would have pointed its palette at the host's root instead. The
+      # route answers either way — advertising it is the caller's call.
       def initialize(folder, title: nil, link: nil, layout: "cose", siblings: nil, self_slug: nil, hub_path: nil,
                      search_endpoint: nil, manage_root: nil, manage_token: nil)
         @folder = folder
@@ -48,6 +93,14 @@ module OKF
         @search_endpoint = search_endpoint
         @manage_root = manage_root
         @manage_token = manage_token
+      end
+
+      # Build the search index now rather than on the first reader's keystroke.
+      # `okf server` calls this after the bundle is loaded, so the cost lands in
+      # boot — where it is expected and attributable — instead of in a request.
+      def warm_search
+        search_corpus
+        self
       end
 
       def call(env)
@@ -63,6 +116,7 @@ module OKF
         when "/types" then respond_json(graph.type_index)
         when "/index" then respond_json(directory_index)
         when "/log" then respond_json(logs)
+        when "/search" then respond_json(self.class.search_payload(search_corpus, request.params["q"]))
         else not_found
         end
       end
@@ -145,6 +199,13 @@ module OKF
 
       def respond(content_type, body)
         [ 200, { "content-type" => content_type }, [ body.to_s ] ]
+      end
+
+      # Built on the first search and held for the life of the app, the way the
+      # graph is. `okf server` warms it at boot so the first reader does not pay
+      # for the whole corpus.
+      def search_corpus
+        @search_corpus ||= OKF::Bundle::Search.prepare([ [ nil, @folder.bundle ] ], engine: SEARCH_ENGINE)
       end
 
       def respond_json(object)

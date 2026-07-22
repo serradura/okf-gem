@@ -64,13 +64,28 @@ module OKF
         end
       end
 
-      # Human-readable "parent/dir" name — the default HTML title.
-      # The bundle's display label, "parent/dir" — path arithmetic, no disk. It
-      # is a class method so a caller that only wants the label (the registry
-      # naming an entry) can have it without a Reader.read of every file.
+      # The bundle's display label — path arithmetic, no disk. It is a class
+      # method so a caller that only wants the label (the registry naming an
+      # entry) can have it without a Reader.read of every file.
+      #
+      # "parent/dir", because a bundle directory's own name is rarely unique
+      # enough to name it by — except when that name is `.okf`, the conventional
+      # container, and then the parent carries the whole answer on its own. A
+      # registry of eight projects is eight rows reading `…/.okf`, which is the
+      # one word that tells none of them apart; `repo/.okf` is read as "repo" by
+      # anyone looking at it anyway.
+      #
+      # A directory with no parent to borrow (`/.okf`) keeps its own name: the
+      # parent is `/`, which names nothing. That case used to compose into
+      # `//.okf`.
       def self.label(root)
         pathname = Pathname.new(root)
-        "#{pathname.parent.basename}/#{pathname.basename}"
+        parent = pathname.parent.basename.to_s
+        base = pathname.basename.to_s
+        return base if [ "/", "." ].include?(parent)
+        return parent if base == ".okf"
+
+        "#{parent}/#{base}"
       end
 
       def name

@@ -47,6 +47,36 @@ class OKF::Server::HubManagerTest < OKF::TestCase
     refute_includes last_response.body, "http://", "the manager makes no external requests"
   end
 
+  # A bundle is addressed by its slug — `@orders`, `/b/orders/` — so the slug is
+  # its name; where it sits on disk is where it happens to live. The row led with
+  # the derived `parent/dir` label instead, which put the address in the name's
+  # place and left the name in muted grey beside it. Worse, that label is mostly
+  # `…/.okf` in a real registry, so a list of eight bundles said `.okf` eight
+  # times in its loudest column.
+  test "the row is named by its slug, with the folder as the fact underneath" do
+    registry_hub("orders" => :ok)
+
+    get "/b/"
+
+    assert_match(%r{<a class="name"[^>]*>@orders</a>}, last_response.body,
+      "the slug is the name, the name is the link, and its @ is the ref you can type")
+    refute_match(%r{<a class="name"[^>]*>Orders</a>}, last_response.body,
+      "the parent/dir label is no longer the headline")
+    assert_includes last_response.body, File.join(@root, "orders"),
+      "and the full path stays as the row's second line"
+  end
+
+  test "the short folder label is dropped where the full path already carries it" do
+    registry_hub("orders" => :ok)
+
+    get "/b/"
+
+    # `Orders` is Folder.label's stand-in for the path. With the path itself on
+    # the row it says nothing the path does not, so it is not printed at all.
+    refute_includes last_response.body, ">Orders<",
+      "a stand-in for the path, printed beside the path, is an element with no job"
+  end
+
   test "a conformant, well-curated bundle reads as ok" do
     registry_hub("orders" => :ok)
 

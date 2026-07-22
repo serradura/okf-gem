@@ -22,10 +22,10 @@ test.describe("graph filters", () => {
 
   // All three chip groups mean the same thing, and this is the group that used
   // not to. Types were *subtractive* — every type shown until you clicked one to
-  // hide it — while areas and tags were additive, and so were the catalog's own
+  // hide it — while dirs and tags were additive, and so were the catalog's own
   // type chips two views away. Same component, same word, opposite meaning,
   // which is a thing a reader has to learn per panel rather than once.
-  test("picking a type narrows to it, the way picking an area or a tag does", async ({ app }) => {
+  test("picking a type narrows to it, the way picking a dir or a tag does", async ({ app }) => {
     await app.locator('#ftypes .chip[data-t="Service"]').click();
     await expect(app.locator('#ftypes .chip[data-t="Service"]')).toHaveClass(/on/);
     await expect(app.locator("#btn-filters .fbadge")).toHaveText("1");
@@ -56,7 +56,7 @@ test.describe("graph filters", () => {
 
   test("the badge counts every dimension, not just types", async ({ app }) => {
     await app.locator('#ftypes .chip[data-t="Service"]').click();
-    await app.locator('#fareas .chip[data-area="runbooks"]').click();
+    await app.locator('#fdirs .chip[data-dir="runbooks"]').click();
     await app.locator("#ftags .chip").first().click();
     await expect(app.locator("#btn-filters .fbadge")).toHaveText("3");
   });
@@ -65,21 +65,21 @@ test.describe("graph filters", () => {
     // Within a group, selections union; across groups they intersect. Charter
     // lives outside datasets, so asking for both is an honest empty result —
     // and an empty graph with a badge of 2 is the correct answer, not a bug.
-    await app.locator('#fareas .chip[data-area="datasets"]').click();
+    await app.locator('#fdirs .chip[data-dir="datasets"]').click();
     await app.locator('#ftypes .chip[data-t="Charter"]').click();
 
     await expect.poll(() => visibleNodeIds(app)).toEqual([]);
     await expect(app.locator("#btn-filters .fbadge")).toHaveText("2");
   });
 
-  test("a type and an area that do overlap keep exactly the overlap", async ({ app }) => {
-    await app.locator('#fareas .chip[data-area="datasets"]').click();
+  test("a type and a dir that do overlap keep exactly the overlap", async ({ app }) => {
+    await app.locator('#fdirs .chip[data-dir="datasets"]').click();
     await app.locator('#ftypes .chip[data-t="Dataset"]').click();
 
     await expect.poll(() => visibleNodeIds(app)).toEqual([ "datasets/customers", "datasets/orders" ]);
   });
 
-  test("a tag spanning two areas selects across both", async ({ app }) => {
+  test("a tag spanning two dirs selects across both", async ({ app }) => {
     // `sales` is on datasets/orders and datasets/customers; `ops` on both runbooks.
     await app.locator('#ftags .chip[data-tag="ops"]').click();
     await expect.poll(() => visibleNodeIds(app)).toEqual([ "runbooks/deploy", "runbooks/rollback" ]);
@@ -87,7 +87,7 @@ test.describe("graph filters", () => {
 
   test("Reset restores every concept and zeroes the badge", async ({ app }) => {
     await app.locator('#ftypes .chip[data-t="Service"]').click();
-    await app.locator('#fareas .chip[data-area="runbooks"]').click();
+    await app.locator('#fdirs .chip[data-dir="runbooks"]').click();
     await app.locator("#filters-reset").click();
     await expect(app.locator("#btn-filters .fbadge")).toHaveText("0");
     expect(await visibleNodeIds(app)).toEqual(ALL);
@@ -172,7 +172,7 @@ test.describe("search", () => {
 
   test("search and a chip filter compose", async ({ app }) => {
     await app.locator("#btn-filters").click();
-    await app.locator('#fareas .chip[data-area="runbooks"]').click();
+    await app.locator('#fdirs .chip[data-dir="runbooks"]').click();
     await app.locator("#filters-close").click();
     await app.locator("#search").fill("deploy");
 
@@ -181,11 +181,11 @@ test.describe("search", () => {
     // so "deploy" legitimately matches rollback too ("the inverse of deploy")
     // once the index is up, and does not before it. Pinning one exact list
     // makes the test a race with the index build. What composition actually
-    // promises is that the area filter still bounds the result.
+    // promises is that the dir filter still bounds the result.
     await expect.poll(() => visibleNodeIds(app)).toContain("runbooks/deploy");
     await app.waitForTimeout(500); // let the index land if it is still building
     for (const id of await visibleNodeIds(app)) {
-      expect(id, `${id} is outside the runbooks area filter`).toMatch(/^runbooks\//);
+      expect(id, `${id} is outside the runbooks dir filter`).toMatch(/^runbooks\//);
     }
   });
 

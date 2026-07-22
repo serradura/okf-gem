@@ -64,7 +64,9 @@ test.describe("bundles panel — what it shows", () => {
     // Relative on purpose — every page lives at <prefix>/b/<slug>/, so "../two/"
     // reaches its sibling under any mount. Resolved is what a click follows.
     expect(await row.locator(".ws-title").evaluate((a) => a.href)).toMatch(/\/b\/two\/$/);
-    await expect(row.locator(".ws-slug")).toHaveText("@two");
+    // The ref is the row's name, not a note beside it: a bundle is addressed by
+    // its slug, so that is what the loudest thing on the row says.
+    await expect(row.locator(".ws-title")).toHaveText("@two");
     await expect(row.locator(".ws-meta")).toContainText("8 concepts");
     // The word is the message; the colour only echoes it, so a reader who
     // cannot see green loses nothing.

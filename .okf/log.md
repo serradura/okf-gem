@@ -1,6 +1,142 @@
 # Update Log
 
+## 2026-07-22
+* **Update**: [graph-server](capabilities/graph-server.md) names a bundle by its
+  slug. Every row that offered a choice between bundles — the ⌘K switcher, the
+  Bundles panel, the hub's own `/b/` page — led with `Folder.label`, the derived
+  `parent/dir` string, and put the slug in muted grey beside it. That is the
+  address in the name's place: a bundle is addressed by `@okf-gem` and
+  `/b/okf-gem/`, and the folder is where it happens to sit. In a registry of
+  projects the label is also `…/.okf` on nearly every line, so the loudest column
+  repeated the one word that tells no two bundles apart. `Folder.label` now reads
+  a `.okf` directory as its parent (`repo/.okf` → `repo`), which fixes `okf
+  registry list` and the default server title too; the rows carry `@slug` as the
+  name, and the folder only where it is not the name repeated.
+* **Correction**: the rail says **Index** while the root map is the open file.
+  Index is a shortcut into Files, so the two share one `data-view` — and
+  `activeRail()` read only that, which lit Files on the one screen a reader
+  reached by asking for Index. The open file is what tells them apart, so it is
+  what the rail reads.
+* **Update**: [read-views](capabilities/read-views.md) records that `dirs` and
+  `stats` answer about the *same* directories. Both read `Bundle#directory_index`
+  now; grouping the catalog instead knew only the directories that happen to hold
+  a concept, so the two verbs disagreed about how big a bundle was and — worse —
+  `by_dir` omitted directories `--dir` answers about. A directory holding nothing
+  directly reports the zero it holds, which is what makes `by_dir.keys` a
+  complete list of what `--dir` can name. The same paragraph now covers `--area`
+  refusing `--dir` as well as `--depth`: one reason wearing two shapes, since the
+  deprecated flag is exact and both of the others select a range.
+* **Update**: [graph-server](capabilities/graph-server.md) and
+  [library-api](capabilities/library-api.md) record who names the search
+  endpoint. The route answers on every app; *advertising* it is the caller's,
+  because the page resolves it against the reader's URL and only the host knows
+  its own prefix. A default of `"search"` — which this bundle briefly described —
+  would have pointed an app mounted at `/knowledge` back at its host's root. The
+  correction is worth keeping visible: the bug was invisible from inside the app,
+  and only appears where the gem is a library rather than a command.
+
+* **Correction**: [read-views](capabilities/read-views.md) records that `stats`
+  and `dirs` count directories off one map. They did not: `stats` grouped the
+  catalog, so it saw only directories holding a concept, while `dirs` reads
+  `directory_index` — two verbs shipped in the same release answering "how many
+  directories?" with 2 and 3 for the same bundle, neither flagged, so whichever
+  one an agent asked was the one it believed. `by_dir` also omitted every
+  directory it could not see, which meant `--dir deeply` answered about a
+  directory nothing in `stats` said was there. Both now read `directory_index`,
+  and a directory holding nothing directly reports its zero rather than vanishing.
+* **Correction**: `Server::App`'s `search_endpoint` is a parameter again, not a
+  default. It had been defaulted to `"search"` so `okf server` would advertise
+  the route it had just gained — but the page resolves that string against the
+  URL the reader is on, so an app mounted at `/knowledge` pointed its palette at
+  the host's root. Only the caller knows where it was mounted; `okf server` names
+  it, embedders name their own, and the route answers either way.
+* **Correction**: the `/search` cap and engine live on
+  [graph-server](capabilities/graph-server.md)'s `App` alone. `Hub` kept its own
+  copies after the payload moved, so raising the cap in the obvious place would
+  have changed nothing — a constant duplicated with its reasoning intact is the
+  kind that drifts quietly.
+* **Update**: [search](capabilities/search.md) and
+  [search-engines](design/search-engines.md) record the prepared corpus. The
+  server was rebuilding the whole index on every request — 1.45 s per search on a
+  414-concept bundle, flat across repeats, because each one threw away what the
+  last had built. This bundle had already predicted it: the build is ~95% of the
+  index path's cost, and a long-lived server is exactly the case that amortizes
+  it where a one-shot CLI cannot. `Search.prepare` holds a corpus and
+  `Search.with` queries it, so a search is 0.016–0.052 s and the build lands at
+  boot. The engine opts in by exposing `prepare`; the scan declares none and is
+  handed none, so the seam cost no engine anything. The trade is staleness — a
+  corpus is a snapshot — and the hub drops its own on any registry write, which
+  is the bug this nearly shipped with rather than a precaution.
+* **Update**: [graph-server](capabilities/graph-server.md) gains `/search` on the
+  single-bundle app and loses `f`. The route was hub-only because it was
+  conceived as the cross-bundle one, which left the mode most readers meet first
+  with a palette that could not find anything; one bundle is a legal one-element
+  set, so the assumption was the only obstacle. What followed is the interesting
+  half: a row with **no slug** is a shape three places had never seen, and each
+  read a missing slug as a *foreign* bundle — a `../undefined/` 404 on every
+  result, an "undefined" chip, and a full page reload to reach a node already on
+  screen. One absent field, three wrong answers, none of them where the change
+  was made.
+* **Update**: [graph-server](capabilities/graph-server.md) records three canvas
+  behaviours a big bundle turns from cosmetic into structural — the force layouts
+  settling once instead of rendering every tick of the simulation, a cluster box
+  becoming scenery rather than the largest drag target on the page, and no form
+  control under 16px where iOS Safari would zoom the view and not zoom back.
+* **Update**: [read-views](capabilities/read-views.md) records three ways `--dir`
+  could answer wrongly and exit 0: an ancestor chain handed back case-folded
+  (so every ancestor of a capitalised directory vanished from the chain the flag
+  exists to draw), a trailing slash refused (while the human views *print* one, so
+  pasting a row back returned nothing), and `--area` with `--depth` unioning
+  rather than narrowing. The shape they share is worth more than any of them:
+  each was a rule written against one spelling of a directory and exercised only
+  in that spelling.
+* **Update**: [agent-skill](capabilities/agent-skill.md) converges on one first
+  move. The skill named three different ones across seven places, which is the
+  deliberation cost an agent pays on every retrieval — and the lookup table added
+  to remove that cost duplicated the reference, contradicted its own file, and
+  quoted measurements from a bundle no reader can open. Reverted, and the
+  disagreement fixed by subtraction instead: `okf dirs` first, everywhere.
+* **Update**: [browser-tests](design/browser-tests.md) gains what the cluster
+  specs taught. Two of them passed against the bug on the first try — one
+  assertion a compound parent satisfies by construction, one aimed at a region
+  that falls through to the canvas — and a third waited a fixed duration for a
+  layout that does not move anything while it computes. The residual flake is
+  named rather than hidden, with the reason those two specs are the one place
+  retries are legitimate.
+
 ## 2026-07-21
+* **Update**: [read-views](capabilities/read-views.md) gains `--depth` and the
+  `dirs` subtree count. Both came out of running the CLI against a bundle an
+  order of magnitude bigger than this one, which is the only way the gap shows:
+  every read view had a `--dir` and none had a way to ask for a *level*, so the
+  §6 map — one section per directory — was hundreds of KB with no lever but
+  naming each branch by hand. The subtree count is the half that is easy to miss:
+  depth alone truncates a deep tree into a column of zeroes, because direct
+  counts are honest and an intermediate directory holds nothing of its own. Two
+  numbers per row, the second defined as what `--dir` on that row returns, so the
+  view and the flag cannot drift apart.
+* **Update**: [graph-server](capabilities/graph-server.md) records cluster mode
+  nesting. The same rename reaches the page: a cluster is a directory, the boxes
+  nest as the directories do to a depth the reader picks, and the filter chips
+  list every dir rather than first segments. Two bugs came out of it, both of the
+  shape this bundle keeps noting — a rule written for one level, exercised only
+  at one level. The empty-box pass read a compound's *children*, so an
+  intermediate box holding nothing but sub-boxes always read empty and took its
+  whole branch off the canvas; and fcose, handed a nested graph whose nodes went
+  `display:none` mid-animation, threw on a label it could no longer measure. The
+  second one is the more interesting: it was only reachable by typing during the
+  tiling, which is exactly the *other order* the phantom-box bug taught this
+  bundle to look for, one release ago, in this same function.
+* **Update**: [read-views](capabilities/read-views.md), [search](capabilities/search.md)
+  and [graph](model/graph.md) now say `--dir` where they said `--area`, and
+  read-views gains the `dirs` verb. The rename is not cosmetic: "area" appears
+  nowhere in the OKF spec (`grep -ci area SPEC.md` → 0) — it was this gem's own
+  word for a concept id's *first path segment*, and that projection threw away
+  every level below it. The spec's word for grouping is *directories*, the value
+  the catalog already carried on every row, so `dir` becomes the only machine
+  word (full path, `.` at root, `(root)` for humans) and "cluster" stays prose
+  for what a dir groups. `--area` and `tags --by area` keep their old exact
+  behavior and warn, for one release.
 * **Correction**: a maintain pass against `CHANGELOG.md` found the drift running
   the *other* way — the bundle was current and the changelog was not. Every
   concept touched by this branch's server/page work had its body updated in the

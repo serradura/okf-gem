@@ -18,18 +18,18 @@ test.describe("catalog interior", () => {
     await expect(app.locator("#cat-cnt")).toHaveText("2 of 8 concepts");
   });
 
-  test("the slide-over filters by area and by tag, not just the header types", async ({ app }) => {
-    // The inline chips only cover the top types; areas and tags live in the
+  test("the slide-over filters by dir and by tag, not just the header types", async ({ app }) => {
+    // The inline chips only cover the top types; dirs and tags live in the
     // searchable slide-over (#cat-filters). Both narrow the grid and its count —
-    // area "runbooks" is deploy+rollback, tag "sales" is customers+orders.
+    // dir "runbooks" is deploy+rollback, tag "sales" is customers+orders.
     await showView(app, "catalog");
     await app.locator("#cat-filters-btn").click();
     await expect(app.locator("#cat-filters")).toHaveClass(/open/);
 
-    await app.locator('#cat-fareas .chip[data-area="runbooks"]').click();
+    await app.locator('#cat-fdirs .chip[data-dir="runbooks"]').click();
     await expect(app.locator("#cat-cnt")).toHaveText("2 of 8 concepts");
 
-    // clear the area, then a tag — the two filters are independent handles
+    // clear the dir, then a tag — the two filters are independent handles
     await app.locator("#cat-filters-reset").click();
     await expect(app.locator("#cat-cnt")).toHaveText("8 of 8 concepts");
     await app.locator('#cat-ftags .chip[data-tag="sales"]').click();
@@ -37,8 +37,8 @@ test.describe("catalog interior", () => {
   });
 
   test("the slide-over's find box narrows the filter chips themselves", async ({ app }) => {
-    // One find box narrows Type/Area/Tag chips together — a busy bundle doesn't
-    // flood the panel. Typing "ops" leaves only the ops tag chip; the areas and
+    // One find box narrows Type/Dir/Tag chips together — a busy bundle doesn't
+    // flood the panel. Typing "ops" leaves only the ops tag chip; the dirs and
     // types, which contain no "ops", clear out.
     await showView(app, "catalog");
     await app.locator("#cat-filters-btn").click();
@@ -47,7 +47,7 @@ test.describe("catalog interior", () => {
     await app.locator("#cat-filter-search").fill("ops");
     await expect(app.locator("#cat-ftags .chip")).toHaveCount(1);
     await expect(app.locator("#cat-ftags .chip")).toHaveAttribute("data-tag", "ops");
-    await expect(app.locator("#cat-fareas .chip")).toHaveCount(0);
+    await expect(app.locator("#cat-fdirs .chip")).toHaveCount(0);
   });
 });
 
@@ -98,9 +98,9 @@ test.describe("stats interior", () => {
     await expect(app.locator("#btn-filters .fbadge")).not.toHaveText("0");
   });
 
-  test("clicking an area bar isolates that area", async ({ app }) => {
+  test("clicking a dir bar isolates that dir", async ({ app }) => {
     await showView(app, "stats");
-    await app.locator('#bars-area .bar[data-val="runbooks"]').click();
+    await app.locator('#bars-dir .bar[data-val="runbooks"]').click();
     await expect(app.locator("#app")).toHaveAttribute("data-view", "graph");
     await expect.poll(() => visibleNodeIds(app)).toEqual([ "runbooks/deploy", "runbooks/rollback" ]);
   });

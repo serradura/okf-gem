@@ -70,6 +70,21 @@ class OKF::Bundle::FolderTest < OKF::TestCase
     assert_equal expected, OKF::Bundle::Folder.load(@tmpdir).name
   end
 
+  # `.okf` is the conventional container, so the pair exists to say *which* one —
+  # and then says `.okf` on every row of a list of them. The parent alone carries
+  # the whole of that answer, which is how a human reads `repo/.okf` anyway.
+  test "a bundle in a .okf directory is named for the project that holds it" do
+    nested = File.join(@tmpdir, ".okf")
+    FileUtils.mkdir_p(nested)
+
+    assert_equal File.basename(@tmpdir), OKF::Bundle::Folder.load(nested).name
+  end
+
+  test "a .okf at the filesystem root still names something" do
+    assert_equal ".okf", OKF::Bundle::Folder.label("/.okf"),
+      "the parent is `/`, which names nothing — the container's own name beats a slash"
+  end
+
   test "reload re-reads the directory from disk" do
     folder = OKF::Bundle::Folder.load(@tmpdir)
     assert_equal 2, folder.concepts.size

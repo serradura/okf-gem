@@ -74,6 +74,30 @@ module ByDir
       assert_equal %w[links-in-fences reference-style target], rooted.fetch("types").first.fetch("concepts")
     end
 
+    test "--dir narrows by directory prefix, `root` naming the bundle root" do
+      tables = json(okf("types", fixture("conformant"), "--dir", "tables", "--json"))
+      assert_equal 1, tables.fetch("count") # BigQuery Dataset lives in datasets/, and drops
+      assert_equal 2, tables.fetch("types").first.fetch("count")
+
+      # the prefix rule reaches below the named dir, where --area only ever saw
+      # the first segment
+      nested = json(okf("types", fixture("edge-cases"), "--dir", "deeply", "--json"))
+      assert_equal [ "deeply/nested/path/concept" ], nested.fetch("types").first.fetch("concepts")
+
+      rooted = json(okf("types", fixture("edge-cases"), "--dir", "root", "--json"))
+      assert_equal %w[links-in-fences reference-style target], rooted.fetch("types").first.fetch("concepts")
+      assert_equal rooted, json(okf("types", fixture("edge-cases"), "--dir", ".", "--json"))
+    end
+
+    test "--area still narrows, and warns on stderr" do
+      result = okf("types", fixture("conformant"), "--area", "tables", "--json")
+
+      assert_equal 0, result.status
+      assert_equal "warning: --area is deprecated, use --dir\n", result.err
+      assert_equal 1, json(result).fetch("count")
+      assert_empty okf("types", fixture("conformant"), "--dir", "tables", "--json").err
+    end
+
     test "--tag narrows to the concepts carrying a tag" do
       data = json(okf("types", fixture("conformant"), "--tag", "orders", "--json"))
 

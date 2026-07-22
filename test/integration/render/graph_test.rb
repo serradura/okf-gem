@@ -246,17 +246,21 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "title:d.dir==='.'?BUNDLE:", "and the index layer's root map"
   end
 
-  test "the area vocabulary keeps its own (root), which the CLI shares" do
+  test "the dir vocabulary keeps `.` as data and (root) as the label, as the CLI does" do
     write("a.md", "---\ntype: Note\ntitle: A\n---\n\nx\n")
 
     html = render(title: "Demo")
 
-    # `(root)` is the *area* label — what `okf stats --by area` and `tags --by
-    # area` print, and what their tests pin. Renaming the tree's root row must
-    # not quietly rename a CLI-shared vocabulary along with it.
-    assert_includes html, "const areaOf=id=>id.includes('/')?id.split('/')[0]:'(root)';",
-      "an area with no directory is still (root)"
-    assert_includes html, "a&&a!=='(root)'?a:'.'", "and the cluster box that names it still resolves to the root dir"
+    # The split the whole rename rests on: `.` is what is stored and matched —
+    # ids, chip values, box ids — and `(root)` is only ever what a human reads.
+    # `okf dirs` and `stats --json` keep the same one, so a page and a CLI answer
+    # never disagree about which spelling is the data.
+    assert_includes html, "const dirOf=id=>{const i=id.lastIndexOf('/');return i<0?'.':id.slice(0,i);};",
+      "a concept with no directory lives in `.`, not in a label"
+    assert_includes html, "const dirLabel=d=>d==='.'?'(root)':d.split('/').pop()+'/';",
+      "and (root) is where that `.` becomes readable"
+    assert_includes html, "id.indexOf('box::')===0?id.slice(5):'.'",
+      "so a box tap carries the directory verbatim, with no label to unmangle"
   end
 
   test "hides a cluster box once a filter empties it, and binds Esc to deselect" do
@@ -439,7 +443,6 @@ class OKF::Render::GraphTest < OKF::TestCase
     refute_includes html, "data-ftab", "the app no longer carries a tab in its state"
     refute_includes html, "function setFtab(", "nor the function that switched it"
     refute_includes html, "function goIndexes(", "and the fake view it needed is gone"
-    assert_includes html, "function activeRail(){return view;}", "a rail item is a view again, nothing more"
   end
 
   test "the rail keeps an Index shortcut, as an action rather than a place" do
@@ -448,11 +451,14 @@ class OKF::Render::GraphTest < OKF::TestCase
     html = render
 
     # it opens the root map, exactly as the first-visit note's button does. What
-    # it is not is a view: `activeRail()` answers with the view it lands on
-    # (Files), so Index never highlights and never has to pretend it is somewhere
+    # it is not is a view — but it is still somewhere the reader stands, and the
+    # open file is the only thing that says so: Index and Files share one
+    # `data-view`, so a rail reading that alone lit Files on the screen the
+    # reader reached by asking for Index. Which item lights is proven in the
+    # browser (views.spec.js); this only pins that the rule reads the file.
     assert_includes html, %(data-view="index"), "the rail item is back"
     assert_includes html, "if(b.dataset.view==='index')return readIndex();", "and it runs the action, not a view switch"
-    assert_includes html, "function activeRail(){return view;}", "so nothing has to fake a place for it"
+    assert_includes html, "fileSel===ROOT_INDEX", "and the rail tells the two apart by what is open"
     assert_includes html, "const VIEW_KEYS={'1':'graph','2':'index','3':'files','4':'catalog','5':'tags','6':'stats'};",
       "and the number keys line up with the rail again"
   end

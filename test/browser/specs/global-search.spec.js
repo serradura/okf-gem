@@ -136,23 +136,75 @@ hubTest.describe("global search — hub", () => {
   });
 });
 
-// The other half of the contract, and the reason this spec is not hub-only:
-// where there is no hub there is no cross-bundle search, and the group must not
-// merely be empty — it must not exist. Runs in both projects, so it covers the
-// standalone `okf server` and the static `okf render` file.
-test.describe("global search — no hub, no group", () => {
-  test("the page carries no search endpoint", async ({ app }) => {
-    expect(await app.evaluate(() => SEARCH_ENDPOINT)).toBeNull();
+// The other half of the contract. A *hub* search spans bundles; a standalone
+// server answers /search over the one bundle it was given, so the palette finds
+// concepts there too. A static render has no server at all and therefore no
+// finder — which is why this runs in both projects and asserts per project: the
+// two modes genuinely differ here, and a pass in one proves nothing about the
+// other.
+test.describe("global search — a server always has a finder, a file never does", () => {
+  test("the endpoint is present when served and absent in a static file", async ({ app }, testInfo) => {
+    const endpoint = await app.evaluate(() => SEARCH_ENDPOINT);
+    if (testInfo.project.name === "static") expect(endpoint).toBeNull();
+    else expect(endpoint).toBe("search");
   });
 
-  test("typing never produces a concept row", async ({ app }) => {
+  test("typing finds concepts when served, and nothing at all in a file", async ({ app }, testInfo) => {
+    const served = testInfo.project.name !== "static";
     await app.keyboard.press("Control+k");
     await expect(app.locator("#sw")).toBeVisible();
-    await expect(app.locator("#sw-input")).toHaveAttribute("placeholder", "jump to a view…");
+    await expect(app.locator("#sw-input")).toHaveAttribute("placeholder",
+      served ? "search concepts, or a view…" : "jump to a view…");
 
     await app.locator("#sw-input").fill("rollback");
-    await app.waitForTimeout(400); // longer than the debounce a hub would have used
-    await expect(app.locator("#sw-list a[data-hit]")).toHaveCount(0);
-    await expect(app.locator("#sw-list")).not.toContainText("Concepts");
+    await app.waitForTimeout(400); // longer than the debounce
+    // Hit rows, not a group heading: headings render only when the palette has
+    // more than one group to tell apart, and "rollback" matches no view.
+    if (served) await expect.poll(() => app.locator("#sw-list a[data-hit]").count()).toBeGreaterThan(0);
+    else await expect(app.locator("#sw-list a[data-hit]")).toHaveCount(0);
+  });
+
+  test("clicking a hit stays in this bundle instead of inventing a slug path", async ({ app }, testInfo) => {
+    test.skip(testInfo.project.name === "static", "a static file has no finder, so there is no hit to click");
+    // A hub hit is addressed relative to its bundle mount ('../<slug>/'). A
+    // standalone row carries no slug at all, and treating a missing one as a
+    // foreign bundle built '../undefined/' — a 404 on every result.
+    await app.keyboard.press("Control+k");
+    await app.locator("#sw-input").fill("rollback");
+    const hit = app.locator("#sw-list a[data-hit]").first();
+    await expect(hit).toBeVisible();
+
+    const href = await hit.getAttribute("href");
+    expect(href, "a missing slug is this bundle, not a directory called undefined").not.toContain("undefined");
+    expect(href).toMatch(/^\?select=/);
+
+    // The href is the fallback the browser needs for ⌘-click and for a reader
+    // with no JS — it must be right even though the click never follows it.
+    await app.evaluate(() => { window.__sameDocument = true; });
+    await hit.click();
+
+    // Selecting in place, not navigating: a concept in *this* bundle is already
+    // loaded, and a page load would throw away the camera, filters and layout
+    // the reader built. A full reload is visible as the marker being gone.
+    await expect.poll(() => app.evaluate(() => window.__sameDocument === true)).toBe(true);
+    await expect.poll(() => decodeURIComponent(app.url())).toContain("#runbooks/rollback");
+    await expect(app.locator("#cy")).toBeVisible();
+    await expect(app.locator("#sw")).toBeHidden(); // and the palette closes behind it
+  });
+
+  test("a hit row shows no slug where there is no bundle to name", async ({ app }, testInfo) => {
+    test.skip(testInfo.project.name === "static", "a static file has no finder");
+    await app.keyboard.press("Control+k");
+    await app.locator("#sw-input").fill("rollback");
+    await expect(app.locator("#sw-list a[data-hit]").first()).toBeVisible();
+    expect(await app.locator("#sw-list .slug").allTextContents()).toEqual([]);
+  });
+
+  test("the palette never offers a bundle switcher without a hub", async ({ app }) => {
+    // Searching and switching are separate capabilities now that one can exist
+    // without the other — the copy must not promise the one that is absent.
+    await app.keyboard.press("Control+k");
+    await expect(app.locator("#sw-input")).not.toHaveAttribute("placeholder", /switch bundle/);
+    await expect(app.locator("#btn-switch")).toBeHidden();
   });
 });

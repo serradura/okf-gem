@@ -12,8 +12,9 @@ module OKF
       #
       # Matching is by *token*: a term matches a whole word or a word it prefixes
       # ("dedup" reaches "deduplication"), and `fuzzy:` opts into typo tolerance.
-      # The index is built per call — see .okf/capabilities/search.md for why that
-      # ceiling stands and what lifts it.
+      # The index builds per call unless the caller holds a Search::Corpus, which
+      # builds it once through .prepare and reuses it — the server does, the
+      # one-shot CLI cannot. See .okf/capabilities/search.md.
       module Index
         CAPABILITIES = %i[fuzzy prefix].freeze
 
@@ -37,9 +38,18 @@ module OKF
           # can neither match nor be credited. The hit's `terms` are MiniFTS's
           # matched *document* terms — already lowercased, and present in the text
           # verbatim even when the query only prefixed them.
-          def call(documents, terms, fields:, fuzzy: false, **_options)
+          # The expensive half, separated so a long-lived caller can hold it. A
+          # Corpus calls this once; a one-shot call still goes through #call and
+          # builds inline, which is why this is an addition and not a new
+          # requirement on the engine contract.
+          def prepare(documents)
             index = MiniFTS.new(fields: FIELDS, id_field: "key")
             index.add_all(documents)
+            index
+          end
+
+          def call(documents, terms, fields:, fuzzy: false, prepared: nil, **_options)
+            index = prepared || prepare(documents)
 
             options = { combine_with: "AND", prefix: true, boost: WEIGHTS, fields: fields }
             options[:fuzzy] = FUZZY_DISTANCE if fuzzy

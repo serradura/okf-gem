@@ -4,7 +4,7 @@ title: Companion agent skill (skill)
 description: A SKILL.md plus references and templates, shipped inside the gem, that teaches an agent to author OKF.
 resource: lib/okf/skill.rb
 tags: [agent, install]
-timestamp: 2026-07-21T12:00:00Z
+timestamp: 2026-07-22T12:00:00Z
 ---
 
 # Overview
@@ -32,6 +32,19 @@ always proposing before it applies; `doctor` is the
 one playbook that assumes nothing, installing and verifying the [CLI](../cli.md)
 before it examines the bundle. A no-argument run is a verb of its own — the menu
 reads the signals and names the highest-value move without running one.
+
+**Every playbook names the same first move**, and that took a correction. The
+skill had prescribed one in seven places — bare `okf index`, `index --no-body`,
+`dirs --depth 1` — across SKILL.md, four playbooks and the CLI reference, and
+that disagreement *is* the deliberation an agent pays for on every retrieval. A
+lookup table added to SKILL.md to pre-decide it made things worse: it duplicated
+guidance already in the reference, contradicted the file it sat in, and carried
+payload figures measured on one private bundle. It was reverted for the
+subtraction it should have been. Every site now says `okf dirs` first, then
+`okf index --dir <branch>` to descend — chosen structurally, because `dirs` emits
+one row per directory where `index` emits one per concept even under `--no-body`,
+so the two scale with different things. The reason is in the skill; the numbers
+are not.
 
 # `okf skill <dest>` installs it
 

@@ -71,7 +71,7 @@ unreachable from the fixtures that exist, **add one** — never bend a test towa
 what the fixtures happen to make easy, and never leave a path untested because
 building its world felt like work.
 
-Two of them are the argument. `rooted` exists because `tags --by area`'s `(root)`
+Two of them are the argument. `rooted` exists because `tags --by dir`'s `(root)`
 label — the one printed without a trailing slash — was unreachable from all twelve
 fixtures before it: none carried a *tagged* root-level concept. `mentions` exists
 because none contained a literal `@`, so
