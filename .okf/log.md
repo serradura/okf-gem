@@ -1,6 +1,17 @@
 # Update Log
 
 ## 2026-07-22
+* **Update**: [graph-server](capabilities/graph-server.md) names a bundle by its
+  slug. Every row that offered a choice between bundles — the ⌘K switcher, the
+  Bundles panel, the hub's own `/b/` page — led with `Folder.label`, the derived
+  `parent/dir` string, and put the slug in muted grey beside it. That is the
+  address in the name's place: a bundle is addressed by `@okf-gem` and
+  `/b/okf-gem/`, and the folder is where it happens to sit. In a registry of
+  projects the label is also `…/.okf` on nearly every line, so the loudest column
+  repeated the one word that tells no two bundles apart. `Folder.label` now reads
+  a `.okf` directory as its parent (`repo/.okf` → `repo`), which fixes `okf
+  registry list` and the default server title too; the rows carry `@slug` as the
+  name, and the folder only where it is not the name repeated.
 * **Correction**: the rail says **Index** while the root map is the open file.
   Index is a shortcut into Files, so the two share one `data-view` — and
   `activeRail()` read only that, which lit Files on the one screen a reader

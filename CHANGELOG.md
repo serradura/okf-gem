@@ -83,6 +83,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A bundle is named by its slug, everywhere it is chosen.** The ⌘K switcher,
+  the Bundles panel and the hub's `/b/` page all led with the derived
+  `parent/dir` label and left the slug in muted grey beside it — the address in
+  the name's place, when a bundle is addressed by `@okf-gem` and `/b/okf-gem/`.
+  Rows now carry `@slug` as the name and the folder as the fact under it, shown
+  only where it is not the name repeated. `/b/` drops the short label outright:
+  it only ever stood in for the full path, which is on the row already.
+- **A `.okf` directory is labelled by the project that holds it.**
+  `Bundle::Folder.label` reads `repo/.okf` as `repo`. The `parent/dir` pair
+  exists because a bundle directory's own name is rarely unique — except when it
+  is `.okf`, the conventional container, and then a registry of eight projects
+  was eight rows all saying `.okf`. This also reaches `okf registry list` and the
+  default `okf server` title. (A `.okf` with no parent to borrow keeps its own
+  name; that case used to compose into `//.okf`.)
 - **A force layout settles, then moves once.** `animate:true` reads to these
   engines as "render every tick of the simulation" — the visible bounce, and
   hundreds of full re-renders for one settle. It is `'end'` now: the same

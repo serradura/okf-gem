@@ -300,6 +300,7 @@
  .ws-pill.def{color:var(--accent-ink);background:var(--accent-soft);border-color:transparent}
  .ws-meta{display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--muted);margin-top:3px;flex-wrap:wrap}
  .ws-slug{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--faint)}
+ .ws-where{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--faint)}
  .ws-health.ok{color:var(--ok)} .ws-health.warn{color:var(--warn)}
  .ws-health.error,.ws-health.missing{color:var(--accent-ink)}
  .ws-slug-edit{height:24px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;padding:0 7px;width:150px;border-radius:6px}
@@ -420,7 +421,7 @@
  #sw-input{width:100%;box-sizing:border-box}
  #sw-list{list-style:none;margin:10px 0 0;padding:0;max-height:46vh;overflow:auto}
  #sw-list a{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}
- #sw-list a .slug{margin-left:auto;color:var(--faint);font-size:12px}
+ #sw-list a .slug,#sw-list a .sw-where{margin-left:auto;color:var(--faint);font-size:12px}
  #sw-list .sw-grp{margin:9px 0 3px;padding:0 10px;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
  #sw-list .sw-grp:first-child{margin-top:0}
  /* Under a hub a view is the sideline, so it sits at the muted weight until the
@@ -1220,6 +1221,12 @@ const underDir=(d,path)=>d===path||d.indexOf(path+'/')===0;
 /* `.` is the data; `(root)` is what a human reads. A box caption is the last
    segment — a full path on every nested box would bury the picture in text. */
 const dirLabel=d=>d==='.'?'(root)':d.split('/').pop()+'/';
+/* Where a bundle lives, for the rows that name it — and only where that says
+   something its slug does not. The slug is the name (`@okf-gem`, /b/okf-gem/);
+   the folder is a fact about it, so a row shows the fact beside the name and
+   drops it when the two read alike. Server-side twin: Bundle::Folder.label,
+   which is what `title` already arrived as. */
+const bundleWhere=b=>b.title===b.slug?'':(b.title||'');
 
 /* ── Cytoscape ── */
 function styleSheet(){const ink=cvar('--ink'),halo=cvar('--canvas'),edge=cvar('--edge');
@@ -2481,11 +2488,17 @@ var openPalette=null;
   let h='';
   if(showB){
    if(heads)h+=grp('Bundles');
-   if(!q)h+=`<a class="cur" aria-disabled="true"><span>${esc(IDENT)}</span><span class="slug">current</span></a>`;
+   /* The you-are-here row wears the same name as the rows under it — `@slug`
+      where there is one to wear. A standalone page has none, and falls back to
+      the header's own wording rather than inventing a ref that addresses
+      nothing. */
+   if(!q)h+=`<a class="cur" aria-disabled="true"><span>${SELF_SLUG?'@'+esc(SELF_SLUG):esc(IDENT)}</span><span class="sw-where">current</span></a>`;
    if(!SIBLINGS.length)h+='<a class="none"><span>only this bundle is registered — okf registry set &lt;dir&gt; adds more</span></a>';
-   else h+=bs.map((b,i)=>opt(i,{
-    attrs:`href="${esc(target(b.path))}" data-path="${esc(b.path)}"`,
-    html:`<span>${esc(b.title)}${b.default?'<span class="sw-def">default</span>':''}</span><span class="slug">${esc(b.slug)}</span>`})).join('');
+   else h+=bs.map((b,i)=>{const where=bundleWhere(b);
+    return opt(i,{
+     attrs:`href="${esc(target(b.path))}" data-path="${esc(b.path)}"`,
+     html:`<span>@${esc(b.slug)}${b.default?'<span class="sw-def">default</span>':''}</span>`+
+      (where?`<span class="sw-where">${esc(where)}</span>`:'')});}).join('');
   }
   if(vs.length){
    if(heads)h+=grp('Views');
@@ -2803,12 +2816,17 @@ function bridgeReport(v,shown,total){if(bridge)bridge.report(v,shown,total);}
   /* A row the hub could not load links nowhere, because there is nowhere to
      link — but it is still a row: "where did my bundle go?" is the question it
      exists to answer. */
+  /* Named by slug, for the reason the palette rows are: the slug is what
+     addresses this bundle, the folder is where it happens to sit. Unlike the
+     hub's own /b/ page this row carries no full path, so the folder stays — as
+     the fact under the name, and only where it is not the name repeated. */
   const title=b.mount!==null
-   ?'<a class="ws-title" href="../'+encodeURIComponent(b.mount)+'/">'+esc(b.title)+'</a>'
-   :'<span class="ws-title off">'+esc(b.title)+'</span>';
+   ?'<a class="ws-title" href="../'+encodeURIComponent(b.mount)+'/">@'+esc(b.slug)+'</a>'
+   :'<span class="ws-title off">@'+esc(b.slug)+'</span>';
+  const where=bundleWhere(b);
   const count=b.count===null?'':'<span>'+b.count+' concept'+(b.count===1?'':'s')+'</span>';
   const body='<div class="ws-row-main"><div class="ws-t">'+title+pills+'</div>'+
-   '<div class="ws-meta"><span class="ws-slug">@'+esc(b.slug)+'</span>'+count+
+   '<div class="ws-meta">'+(where?'<span class="ws-where">'+esc(where)+'</span>':'')+count+
    '<span class="ws-health '+esc(b.health)+'">'+esc(b.word)+'</span></div>'+
    (editing===b.slug?edit(b):'')+(confirming===b.slug?confirm(b):'')+'</div>';
   return '<div class="ws-row" data-slug="'+esc(b.slug)+'">'+body+(manageable()?menuBtn(b):'')+'</div>';}

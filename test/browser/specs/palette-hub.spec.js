@@ -31,8 +31,40 @@ test.describe("command palette — hub (bundle switch)", () => {
     // bundles lead on an empty query — the sibling is a data-path row
     await expect(hub.locator("#sw-list a[data-path]")).toHaveCount(1);
     await expect(hub.locator("#sw-list a[data-path]")).toContainText("hostile");
-    // and the current bundle is named as a disabled "you are here" row
-    await expect(hub.locator("#sw-list .cur")).toContainText("bundle");
+    // and the current bundle is named as a disabled "you are here" row, wearing
+    // the same @slug the rows under it do
+    await expect(hub.locator("#sw-list .cur")).toContainText("@bundle");
+  });
+
+  // The slug is what addresses a bundle — `@hostile`, /b/hostile/ — so it is the
+  // name; the folder is where it happens to live. The row led with the folder,
+  // which in a real registry is `…/.okf` on nearly every line: the loudest column
+  // saying the one thing that tells no two bundles apart.
+  test("a bundle row leads with its slug and trails with where it lives", async ({ hub }) => {
+    await hub.keyboard.press("Control+k");
+    const row = hub.locator("#sw-list a[data-path]");
+
+    await expect(row.locator("span").first()).toHaveText(/^@hostile/);
+    await expect(row.locator(".sw-where")).toHaveText("fixtures/hostile");
+
+    // and the name still outweighs the location, whatever the order
+    const [ name, where ] = await row.evaluate((a) => [
+      getComputedStyle(a.querySelector("span")).fontSize,
+      getComputedStyle(a.querySelector(".sw-where")).fontSize,
+    ]);
+    expect(parseFloat(name)).toBeGreaterThan(parseFloat(where));
+  });
+
+  // The location is a second fact, not a decoration: where it repeats the slug it
+  // is not printed. Driven through the real formatter rather than a fixture,
+  // because no committed bundle sits in a directory named for its own slug.
+  test("the location is omitted where it only repeats the slug", async ({ hub }) => {
+    const cases = await hub.evaluate(() => [
+      bundleWhere({ slug: "minifts", title: "minifts" }),
+      bundleWhere({ slug: "okf-gem", title: "repo" }),
+    ]);
+
+    expect(cases).toEqual([ "", "repo" ]);
   });
 
   test("the discovery badge shows the bundle count until the palette is opened", async ({ hub }) => {

@@ -529,14 +529,26 @@ module OKF
           count: nil, health: "missing", word: word, default: false }
       end
 
+      # A bundle is addressed by its slug — `@orders` on the CLI, `/b/orders/`
+      # here — so the slug is its name and the folder is a fact about it. The row
+      # led with Folder.label instead, which put the address where the name goes;
+      # in a real registry that label is `…/.okf` on nearly every line, so the
+      # loudest column repeated the one word that tells no two bundles apart.
+      #
+      # The short label is gone rather than demoted: it only ever stood in for the
+      # path, and the path is right here on the row's second line.
+      #
+      # The name keeps its `@`, which the ref line used to carry: it is the exact
+      # spelling `okf lint @orders` takes, so the row teaches the CLI for free —
+      # and one element now does the whole job two were splitting.
       def manager_row(base, row)
         name = if row[:mount]
-                 %(<a class="name" href="#{escape(base)}#{MOUNT}/#{escape(row[:mount])}/">#{escape(row[:title])}</a>)
+                 %(<a class="name" href="#{escape(base)}#{MOUNT}/#{escape(row[:mount])}/">@#{escape(row[:slug])}</a>)
                else
-                 %(<span class="name off">#{escape(row[:title])}</span>)
+                 %(<span class="name off">@#{escape(row[:slug])}</span>)
                end
         %(<li class="row" data-health="#{escape(row[:health])}">) +
-          %(<div class="who">#{name}<div class="ref"><span class="slug">@#{escape(row[:slug])}</span>) +
+          %(<div class="who">#{name}<div class="ref">) +
           # The row shows the tail; the tooltip is where the whole path stays
           # reachable, since nothing else on the page carries it.
           %(<span class="dir" title="#{escape(row[:dir])}"><bdi>#{escape(row[:dir])}</bdi></span></div></div>) +
