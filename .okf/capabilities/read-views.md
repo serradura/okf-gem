@@ -3,7 +3,7 @@ type: Capability
 title: Read views (index, dirs, catalog, files, types, tags, stats, loose, graph)
 description: The server's browser panels reproduced on the CLI, plus the index map, so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-21T20:00:00Z
+timestamp: 2026-07-22T12:00:00Z
 ---
 
 # Overview
@@ -85,11 +85,22 @@ lone root row would read as a partial answer to a query that matched nothing.
 otherwise. **Relative, not absolute**, so `--dir a/b --depth 1` reads "a/b and
 one level under it" without the caller first working out how deep `a/b` is, and
 the two compose the way a reader descending a tree actually moves. `--depth 0`
-is the starting point alone.
+is the starting point alone. `--area` does **not** combine with it and is refused
+(exit 2): the deprecated flag is exact and names no starting point, so `--depth`
+had nothing to be relative to and used to union the area with every directory at
+that depth from the root — extra rows that read like an answer.
+
+Matching folds case, but a row is found by its *stored* spelling, so the chain is
+walked folded and handed back in the map's own words. It used to be handed back
+folded, which silently dropped every ancestor of a directory spelled with a
+capital — the chain the flag exists to draw, missing exactly the row that places
+the branch.
 
 One line per directory where `index` is the whole map, so it is the cheaper of
-the two when the question is shape rather than contents — and `dirs --depth 1`
-is the first thing to run on an unfamiliar bundle. The root stores `.` and
+the two when the question is shape rather than contents — and `dirs` is the first
+thing to run on an unfamiliar bundle. Cheaper structurally, not by measurement:
+`dirs` emits one row per *directory* and `index` one listing row per *concept*
+even under `--no-body`, so their costs scale with different things. The root stores `.` and
 prints `(root)` — the split every grouped view keeps, so a table and its `--json`
 never disagree about which spelling is the data.
 
@@ -97,7 +108,7 @@ never disagree about which spelling is the data.
 
 `--json` is **compact by default** — single-line, the token-efficient substrate an
 agent consumes; `--pretty` (which implies `--json`) indents the same JSON for a
-human. On the per-item list views — `index`, `catalog`, `files` — `--fields a,b`
+human. On the per-item list views — `index`, `catalog`, `files`, `dirs` — `--fields a,b`
 keeps only those properties and `--except a,b` drops them (mutually exclusive; an
 unknown name is a usage error that lists the valid ones). Projection runs before
 emission, so an agent never pays tokens for a field it dropped: `okf index <dir>
@@ -118,7 +129,10 @@ the whole bundle (matching is case-insensitive):
 
 `--dir` is one rule: a concept matches when its directory *is* the path or sits
 below it, so `--dir platform` reaches `platform/services/api` and `--dir .` (or
-`root`) means the root alone. It replaces `--area`, which saw only a concept id's
+`root`) means the root alone. A trailing slash is accepted and ignored, because
+the human views print one — `index` labels a row `platform/services/` — and a
+flag that refuses the label the tool just printed answers "nothing found" to a
+directory that is full. It replaces `--area`, which saw only a concept id's
 first path segment — a word the [OKF format](../format/okf-format.md) never used —
 and which still works, warning on stderr, until a later release drops it.
 

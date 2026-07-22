@@ -4,7 +4,7 @@ title: Ranked text search (search)
 description: Full-text retrieval over concept metadata and bodies — raw-text matching by default, BM25+ token ranking on request, and explainable row by row either way.
 resource: lib/okf/bundle/search.rb
 tags: [read, cli, json, registry, search]
-timestamp: 2026-07-21T18:00:00Z
+timestamp: 2026-07-22T12:00:00Z
 ---
 
 # Overview

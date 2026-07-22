@@ -52,8 +52,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its human breakdown now reads **By dir**.
 - **Search rows carry `dir`** — the full path, `.` at the root — beside the
   first-segment `area` they already had.
+- **`dirs` takes `--fields`/`--except`** like the other list views, over the row
+  shape it already declared.
+- **A single-bundle `okf server` answers `GET /search?q=`.** The route was the
+  hub's alone — conceived as the *cross-bundle* one — which left `okf server
+  ./docs` with a ⌘K palette that could find nothing, though one bundle is a legal
+  one-element set. `App` owns the payload and the hub calls it, so the shape is
+  defined once; a row from a single-bundle server carries no `slug`, which is how
+  it avoids answering as if it were a set. A static `okf render` still advertises
+  no endpoint: there is no server behind it to ask.
+- **The search index is built once and held.** Every request used to rebuild the
+  whole corpus — measured 1.45 s per search on a 414-concept bundle, flat across
+  repeats, with the build ~95% of it. `Search.prepare` holds a corpus (documents,
+  the key→concept map, the built index) and `Search.with` queries it: **0.016 –
+  0.052 s** per search, with the 1.39 s build moved into boot, where `okf server`
+  warms it deliberately. An engine opts in by exposing `prepare`; the scan
+  declares none and is handed none, so no engine or addon had to change. The
+  trade is staleness — a corpus is a snapshot, like the graph — and the hub drops
+  its corpus on any registry write, since a held index outliving the set it was
+  built from is a wrong answer rather than a slow one.
+- **`⌥ drag` moves a cluster box**, and is listed in the `?` sheet.
 
 ### Changed
+
+- **A force layout settles, then moves once.** `animate:true` reads to these
+  engines as "render every tick of the simulation" — the visible bounce, and
+  hundreds of full re-renders for one settle. It is `'end'` now: the same
+  simulation run headless, the nodes moved once into the same final positions.
+  Past 250 nodes even that transition is dropped, because at that size the move
+  itself is the jank.
+- **A cluster box is scenery, not a handle.** Its empty interior is the largest
+  drag target on the canvas, so dragging to look around dragged the *directory*
+  instead of the view — worse the bigger the cluster. It takes `grabbable:false`
+  **and** `pannable:true`: ungrabbable alone stops the box moving, but the node
+  still swallows the drag, and it is `pannable` that hands the gesture to the
+  canvas the way empty background does. `Alt`+drag gives the handle back, since
+  moving a box is a real gesture, just not the constant one — `Alt` rather than
+  `Ctrl`, which on macOS is the system secondary click. A tap still opens the
+  directory's map.
+- **`f` is no longer a shortcut.** A bare letter bound globally fires on every
+  keystroke the page did not route into an input, and fullscreen is not a mode to
+  enter by accident. The button stays and is now the only way in; the shortcut
+  sheet no longer advertises a key nothing is bound to.
+- **The skill names one first move.** It had prescribed three different ones
+  across seven places — SKILL.md, four playbooks and the CLI reference — and that
+  disagreement is the deliberation an agent pays for on every retrieval. Every
+  site now says `okf dirs` first, then `okf index --dir <branch>` to descend,
+  chosen structurally: `dirs` emits one row per *directory* where `index` emits
+  one listing row per *concept* even under `--no-body`, so the two scale with
+  different things.
 
 - **Cluster mode nests.** The graph page grouped concepts into one flat row of
   boxes, one per *first path segment* — the same lossy projection `--area` was.
@@ -73,6 +120,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`--dir` accepts the label the views print.** `fold_dir` never stripped a
+  trailing slash, while `okf index` labels a row `tables/` — so pasting a printed
+  row back into the flag matched nothing and exited 0, an empty result under a
+  count that agreed with it.
+- **The `--dir` chain keeps its case.** It was walked over case-folded paths and
+  then matched against the map with `include?`, which does not fold, so every
+  ancestor of a directory spelled with a capital vanished from the chain that
+  exists to place the branch.
+- **`--area` with `--depth` is refused (exit 2)** instead of unioning the area
+  with every directory at that depth from the root: the deprecated flag is exact
+  and names no starting point, so `--depth` had nothing to be relative to.
+- **A cleared filter no longer leaves a cluster unlaid.** The tiling runs over
+  the visible elements only (fcose throws on a node whose label went
+  `display:none` mid-run), but nothing re-tiled when a filter was later loosened —
+  so concepts hidden when clustering began came back at their pre-cluster
+  coordinates and stretched their box across the canvas. Worst case the filter
+  matched nothing, the layout returned early, and clearing it showed a view
+  nothing had laid out at all.
+- **A palette hit in a single-bundle server no longer 404s or reloads the page.**
+  A row with no `slug` was read as naming a *foreign* bundle, so the href became
+  `../undefined/`, the row rendered an "undefined" chip, and the click took the
+  page-load branch — reloading the whole index to reach a node already on screen.
+  Three sites, one absent field.
+- **A focused form field no longer zooms the page on iOS.** Safari zooms whenever
+  a focused control is under 16px and never zooms back out, so on a phone every
+  `/` left the reader pinching to recover. Keyed on `(max-width:768px)` *or*
+  `(pointer:coarse)`, because neither covers the other — a phone is narrow, a
+  tablet in landscape is not and zooms just the same.
 - **A nested cluster no longer throws when a filter empties it mid-layout.**
   fcose measures every node it is handed, so hiding nodes while its tiling
   animation ran threw on a label it could no longer measure. The layout is

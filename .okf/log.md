@@ -1,5 +1,55 @@
 # Update Log
 
+## 2026-07-22
+* **Update**: [search](capabilities/search.md) and
+  [search-engines](design/search-engines.md) record the prepared corpus. The
+  server was rebuilding the whole index on every request — 1.45 s per search on a
+  414-concept bundle, flat across repeats, because each one threw away what the
+  last had built. This bundle had already predicted it: the build is ~95% of the
+  index path's cost, and a long-lived server is exactly the case that amortizes
+  it where a one-shot CLI cannot. `Search.prepare` holds a corpus and
+  `Search.with` queries it, so a search is 0.016–0.052 s and the build lands at
+  boot. The engine opts in by exposing `prepare`; the scan declares none and is
+  handed none, so the seam cost no engine anything. The trade is staleness — a
+  corpus is a snapshot — and the hub drops its own on any registry write, which
+  is the bug this nearly shipped with rather than a precaution.
+* **Update**: [graph-server](capabilities/graph-server.md) gains `/search` on the
+  single-bundle app and loses `f`. The route was hub-only because it was
+  conceived as the cross-bundle one, which left the mode most readers meet first
+  with a palette that could not find anything; one bundle is a legal one-element
+  set, so the assumption was the only obstacle. What followed is the interesting
+  half: a row with **no slug** is a shape three places had never seen, and each
+  read a missing slug as a *foreign* bundle — a `../undefined/` 404 on every
+  result, an "undefined" chip, and a full page reload to reach a node already on
+  screen. One absent field, three wrong answers, none of them where the change
+  was made.
+* **Update**: [graph-server](capabilities/graph-server.md) records three canvas
+  behaviours a big bundle turns from cosmetic into structural — the force layouts
+  settling once instead of rendering every tick of the simulation, a cluster box
+  becoming scenery rather than the largest drag target on the page, and no form
+  control under 16px where iOS Safari would zoom the view and not zoom back.
+* **Update**: [read-views](capabilities/read-views.md) records three ways `--dir`
+  could answer wrongly and exit 0: an ancestor chain handed back case-folded
+  (so every ancestor of a capitalised directory vanished from the chain the flag
+  exists to draw), a trailing slash refused (while the human views *print* one, so
+  pasting a row back returned nothing), and `--area` with `--depth` unioning
+  rather than narrowing. The shape they share is worth more than any of them:
+  each was a rule written against one spelling of a directory and exercised only
+  in that spelling.
+* **Update**: [agent-skill](capabilities/agent-skill.md) converges on one first
+  move. The skill named three different ones across seven places, which is the
+  deliberation cost an agent pays on every retrieval — and the lookup table added
+  to remove that cost duplicated the reference, contradicted its own file, and
+  quoted measurements from a bundle no reader can open. Reverted, and the
+  disagreement fixed by subtraction instead: `okf dirs` first, everywhere.
+* **Update**: [browser-tests](design/browser-tests.md) gains what the cluster
+  specs taught. Two of them passed against the bug on the first try — one
+  assertion a compound parent satisfies by construction, one aimed at a region
+  that falls through to the canvas — and a third waited a fixed duration for a
+  layout that does not move anything while it computes. The residual flake is
+  named rather than hidden, with the reason those two specs are the one place
+  retries are legitimate.
+
 ## 2026-07-21
 * **Update**: [read-views](capabilities/read-views.md) gains `--depth` and the
   `dirs` subtree count. Both came out of running the CLI against a bundle an

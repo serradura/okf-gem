@@ -4,7 +4,7 @@ title: Search engines are adapters, and the facade owns the row
 description: One facade over N retrieval engines — the scan by default, the index when a query needs it or names it — with a shared conformance suite standing in for the oracle rule that multiple engines made impossible.
 resource: lib/okf/bundle/search.rb
 tags: [architecture, search, extensibility, testing]
-timestamp: 2026-07-18T22:00:00Z
+timestamp: 2026-07-22T12:00:00Z
 ---
 
 # Overview

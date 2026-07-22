@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-21T19:00:00Z
+timestamp: 2026-07-22T12:00:00Z
 ---
 
 # Overview
@@ -96,10 +96,28 @@ What it never does is re-scan disk per request: an edit made *elsewhere* while i
 runs — `okf registry set` in another terminal — still wants a restart to be
 served, though the manager page itself reads the file fresh and will show it.
 
-# One search box for every bundle
+# Every server answers /search; only the hub answers about a set
 
-The hub answers `GET /search?q=…`, which is the only route in the server that
-knows about more than one bundle. It is
+`GET /search?q=…` is answered by **both** hosts. A single-bundle `okf server`
+searches the one bundle it was given — the route was hub-only for a while, not
+because a lone bundle cannot be searched but because the route was conceived as
+the cross-bundle one, which left `okf server ./docs` with a palette that could
+not find anything. `App` owns the payload now and the hub calls it, so the shape
+is defined once. A row from a single-bundle server carries **no `slug`**, which
+is how it avoids answering as if it were a set — and the page has to know that:
+treating a missing slug as a *foreign* bundle built `../undefined/` and 404ed
+every result, then reloaded the whole page to reach a node already on screen.
+A static [render](render.md) advertises no endpoint at all, having no server
+behind it to ask.
+
+The index is **built once and held**, not rebuilt per request: see
+[search](search.md#the-server-holds-the-index-the-cli-cannot) for the measurement
+and the staleness it trades. `okf server` warms it at boot so the cost lands in
+startup rather than on the first reader, and the hub drops its corpus on any
+registry write — a held index outliving the set it was built from is a wrong
+answer, not a slow one.
+
+The hub's is the one that knows about more than one bundle. It is
 [`OKF::Bundle::Search.across`](search.md) over every hosted bundle at once —
 one shared index, so BM25 weighs a term against the whole corpus and the merged
 ranking is comparable by construction rather than by stapling per-bundle lists
@@ -143,7 +161,10 @@ follows.
 The keyboard reaches the rest of the page the same way: `/` focuses the current
 view's search where it has one, and `?` answers with a sheet of every binding —
 reachable from a rail button too, because a shortcut list you can only open with
-a shortcut helps whoever needs it least. The sheet is written against the key
+a shortcut helps whoever needs it least. `f` is deliberately **not** bound: a bare
+letter bound globally fires on every keystroke the page did not route into an
+input, and fullscreen is not a mode to enter by accident — the button is the only
+way in. `⌥ drag` is listed there, since an undiscoverable gesture is no gesture. The sheet is written against the key
 handler it documents, so it cannot drift from what the keys do.
 
 # The registry, on the page
@@ -309,8 +330,29 @@ parent from its surviving **leaf** descendants — children alone would read an
 intermediate box holding only sub-boxes as empty and take the whole branch below
 it off the canvas — and clustering re-applies the active filter
 before the layout tiles the boxes, so the two orders — filter-then-cluster and
-cluster-then-filter — agree. Selection clears with `Esc` as well as a tap on
+cluster-then-filter — agree. And because the tiling runs over the *visible*
+elements only — fcose throws on a node whose label went `display:none` mid-run —
+a filter loosened afterwards re-tiles: without that, concepts hidden when
+clustering began returned at their pre-cluster coordinates and dragged their box
+across the canvas. Selection clears with `Esc` as well as a tap on
 empty canvas, because a dense graph leaves almost no empty canvas to hit.
+
+**A box is scenery, not a handle.** Its empty interior is the largest drag target
+on the canvas, so while it grabbed the compound node, dragging to look around
+dragged the *directory* — and the bigger the cluster, the less of the view could
+be panned. It takes `grabbable:false` **and** `pannable:true`: ungrabbable alone
+stops the box moving but the node still swallows the drag, and it is `pannable`
+that hands the gesture to the canvas the way empty background does. `Alt`+drag
+gives the handle back, since moving a box is a real gesture, just not the
+constant one — `Alt` rather than `Ctrl`, which on macOS is the system secondary
+click. A tap still opens the directory's map: a click is only a click when the
+mouse did not move.
+
+**A force layout settles, then moves once.** `animate:true` reads to these
+engines as "render every tick of the simulation" — the visible bounce, and
+hundreds of full re-renders for one settle. `'end'` runs the same simulation
+headless and moves the nodes once; past 250 nodes even that transition is
+dropped, because at that size the move itself is the jank.
 
 # One page, from a phone to a desktop
 
@@ -318,6 +360,14 @@ At `≤768px` — phones and portrait tablets — the topbar tools fold into a `
 sheet, panels go full-bleed, the file list collapses to its tab bar, and the graph
 fits itself after load. The sheet shows when a filter is active, so a control
 folded out of sight can never silently narrow what the graph is showing.
+
+**No form control is under 16px on a touch screen.** iOS Safari zooms the whole
+page whenever a focused field is smaller than that and never zooms back out, so
+every `/` left the reader pinching to recover. The rule is keyed on
+`(max-width:768px)` *or* `(pointer:coarse)`, because neither covers the other — a
+phone is narrow, a tablet in landscape is not and zooms just the same.
+`maximum-scale=1` would also stop it and is the wrong trade: it takes pinch-zoom
+from everyone to spare one gesture.
 
 The breakpoint tracks the width actually available to the chrome, not a device
 class, which is why rotation is a re-evaluation rather than a one-way door: the
@@ -536,6 +586,7 @@ sequenceDiagram
 | `/catalog`, `/tags`, `/types` | the JSON behind the browser panels |
 | `/index` | the §6 map behind the tree's `index.md` rows (boot snapshot) |
 | `/log` | every `log.md`, read live from disk for the Log |
+| `/search?q=` | ranked concepts in this bundle, for the palette (JSON) |
 
 Under a hub every path above keeps its shape, mounted under its bundle's prefix
 (`/b/<slug>/node?id=`), plus the hub's own:

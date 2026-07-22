@@ -4,7 +4,7 @@ title: The graph page is proven in a real browser
 description: A string assertion over rendered HTML cannot see a collapsed canvas or a folded breakpoint, so the page is driven in Chromium — in both render modes, with any thrown error failing the run.
 resource: test/browser
 tags: [testing, render, server, architecture]
-timestamp: 2026-07-21T16:00:00Z
+timestamp: 2026-07-22T12:00:00Z
 ---
 
 # Overview
@@ -168,6 +168,29 @@ deleted. A test that cannot fail is worse than no test, because it is counted.
 Mutation-check a new spec by breaking the code it covers and confirming it
 goes red for the predicted reason.
 <!-- rule:okf-assert-the-collapsible -->
+
+Both traps were hit again by the cluster-drag specs, which is why they are stated
+here rather than in a changelog. Asserting a node sits *inside* its box cannot
+fail: a compound parent is sized from its children, so it holds even when nothing
+was laid out. And aiming at the box's *bounding box* is not aiming at the box —
+measured, the label strip at the top and the bottom fifth fall through to the
+canvas, so the drag tested the background and would have passed with the bug in
+place. Both were rewritten against what was measured: coordinates that move, and
+a hit region of 0.25–0.65.
+
+**Wait for the signal, never for a duration.** A fixed sleep after clustering
+raced the layout: `clusterLayout` awaits a lazy CDN load, and under `animate:'end'`
+nothing moves *while* fcose computes — so two identical position samples arrive
+before the tiling does and read as "settled". The wait is now three facts in
+order: the layout started (`layoutstart`; `layoutstop` never fires here, and
+polling for it only ever timed out), it moved something, and it stopped.
+
+What is left after that is ~1 in 100, and the two drag specs carry `retries: 2`
+for it. That is a deliberate exception to the rule that retries mask defects, and
+it holds only because the race is in the **setup**: a real mouse gesture aimed at
+live geometry on a canvas whose camera is still animating. On a settled canvas the
+identical gesture succeeded 8/8, so the retry re-runs the aim, not the proof —
+and two failures running is a regression, not this.
 
 # Citations
 
