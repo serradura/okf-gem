@@ -120,6 +120,15 @@
   font:inherit;font-size:13px;padding:0 10px;outline:none;transition:border-color .15s,box-shadow .15s}
  .field:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
  .field::placeholder{color:var(--muted)}
+ /* iOS Safari zooms the page whenever a focused control is under 16px, and it
+    never zooms back out — so every `/` left the reader pinching. 16px is the
+    whole fix; `maximum-scale=1` would also stop it and is the wrong trade, since
+    it takes pinch-zoom away from everyone to spare one gesture.
+    Both conditions, because neither covers the other: a phone is narrow, and a
+    tablet in landscape is not — but it still zooms. Desktop keeps 13px. */
+ @media (max-width:768px),(pointer:coarse){
+  .field{font-size:16px}
+ }
  .search{position:relative;display:flex;align-items:center;flex:1 1 320px;min-width:130px;max-width:520px}
  .search svg{position:absolute;left:11px;width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:1.8;pointer-events:none}
  .search input{width:100%;padding-left:33px;padding-right:52px}
