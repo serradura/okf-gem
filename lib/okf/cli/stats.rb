@@ -42,7 +42,7 @@ module OKF
         entries = folder.catalog
         by_type = graph.type_index.transform_values(&:size).sort_by { |_, n| -n }.to_h
         by_area = entries.group_by { |entry| entry[:area] }.transform_values(&:size).sort_by { |_, n| -n }.to_h
-        by_dir = entries.group_by { |entry| entry[:dir] }.transform_values(&:size).sort_by { |_, n| -n }.to_h
+        by_dir = directory_counts(folder)
         {
           concepts: entries.size,
           dirs: by_dir.size,
@@ -54,6 +54,24 @@ module OKF
           by_dir: by_dir,
           by_area: by_area
         }
+      end
+
+      # Every directory the bundle has, with the concepts that live *directly* in
+      # it. Read off Bundle#directory_index — the same map `okf dirs` lists and
+      # `--dir` is answered against — rather than off the catalog, which knows
+      # only the directories that happen to hold a concept. Grouping the catalog
+      # made `stats` and `dirs` report different totals for one bundle, and left
+      # an addressable directory out of by_dir entirely: `--dir deeply` answers,
+      # but nothing in `stats` said `deeply` was there to ask about.
+      #
+      # A directory holding nothing directly therefore appears at 0. That is the
+      # honest reading — it is the same zero `okf dirs` prints in its Concepts
+      # column — and it keeps `dirs` equal to `by_dir.size`. Ties break by path so
+      # the order is total, not whatever the sort happened to leave.
+      def directory_counts(folder)
+        folder.directory_index
+              .map { |entry| [ entry[:dir], entry[:count] ] }
+              .sort_by { |dir, count| [ -count, dir ] }.to_h
       end
 
       def print_stats(dir, stats)

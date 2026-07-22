@@ -3,6 +3,7 @@
 require "test_helper"
 
 require "json"
+require "minitest/mock"
 require "rack/test"
 
 require "okf"
@@ -222,10 +223,33 @@ class OKF::Server::AppTest < OKF::TestCase
     assert_equal 0, body["total"]
   end
 
-  test "the page advertises its own search endpoint, so the palette offers it" do
+  # The route always answers; advertising it is the caller's call. An embedding
+  # app mounts this at a path of its choosing (`mount App.new(folder) =>
+  # "/knowledge"`), and the page resolves SEARCH_ENDPOINT relative to the URL the
+  # reader is on — so a default that advertises "search" points at the host's
+  # root, not at the mount. Whoever knows where the app is mounted is the only
+  # one who can name the endpoint, which is why the default stays nil and
+  # `okf server` passes it.
+  test "an embedded app advertises no search endpoint by default" do
+    get "/"
+
+    assert_match(/const SEARCH_ENDPOINT=null/, last_response.body)
+  end
+
+  test "a caller that knows where it is mounted names the endpoint, and the page offers it" do
+    @app = OKF::Server::App.new(OKF::Bundle::Folder.load(@tmpdir), title: "Demo", search_endpoint: "search")
     get "/"
 
     assert_match(/const SEARCH_ENDPOINT="search"/, last_response.body)
+  end
+
+  # The route is not gated on the advertisement: an embedder that names no
+  # endpoint still gets a working one to point at once it knows its own mount.
+  test "GET /search answers whether or not the page advertises it" do
+    get "/search", q: "orders"
+
+    assert_equal 200, last_response.status
+    assert_equal 1, JSON.parse(last_response.body)["total"]
   end
 
   private

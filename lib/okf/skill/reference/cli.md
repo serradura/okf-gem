@@ -382,7 +382,10 @@ in/out link degree). Add `--json` to any for a machine substrate.
   totals plus per-type and per-dir breakdowns. The "shape at a glance" view. JSON:
   `{ bundle, concepts, dirs, areas, concept_types, cross_links, distinct_tags,
   by_type, by_dir, by_area }` (`areas`/`by_area` are the deprecated first-segment
-  cut, kept for one release).
+  cut, kept for one release). `dirs`/`by_dir` cover every directory `okf dirs`
+  lists — counts are direct, so a directory holding nothing itself is present at
+  `0` rather than missing, and `by_dir.keys` is a complete list of what `--dir`
+  can address.
 
 The four list views narrow with the same filters the browser panels offer —
 `--type TYPE`, `--dir PATH`, `--tag TAG`; each takes the ones orthogonal to
@@ -398,6 +401,9 @@ billing --json` answers "which tags does the billing cluster use?",
 only, its old behavior unchanged — and prints `warning: --area is deprecated, use
 --dir` on stderr (stdout stays clean, so a `--json` consumer is unaffected). Same
 for `tags --by area`. Both go in a later release; write `--dir` in anything new.
+On `index` it combines with neither `--depth` nor `--dir` — exit 2, because it is
+*exact* and both of those select a range, so the pair used to return the area
+plus whatever the other flag selected: an answer to neither question.
 
 Reach for `stats` first to size a bundle, `catalog`/`files` to enumerate it, `tags`
 to find thematic clusters — all without standing up the server.

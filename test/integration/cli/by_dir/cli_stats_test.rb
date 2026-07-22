@@ -14,28 +14,61 @@ module ByDir
       assert_equal 0, result.status
       assert_match(/^Stats — .*conformant$/, result.out)
       assert_match(/^  concepts       3$/, result.out)
-      assert_match(/^  dirs           2$/, result.out)
+      assert_match(/^  dirs           3$/, result.out)
       assert_match(/^  concept types  2$/, result.out)
       assert_match(/^  cross-links    6$/, result.out)
       assert_match(/^  distinct tags  2$/, result.out)
       assert_match(/^  By type\n    BigQuery Table    2\n    BigQuery Dataset  1$/, result.out)
-      assert_match(/^  By dir\n    tables    2\n    datasets  1$/, result.out)
+      # The root carries an index.md and no concepts of its own — a directory the
+      # bundle has, at the zero it holds. Counting only concept-bearing dirs is
+      # what made this verb disagree with `okf dirs`.
+      assert_match(/^  By dir\n    tables    2\n    datasets  1\n    \(root\)    0$/, result.out)
       refute_match(/By area/, result.out) # the human view speaks one word for grouping
     end
 
-    test "the breakdowns order by count, the biggest slice first" do
+    test "the breakdowns order by count, the biggest slice first, ties by path" do
       result = okf("stats", fixture("edge-cases"))
 
-      assert_match(/^  By dir\n    \(root\)              3\n    deeply\/nested\/path  1$/, result.out)
-      assert_equal [ ".", "deeply/nested/path" ], json(okf("stats", fixture("edge-cases"), "--json")).fetch("by_dir").keys
+      assert_match(
+        /^  By dir\n    \(root\)              3\n    deeply\/nested\/path  1\n    deeply              0\n    deeply\/nested       0$/,
+        result.out
+      )
+      assert_equal [ ".", "deeply/nested/path", "deeply", "deeply/nested" ],
+        json(okf("stats", fixture("edge-cases"), "--json")).fetch("by_dir").keys,
+        "count descending, then path — so two dirs at the same count cannot swap between runs"
     end
 
     test "by_dir keeps the whole path where by_area only ever kept the first segment" do
       data = json(okf("stats", fixture("edge-cases"), "--json"))
 
-      assert_equal({ "." => 3, "deeply/nested/path" => 1 }, data.fetch("by_dir"))
+      assert_equal({ "." => 3, "deeply/nested/path" => 1, "deeply" => 0, "deeply/nested" => 0 }, data.fetch("by_dir"))
       assert_equal({ "(root)" => 3, "deeply" => 1 }, data.fetch("by_area"), "kept for the deprecation window")
-      assert_equal 2, data.fetch("dirs")
+      assert_equal 4, data.fetch("dirs")
+    end
+
+    # Two verbs shipped together answering "how many directories?" differently is
+    # the silent-wrong-answer shape: neither reading is flagged, so whichever one
+    # an agent asked is the one it believes. `okf dirs` is the map --dir is
+    # answered against, so it is the one stats has to agree with — which also
+    # means by_dir has to carry the directories that hold nothing directly, or an
+    # agent enumerating it never learns they are addressable at all.
+    test "the directory count is the one `okf dirs` lists, intermediate dirs included" do
+      data = json(okf("stats", fixture("edge-cases"), "--json"))
+      rows = json(okf("dirs", fixture("edge-cases"), "--json")).fetch("dirs")
+
+      assert_equal rows.size, data.fetch("dirs")
+      assert_equal rows.map { |row| row["dir"] }.sort, data.fetch("by_dir").keys.sort
+      assert_equal 0, data.fetch("by_dir").fetch("deeply"),
+        "a directory holding nothing directly keeps its zero — dropping it hides an addressable dir"
+      assert_equal 3, data.fetch("by_dir").fetch("."), "the counts stay direct; only the coverage widens"
+    end
+
+    test "a dir carrying only an index.md is a directory both verbs count" do
+      data = json(okf("stats", fixture("conformant"), "--json"))
+
+      assert_equal 3, data.fetch("dirs"), "the root has an index.md and no concepts; it is still a directory"
+      assert_equal 0, data.fetch("by_dir").fetch(".")
+      assert_match(/^  dirs           3$/, okf("stats", fixture("conformant")).out)
     end
 
     test "--json emits the rollups under their machine keys" do

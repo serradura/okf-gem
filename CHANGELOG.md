@@ -49,7 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`tags --by dir`** cuts the tag index by the whole directory path, where
   `--by area` only ever saw the first segment.
 - **`stats` gains `dirs` and `by_dir`** (the full-path cut, direct counts), and
-  its human breakdown now reads **By dir**.
+  its human breakdown now reads **By dir**. Both are read off the same map `okf
+  dirs` lists and `--dir` is answered against, so the two verbs cannot report a
+  different number of directories — a directory holding nothing directly appears
+  at `0` rather than being dropped, since it is still one `--dir` addresses.
 - **Search rows carry `dir`** — the full path, `.` at the root — beside the
   first-segment `area` they already had.
 - **`dirs` takes `--fields`/`--except`** like the other list views, over the row
@@ -61,6 +64,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   defined once; a row from a single-bundle server carries no `slug`, which is how
   it avoids answering as if it were a set. A static `okf render` still advertises
   no endpoint: there is no server behind it to ask.
+  - **The route always answers; advertising it is the caller's call.** The page
+    resolves the endpoint *relative to the URL the reader is on*, so only whoever
+    mounted the app knows what to call it: `okf server` mounts at the root and
+    passes `search`, while `App.new(folder)` on its own advertises nothing, since
+    a default would point an app mounted at `/knowledge` back at its host's root.
 - **The search index is built once and held.** Every request used to rebuild the
   whole corpus — measured 1.45 s per search on a 414-concept bundle, flat across
   repeats, with the build ~95% of it. `Search.prepare` holds a corpus (documents,
@@ -128,9 +136,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   then matched against the map with `include?`, which does not fold, so every
   ancestor of a directory spelled with a capital vanished from the chain that
   exists to place the branch.
-- **`--area` with `--depth` is refused (exit 2)** instead of unioning the area
-  with every directory at that depth from the root: the deprecated flag is exact
-  and names no starting point, so `--depth` had nothing to be relative to.
+- **`--area` with `--depth` or `--dir` is refused (exit 2)** instead of unioning
+  the area with what the other flag selects. The deprecated flag is exact: with
+  `--depth` it names no starting point to be relative to, and with `--dir` one
+  side is exact where the other is a prefix, so the map came back with the area
+  *and* the subtree — an answer to neither question. A deprecated flag that
+  quietly widens is worse than one that is merely old.
 - **A cleared filter no longer leaves a cluster unlaid.** The tiling runs over
   the visible elements only (fcose throws on a node whose label went
   `display:none` mid-run), but nothing re-tiled when a filter was later loosened —

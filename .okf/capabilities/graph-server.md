@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-22T12:00:00Z
+timestamp: 2026-07-22T18:00:00Z
 ---
 
 # Overview
@@ -109,6 +109,16 @@ treating a missing slug as a *foreign* bundle built `../undefined/` and 404ed
 every result, then reloaded the whole page to reach a node already on screen.
 A static [render](render.md) advertises no endpoint at all, having no server
 behind it to ask.
+
+**The route always answers; advertising it is the caller's call.** The page
+resolves `SEARCH_ENDPOINT` *relative to the URL the reader is on*, so only
+whoever mounted the app knows what to call it — which is why `App` defaults it to
+nil rather than to `"search"`. `okf server` mounts at the root and names it; a
+host doing `mount App.new(folder) => "/knowledge"` ([library](library-api.md))
+passes its own spelling, where a baked-in default would have pointed that
+palette at the host's root instead. The route is not gated on the
+advertisement, so an embedder that names nothing still has a working endpoint to
+point at once it knows its own mount.
 
 The index is **built once and held**, not rebuilt per request: see
 [search](search.md#the-server-holds-the-index-the-cli-cannot) for the measurement

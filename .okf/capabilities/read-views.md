@@ -3,7 +3,7 @@ type: Capability
 title: Read views (index, dirs, catalog, files, types, tags, stats, loose, graph)
 description: The server's browser panels reproduced on the CLI, plus the index map, so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-22T12:00:00Z
+timestamp: 2026-07-22T18:00:00Z
 ---
 
 # Overview
@@ -30,6 +30,16 @@ these views group by, for the price of a few rows.
 | `stats` | rollups: concepts, dirs, types, cross-links, tags | — |
 | `loose` | degree-0 concepts (no [links](../format/cross-links.md) in or out) | folder |
 | `graph` | the raw nodes and edges; `--hubs` ranks inbound links by source area | — (`--minimal` / `--no-body`) |
+
+`dirs` and `stats` answer about the *same* set of directories, deliberately:
+both read `Bundle#directory_index`, the map `--dir` is resolved against. Grouping
+the catalog instead — which knows only the directories that happen to hold a
+concept — made the two verbs disagree about how big a bundle was (`stats` said 2
+where `dirs` listed 3 on a bundle whose root carries an index.md and no
+concepts), and worse, left a directory out of `by_dir` that `--dir` answers
+about. Counts stay direct, so a directory holding nothing itself reports the zero
+it holds rather than disappearing; `by_dir.keys` is therefore the complete list
+of what `--dir` can name.
 
 Every one of them names the bundle it answers about, in the identity the caller
 used — the rule the [CLI](../cli.md) keeps: `bundle` is always the directory,
@@ -85,10 +95,13 @@ lone root row would read as a partial answer to a query that matched nothing.
 otherwise. **Relative, not absolute**, so `--dir a/b --depth 1` reads "a/b and
 one level under it" without the caller first working out how deep `a/b` is, and
 the two compose the way a reader descending a tree actually moves. `--depth 0`
-is the starting point alone. `--area` does **not** combine with it and is refused
-(exit 2): the deprecated flag is exact and names no starting point, so `--depth`
-had nothing to be relative to and used to union the area with every directory at
-that depth from the root — extra rows that read like an answer.
+is the starting point alone. The deprecated `--area` combines with **neither**
+`--depth` nor `--dir` and is refused (exit 2) for one reason wearing two shapes:
+it is *exact*. With `--depth` it names no starting point to be relative to, so
+the pair unioned the area with every directory at that depth from the root; with
+`--dir` one side is exact where the other is a prefix, so the map came back with
+the area *and* the subtree. Both read like an answer and are an answer to neither
+question.
 
 Matching folds case, but a row is found by its *stored* spelling, so the chain is
 walked folded and handed back in the map's own words. It used to be handed back

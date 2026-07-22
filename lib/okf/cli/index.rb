@@ -52,8 +52,14 @@ module OKF
         # --area is exact and names no starting point, so --depth has nothing to
         # be relative *to*: the pair used to union the area with every directory
         # at that depth from the root. Refusing beats answering with more.
-        if options[:areas] && options[:depth]
-          return usage_error("--area and --depth do not combine: use --dir")
+        #
+        # --dir is refused for the same reason and not a weaker one: one flag is
+        # exact and the other a prefix, so the pair came back with the area *and*
+        # the subtree — an answer to neither question, from a combination only
+        # someone mid-migration would type. A deprecated flag that quietly widens
+        # is worse than one that is merely old.
+        if options[:areas] && (options[:depth] || options[:dirs])
+          return usage_error("--area and #{options[:dirs] ? "--dir" : "--depth"} do not combine: use --dir")
         end
 
         folder = OKF::Bundle::Folder.load(dir)

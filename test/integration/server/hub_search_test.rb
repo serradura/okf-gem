@@ -111,7 +111,9 @@ class OKF::Server::HubSearchTest < OKF::TestCase
   end
 
   test "results are capped, and a truncated answer says so" do
-    over = OKF::Server::Hub::SEARCH_LIMIT + 5
+    # App owns the cap: both hosts answer with the payload it defines, so there is
+    # one constant to raise rather than two that can disagree.
+    over = OKF::Server::App::SEARCH_LIMIT + 5
     concepts = {}
     (1..over).each { |n| concepts["c#{n}"] = "every concept mentions widgets" }
     @app = OKF::Server::Hub.new([ bundle("big", "Big", concepts) ])
@@ -119,7 +121,7 @@ class OKF::Server::HubSearchTest < OKF::TestCase
     get "/search", q: "widgets"
 
     body = JSON.parse(last_response.body)
-    assert_equal OKF::Server::Hub::SEARCH_LIMIT, body["results"].length
+    assert_equal OKF::Server::App::SEARCH_LIMIT, body["results"].length
     assert_equal true, body["truncated"], "a silent cap is a lie about coverage"
     assert_equal over, body["total"]
   end

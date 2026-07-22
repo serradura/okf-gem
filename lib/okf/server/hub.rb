@@ -45,22 +45,9 @@ module OKF
       # names" is how a router becomes an eval.
       WRITES = %w[default rename remove add].freeze
 
-      # How many rows /search answers with. The palette shows a handful and the
-      # rest is scroll nobody reaches, but the count is reported alongside so a
-      # capped answer never reads as a complete one.
-      SEARCH_LIMIT = 50
-
-      # The engine /search runs on, named rather than inferred. `fuzzy: true`
-      # would route here on its own today — the index is the only registered
-      # engine that offers it — but that is correctness by coincidence, and an
-      # addon declaring :fuzzy would silently take the route.
-      #
-      # It is also the *right* engine here for a reason the CLI's default does
-      # not share: `okf search` is one-shot and cannot amortize an index build,
-      # while this is a long-lived server answering keystroke after keystroke.
-      # And the page's own MiniSearch is what minifts is a port of, so a palette
-      # hit and an in-page search rank alike instead of nearly alike.
-      SEARCH_ENGINE = :index
+      # The /search cap and engine live on App, which now defines the payload both
+      # hosts answer with (App.search_payload). Two copies of a constant is two
+      # places to raise the cap and one of them silently losing.
 
       # One hosted bundle: its +slug+ (unique mount key), the on-disk +folder+, and
       # its display +title+.

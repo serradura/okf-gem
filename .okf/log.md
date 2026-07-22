@@ -1,6 +1,44 @@
 # Update Log
 
 ## 2026-07-22
+* **Update**: [read-views](capabilities/read-views.md) records that `dirs` and
+  `stats` answer about the *same* directories. Both read `Bundle#directory_index`
+  now; grouping the catalog instead knew only the directories that happen to hold
+  a concept, so the two verbs disagreed about how big a bundle was and — worse —
+  `by_dir` omitted directories `--dir` answers about. A directory holding nothing
+  directly reports the zero it holds, which is what makes `by_dir.keys` a
+  complete list of what `--dir` can name. The same paragraph now covers `--area`
+  refusing `--dir` as well as `--depth`: one reason wearing two shapes, since the
+  deprecated flag is exact and both of the others select a range.
+* **Update**: [graph-server](capabilities/graph-server.md) and
+  [library-api](capabilities/library-api.md) record who names the search
+  endpoint. The route answers on every app; *advertising* it is the caller's,
+  because the page resolves it against the reader's URL and only the host knows
+  its own prefix. A default of `"search"` — which this bundle briefly described —
+  would have pointed an app mounted at `/knowledge` back at its host's root. The
+  correction is worth keeping visible: the bug was invisible from inside the app,
+  and only appears where the gem is a library rather than a command.
+
+* **Correction**: [read-views](capabilities/read-views.md) records that `stats`
+  and `dirs` count directories off one map. They did not: `stats` grouped the
+  catalog, so it saw only directories holding a concept, while `dirs` reads
+  `directory_index` — two verbs shipped in the same release answering "how many
+  directories?" with 2 and 3 for the same bundle, neither flagged, so whichever
+  one an agent asked was the one it believed. `by_dir` also omitted every
+  directory it could not see, which meant `--dir deeply` answered about a
+  directory nothing in `stats` said was there. Both now read `directory_index`,
+  and a directory holding nothing directly reports its zero rather than vanishing.
+* **Correction**: `Server::App`'s `search_endpoint` is a parameter again, not a
+  default. It had been defaulted to `"search"` so `okf server` would advertise
+  the route it had just gained — but the page resolves that string against the
+  URL the reader is on, so an app mounted at `/knowledge` pointed its palette at
+  the host's root. Only the caller knows where it was mounted; `okf server` names
+  it, embedders name their own, and the route answers either way.
+* **Correction**: the `/search` cap and engine live on
+  [graph-server](capabilities/graph-server.md)'s `App` alone. `Hub` kept its own
+  copies after the payload moved, so raising the cap in the obvious place would
+  have changed nothing — a constant duplicated with its reasoning intact is the
+  kind that drifts quietly.
 * **Update**: [search](capabilities/search.md) and
   [search-engines](design/search-engines.md) record the prepared corpus. The
   server was rebuilding the whole index on every request — 1.45 s per search on a

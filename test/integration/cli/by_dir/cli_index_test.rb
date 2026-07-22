@@ -388,6 +388,18 @@ module ByDir
       assert_empty result.out
     end
 
+    test "--area and --dir do not combine (exit 2)" do
+      # One is exact and one is a prefix, so the pair used to union them: the map
+      # came back with `datasets` *and* the `tables` subtree, an answer to neither
+      # question. The same reasoning that refuses --area with --depth — a
+      # deprecated flag that quietly widens is worse than one that is merely old.
+      result = okf("index", fixture("conformant"), "--area", "datasets", "--dir", "tables")
+
+      assert_equal 2, result.status
+      assert_match(/--area and --dir/, result.err)
+      assert_empty result.out
+    end
+
     test "usage errors exit 2: missing dir, no dir, bad flag" do
       missing = okf("index", File.join(BUNDLES, "does-not-exist"))
       assert_equal 2, missing.status

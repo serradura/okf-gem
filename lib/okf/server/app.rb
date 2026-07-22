@@ -73,8 +73,16 @@ module OKF
       # bundle's own mount slug, the hub root, and the hub's cross-bundle search
       # route. They stay nil for a standalone server and for `okf render`, so a
       # static file never advertises a switcher or a search it cannot answer.
+      #
+      # +search_endpoint+ belongs to that group for the same reason, even though
+      # this app now answers /search itself: the page resolves it *relative to the
+      # URL the reader is on*, so only whoever mounted the app knows what to call
+      # it. `okf server` mounts at the root and passes "search"; a host doing
+      # `mount App.new(folder) => "/knowledge"` needs its own spelling, and a
+      # default would have pointed its palette at the host's root instead. The
+      # route answers either way — advertising it is the caller's call.
       def initialize(folder, title: nil, link: nil, layout: "cose", siblings: nil, self_slug: nil, hub_path: nil,
-                     search_endpoint: "search", manage_root: nil, manage_token: nil)
+                     search_endpoint: nil, manage_root: nil, manage_token: nil)
         @folder = folder
         @title = title
         @link = link
