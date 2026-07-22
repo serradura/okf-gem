@@ -1944,17 +1944,19 @@ function setView(v){if(v===view)return;view=v;document.getElementById('app').set
  /* the count and the dead-end offer belong to the view's own query, so they
     re-decide on every switch — including into a view that has no box at all */
  bridgeSync();}
-/* The Files view answers to two rail items: Files when the Files tab is up,
-   Index when the Indexes tab is — the Index rail item is a shortcut into it. */
-/* Which rail item the page is standing on. It was a question of view *and*
-   tab, back when "index" was a rail item with no #view-index behind it. The
-   tab is gone and so is the pretence: a rail item is a view. */
-function activeRail(){return view;}
+/* Which rail item the page is standing on — the view, except where two rail
+   items share one. Index is a shortcut into Files that opens the root map, so
+   while that map is what is open the reader is standing on Index and the rail
+   has to say so; anything else in Files, a *nested* index.md included, is
+   Files. Returning `view` flat lit Files on the one screen the reader reached by
+   asking for Index, which reads as the click having gone somewhere else. */
+const ROOT_INDEX='index.md';
+function activeRail(){return view==='files'&&fileSel===ROOT_INDEX?'index':view;}
 /* And everything that has to *go* somewhere clicks the rail item rather than
-   calling setView: Index and Files are one view differing by tab, so setView
-   alone lands on whichever tab was last open — and for "index" it lands on a
-   view that does not exist. The rail button already gets this right; this is
-   how the keyboard and the palette borrow it instead of drifting from it. */
+   calling setView: "index" is not a view, so setView alone lands on one that
+   does not exist, and even for Files it would arrive without opening the map
+   that makes it Index. The rail button already gets this right; this is how the
+   keyboard and the palette borrow it instead of drifting from it. */
 function goRail(v){const b=document.querySelector('.rail-item[data-view="'+v+'"]');if(b)b.click();}
 function railActive(){const v=activeRail();
  document.querySelectorAll('.rail-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));}
@@ -2262,6 +2264,7 @@ function openFile(id,list){fileSel=id;
  if(ixOnly)setIxOnly(false);
  const c=(list||[]).find(x=>x.id===id)||byId[id]||{};
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.id===id));
+ railActive(); /* the rail reads the open file to tell Index from Files */
  const ty=c.type||typeOf[id]||'Untyped';const cc=color[ty]||'#64748b';
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-type').innerHTML=`<span class="dot" style="background:${cc}"></span>${esc(ty)}`;
@@ -2274,6 +2277,7 @@ function openFile(id,list){fileSel=id;
    log fetched fresh on every click so a just-appended entry shows. */
 function openReserved(kind,path){fileSel=path;
  document.querySelectorAll('.file').forEach(b=>b.classList.toggle('sel',b.dataset.path===path));
+ railActive(); /* the rail reads the open file to tell Index from Files */
  document.getElementById('fp-head').hidden=false;
  document.getElementById('fp-title').textContent=path;
  const d=dirOfPath(path);

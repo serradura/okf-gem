@@ -128,6 +128,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The rail marks Index while the root map is open.** Index is a shortcut into
+  Files, so the two share one `data-view` — and the rail read only that, lighting
+  **Files** on the one screen a reader reached by clicking **Index**. The open
+  file is what distinguishes them, so it is what the rail reads; a *nested*
+  `index.md` is still Files.
 - **`--dir` accepts the label the views print.** `fold_dir` never stripped a
   trailing slash, while `okf index` labels a row `tables/` — so pasting a printed
   row back into the flag matched nothing and exited 0, an empty result under a

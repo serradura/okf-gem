@@ -443,7 +443,6 @@ class OKF::Render::GraphTest < OKF::TestCase
     refute_includes html, "data-ftab", "the app no longer carries a tab in its state"
     refute_includes html, "function setFtab(", "nor the function that switched it"
     refute_includes html, "function goIndexes(", "and the fake view it needed is gone"
-    assert_includes html, "function activeRail(){return view;}", "a rail item is a view again, nothing more"
   end
 
   test "the rail keeps an Index shortcut, as an action rather than a place" do
@@ -452,11 +451,14 @@ class OKF::Render::GraphTest < OKF::TestCase
     html = render
 
     # it opens the root map, exactly as the first-visit note's button does. What
-    # it is not is a view: `activeRail()` answers with the view it lands on
-    # (Files), so Index never highlights and never has to pretend it is somewhere
+    # it is not is a view — but it is still somewhere the reader stands, and the
+    # open file is the only thing that says so: Index and Files share one
+    # `data-view`, so a rail reading that alone lit Files on the screen the
+    # reader reached by asking for Index. Which item lights is proven in the
+    # browser (views.spec.js); this only pins that the rule reads the file.
     assert_includes html, %(data-view="index"), "the rail item is back"
     assert_includes html, "if(b.dataset.view==='index')return readIndex();", "and it runs the action, not a view switch"
-    assert_includes html, "function activeRail(){return view;}", "so nothing has to fake a place for it"
+    assert_includes html, "fileSel===ROOT_INDEX", "and the rail tells the two apart by what is open"
     assert_includes html, "const VIEW_KEYS={'1':'graph','2':'index','3':'files','4':'catalog','5':'tags','6':'stats'};",
       "and the number keys line up with the rail again"
   end

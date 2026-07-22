@@ -1,6 +1,11 @@
 # Update Log
 
 ## 2026-07-22
+* **Correction**: the rail says **Index** while the root map is the open file.
+  Index is a shortcut into Files, so the two share one `data-view` — and
+  `activeRail()` read only that, which lit Files on the one screen a reader
+  reached by asking for Index. The open file is what tells them apart, so it is
+  what the rail reads.
 * **Update**: [read-views](capabilities/read-views.md) records that `dirs` and
   `stats` answer about the *same* directories. Both read `Bundle#directory_index`
   now; grouping the catalog instead knew only the directories that happen to hold
