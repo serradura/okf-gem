@@ -206,6 +206,20 @@ a **hole**: it means a path a user can reach that no user-shaped test walks.
 Chase those, and let the residue tell you honestly which code the CLI cannot
 reach at all.
 
+**Prove that completeness by reading the uncovered lines, not by judgment.** A
+green integration run and a flattering aggregate hide the same thing — a branch
+only the unit tests reach — so after a feature, diff
+`coverage/integration/.resultset.json` for the *uncovered lines in the files you
+changed*: each one in a user-reachable file (`cli/`, `registry.rb`, `server/`) is
+a missing integration test, however many you already wrote. Three shapes hide
+there by habit, because a unit test walked them first: the *second* output format
+(the human listing when only `--json` was asserted, or the reverse), an *error*
+branch and the exit code it carries, and *malformed-input* robustness (a
+hand-edited registry — a cycle, an unnormalized slug, a missing field). Registry
+groups shipped with nine integration tests that read as exhaustive and left six
+such branches — a whole human-rendering path among them — proven only by unit
+tests until the resultset named them.
+
 **Do not skimp on fixtures.** They are the substrate the whole layer stands on; a
 bundle committed there is cheaper than a mock and far more honest, and reviewers
 can read it. When a path is unreachable from the existing fixtures — a tagged
