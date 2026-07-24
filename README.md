@@ -14,7 +14,7 @@
   <a href="https://github.com/serradura/okf-gem/actions/workflows/main.yml"><img src="https://github.com/serradura/okf-gem/actions/workflows/main.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/serradura/okf-gem"><img src="https://img.shields.io/badge/ruby-%3E%3D%202.4-black" alt="Ruby >= 2.4"></a>
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
-  <a href="lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.1-6E56CF" alt="OKF v0.1"></a>
+  <a href="okf/lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.1-6E56CF" alt="OKF v0.1"></a>
   <a href="#claude-code-plugin"><img src="https://img.shields.io/badge/Claude%20Code-plugin-D97757" alt="Claude Code plugin"></a>
 </p>
 
@@ -96,7 +96,7 @@ else is optional and tolerated when missing. A concept (here the real
 type: Capability
 title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph served over HTTP, and a mountable Rack app.
-resource: lib/okf/server/app.rb
+resource: okf/lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
 timestamp: 2026-07-11T12:00:00Z
 ---
@@ -485,7 +485,7 @@ the pure layer, the writer, and the lower-level pieces.
 
 `validate` (the [conformance validator](https://okfgem.com/docs/cli/validate/)) asks
 _"is this legal OKF?"_ and implements the spec's
-[§9](lib/okf/skill/reference/SPEC.md#9-conformance) exactly — which means it is
+[§9](okf/lib/okf/skill/reference/SPEC.md#9-conformance) exactly — which means it is
 *forbidden* to reject a bundle for a broken link or a missing optional field.
 
 `lint` (the [curation linter](https://okfgem.com/docs/cli/lint/)) asks the
@@ -513,25 +513,51 @@ treat an unfamiliar bundle the way you would treat any document from a source yo
 do not know. Full write-up:
 [server trust boundary](.okf/design/server-trust-boundary.md).
 
+## This repository
+
+A monorepo, one directory per gem, each named for the gem it ships. `okf/` is the
+baseline — the all-in-one everything above describes — and the ecosystem grows
+beside it.
+
+```
+okf/              the okf gem: skill, CLI, library, graph      → okf/README.md
+plugin/           the Claude Code plugin (this repo is its marketplace)
+.okf/             this project's own knowledge, as an OKF bundle
+Dockerfile        builds the published image from okf/
+```
+
 ## Development
 
+From the repo root — plain `rake`, there is no root Gemfile:
+
 ```bash
+rake              # every gem's default task (tests + RuboCop), then the repo-level lint
+rake test         # every gem's test suite
+rake okf          # validate + lint this repo's own .okf bundle
+rake serve        # browse that bundle as a graph
+```
+
+From `okf/`, for work on the gem itself:
+
+```bash
+cd okf
 bin/setup               # install dependencies
 bundle exec rake        # tests + RuboCop (what CI runs)
 bundle exec rake test   # just the test suite
 ruby -Ilib exe/okf validate <dir>   # run the CLI from a checkout
 ```
 
-The suite runs on every supported Ruby; to check the 2.4 floor locally:
+The suite runs on every supported Ruby; to check the 2.4 floor locally, from the
+repo root:
 
 ```bash
 docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
-  "cp -a /src /build && cd /build && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
+  "cp -a /src /build && cd /build/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
 ```
 
 The graph page has its own suite in a real browser (`bundle exec rake
-browser:setup`, then `rake test:browser`). See [AGENTS.md](AGENTS.md) for the
-maintainer guide.
+browser:setup`, then `rake test:browser`, both from `okf/`). See
+[AGENTS.md](AGENTS.md) for the maintainer guide.
 
 ## Contributing
 
@@ -547,7 +573,7 @@ The gem is available as open source under the terms of the
 `LICENSE.txt`). The Open Knowledge Format specification bundled with the skill
 is authored by Google Cloud Platform and included under its own Apache-2.0
 license, Copyright (c) Google LLC. See `NOTICE` and
-`lib/okf/skill/reference/APACHE-2.0.txt`.
+`okf/lib/okf/skill/reference/APACHE-2.0.txt`.
 
 [okf-skills](https://github.com/scaccogatto/okf-skills) by Marco Boffo, a Python
 OKF toolkit for Claude Code with a feature-rich interactive graph view, was an

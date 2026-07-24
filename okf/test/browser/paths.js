@@ -12,7 +12,11 @@ import path from "node:path";
 // fix for anything.)
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-export const repoRoot = path.resolve(here, "..", "..");
+// The *gem* root (okf/), not the repository root one level above it — this is
+// the directory `bundle exec ruby -Ilib exe/okf` has to run from, which is the
+// only thing anything here uses it for. It was called repoRoot until the gem
+// moved into a subdirectory and the two stopped being the same place.
+export const gemRoot = path.resolve(here, "..", "..");
 export const bundleDir = path.join(here, "fixtures", "bundle");
 export const staticPage = path.join(here, ".tmp", "graph.html");
 export const PORT = Number(process.env.OKF_TEST_PORT || 8899);

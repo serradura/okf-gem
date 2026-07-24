@@ -1,11 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
-import { repoRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, HUB_PORT,
+import { gemRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, HUB_PORT,
   panelHome, PANEL_PORT, RO_PORT, treeDir, TREE_PORT, manytagsDir, MANYTAGS_PORT,
   deeppathDir, DEEPPATH_PORT, biggraphDir, BIGGRAPH_PORT, densegraphDir, DENSEGRAPH_PORT } from "./paths.js";
 
 const serve = (dir, port, layout) => ({
   command: `bundle exec ruby -Ilib exe/okf server ${JSON.stringify(dir)} -p ${port}${layout ? ` --layout ${layout}` : ""}`,
-  cwd: repoRoot,
+  cwd: gemRoot,
   url: `http://127.0.0.1:${port}/`,
   reuseExistingServer: !process.env.CI,
   stdout: "pipe",
@@ -18,7 +18,7 @@ const serve = (dir, port, layout) => ({
 // mounted bundle answers.
 const serveHub = (dirs, port) => ({
   command: `bundle exec ruby -Ilib exe/okf server ${dirs.map((d) => JSON.stringify(d)).join(" ")} -p ${port}`,
-  cwd: repoRoot,
+  cwd: gemRoot,
   url: `http://127.0.0.1:${port}/b/bundle/`,
   reuseExistingServer: !process.env.CI,
   stdout: "pipe",
@@ -33,7 +33,7 @@ const serveHub = (dirs, port) => ({
 // a leftover process from the last run would answer with the last run's world.
 const serveRegistry = (port, home) => ({
   command: `bundle exec ruby -Ilib exe/okf server -p ${port}`,
-  cwd: repoRoot,
+  cwd: gemRoot,
   env: { ...process.env, OKF_HOME: home },
   url: `http://127.0.0.1:${port}/b/`,
   reuseExistingServer: false,

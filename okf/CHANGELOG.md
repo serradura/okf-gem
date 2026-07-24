@@ -5,6 +5,36 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The repository became a monorepo, and the gem moved into `okf/`.** Nothing
+  about the published gem changes in kind — same name, same library, same `v*` tag
+  series, same image, byte-identical in size to a pre-move build — but a checkout is laid out differently: one
+  directory per gem, named for the gem it ships, so `okf-mcp/` and the rest can
+  land beside the baseline without reshaping anything. `plugin/`,
+  `.claude-plugin/`, `.okf/` and the `Dockerfile` stay at the root; the last of
+  those because its build context must be the repo root, where the `.git` the
+  gemspec's `git ls-files` needs lives. From a checkout it is `cd okf` for
+  everything about the gem, and plain `rake` at the root to run every gem's suite
+  or to validate this repo's own bundle.
+- **`CODE_OF_CONDUCT.md` no longer ships in the gem** (70 files, from 71). It is
+  a repository document and was packaged only because nothing rejected it. The
+  gem now carries **its own README** instead of the project's — which also fixes
+  a long-standing wart, since the project README opens with images under
+  `.github/` that the gemspec has never packaged, so the page on rubygems.org has
+  been rendering a broken hero.
+- `changelog_uri` points at `okf/CHANGELOG.md`, where this file now lives.
+
+### Fixed
+
+- **Coverage stopped measuring the plugin's curation hook** for one commit, and
+  said so by going *up*: SimpleCov's root defaults to the working directory, so
+  moving the gem down a level dropped ~100 tested lines out of the report and
+  line coverage read 98.63% against 98.47%. Its root is the repository now, with
+  the report still written inside the gem.
+
 ## [1.12.0] - 2026-07-24
 
 ### Added

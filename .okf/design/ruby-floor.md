@@ -27,22 +27,25 @@ limits:
 - **2.7** — `filter_map`, `tally`, numbered block params;
 - **3.x** — endless methods, hash shorthand.
 
-These constraints apply to `test/` too, because the suite runs on 2.4 as well.
+These constraints apply to `okf/test/` too, because the suite runs on 2.4 as well.
 
 # The truth test
 
 "Works on my Ruby" is not verification here. The floor is checked in CI across
 every supported Ruby, and locally by copying the tree into a throwaway build dir,
-dropping `Gemfile.lock` (the committed lockfile is written by a modern Bundler that
-2.4's own cannot read), and mounting the checkout **read-only** so the run cannot
-write one back:
+dropping `Gemfile.lock` (the lockfile is written by a modern Bundler that 2.4's
+own cannot read), and mounting the checkout **read-only** so the run cannot write
+one back. Run it from the **repository root** — `$PWD` becomes `/src`, and the
+command steps into the gem on the other side, because the floor is a property of
+`okf` rather than of the repository and the [siblings](monorepo-layout.md) will
+not share it:
 
 ```bash
 docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
-  "cp -a /src /build && cd /build && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
+  "cp -a /src /build && cd /build/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
 ```
 
 # Citations
 
-[1] [okf.gemspec](https://github.com/serradura/okf-gem/blob/main/okf.gemspec) — `required_ruby_version = ">= 2.4.0"`.
+[1] [okf/okf.gemspec](https://github.com/serradura/okf-gem/blob/main/okf/okf.gemspec) — `required_ruby_version = ">= 2.4.0"`.
 [2] [AGENTS.md — Hard constraints](https://github.com/serradura/okf-gem/blob/main/AGENTS.md) — the banned-API list and the Docker truth test.

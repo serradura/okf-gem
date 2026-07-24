@@ -2,7 +2,7 @@
 type: Format
 title: Frontmatter (spec §4)
 description: The YAML header on every concept, parsed through the gem's single, hardened YAML gateway.
-resource: lib/okf/markdown/frontmatter.rb
+resource: okf/lib/okf/markdown/frontmatter.rb
 tags: [yaml]
 timestamp: 2026-07-17T16:00:00Z
 ---
@@ -34,5 +34,5 @@ The rule is enforced by convention: `YAML.safe_load` / `YAML.load` appear
 
 # Citations
 
-[1] [lib/okf/markdown/frontmatter.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/markdown/frontmatter.rb) — the parser and the Psych shim.
-[2] [SPEC.md §4](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill/reference/SPEC.md) — concept documents and frontmatter.
+[1] [okf/lib/okf/markdown/frontmatter.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/markdown/frontmatter.rb) — the parser and the Psych shim.
+[2] [SPEC.md §4](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md) — concept documents and frontmatter.

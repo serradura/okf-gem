@@ -2,7 +2,7 @@
 type: Format
 title: Cross-links (spec §5)
 description: Plain Markdown links between concepts that become the knowledge graph's directed edges.
-resource: lib/okf/markdown/links.rb
+resource: okf/lib/okf/markdown/links.rb
 tags: [graph, diagram]
 timestamp: 2026-07-17T16:00:00Z
 ---
@@ -48,5 +48,5 @@ degree-0 concept (no links in or out) is a *loose* file the
 
 # Citations
 
-[1] [lib/okf/markdown/links.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/markdown/links.rb) — link extraction.
-[2] [SPEC.md §5](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill/reference/SPEC.md) — cross-links and tolerance of broken targets.
+[1] [okf/lib/okf/markdown/links.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/markdown/links.rb) — link extraction.
+[2] [SPEC.md §5](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md) — cross-links and tolerance of broken targets.

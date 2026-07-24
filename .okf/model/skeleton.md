@@ -2,7 +2,7 @@
 type: Component
 title: OKF::Bundle::Skeleton
 description: The graph reduced to what a reader can hold — directories, the weighted arcs between them, and each link with the cut it survives.
-resource: lib/okf/bundle/skeleton.rb
+resource: okf/lib/okf/bundle/skeleton.rb
 tags: [graph, pure]
 timestamp: 2026-07-23T12:00:00Z
 ---
@@ -70,5 +70,5 @@ tools do not transfer to an unweighted graph just because both are graphs.
 
 # Citations
 
-[1] [lib/okf/bundle/skeleton.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/bundle/skeleton.rb) — the reduction: `dirs`, `arcs`, the fitted `#suggested_cut`, and the `keep_at` sparsifier.
-[2] [lib/okf/cli/graph.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/graph.rb) — `graph --traffic`, which prints the directory reduction with cohesion.
+[1] [okf/lib/okf/bundle/skeleton.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/skeleton.rb) — the reduction: `dirs`, `arcs`, the fitted `#suggested_cut`, and the `keep_at` sparsifier.
+[2] [okf/lib/okf/cli/graph.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/graph.rb) — `graph --traffic`, which prints the directory reduction with cohesion.

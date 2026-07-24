@@ -1,0 +1,34 @@
+# The okf gem's own ignores. A leading `/` anchors to this directory, so these
+# entries follow the gem wherever it sits in the repo — which is the whole point
+# of keeping them here rather than in the root .gitignore, where every one of
+# them silently stopped matching the moment the gem moved down a level.
+
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+
+# The gem is tested against many Rubies; each resolves its own dependency set.
+Gemfile.lock
+
+# The browser suite's node toolchain and its scratch output (the rendered
+# static page, traces, screenshots, the HTML report). The specs and the
+# fixture bundle are committed; nothing under these is.
+#
+# playwright-report/ and test-results/ are Playwright's *defaults*, which the
+# config redirects into .tmp/. They are still ignored, because anything run
+# outside `rake test:browser` — a bare `npx playwright test --reporter=html`,
+# an editor plugin, a `-c` pointing elsewhere — writes to the default names
+# and would otherwise stage a few dozen build artifacts.
+/test/browser/node_modules/
+/test/browser/.tmp/
+# The read-through cache of the page's CDN libraries (vendor-cache.js). Build
+# output, not source: it is populated by the first run that needs each file and
+# keyed on the URL, so deleting it only costs one slow suite.
+/test/browser/vendor/
+/test/browser/playwright-report/
+/test/browser/test-results/
+/test/browser/package-lock.json

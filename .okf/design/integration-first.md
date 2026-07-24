@@ -2,7 +2,7 @@
 type: Constraint
 title: Integration tests are the critical layer
 description: The CLI is the product, so the suite that drives it end to end outranks the unit tests — and its coverage is measured alone, because the full number flatters.
-resource: test/integration/cli
+resource: okf/test/integration/cli
 tags: [testing, cli, architecture]
 timestamp: 2026-07-20T12:00:00Z
 ---
@@ -12,7 +12,7 @@ timestamp: 2026-07-20T12:00:00Z
 A unit test proves a method behaves; an integration test proves the *product*
 behaves. For this gem the product is the [CLI](../cli.md) — real argv, real
 streams, real exit codes, real files — so when the two compete for effort,
-integration wins. That is a ranking, not a slogan: `test/integration/cli/` is
+integration wins. That is a ranking, not a slogan: `okf/test/integration/cli/` is
 where a new verb is proven, and a verb without its file is not done.
 
 The [core/shell split](core-shell-split.md) is what makes both layers cheap: the
@@ -22,7 +22,7 @@ driving it for real costs milliseconds.
 # The folders are the three ways a user names a bundle
 
 ```
-test/integration/cli/
+okf/test/integration/cli/
   cli_integration_case.rb   the shared base: okf(), with_registry(), okf_server()
   fixtures/                 bundles more than one group uses
   by_dir/                   `okf lint ./docs`      — named by path
@@ -122,4 +122,4 @@ turned it green, and it has guarded the agreement since.
 # Citations
 
 [1] [AGENTS.md — Testing: integration first](https://github.com/serradura/okf-gem/blob/main/AGENTS.md) — the rule as the maintainer guide states it.
-[2] [test/integration/cli/cli_integration_case.rb](https://github.com/serradura/okf-gem/blob/main/test/integration/cli/cli_integration_case.rb) — the shared base: the scratch registry, the non-booting server runner, group-local fixture resolution.
+[2] [okf/test/integration/cli/cli_integration_case.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/integration/cli/cli_integration_case.rb) — the shared base: the scratch registry, the non-booting server runner, group-local fixture resolution.

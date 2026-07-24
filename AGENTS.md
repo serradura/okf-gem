@@ -1,12 +1,32 @@
 # AGENTS.md
 
-Maintainer guide for okf-gem — `okf` on RubyGems. The gem reads, validates,
-lints, and serves Open Knowledge Format (OKF) v0.1 bundles: directories of
-Markdown + YAML frontmatter that humans and agents both read. The bundled skill
-(`lib/okf/skill/`) documents the format itself; this file documents how to
-change the code without breaking its contracts.
+Maintainer guide for okf-gem, a monorepo. `okf/` holds `okf` on RubyGems — the
+baseline all-in-one gem that reads, validates, lints, and serves Open Knowledge
+Format (OKF) v0.1 bundles: directories of Markdown + YAML frontmatter that humans
+and agents both read. The bundled skill (`okf/lib/okf/skill/`) documents the
+format itself; this file documents how to change the code without breaking its
+contracts.
+
+The ecosystem grows as sibling directories — an MCP shell, a TUI, an FTS5
+storage engine — each named for the gem it ships. This file is about the
+baseline; a sibling inherits the working style and the Git rules below, but not
+the 2.4 floor or the dependency limits, which are `okf`'s own.
 
 ## Map
+
+The repository — one directory per gem, plus what is not a gem:
+
+```
+okf/            the baseline gem; everything below lives inside it
+plugin/         the Claude Code plugin — generated skill copy, command, curation hook
+.claude-plugin/ the marketplace manifest (the repo doubles as the marketplace)
+.okf/           the project's own knowledge bundle
+Dockerfile      builds okf/ — from a root context, because the gemspec needs .git
+Rakefile        a delegator: `rake` runs every gem's default task
+```
+
+Inside the baseline. **Paths below are relative to `okf/`** unless they begin
+with `plugin/`, `.claude-plugin/`, `.okf/` or `.github/`:
 
 ```
 lib/okf/
@@ -65,12 +85,32 @@ The core/shell split is _enforced_: `test/unit/boundary_test.rb` fails if a pure
 file names a shell class or touches `File`/`Dir`/`FileUtils`/stdio. Put new I/O
 in the shell; put new logic in the core, pure.
 
-Outside `lib/`, `plugin/` and `.claude-plugin/` are the Claude Code plugin and
+Outside the gem, `plugin/` and `.claude-plugin/` are the Claude Code plugin and
 its marketplace manifest (the repo doubles as the marketplace): one thin command
 that routes to the skill's playbooks (`lib/okf/skill/playbooks/`) or to the
 skill itself, a PostToolUse curation hook (`plugin/hooks/scripts/curate.rb`,
 plain Ruby on the stdlib, same 2.4 floor), and a generated copy of the skill.
-Neither ships in the gem (gemspec reject).
+Neither ships in the gem — and neither needs a gemspec reject any more, because
+`git ls-files` runs with `chdir:` into `okf/` and never sees them.
+
+They stay at the repo root and `rake plugin:sync` stays in the *gem's* Rakefile
+pointing up at `../plugin`. Both of its inputs are the gem's — the skill tree
+and the version — and keeping the task there is what lets `task build:
+"plugin:verify"` remain a plain dependency, the guard that makes a release with
+a stale manifest impossible rather than a CI failure after the fact.
+
+The root `Rakefile` runs plain `rake`, not `bundle exec rake`: there is no root
+Gemfile, because the gems here do not share a Ruby floor and one lockfile could
+never resolve for all of them. It names each gem's `BUNDLE_GEMFILE` explicitly
+when it delegates — bundler exports that variable to everything it runs, so a
+nested `bundle exec` otherwise inherits the parent's bundle. `rake okf` is what
+replaced `ruby -Ilib exe/okf` for this repo's own bundle, and root `rake
+release` refuses: Bundler reads the gemspec in its working directory and derives
+the tag from it, so a release is cut from the gem's own directory.
+
+The repo-level Ruby — the root Rakefile and the curation hook — sits outside
+every gem, so no gem's `rake rubocop` reaches it. The root `.rubocop.yml`
+inherits the gem's and covers exactly those two files.
 
 `require "okf"` loads the library only — the model, the analyzers, and the
 on-disk handles. The two argv-facing shells, `cli.rb` (and its `optparse`) and
@@ -90,13 +130,15 @@ you touch what `require "okf"` pulls in.
    args outside the Frontmatter shim (2.6); `filter_map`, `tally`, numbered
    block params (2.7); endless methods, hash shorthand (3.x).
    The truth test — it copies the tree and drops `Gemfile.lock`, because the
-   committed lockfile is written by a modern Bundler that 2.4's own cannot read
+   lockfile is written by a modern Bundler that 2.4's own cannot read
    (`You must use Bundler 4 or greater with this lockfile`), and mounting the
-   checkout read-only keeps the run from writing one back:
+   checkout read-only keeps the run from writing one back. Run it from the repo
+   root; it steps into the gem, because the floor is `okf`'s property and a
+   sibling gem will not share it:
 
    ```bash
    docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
-     "cp -a /src /build && cd /build && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
+     "cp -a /src /build && cd /build/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
    ```
 2. **Runtime dependencies are exactly `rack`, `webrick` and `minifts`.** No
    ActiveSupport — `OKF.blank?` and `Markdown::Frontmatter.stringify_keys` exist
@@ -148,6 +190,25 @@ deterministic check enforces the point,`<!-- rule:okf-<slug> -->` for
    behaves; an integration test proves the *product* behaves, so when the two
    compete for effort, integration wins. See the section below for what that
    obliges you to do.
+9. **`.dockerignore` implies the gemspec's reject list, one way only.** Anything
+   `.dockerignore` drops from under `okf/` must also be rejected by the gemspec
+   (or be gitignored). `git ls-files` reads the *index*, so a path excluded from
+   the Docker build context is still listed in `spec.files` and `gem build` then
+   fails on a file that is not there. **The converse does not hold** and must not
+   be "restored" for symmetry: `okf/bin`, `okf/Gemfile` and `okf/Rakefile` are
+   rejected from the gem and stay in the build context on purpose. Paths outside
+   the gem need no pairing at all — the gemspec runs with `chdir:` into `okf/`
+   and never sees them.
+   The same section's other rule: **nothing in `spec.files` may be a symlink.**
+   `gem build` does not resolve one — it writes a symlink into the package, warns,
+   and succeeds. RubyGems >= 3.2 then refuses to extract a link pointing outside
+   the gem (`Gem::Package::SymlinkError`); **RubyGems < 3.2 has no guard at all**,
+   so on Ruby 2.7 (RubyGems 3.1.6, inside the supported range) `gem install`
+   exits 0 and installs a *dangling* file. The old half of the matrix is the
+   dangerous one: the gem installs cleanly and carries no licence. So
+   `LICENSE.txt` and `NOTICE` are real duplicates of the root's, and
+   `test/unit/packaging_test.rb` pins that they are not symlinks, are
+   byte-identical to the root's, and are actually in `spec.files`.
 
 ## Testing: integration first
 
@@ -249,6 +310,17 @@ actually prints, then assert *that*. Never assert what you assume the code does
 
 ## Commands
 
+From the repo root — plain `rake`, no bundler, because there is no root Gemfile:
+
+```bash
+rake                               # every gem's default task, then the repo-level rubocop
+rake test                          # every gem's suite
+rake okf                           # validate + lint this repo's own .okf bundle
+rake serve                         # serve this repo's own .okf as a graph
+```
+
+From `okf/` — everything about the gem, and what CI actually runs:
+
 ```bash
 bin/setup                          # install dependencies
 bundle exec rake                   # test + rubocop — the default task, what CI runs
@@ -262,8 +334,22 @@ ruby -Ilib exe/okf server <dir>    # boot the graph server locally
 bundle exec rake plugin:sync       # regenerate the plugin's skill copy + version stamp
 ```
 
-CI (`.github/workflows/main.yml`) runs the default task on every supported Ruby,
-2.4 through the current stable. A change is not done until that matrix is green.
+`bundle exec rake` at the root fails with "Could not locate Gemfile", and that
+is the intended answer rather than an oversight — see the Map.
+
+CI (`.github/workflows/main.yml`) runs the gem's default task on every supported
+Ruby, 2.4 through the current stable, with `working-directory: okf` on both the
+job and `ruby/setup-ruby` (the action needs its own input to find the Gemfile it
+caches against). It is one job per gem, not a gem axis on the matrix: the floors
+diverge, so a shared matrix would be mostly exclusions.
+
+Alongside it, a single `lint` job runs the root `rake rubocop` on one modern Ruby.
+That job is the only thing standing between `plugin/hooks/scripts/curate.rb` and
+being linted by nobody: no gem's own `rake rubocop` reaches a file outside every
+gem, and before it existed this repo shipped a commit claiming the root
+`.rubocop.yml` "restores lint coverage" when in CI it did nothing at all.
+
+A change is not done until both are green.
 
 ## Testing the graph page
 
@@ -316,10 +402,32 @@ reused those files across contexts.
 `test/browser/README.md` covers the fixture, the console-error watch, the
 assertion mistakes the suite's first run shook out, and the cache in full.
 
-## The README
+## The READMEs
 
-**The site owns the manual; the README is the front door.** Every verb is
-documented at [okfgem.com/docs](https://okfgem.com/docs/), so the README spends
+There are two, and they are for different readers.
+
+**The root `README.md` is the project's front door** — the ecosystem, not the
+gem. It is what GitHub renders and what a link from anywhere lands on, so it
+carries the problem statement, the hero images, the comparison table, and the
+argument for why any of this exists. It answers "what is OKF and should I care",
+then points at the gem.
+
+**`okf/README.md` is the gem's** — it ships inside the `.gem`, and its reader has
+already decided. Install, the shortest path to a working bundle, the command
+block, one worked example per surface. No hero images: it is read on
+rubygems.org and in a terminal.
+
+Neither is a symlink or a generated copy of the other; they say different things.
+
+What follows is written for the root README, which is where the diagrams, the
+comparison table and the `.okf/` links live. The gem's carries none of those —
+`.okf/` does not ship, and a package page is no place for a hero image. What
+*does* bind both, without exception, is the four rules below: every command runs
+as written, every number is measured now, no deprecated spelling, and a new verb
+ships with its line in each README that lists verbs.
+
+**The site owns the manual; a README is a front door.** Every verb is
+documented at [okfgem.com/docs](https://okfgem.com/docs/), so a README spends
 its space on *value and usage* — what this is for, what it buys you, the shortest
 path to a working bundle — and links out for the rest. When a passage starts
 enumerating flags, spec clauses, API surface or category lists, it has become
@@ -349,9 +457,10 @@ Four rules that outrank taste, because each has already gone wrong here:
   file. A verb absent from the command block does not exist to a reader.
 
 **Benchmarks name the shape of what was measured, never where it lives** — "a
-400-concept bundle", not a path. Scratch material under `tmp/` is a working
-reference, not part of the published record, and must not be named in the README,
-the CHANGELOG, `.okf/`, or the skill.
+400-concept bundle", not a path. Scratch material under the repo root's `tmp/`
+(the one exception to the path convention above, since it belongs to no gem) is a
+working reference, not part of the published record, and must not be named in
+either README, the CHANGELOG, `.okf/`, or the skill.
 
 **Alt text carries the whole content of its image.** The hero and overview PNGs
 say everything the diagram says, in prose, because the README is read in
@@ -452,6 +561,10 @@ only: no label, no fixed title (#12, #8, #7).
 
 ### The steps
 
+A release is cut **from the gem's own directory** — `cd okf` first. Bundler reads
+the gemspec in its working directory and derives the tag from it, so the root
+`rake release` refuses rather than doing something plausible.
+
 1. Bump `lib/okf/version.rb`, then `bundle exec rake plugin:sync` — the plugin
    versions with the gem, so `plugin/.claude-plugin/plugin.json` must follow
    every bump. Move the `Unreleased` notes in `CHANGELOG.md` under the new
@@ -461,9 +574,27 @@ only: no label, no fixed title (#12, #8, #7).
    if the plugin manifest lags the gem version (`rake plugin:verify`), so a
    forgotten sync stops the release instead of shipping.
 
-Gem packaging detail: `spec.files` comes from `git ls-files` minus
-`test/`, `bin/`, `.github/`, etc. — a new top-level file ships in the gem unless
-the gemspec rejects it, so check `gem build` output when adding one.
+`release:guard_clean` is **repo-wide** — Bundler runs `git diff` with no pathspec,
+so a half-finished sibling gem or an edited file two levels up blocks a release of
+this one, and all Bundler says is "There are files that need to be committed
+first." `release:preflight` runs ahead of it and names the paths, separating this
+gem's from the rest; it aborts, because guard_clean was going to anyway and the
+only question is which message you get. Verified by running, not pinned by a test:
+it is release tooling, and nothing in the suite drives rake tasks.
+
+**The bare `v*` tag series belongs to the baseline gem** and keeps doing so. A
+sibling tags `okf-mcp/vX.Y.Z`. The asymmetry is deliberate: the Docker workflow
+fires on `v*`, and a glob does not match across `/`, so a sibling's release
+cannot trigger a build of an image that ships something else. Prefixing
+everything would have been tidier and would have ended a public tag series
+mid-history to buy nothing.
+
+Gem packaging detail: `spec.files` comes from `git ls-files` run with `chdir:`
+into `okf/`, minus `test/`, `bin/`, the Gemfile, the Rakefile, `.gitignore`,
+`.rubocop.yml` and the gemspec itself. Everything at the
+repo root is invisible to it, so a new *root* file needs no reject — but a new
+top-level file **inside the gem** ships unless the gemspec rejects it, so check
+`gem build` output when adding one. Constraint 9 is the other half of this.
 
 ## Git
 

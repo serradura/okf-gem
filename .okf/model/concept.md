@@ -2,7 +2,7 @@
 type: Component
 title: OKF::Concept
 description: The pure in-memory model of a single OKF file — frontmatter, body, and a stable id.
-resource: lib/okf/concept.rb
+resource: okf/lib/okf/concept.rb
 tags: [pure]
 timestamp: 2026-07-17T16:00:00Z
 ---
@@ -43,4 +43,4 @@ the set.
 
 # Citations
 
-[1] [lib/okf/concept.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/concept.rb) — the pure concept model.
+[1] [okf/lib/okf/concept.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/concept.rb) — the pure concept model.

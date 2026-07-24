@@ -1,6 +1,9 @@
 # Update Log
 
 ## 2026-07-24
+* **Change**: the repository became a **monorepo**, and this bundle acquired a subject it did not have before — the repository itself, alongside the gem it has always described. (Only that: [the index](index.md) and [overview](overview.md) still read as the gem's, correctly, because the gem is still all there is to document. The reframing comes when a sibling does.) [The layout](design/monorepo-layout.md) is the new concept: one directory per gem named for the gem it ships (`okf/` is the baseline all-in-one; `okf-mcp/`, `okf-tui/`, `okf-sqlite3/` land beside it), so a directory, its release-tag prefix, its CI job and its `require` path are one word rather than four mappings. Everything that is not a gem stays at the root — `plugin/` and `.claude-plugin/` because `marketplace.json` publishes `./plugin`, this bundle because it covers the project, and the `Dockerfile` because its build context *must* be the root: the gemspec derives `spec.files` from `git ls-files`, which needs the `.git` only the root has. Every `resource:` and citation here moved down a level with the code.
+* **Note**: moving a gem down one level is mechanical; what is not is that **four mechanisms around it resolved paths from the repository root, and three of them failed without saying so**. `spec.files` needed nothing — `git ls-files` with `chdir:` returns paths relative to where it runs, so the gemspec sees its own tree and its reject list *shrank* from fourteen prefixes to six, the eight removed having been rejecting paths that are no longer under the gem. `.gitignore` broke where it was anchored — sixteen of its nineteen entries carry a leading `/`, and all sixteen stopped matching at once, so the first test run would have staged a coverage report; the unanchored `*.gem` and `Gemfile.lock` kept working, which is what made the breakage partial and easy to miss. SimpleCov failed in the direction that looks like success: its root defaults to the working directory, so the plugin's curation hook — a repo-level file this suite tests — fell out of the report and line coverage read **98.63% against 98.47%**, the percentage rising while the thing measured got smaller. Only `.dockerignore` fails loudly, and it is the one carrying a real invariant: whatever it drops from under the gem must also be in the gemspec's reject list, because `git ls-files` reads the *index* and an excluded path is still listed in `spec.files` — so `gem build` fails on a file that is not in the context. The generalizable half: **a path resolved from an implicit root is a dependency on where you are standing**, and the ones that degrade quietly are worse than the ones that crash.
+* **Note**: the gem must distribute `LICENSE.txt` and `NOTICE`, and `git ls-files` from the gem directory cannot see the root's copies. **A symlink builds a gem that either refuses to install or installs broken, depending on whose RubyGems does it.** `gem build` does not resolve the link — it writes a symlink into the package tar, warns (`LICENSE.txt is a symlink, which is not supported on all platforms`) and succeeds. RubyGems **>= 3.2** then refuses to extract one pointing outside the gem (`Gem::Package::SymlinkError`); RubyGems **< 3.2** has no guard, and measured on Ruby 2.7 / RubyGems 3.1.6 — inside this gem's supported range — `gem install` exits **0** and lays down a dangling `LICENSE.txt`. The older half is the worse one, against the intuition that an old installer is merely stricter or looser: there the gem installs cleanly and simply carries no licence. They are duplicated real files now, with `okf/test/unit/packaging_test.rb` asserting both that neither is a symlink and that each is byte-identical to the root's — the assertion being what makes a duplicate safe rather than merely conventional. Found by building the thing and installing it instead of reasoning about it, which is the same lesson the recall probes taught from the other end.
 * **Sync**: caught the bundle up with **project-local registries** — the
   [registry](registry.md) now has two homes, and which one answers is decided by
   where you stand: `okf registry init` drops a `.okf-registry.json` that okf
@@ -218,7 +221,7 @@
   word (full path, `.` at root, `(root)` for humans) and "cluster" stays prose
   for what a dir groups. `--area` and `tags --by area` keep their old exact
   behavior and warn, for one release.
-* **Correction**: a maintain pass against `CHANGELOG.md` found the drift running
+* **Correction**: a maintain pass against `okf/CHANGELOG.md` found the drift running
   the *other* way — the bundle was current and the changelog was not. Every
   concept touched by this branch's server/page work had its body updated in the
   same commit as the code (`bundles-manager`, `graph-server`,
@@ -686,7 +689,7 @@
   alone deliberately, as its own change.
 * **Correction**: the reframe below stopped at the docs and left the **code
   comment** behind. `plugin_paths` in
-  [`lib/okf/cli.rb`](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb)
+  [`lib/okf/cli.rb`](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli.rb)
   still opened "Narrowed to gems named `okf-*`, which is a **trust** decision
   rather than a tidiness one" — the exact framing the commit below retired, in
   the file that concept's own citation points at. So the bundle, `AGENTS.md` and
@@ -721,7 +724,7 @@
   in `cli/`. `validate` and `lint` called the bundle healthy throughout: a
   citation that names a real file nobody moved *to* is invisible to both.
 * **Update**: the **shipped skill** learned that the verb list is open. Its
-  [cli reference](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill/reference/cli.md)
+  [cli reference](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/cli.md)
   and `SKILL.md`'s verb row now say an installed extension adds verbs of its
   own, so a verb `okf help` shows and the reference does not document reads as
   **normal rather than a documentation error**. Worth doing because the skill is

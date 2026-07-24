@@ -5,7 +5,10 @@ require "json"
 require "stringio"
 require "tmpdir"
 require "fileutils"
-require_relative "../../plugin/hooks/scripts/curate"
+# The plugin lives at the repo root, one level above this gem — hence the third
+# hop. Its two inputs are the gem's (the skill tree and the version), which is
+# why its tests and its `rake plugin:sync` task stay here rather than moving up.
+require_relative "../../../plugin/hooks/scripts/curate"
 
 # The plugin's PostToolUse hook: gate (only markdown inside a bundle), detect
 # (the okf CLI, injectable here), filter (bundle-wide errors + findings that

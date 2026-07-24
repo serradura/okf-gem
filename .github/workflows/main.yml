@@ -10,10 +10,17 @@ on:
 permissions:
   contents: read
 
+# One job per gem, not a gem axis on one matrix: the gems in this repo do not
+# share a Ruby floor (okf runs from 2.4, an MCP shell would start at 2.7, an
+# FTS5 engine at 3.2), so a shared matrix would be mostly exclusions. A sibling
+# gem is a new job block below — copy this one and change two strings.
 jobs:
-  test:
-    name: Ruby ${{ matrix.ruby }}
+  okf:
+    name: okf / Ruby ${{ matrix.ruby }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: okf
     strategy:
       fail-fast: false
       matrix:
@@ -41,8 +48,33 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
+          # Its own input, not the job default: `defaults.run` only applies to
+          # `run:` steps, and this action has to find the Gemfile itself to
+          # cache against.
+          working-directory: okf
       - name: Run the default task
         run: bundle exec rake
+
+  # The Ruby that belongs to no gem — this repo's Rakefile and the Claude Code
+  # plugin's curation hook — is linted by no gem's `rake rubocop`, so without
+  # this job it is held to the 2.4 floor by comment only. One modern Ruby is
+  # enough: RuboCop only installs from 2.7 up (see okf/Gemfile), and it is the
+  # *target* version that does the checking, not the running one.
+  lint:
+    name: repo-level lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+          working-directory: okf
+      - name: Lint the repo-level Ruby
+        run: rake rubocop
 
 # The graph page's Chromium suite (test/browser) is deliberately *not* here. It
 # ran as a non-blocking job for several releases and failed 5 of its last 7 runs

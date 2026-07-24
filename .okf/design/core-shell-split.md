@@ -2,7 +2,7 @@
 type: Constraint
 title: The core/shell split
 description: A pure functional core that never touches disk or stdio, and a thin shell that owns all I/O — enforced by a test.
-resource: test/unit/boundary_test.rb
+resource: okf/test/unit/boundary_test.rb
 tags: [architecture, pure, testing, diagram]
 timestamp: 2026-07-18T19:00:00Z
 ---
@@ -43,7 +43,7 @@ flowchart TB
 
 # It is enforced, not just intended
 
-`test/unit/boundary_test.rb` fails the build if a core file names a shell class or
+`okf/test/unit/boundary_test.rb` fails the build if a core file names a shell class or
 reaches for `File` / `Dir` / `FileUtils` / stdio. The dependency rule is executable,
 so the boundary cannot rot silently: **put new I/O in the shell, put new logic in
 the core, pure.**
@@ -69,4 +69,4 @@ config file or logged to stderr would not get the same pass.
 
 # Citations
 
-[1] [test/unit/boundary_test.rb](https://github.com/serradura/okf-gem/blob/main/test/unit/boundary_test.rb) — the boundary made executable.
+[1] [okf/test/unit/boundary_test.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/unit/boundary_test.rb) — the boundary made executable.

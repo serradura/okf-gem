@@ -2,7 +2,7 @@
 type: Constraint
 title: Three runtime dependencies, each challenged
 description: The gem depends on rack, webrick and minifts only — no ActiveSupport, no build step, no JavaScript toolchain, and no native extension.
-resource: okf.gemspec
+resource: okf/okf.gemspec
 tags: [rack, portability]
 timestamp: 2026-07-19T03:00:00Z
 ---
@@ -66,11 +66,15 @@ feature of this gem, not an accident.
 
 # A packaging note
 
-`spec.files` comes from `git ls-files` minus `test/`, `bin/`, `.github/`, etc., so
-a new top-level file ships in the gem unless the gemspec rejects it — check
-`gem build` output when adding one.
+`spec.files` comes from `git ls-files` run with `chdir:` into the gem's own
+directory, minus `test/`, `bin/`, the `Gemfile`, the `Rakefile` and a couple more.
+Because of that `chdir:`, everything at the repository root is invisible to it —
+so a new *repo*-level file never ships, and needs no reject. A new top-level file
+**inside the gem** does ship unless the gemspec rejects it; check `gem build`
+output when adding one. See [the monorepo layout](monorepo-layout.md) for the
+one-directional rule that ties the reject list to `.dockerignore`.
 
 # Citations
 
-[1] [okf.gemspec](https://github.com/serradura/okf-gem/blob/main/okf.gemspec) — the three `add_dependency` lines and `spec.files`.
+[1] [okf/okf.gemspec](https://github.com/serradura/okf-gem/blob/main/okf/okf.gemspec) — the three `add_dependency` lines and `spec.files`.
 [2] [minifts](https://github.com/serradura/minifts) — the port: pure Ruby, no runtime dependencies, Ruby >= 2.4.

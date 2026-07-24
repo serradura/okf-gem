@@ -2,7 +2,7 @@
 type: Constraint
 title: The server trust boundary
 description: The page sanitizes each concept body before rendering and escapes inlined data, so both XSS paths into the page are closed — served live or rendered static.
-resource: lib/okf/render/graph/template.html.erb
+resource: okf/lib/okf/render/graph/template.html.erb
 tags: [security, server, xss]
 timestamp: 2026-07-18T17:00:00Z
 ---
@@ -38,8 +38,8 @@ server, and the embedded description stays server-escaped exactly as above.
 
 # Both guards are asserted, against a bundle that attacks them
 
-`test/browser/specs/sanitization.spec.js` drives
-`test/browser/fixtures/hostile` — a conformant OKF bundle whose content is
+`okf/test/browser/specs/sanitization.spec.js` drives
+`okf/test/browser/fixtures/hostile` — a conformant OKF bundle whose content is
 trying to execute script in the page rendering it — in both render modes. The
 payloads set flags on `window`, so the assertion is not "the markup looks
 clean" but *the script did not run*.
@@ -91,4 +91,4 @@ the ordinary care you would give any document from a source you do not know.
 # Citations
 
 [1] [README.md — Server trust boundary](https://github.com/serradura/okf-gem/blob/main/README.md) — the two-defense summary.
-[2] [lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/lib/okf/render/graph/template.html.erb) — the inlined `EMBED` and the `DOMPurify.sanitize(marked.parse(...))` render; `json_for_script` (its `<`-escape) is the method in the sibling `render/graph.rb`.
+[2] [okf/lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph/template.html.erb) — the inlined `EMBED` and the `DOMPurify.sanitize(marked.parse(...))` render; `json_for_script` (its `<`-escape) is the method in the sibling `render/graph.rb`.

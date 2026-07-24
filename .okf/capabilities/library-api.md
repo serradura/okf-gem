@@ -2,7 +2,7 @@
 type: Capability
 title: Library API
 description: The Ruby surface — a pure in-memory model plus on-disk handles, an "ActiveRecord for the filesystem".
-resource: lib/okf.rb
+resource: okf/lib/okf.rb
 tags: [ruby, diagram]
 timestamp: 2026-07-22T18:00:00Z
 ---
@@ -19,7 +19,7 @@ gives you two layers, split cleanly by the [core/shell rule](../design/core-shel
   `load` / `save` / `reload` / `delete` on top of the pure model.
 
 `require "okf"` stops at those two layers: the [CLI](../cli.md) and the skill
-installer load only when asked for (from `exe/okf`, or an explicit
+installer load only when asked for (from `okf/exe/okf`, or an explicit
 `require "okf/cli"` / `require "okf/skill"`), so an app embedding the library
 never drags in the command-line machinery. The
 [registry](../registry.md) and the server's hub sit behind the same door — the CLI
@@ -77,4 +77,4 @@ same page into one self-contained file — the Ruby side of [`okf render`](rende
 # Citations
 
 [1] [README.md — Library](https://github.com/serradura/okf-gem/blob/main/README.md) — worked examples of both layers.
-[2] [lib/okf.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf.rb) — the require surface.
+[2] [okf/lib/okf.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf.rb) — the require surface.

@@ -2,7 +2,7 @@
 type: Component
 title: The okf command-line front end
 description: The only layer that parses argv, prints, writes files, and decides exit codes.
-resource: lib/okf/cli.rb
+resource: okf/lib/okf/cli.rb
 tags: [cli, shell, registry]
 timestamp: 2026-07-24T12:00:00Z
 ---
@@ -25,7 +25,7 @@ and asserted like the command itself.
 # Subcommands
 
 Dispatch goes through a **registry**. Each verb is a `CLI::Command` subclass in
-its own file under `lib/okf/cli/`, registering itself at load; `cli.rb` looks the
+its own file under `okf/lib/okf/cli/`, registering itself at load; `cli.rb` looks the
 name up and calls it. The require block at the bottom of `cli.rb` *is* the order
 `okf help` lists them in, and a test pins that so the coupling cannot drift
 unnoticed.
@@ -187,5 +187,5 @@ tolerance for damage, never for a claim.
 
 # Citations
 
-[1] [lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb) — the registry, the dispatcher, and the map.
-[2] [lib/okf/cli/command.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/command.rb) — the base every verb inherits: refs, shared flags, the JSON emitters, the printers.
+[1] [okf/lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli.rb) — the registry, the dispatcher, and the map.
+[2] [okf/lib/okf/cli/command.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/command.rb) — the base every verb inherits: refs, shared flags, the JSON emitters, the printers.

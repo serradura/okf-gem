@@ -2,7 +2,7 @@
 type: Capability
 title: Companion agent skill (skill)
 description: A SKILL.md plus references and templates, shipped inside the gem, that teaches an agent to author OKF.
-resource: lib/okf/skill.rb
+resource: okf/lib/okf/skill.rb
 tags: [agent, install]
 timestamp: 2026-07-22T12:00:00Z
 ---
@@ -65,7 +65,7 @@ deliberate:
 
 # One canonical copy, versioned with the gem
 
-The skill ships **only** from `lib/okf/skill/**` — that tree is the single source,
+The skill ships **only** from `okf/lib/okf/skill/**` — that tree is the single source,
 and `install` copies from it. Because the skill rides inside the gem, installing
 the gem already puts the skill on the machine, and the skill's CLI reference can
 **never drift** from the executable it was released with. Local installs
@@ -88,6 +88,6 @@ back as context. Nothing under `plugin/` ships in the gem.
 
 # Citations
 
-[1] [lib/okf/skill.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill.rb) — the installer.
-[2] [lib/okf/skill/SKILL.md](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill/SKILL.md) — the skill itself.
-[3] [test/plugin/sync_test.rb](https://github.com/serradura/okf-gem/blob/main/test/plugin/sync_test.rb) — the drift check on the plugin's generated copy.
+[1] [okf/lib/okf/skill.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill.rb) — the installer.
+[2] [okf/lib/okf/skill/SKILL.md](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/SKILL.md) — the skill itself.
+[3] [okf/test/plugin/sync_test.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/plugin/sync_test.rb) — the drift check on the plugin's generated copy.

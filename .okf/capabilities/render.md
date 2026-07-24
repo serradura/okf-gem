@@ -2,7 +2,7 @@
 type: Capability
 title: Static render (render)
 description: One self-contained HTML file with the whole graph baked in — the same page `okf server` serves, written to disk so it hosts where nothing runs (`okf render`).
-resource: lib/okf/render/graph.rb
+resource: okf/lib/okf/render/graph.rb
 tags: [server, graph]
 timestamp: 2026-07-23T12:00:00Z
 ---
@@ -60,5 +60,5 @@ server — bodies still lazy — can only index their metadata.
 
 # Citations
 
-[1] [lib/okf/cli/render.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/render.rb) — the `render` verb: stdout vs `-o FILE`, `--layout`/`--map`/`-t`/`-l`, and the exit-2 on an unwritable path.
-[2] [lib/okf/render/graph.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/render/graph.rb) — `OKF::Render::Graph.static` and `.payload`, which bake the bundle into the template's `EMBED` payload.
+[1] [okf/lib/okf/cli/render.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/render.rb) — the `render` verb: stdout vs `-o FILE`, `--layout`/`--map`/`-t`/`-l`, and the exit-2 on an unwritable path.
+[2] [okf/lib/okf/render/graph.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph.rb) — `OKF::Render::Graph.static` and `.payload`, which bake the bundle into the template's `EMBED` payload.

@@ -2,7 +2,7 @@
 type: Format
 title: Open Knowledge Format v0.1
 description: Portable knowledge as a directory of Markdown files with YAML frontmatter that humans and agents both read.
-resource: lib/okf/skill/reference/SPEC.md
+resource: okf/lib/okf/skill/reference/SPEC.md
 tags: [okf, conformance]
 timestamp: 2026-07-17T16:00:00Z
 ---
@@ -40,4 +40,4 @@ purpose.
 
 # Citations
 
-[1] [SPEC.md](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill/reference/SPEC.md) — the OKF v0.1 specification, authored by Google Cloud Platform, redistributed under Apache 2.0.
+[1] [SPEC.md](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md) — the OKF v0.1 specification, authored by Google Cloud Platform, redistributed under Apache 2.0.

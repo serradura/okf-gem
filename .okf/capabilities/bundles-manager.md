@@ -2,7 +2,7 @@
 type: Capability
 title: Bundles list (the hub's /b/ page)
 description: The hub's /b/ page — every bundle it knows about with its size, health and default marker — and the four POST routes that change the registry, which the graph page's Bundles panel drives.
-resource: lib/okf/server/hub.rb
+resource: okf/lib/okf/server/hub.rb
 tags: [server, registry, hub, ui]
 timestamp: 2026-07-21T16:00:00Z
 ---
@@ -108,10 +108,10 @@ want it, but nothing in the UI reaches it.
 
 # Verification
 
-`test/integration/server/hub_writes_test.rb` is the critical layer: every verb's
+`okf/test/integration/server/hub_writes_test.rb` is the critical layer: every verb's
 happy path, every refusal, and each of the four gates, asserting both that the
 registry file changed *and* that the live hub reflects it without a restart.
-`test/browser/specs/bundles-panel.spec.js` drives the same verbs in Chromium
+`okf/test/browser/specs/bundles-panel.spec.js` drives the same verbs in Chromium
 through the panel, against a registry-backed server with its own `$OKF_HOME` —
 serial, and each spec puts back what it changed, because they share one live
 registry.
@@ -125,6 +125,6 @@ assertion could see.
 
 # Citations
 
-[1] [lib/okf/server/hub.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/server/hub.rb) — the /b/ page, the four POST routes, the four gates, and the rebuild-after-write.
-[2] [lib/okf/cli/server.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/server.rb) — `--read-only` and the loopback rule that decides whether the hub is writable.
-[3] [lib/okf/registry.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/registry.rb) — the CRUD the page drives, and the messages its refusals carry.
+[1] [okf/lib/okf/server/hub.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/hub.rb) — the /b/ page, the four POST routes, the four gates, and the rebuild-after-write.
+[2] [okf/lib/okf/cli/server.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/server.rb) — `--read-only` and the loopback rule that decides whether the hub is writable.
+[3] [okf/lib/okf/registry.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/registry.rb) — the CRUD the page drives, and the messages its refusals carry.
