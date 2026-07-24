@@ -189,6 +189,38 @@ end
 # failure after the fact.
 task build: "plugin:verify"
 
+# Bundler's `release:guard_clean` runs `git diff` with no pathspec, so it is
+# *repo-wide* regardless of the directory it runs from. In a monorepo that is the
+# right behaviour and a confusing one: a half-finished sibling gem, or an edited
+# README two levels up, blocks a release of this gem — and all Bundler says is
+# "There are files that need to be committed first."
+#
+# So this runs first and says what Bundler will not: which paths are dirty, which
+# of them belong to this gem, and that the rest count anyway. It aborts rather
+# than warns, because guard_clean is about to abort regardless and a clear message
+# beating a terse one to the exit is the whole point.
+namespace :release do
+  desc "Name exactly what is blocking a release before Bundler's terse guard does"
+  task :preflight do
+    dirty = `git status --porcelain`.lines.map { |line| line[3..-1].to_s.strip }.reject(&:empty?)
+    unless dirty.empty?
+      gem_dir = File.basename(__dir__)
+      mine, theirs = dirty.partition { |path| path.start_with?("#{gem_dir}/") }
+
+      warn "cannot release #{gem_dir}: the working tree is not clean.\n"
+      warn "  in #{gem_dir}/ (this gem):\n#{mine.map { |p| "    #{p}\n" }.join}" unless mine.empty?
+      unless theirs.empty?
+        warn "  elsewhere in the repo — these block the release too, because Bundler's"
+        warn "  guard is repo-wide, even though they are not part of this gem:"
+        warn theirs.map { |p| "    #{p}" }.join("\n")
+      end
+      abort "\ncommit or stash all of it, then run `rake release` again."
+    end
+  end
+end
+
+task "release:guard_clean" => "release:preflight"
+
 # RuboCop only installs on newer Rubies (see Gemfile); the default task degrades
 # to test-only where it is absent.
 begin

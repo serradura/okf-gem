@@ -574,6 +574,14 @@ the gemspec in its working directory and derives the tag from it, so the root
    if the plugin manifest lags the gem version (`rake plugin:verify`), so a
    forgotten sync stops the release instead of shipping.
 
+`release:guard_clean` is **repo-wide** — Bundler runs `git diff` with no pathspec,
+so a half-finished sibling gem or an edited file two levels up blocks a release of
+this one, and all Bundler says is "There are files that need to be committed
+first." `release:preflight` runs ahead of it and names the paths, separating this
+gem's from the rest; it aborts, because guard_clean was going to anyway and the
+only question is which message you get. Verified by running, not pinned by a test:
+it is release tooling, and nothing in the suite drives rake tasks.
+
 **The bare `v*` tag series belongs to the baseline gem** and keeps doing so. A
 sibling tags `okf-mcp/vX.Y.Z`. The asymmetry is deliberate: the Docker workflow
 fires on `v*`, and a glob does not match across `/`, so a sibling's release
