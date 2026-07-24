@@ -174,6 +174,32 @@ class CLIRegistryDelTest < CLIIntegrationCase
     assert_empty registry_json["bundles"], "the row is gone from the file, and the minted name is what removed it"
   end
 
+  test "del removes a group by its slug" do
+    with_registry("conformant") do
+      okf("registry", "group", "docs", "@conformant")
+
+      result = okf("registry", "del", "docs")
+
+      assert_equal 0, result.status
+      assert_match(/^removed docs$/, result.out)
+      assert_equal [], registry_json["groups"], "the group is gone"
+      assert_equal %w[conformant], registry_json["bundles"].map { |row| row["slug"] }, "its member bundle stays"
+    end
+  end
+
+  test "deleting a bundle cascade-drops it from groups, deleting any it empties" do
+    with_registry("conformant", "minimal") do
+      okf("registry", "group", "docs", "@conformant", "@minimal")
+      okf("registry", "group", "solo", "@conformant")
+
+      okf("registry", "del", "@conformant")
+
+      groups = registry_json["groups"]
+      assert_equal %w[minimal], groups.find { |g| g["slug"] == "docs" }["members"], "the surviving member stays"
+      refute groups.any? { |g| g["slug"] == "solo" }, "a group emptied by the cascade is deleted"
+    end
+  end
+
   private
 
   # The registry as it sits on disk under the scratch home.

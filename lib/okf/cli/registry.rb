@@ -10,7 +10,7 @@ module OKF
     class Registry < Command
       # The `registry` umbrella's subcommands — the dispatch, and the words a
       # flag-first invocation is checked against.
-      SUBCOMMANDS = %w[set del list default rename].freeze
+      SUBCOMMANDS = %w[set del list default rename group ungroup].freeze
 
       def self.id
         :registry
@@ -24,9 +24,11 @@ module OKF
         [
           [ "registry  list [--json]", "list registered bundles (* marks the default)" ],
           [ "registry  set <dir|@slug> [--as SLUG] [--default]", "add or update a bundle (a bare `server` serves them)" ],
-          [ "registry  del <dir|@slug>", "remove a bundle from the registry" ],
+          [ "registry  del <dir|@slug>", "remove a bundle or group from the registry" ],
           [ "registry  default <@slug>", "move a bundle to the front (the default)" ],
-          [ "registry  rename <@slug> <new>", "rename a registered bundle (<new> is a new name, not a ref)" ]
+          [ "registry  rename <@slug> <new>", "rename a bundle or group (<new> is a new name, not a ref)" ],
+          [ "registry  group <slug> <@member…>", "create a group, or add members (search/server can target @slug)" ],
+          [ "registry  ungroup <slug> <@member…>", "remove members from a group (emptying it deletes it)" ]
         ]
       end
 
@@ -40,6 +42,8 @@ module OKF
         when "list" then registry_list(argv.drop(1))
         when "default" then registry_default(argv.drop(1))
         when "rename" then registry_rename(argv.drop(1))
+        when "group" then registry_group(argv.drop(1))
+        when "ungroup" then registry_ungroup(argv.drop(1))
         else
           # A bare word that isn't a known subcommand is a typo (`registry remove x`
           # must not silently render the list and read as success).
@@ -132,7 +136,10 @@ module OKF
         no_extras?(argv) or return 2
 
         reg = OKF::Registry.load
-        return emit_list_json({ "registry" => reg.path }, "bundles", reg.listing.map { |row| stringify(row) }, options) if options[:json]
+        if options[:json]
+          groups = { "groups" => reg.groups_listing.map { |row| stringify(row) } }
+          return emit_list_json({ "registry" => reg.path }, "bundles", reg.listing.map { |row| stringify(row) }, options, groups)
+        end
 
         print_registry(reg)
         0
@@ -211,15 +218,92 @@ module OKF
         usage_error(e.message)
       end
 
+      # Create a group, or add members to one. Members are bundle or group slugs,
+      # bare or as @refs; the model normalizes, unions, checks each names something,
+      # and refuses a cycle. Only `search`/`server` can then target @slug.
+      def registry_group(argv)
+        parser = OptionParser.new do |o|
+          o.banner = "Usage: okf registry group <slug> <@member…>"
+          help_flag(o)
+        end
+        parser.parse!(argv)
+        slug = argv.shift
+        if slug.nil? || argv.empty?
+          @err.puts parser.banner
+          return 2
+        end
+
+        reg = OKF::Registry.load
+        group = reg.set_group(slug, argv)
+        count = reg.expand(group.slug).size
+        @out.puts "grouped #{group.slug} → #{group.members.map { |m| "@#{m}" }.join(", ")} " \
+                  "(#{count} #{pluralize(count, "bundle")})"
+        0
+      rescue OptionParser::ParseError => e
+        @err.puts e.message
+        2
+      rescue OKF::Error => e
+        usage_error(e.message)
+      end
+
+      # Remove members from a group. Emptying it deletes the group — an empty group
+      # resolves to nothing, so it is not worth keeping.
+      def registry_ungroup(argv)
+        parser = OptionParser.new do |o|
+          o.banner = "Usage: okf registry ungroup <slug> <@member…>"
+          help_flag(o)
+        end
+        parser.parse!(argv)
+        slug = argv.shift
+        if slug.nil? || argv.empty?
+          @err.puts parser.banner
+          return 2
+        end
+
+        reg = OKF::Registry.load
+        removed, emptied = reg.unset_group_members(slug, argv)
+        name = OKF::Registry.normalize(slug)
+        if emptied
+          @out.puts "removed empty group #{name}"
+        elsif removed.empty?
+          @out.puts "no members removed from #{name} (none of #{argv.join(", ")} were in it)"
+        else
+          @out.puts "ungrouped #{removed.map { |m| "@#{m}" }.join(", ")} from #{name}"
+        end
+        0
+      rescue OptionParser::ParseError => e
+        @err.puts e.message
+        2
+      rescue OKF::Error => e
+        usage_error(e.message)
+      end
+
       def print_registry(reg)
-        return @out.puts "no bundles registered — okf registry set <dir>" if reg.empty?
+        groups = reg.groups_listing
+        return @out.puts "no bundles registered — okf registry set <dir>" if reg.empty? && groups.empty?
 
         rows = reg.listing
-        width = rows.map { |row| row[:slug].length }.max
-        rows.each do |row|
-          marker = row[:default] ? "*" : " "
-          missing = row[:missing] ? "  (missing)" : ""
-          @out.puts "#{marker} #{row[:slug].ljust(width)}  #{row[:title]}  (#{row[:dir]})#{missing}"
+        unless rows.empty?
+          width = rows.map { |row| row[:slug].length }.max
+          rows.each do |row|
+            marker = row[:default] ? "*" : " "
+            missing = row[:missing] ? "  (missing)" : ""
+            @out.puts "#{marker} #{row[:slug].ljust(width)}  #{row[:title]}  (#{row[:dir]})#{missing}"
+          end
+        end
+        print_groups(groups, rows) unless groups.empty?
+      end
+
+      # The groups section under the bundle listing: one row per group, its members
+      # and how many bundles it resolves to (a hand-edited cycle shows `(cycle)`).
+      def print_groups(groups, rows)
+        @out.puts "" unless rows.empty?
+        @out.puts "groups:"
+        width = groups.map { |group| group[:slug].length }.max
+        groups.each do |group|
+          members = group[:members].map { |m| "@#{m}" }.join(", ")
+          count = group[:resolved].nil? ? "cycle" : "#{group[:resolved]} #{pluralize(group[:resolved], "bundle")}"
+          @out.puts "  #{group[:slug].ljust(width)}  #{members}  (#{count})"
         end
       end
     end

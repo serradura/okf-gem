@@ -278,6 +278,207 @@ class OKF::RegistryTest < OKF::TestCase
     assert_equal "x-3", OKF::Registry.dedupe("x", %w[x x-2])
   end
 
+  # ── groups: a named, recursive set of bundle slugs ──
+
+  test "set_group names a set of bundle slugs, and expand resolves it to entries" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+
+    group = reg.set_group("backend", %w[@alpha @beta])
+
+    assert_equal "backend", group.slug
+    assert_equal %w[alpha beta], group.members
+    assert_equal %w[alpha beta], reload.expand("backend").map(&:slug), "a fresh load resolves the persisted group"
+  end
+
+  test "set_group on an existing group adds members as a union, order-preserving" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+    reg.set_group("backend", %w[alpha])
+
+    reg.set_group("backend", %w[alpha beta])
+
+    assert_equal %w[alpha beta], reload.group?("backend").members, "an already-present member is not duplicated"
+  end
+
+  test "expand flattens nested groups and dedupes by path, order-preserving" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+    reg.add(bundle("gamma"))
+    reg.set_group("inner", %w[beta gamma])
+    reg.set_group("outer", %w[alpha inner beta])
+
+    assert_equal %w[alpha beta gamma], reg.expand("outer").map(&:slug),
+      "inner expands in place, and beta (named twice) resolves once"
+  end
+
+  test "set_group refuses a member set that would make the group reach itself" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.set_group("a", %w[alpha])
+    reg.set_group("b", %w[a])
+
+    error = assert_raises(OKF::Error) { reg.set_group("a", %w[b]) }
+    assert_match(/cycle/, error.message)
+    assert_equal %w[alpha], reload.group?("a").members, "the cyclic edit is not persisted"
+  end
+
+  test "set_group refuses a direct self-reference" do
+    reg = registry
+    reg.add(bundle("alpha"))
+
+    assert_raises(OKF::Error) { reg.set_group("a", %w[a alpha]) }
+  end
+
+  test "a group slug collides with a bundle slug in one namespace" do
+    reg = registry
+    reg.add(bundle("alpha"))
+
+    assert_raises(OKF::Error) { reg.set_group("alpha", %w[alpha]) }
+  end
+
+  test "a bundle cannot claim a slug a group already holds" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.set_group("backend", %w[alpha])
+
+    assert_raises(OKF::Error) { reg.add(bundle("beta"), as: "backend") }
+    assert_nil reload.get("backend"), "the colliding bundle registration is not persisted"
+  end
+
+  test "set_group rejects an unknown member and the reserved name" do
+    reg = registry
+    reg.add(bundle("alpha"))
+
+    assert_raises(OKF::Error) { reg.set_group("backend", %w[ghost]) }
+    assert_raises(OKF::Error) { reg.set_group("all", %w[alpha]) }
+    assert_raises(OKF::Error) { reg.set_group("backend", []) }
+  end
+
+  test "unset_group_members removes members, and empties delete the group" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+    reg.set_group("backend", %w[alpha beta])
+
+    removed, emptied = reg.unset_group_members("backend", %w[alpha])
+    assert_equal %w[alpha], removed
+    refute emptied
+    assert_equal %w[beta], reload.group?("backend").members
+
+    _removed, emptied = reg.unset_group_members("backend", %w[beta])
+    assert emptied
+    assert_nil reload.group?("backend"), "removing the last member deletes the group"
+  end
+
+  test "unset_group_members raises on an unknown group, no-ops a non-member" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.set_group("backend", %w[alpha])
+
+    assert_raises(OKF::Error) { reg.unset_group_members("ghost", %w[alpha]) }
+    removed, = reg.unset_group_members("backend", %w[beta])
+    assert_equal [], removed, "removing a non-member changes nothing"
+    assert_equal %w[alpha], reload.group?("backend").members
+  end
+
+  test "removing a bundle cascade-drops it from groups, deleting any it empties" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+    reg.set_group("backend", %w[alpha beta])
+    reg.set_group("solo", %w[alpha])
+
+    reg.remove("alpha")
+
+    assert_equal %w[beta], reload.group?("backend").members, "the surviving member stays"
+    assert_nil reload.group?("solo"), "a group emptied by the cascade is deleted"
+  end
+
+  test "removing a group by slug drops it from any parent group" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+    reg.set_group("inner", %w[beta])
+    reg.set_group("outer", %w[alpha inner])
+
+    removed = reg.remove("inner")
+
+    assert_equal "inner", removed.slug
+    assert_equal %w[alpha], reload.group?("outer").members, "the parent no longer names the deleted group"
+    assert_nil reload.group?("inner")
+  end
+
+  test "renaming a bundle propagates into every group that names it" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+    reg.set_group("backend", %w[alpha beta])
+
+    reg.rename("alpha", "core")
+
+    assert_equal %w[core beta], reload.group?("backend").members, "the member follows the rename"
+  end
+
+  test "renaming a group propagates into a parent group" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.set_group("inner", %w[alpha])
+    reg.set_group("outer", %w[inner])
+
+    reg.rename("inner", "core")
+
+    assert_equal %w[core], reload.group?("outer").members
+    assert_equal %w[alpha], reload.group?("core").members, "the renamed group keeps its own members"
+  end
+
+  test "renaming onto a slug a group holds is refused" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.set_group("backend", %w[alpha])
+
+    assert_raises(OKF::Error) { reg.rename("alpha", "backend") }
+    assert_equal "alpha", reload.get("alpha").slug, "a failed rename mutates nothing"
+  end
+
+  test "default= refuses a group slug" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.set_group("backend", %w[alpha])
+
+    assert_raises(OKF::Error) { reg.default = "backend" }
+  end
+
+  test "expand raises a clear cycle error on a hand-edited cyclic file" do
+    FileUtils.mkdir_p(@home)
+    File.write(OKF::Registry.path(home: @home), JSON.generate(
+      "bundles" => [],
+      "groups" => [ { "slug" => "a", "members" => %w[b] }, { "slug" => "b", "members" => %w[a] } ]
+    ))
+
+    error = assert_raises(OKF::Error) { registry.expand("a") }
+    assert_match(/group cycle/, error.message)
+  end
+
+  test "a groups-less registry file reads with no groups" do
+    reg = registry
+    reg.add(bundle("alpha"))
+
+    assert_equal [], reload.groups_listing, "the original bundles-only shape carries no groups"
+  end
+
+  test "groups_listing reports each group's members and resolved leaf count" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+    reg.set_group("backend", %w[alpha beta])
+
+    assert_equal [ { slug: "backend", members: %w[alpha beta], resolved: 2 } ], reload.groups_listing
+  end
+
   private
 
   def registry

@@ -173,6 +173,17 @@ class CLIRegistryDefaultTest < CLIIntegrationCase
     assert_empty result.out
   end
 
+  test "a group slug cannot be made the default — a group is not one bundle" do
+    okf("registry", "set", fixture("conformant"))
+    okf("registry", "group", "docs", "@conformant")
+
+    result = okf("registry", "default", "@docs")
+
+    assert_equal 2, result.status
+    assert_match(/cannot default to a group/, result.err)
+    assert_equal %w[conformant], registry_slugs, "the order is untouched"
+  end
+
   private
 
   # The registry's slugs in on-disk order — the first is the default.

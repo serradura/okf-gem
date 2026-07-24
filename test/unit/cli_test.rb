@@ -643,7 +643,7 @@ class OKF::CLITest < OKF::TestCase
     assert_equal 0, invoke("registry", "list", "--json")
     payload = JSON.parse(@out.string)
     assert_kind_of Hash, payload, "a bare array would break the CLI's one JSON shape"
-    assert_equal %w[bundles count registry], payload.keys.sort
+    assert_equal %w[bundles count groups registry], payload.keys.sort
   end
 
   test "--pretty does not leak into a later run on a reused CLI instance" do
