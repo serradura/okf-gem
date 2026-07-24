@@ -1,5 +1,6 @@
 import { test as playwright, expect } from "@playwright/test";
 import { installVendorCache } from "./vendor-cache.js";
+import { densegraphPage, DENSEGRAPH_PORT } from "./paths.js";
 
 export { expect };
 
@@ -52,6 +53,25 @@ export const test = base.extend({
     if (watching && errors.length) {
       throw new Error(`page reported ${errors.length} console/page error(s):\n  ${errors.join("\n  ")}`);
     }
+  },
+
+  // A booted page on the densegraph fixture — 110 concepts, 880 links, the only
+  // bundle over both the boot-split edge floor (800) and the auto-spine density
+  // threshold, so the branches those guard have no other way in. Project-aware
+  // like `app`: served live in the `server` project, file:// in `static`. Its
+  // own console watch, always on (it takes no allowErrors caller).
+  dense: async ({ page }, use, testInfo) => {
+    const url = testInfo.project.name === "static"
+      ? `file://${densegraphPage}`
+      : `http://127.0.0.1:${DENSEGRAPH_PORT}/`;
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(String(e)));
+    page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+    await page.addInitScript(() => { try { localStorage.setItem("okf-hello", "1"); } catch (e) {} });
+    await page.goto(url);
+    await bootGraph(page);
+    await use(page);
+    if (errors.length) throw new Error(`densegraph page reported ${errors.length} error(s):\n  ${errors.join("\n  ")}`);
   },
 });
 

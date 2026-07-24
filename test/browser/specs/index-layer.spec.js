@@ -21,8 +21,13 @@ test.describe("index layer", () => {
     });
     expect(op.synN, "the synthesized datasets map has edges").toBeGreaterThan(0);
     expect(op.authN, "the authored services map has edges").toBeGreaterThan(0);
-    expect(op.syn).toBeCloseTo(0.3, 5);
-    expect(op.auth).toBeCloseTo(0.5, 5);
+    // Both were raised (.3/.5 -> .55/.85) because a dash carries about half the
+    // ink of a solid line, so matching a plain edge's opacity did not match its
+    // presence — at .5 these were 1.16:1 against the light canvas, invisible.
+    // The gap between them is the contract; the values are what deliver it.
+    expect(op.syn).toBeCloseTo(0.55, 5);
+    expect(op.auth).toBeCloseTo(0.85, 5);
+    expect(op.syn, "authorship still shows as form: synthesized reads fainter").toBeLessThan(op.auth);
   });
 
   test("a map whose concepts are all filtered away leaves the canvas", async ({ app }) => {

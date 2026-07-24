@@ -16,6 +16,23 @@
   low for the reason the playbook already predicts, which is centrality rather
   than mis-homing. The cut is fitted to the bundle rather than fixed: at a fixed
   weight of 3, ten bundles ranged from 2 arcs to 136.
+* **Update**: the graph page draws links in three amounts rather than always
+  all of them — every link, the *spine* (each concept's strongest, about one per
+  concept, and chosen so it touches every linked concept), or none, with a
+  selected concept's own links always shown in full. A dense bundle opens on its
+  spine by default rather than greeting the reader with the thicket: the trigger
+  is undirected degree, the measure the bundle above reads at 9.7, above a floor
+  set between that and a tree's ~2, so a browsable graph is left on every link.
+  `okf server --map` / `okf render --map` override that to no links with the
+  directories boxed. A dense bundle is unreadable because of its arrows, not its
+  dots: 227 links over 47 concepts at an average degree of 9.7, three quarters of
+  them crossing a directory boundary.
+* **Maintenance**: the bundle catches up with both. [The model](model/) gains a
+  fourth member, [skeleton](model/skeleton.md) — the graph reduced to directories,
+  arcs and per-link cuts, which [`--traffic`](capabilities/read-views.md) and the
+  page's link layer both read. [graph-server](capabilities/graph-server.md) gains
+  the link layer, the dense-opens-on-spine default and `--map`;
+  [render](capabilities/render.md) gains the baked `--map` flag.
 
 ## 2026-07-22
 * **Correction**: [browser-tests](design/browser-tests.md) drops the CI job. The

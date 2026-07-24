@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { repoRoot, bundleDir, staticPage, hostileDir, hostilePage, panelHome, panelDir, treeDir, treePage, manytagsDir, manytagsPage, deeppathDir, deeppathPage, biggraphDir, biggraphPage } from "./paths.js";
+import { repoRoot, bundleDir, staticPage, hostileDir, hostilePage, panelHome, panelDir, treeDir, treePage, manytagsDir, manytagsPage, deeppathDir, deeppathPage, biggraphDir, biggraphPage, densegraphDir, densegraphPage, bundleMapPage } from "./paths.js";
 
 // Bake the static page the `static` project loads over file://. Rendering it
 // here rather than committing it keeps the suite honest: every run tests the
@@ -14,6 +14,8 @@ export default function globalSetup() {
   render(manytagsDir, manytagsPage, "Many Tags");
   render(deeppathDir, deeppathPage, "Deep Path");
   render(biggraphDir, biggraphPage, "Big Graph");
+  render(densegraphDir, densegraphPage, "Dense Graph", "circle");
+  render(bundleDir, bundleMapPage, "Map Mode", null, [ "--map" ]);
   seedPanel();
 }
 
@@ -37,8 +39,8 @@ function seedPanel() {
 
 // Through bundler for the same reason the webServer command is — see
 // playwright.config.js.
-function render(dir, out, title) {
-  okf([ "render", dir, "-o", out, "-t", title ]);
+function render(dir, out, title, layout, extra = []) {
+  okf([ "render", dir, "-o", out, "-t", title, ...(layout ? [ "--layout", layout ] : []), ...extra ]);
 }
 
 function okf(argv, env = {}) {

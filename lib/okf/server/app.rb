@@ -82,11 +82,12 @@ module OKF
       # default would have pointed its palette at the host's root instead. The
       # route answers either way — advertising it is the caller's call.
       def initialize(folder, title: nil, link: nil, layout: "cose", siblings: nil, self_slug: nil, hub_path: nil,
-                     search_endpoint: nil, manage_root: nil, manage_token: nil)
+                     search_endpoint: nil, manage_root: nil, manage_token: nil, map: false)
         @folder = folder
         @title = title
         @link = link
         @layout = layout
+        @map = map
         @siblings = siblings
         @self_slug = self_slug
         @hub_path = hub_path
@@ -156,11 +157,20 @@ module OKF
         { logs: @folder.log_entries }
       end
 
+      # Only one thing is read off it here — #cuts_for, the per-link cut the page
+      # lays a large bundle out on. No endpoint serves it: the page needs those
+      # numbers before its first layout, which is earlier than a request could
+      # answer, so they ride inline with the graph instead. Built over the boot
+      # snapshot and held, like the graph itself.
+      def skeleton
+        @skeleton ||= @folder.skeleton
+      end
+
       def page
         @page ||= OKF::Render::Graph.new(
           graph, title: @title || @folder.name, link: @link, layout: @layout,
           siblings: @siblings, self_slug: @self_slug, hub_path: @hub_path, search_endpoint: @search_endpoint,
-          manage_root: @manage_root, manage_token: @manage_token
+          manage_root: @manage_root, manage_token: @manage_token, cuts: skeleton.cuts_for(graph.edges), map: @map
         ).render
       end
 

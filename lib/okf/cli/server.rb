@@ -24,7 +24,7 @@ module OKF
         require "okf/server/app"
         require "rack/deflater"
 
-        options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose", read_only: false }
+        options = { port: 8808, bind: "127.0.0.1", title: nil, link: nil, layout: "cose", read_only: false, map: false }
         parser = OptionParser.new do |o|
           o.banner = "Usage: okf server [DIR|@slug…] [-p PORT] [--bind ADDR] [--layout NAME] [-t title] [-l url]"
           o.on("-p", "--port PORT", Integer, "port to serve on (default #{options[:port]})") { |v| options[:port] = v }
@@ -32,6 +32,7 @@ module OKF
           o.on("-t", "--title TITLE", "graph title, single bundle only (default: parent/bundle dir name)") { |v| options[:title] = v }
           o.on("-l", "--link URL", "source URL shown in the header, single bundle only") { |v| options[:link] = v }
           o.on("--layout NAME", OKF::Render::Graph::LAYOUTS, "initial layout (#{OKF::Render::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
+          o.on("--map", "open in the Map view: concepts boxed by directory, links on selection") { options[:map] = true }
           o.on("--read-only", "serve the bundles list without its registry controls") { options[:read_only] = true }
           help_flag(o)
         end
@@ -64,7 +65,7 @@ module OKF
         # knows the app is mounted at the root. An embedding host mounting App
         # elsewhere passes its own.
         app = OKF::Server::App.new(folder, title: options[:title] || folder.name, link: options[:link],
-          layout: options[:layout], search_endpoint: "search")
+          layout: options[:layout], search_endpoint: "search", map: options[:map])
         # minimal: the banner wants a count, not bodies — and Folder#graph is not
         # memoized, so a full build here parses every concept a second time (the
         # App builds its own) purely to print one number.
@@ -97,7 +98,7 @@ module OKF
         # The hub keeps the registry so its /b/ manager can report on entries it
         # could not host — a folder deleted out from under one is the question
         # "where did my bundle go?", and only the registry can answer it.
-        hub = OKF::Server::Hub.new(bundles, layout: options[:layout], registry: reg, writable: writable?(options))
+        hub = OKF::Server::Hub.new(bundles, layout: options[:layout], registry: reg, writable: writable?(options), map: options[:map])
         hub.warm_search
         concepts = bundles.inject(0) { |sum, bundle| sum + bundle.folder.graph(minimal: true).nodes.size }
         @out.puts "serving #{bundles.size} #{pluralize(bundles.size,
