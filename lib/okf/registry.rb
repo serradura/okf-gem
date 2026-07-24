@@ -413,6 +413,18 @@ module OKF
       write
     end
 
+    # A fresh instance over the same file, anchored the same way. The server
+    # re-opens the registry per request (to show an edit made elsewhere) and
+    # after each write; it must keep the +relative_base+ a discovered local
+    # registry carries. A bare `Registry.new(path)` would drop it — so a local
+    # registry's in-tree paths would resolve against the wrong directory (every
+    # served bundle reads as "folder is gone" in the manager) and a browser
+    # write would flatten a newly-added in-tree bundle to an absolute path,
+    # silently undoing the portability the base exists for.
+    def reopen
+      self.class.new(@path, relative_base: @relative_base)
+    end
+
     # One row per group for `registry list`: its members and how many bundles it
     # resolves to (+resolved+ is nil when a hand-edited cycle makes it unanswerable).
     def groups_listing

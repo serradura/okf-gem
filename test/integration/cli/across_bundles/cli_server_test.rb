@@ -152,6 +152,49 @@ module AcrossBundles
       refute_match(/localonly/, result.out)
     end
 
+    test "the manager lists a discovered local registry's in-tree bundles as hosted, not gone" do
+      # The Bundles panel re-reads the registry per request, and a re-read that
+      # dropped the local anchor would leave the stored path relative ("one")
+      # while the mounted bundle knows its absolute root — so the panel's
+      # dir-match misses and a bundle that is serving fine renders "folder is
+      # gone". Change 2's anchor has to survive the re-open, not just the boot.
+      tree = local_tree("proj")
+      File.write(File.join(tree, ".okf-registry.json"), JSON.generate("bundles" => [], "groups" => []))
+      FileUtils.cp_r(fixture("conformant"), File.join(tree, "one"))
+
+      _result, booted = in_dir(tree) do
+        okf("registry", "set", File.join(tree, "one"))
+        okf_server
+      end
+      hub = booted_app(booted.first)
+
+      row = JSON.parse(get_page(hub, "/bundles").last)["bundles"].find { |r| r["slug"] == "one" }
+      assert_equal "one", row["mount"], "the in-tree bundle is hosted at its slug, not reported gone"
+      refute_equal "missing", row["health"], "a bundle that is mounted and serving is not 'folder is gone'"
+    end
+
+    test "a browser add to a discovered local registry stores the in-tree bundle relative, not absolute" do
+      # The write path's half of the same anchor. The manager re-opens the
+      # registry to apply a POST, and a re-open that lost the base would store
+      # the freshly-added in-tree bundle absolute — one click in the Bundles
+      # panel undoing the portability Change 2 exists to give.
+      tree = local_tree("proj")
+      File.write(File.join(tree, ".okf-registry.json"), JSON.generate("bundles" => [], "groups" => []))
+      FileUtils.cp_r(fixture("conformant"), File.join(tree, "one"))
+      FileUtils.cp_r(fixture("minimal"), File.join(tree, "two"))
+
+      in_dir(tree) do
+        okf("registry", "set", File.join(tree, "one"))
+        _result, booted = okf_server
+        status, = post(booted_app(booted.first), "/registry/add", "path" => File.join(tree, "two"))
+        assert_equal 200, status
+      end
+
+      stored = JSON.parse(read_utf8(File.join(tree, ".okf-registry.json")))["bundles"].map { |b| b["path"] }
+      assert_equal %w[one two], stored,
+        "both in-tree bundles stay stored relative — the browser write kept the local registry's anchor"
+    end
+
     test "a bundle-less run with no chosen default falls back to the first registered bundle" do
       result, booted = with_registry("conformant", "rooted") { okf_server }
 
@@ -542,6 +585,17 @@ module AcrossBundles
     end
 
     private
+
+    # A fresh directory for a project-local registry, its path canonicalized with
+    # realpath. Change 2 stores an in-tree bundle relative by a *lexical*
+    # relative_path_from, and on macOS Dir.pwd is the physical path (/private/var)
+    # while a bare mktmpdir path is the symlink (/var) — the two must match or the
+    # would-be-relative store climbs out with ../.. and falls back to absolute.
+    def local_tree(name)
+      dir = File.join(@out_dir, name)
+      FileUtils.mkdir_p(dir)
+      File.realpath(dir)
+    end
 
     # A throwaway copy of a fixture bundle at <out_dir>/<relative> — for the slug
     # questions (dedupe, reservation) that turn on a directory's basename. Nested

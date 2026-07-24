@@ -253,7 +253,7 @@ module OKF
       end
 
       def apply(verb, params)
-        registry = OKF::Registry.new(@boot_registry.path)
+        registry = @boot_registry.reopen
         message = mutate(verb, registry, params)
         reload(registry)
         json("ok" => true, "message" => message)
@@ -595,7 +595,7 @@ module OKF
       # `okf registry rename` in another terminal shows on the next refresh
       # instead of waiting for a restart.
       def registry
-        @boot_registry && OKF::Registry.new(@boot_registry.path)
+        @boot_registry&.reopen
       end
 
       # ok / warn / error, with the word that carries the same message for a
