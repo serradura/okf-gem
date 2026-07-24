@@ -676,7 +676,7 @@ class OKF::CLITest < OKF::TestCase
   test "an unknown registry subcommand is a usage error, not a silent listing" do
     assert_equal 2, invoke("registry", "remove", "docs")
     assert_match(/unknown registry subcommand 'remove'/, @err.string)
-    assert_match(/expected: set, del, list, default, rename/, @err.string)
+    assert_match(/expected: init, set, del, list, default, rename/, @err.string)
   end
 
   test "extra positionals are rejected, not silently dropped" do

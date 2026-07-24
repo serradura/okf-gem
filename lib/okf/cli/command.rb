@@ -495,15 +495,24 @@ module OKF
       # only `server` and the `registry` verbs rescue one. Returns nil after
       # reporting, so every caller returns 2.
       def load_registry
-        require "okf/registry"
-        OKF::Registry.load
+        open_registry
       rescue OKF::Error => e
         @err.puts "error: #{e.message}"
         nil
       end
 
-      # Resolve one @ref through the registry under $OKF_HOME (default ~/.okf).
-      # The slug part is normalized
+      # The registry a verb resolves against — the single seam that opts the CLI
+      # into discovery. `cwd: Dir.pwd` is what makes OKF::Registry.load walk up for
+      # a project-local .okf-registry.json; a library caller passing no cwd stays
+      # global-only. The registry subcommands and `server` open through here too,
+      # so a bare `okf server` inside a repo serves that repo's bundles.
+      def open_registry
+        require "okf/registry"
+        OKF::Registry.load(cwd: Dir.pwd)
+      end
+
+      # Resolve one @ref through the active registry — a discovered project-local
+      # one, else the global $OKF_HOME (default ~/.okf). The slug part is normalized
       # exactly as registration normalized it, so @One finds the bundle
       # registered from dir One — but never through #slugify's mint-a-name
       # placeholder, so "@***" is a bad ref rather than whatever is slugged

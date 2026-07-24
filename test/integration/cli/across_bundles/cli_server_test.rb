@@ -119,6 +119,39 @@ module AcrossBundles
       assert_equal "/b/rooted/", headers["location"], "/ opens the bundle the registry chose"
     end
 
+    test "a bare server inside a project tree discovers and serves its local registry" do
+      # The payoff: no $OKF_HOME setup — a .okf-registry.json in the tree is what
+      # a bare `okf server` here serves.
+      tree = File.join(@out_dir, "proj")
+      FileUtils.mkdir_p(tree)
+      File.write(File.join(tree, ".okf-registry.json"), JSON.generate("bundles" => [], "groups" => []))
+      in_dir(tree) do
+        okf("registry", "set", fixture("conformant"))
+        okf("registry", "set", fixture("minimal"))
+      end
+
+      result, booted = in_dir(tree) { okf_server }
+      hub = booted_app(booted.first)
+
+      assert_equal 0, result.status
+      assert_kind_of OKF::Server::Hub, hub
+      assert_match(%r{/b/conformant/}, result.out)
+      assert_match(%r{/b/minimal/}, result.out)
+      refute_path_exists File.join(@home, "registry.json"), "the global $OKF_HOME registry was never written"
+    end
+
+    test "OKF_NO_DISCOVERY makes a bare server serve the global registry, not a local one under cwd" do
+      File.write(File.join(Dir.pwd, ".okf-registry.json"), JSON.generate(
+        "bundles" => [ { "slug" => "localonly", "path" => fixture("minimal"), "title" => "t" } ], "groups" => []
+      ))
+
+      # The harness keeps OKF_NO_DISCOVERY=1, so the local file under cwd is ignored.
+      result, = with_registry("conformant") { okf_server }
+
+      assert_match(%r{/b/conformant/}, result.out, "the escape hatch serves the global registry")
+      refute_match(/localonly/, result.out)
+    end
+
     test "a bundle-less run with no chosen default falls back to the first registered bundle" do
       result, booted = with_registry("conformant", "rooted") { okf_server }
 

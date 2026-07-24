@@ -10,7 +10,7 @@ module OKF
     class Registry < Command
       # The `registry` umbrella's subcommands — the dispatch, and the words a
       # flag-first invocation is checked against.
-      SUBCOMMANDS = %w[set del list default rename group ungroup].freeze
+      SUBCOMMANDS = %w[init set del list default rename group ungroup].freeze
 
       def self.id
         :registry
@@ -22,6 +22,7 @@ module OKF
 
       def self.help_rows
         [
+          [ "registry  init", "create a project-local .okf-registry.json (nearest one wins)" ],
           [ "registry  list [--json]", "list registered bundles (* marks the default)" ],
           [ "registry  set <dir|@slug> [--as SLUG] [--default]", "add or update a bundle (a bare `server` serves them)" ],
           [ "registry  del <dir|@slug>", "remove a bundle or group from the registry" ],
@@ -37,6 +38,7 @@ module OKF
 
         sub = argv.first
         case sub
+        when "init" then registry_init(argv.drop(1))
         when "set" then registry_set(argv.drop(1))
         when "del" then registry_del(argv.drop(1))
         when "list" then registry_list(argv.drop(1))
@@ -65,6 +67,38 @@ module OKF
 
       private
 
+      # Create a project-local .okf-registry.json in the current directory. Once it
+      # exists, discovery finds it (walking up from cwd) and every registry op —
+      # and every @ref — resolves through it instead of the global $OKF_HOME one.
+      # init only writes the empty file; `registry set` fills it. Refuses to clobber
+      # an existing local registry, and notes a parent one it would shadow.
+      def registry_init(argv)
+        parser = OptionParser.new do |o|
+          o.banner = "Usage: okf registry init"
+          help_flag(o)
+        end
+        parser.parse!(argv)
+        no_extras?(argv) or return 2
+
+        target = File.join(Dir.pwd, OKF::Registry::LOCAL_FILE)
+        display = "./#{OKF::Registry::LOCAL_FILE}"
+        return usage_error("already initialized: #{display}") if File.exist?(target)
+
+        # The parent it would shadow, if any — a courtesy, not a barrier: nested
+        # registries resolve nearest-first, so creating one here is legitimate.
+        parent = OKF::Registry.discover(File.dirname(Dir.pwd))
+        @err.puts "note: a parent registry at #{parent} — the nearest one wins" if parent
+
+        OKF::Registry.new(target).save
+        @out.puts "initialized #{display}"
+        0
+      rescue OptionParser::ParseError => e
+        @err.puts e.message
+        2
+      rescue OKF::Error => e
+        usage_error(e.message)
+      end
+
       # Add a bundle to the persistent registry (so a later bare `okf server` finds
       # it), or update one already there. The entry is keyed by the bundle's path: a
       # path already registered refreshes its title in place, and --as renames it. A
@@ -82,7 +116,7 @@ module OKF
         # positional through `positional`, which does not check.
         dir = positional_dir(parser, argv) or return 2
 
-        reg = OKF::Registry.load
+        reg = open_registry
         # Said before the upsert: after it, an update is indistinguishable from an
         # add, and "registered" for what was a rename reads as a duplicate entry.
         known = reg.listing.any? { |row| row[:dir] == File.expand_path(dir) }
@@ -108,7 +142,7 @@ module OKF
         slug = positional(parser, argv) or return 2
         no_extras?(argv) or return 2
 
-        reg = OKF::Registry.load
+        reg = open_registry
         slug = registry_slug(slug, reg) or return 2
         removed = reg.remove(slug)
         return usage_error("no such bundle: #{slug}") unless removed
@@ -135,7 +169,7 @@ module OKF
         end
         no_extras?(argv) or return 2
 
-        reg = OKF::Registry.load
+        reg = open_registry
         if options[:json]
           groups = { "groups" => reg.groups_listing.map { |row| stringify(row) } }
           return emit_list_json({ "registry" => reg.path }, "bundles", reg.listing.map { |row| stringify(row) }, options, groups)
@@ -160,7 +194,7 @@ module OKF
         slug = positional(parser, argv) or return 2
         no_extras?(argv) or return 2
 
-        reg = OKF::Registry.load
+        reg = open_registry
         slug = registry_slug(slug, reg) or return 2
         reg.default = slug
         @out.puts "default bundle → #{reg.default.slug} (now first)"
@@ -203,7 +237,7 @@ module OKF
         end
         no_extras?(argv) or return 2
 
-        reg = OKF::Registry.load
+        reg = open_registry
         # The old name may be a ref; the new one is a name being minted, never one.
         old_slug = registry_slug(old_slug, reg) or return 2
         entry = reg.rename(old_slug, new_slug)
@@ -233,7 +267,7 @@ module OKF
           return 2
         end
 
-        reg = OKF::Registry.load
+        reg = open_registry
         group = reg.set_group(slug, argv)
         count = reg.expand(group.slug).size
         @out.puts "grouped #{group.slug} → #{group.members.map { |m| "@#{m}" }.join(", ")} " \
@@ -260,7 +294,7 @@ module OKF
           return 2
         end
 
-        reg = OKF::Registry.load
+        reg = open_registry
         removed, emptied = reg.unset_group_members(slug, argv)
         name = OKF::Registry.normalize(slug)
         if emptied
@@ -279,6 +313,11 @@ module OKF
       end
 
       def print_registry(reg)
+        # A header only when a project-local registry is in play — the case where
+        # "which registry am I looking at?" is a real question. The global $OKF_HOME
+        # one is the default, so it stays headerless (and the JSON envelope names
+        # the file for a script either way).
+        @out.puts "registry: #{registry_display(reg)}" if local_registry?(reg)
         groups = reg.groups_listing
         return @out.puts "no bundles registered — okf registry set <dir>" if reg.empty? && groups.empty?
 
@@ -292,6 +331,20 @@ module OKF
           end
         end
         print_groups(groups, rows) unless groups.empty?
+      end
+
+      # Whether this registry was discovered as a project-local file rather than
+      # read from $OKF_HOME — the basename settles it (only a local one is named
+      # .okf-registry.json).
+      def local_registry?(reg)
+        File.basename(reg.path) == OKF::Registry::LOCAL_FILE
+      end
+
+      # How to name the local registry in the header: `./` when it sits in cwd
+      # (the common case, a bare `init` here), its absolute path when discovery
+      # walked up to an ancestor.
+      def registry_display(reg)
+        File.dirname(reg.path) == Dir.pwd ? "./#{OKF::Registry::LOCAL_FILE}" : reg.path
       end
 
       # The groups section under the bundle listing: one row per group, its members

@@ -4,9 +4,12 @@ require "json"
 
 module OKF
   # A persistent, ordered registry of bundle references — the kernel behind the
-  # multi-bundle server. It is a plain JSON file (no database) under $OKF_HOME
-  # (default ~/.okf), so `okf registry set`/`del` and a later bare `okf server`
-  # share one on-disk list. Part of the shell — it reads and writes a file.
+  # multi-bundle server. It is a plain JSON file (no database): the global one
+  # under $OKF_HOME (default ~/.okf), or a project-local .okf-registry.json
+  # discovered by walking up from cwd (see .load / .discover), which replaces the
+  # global one while you stand in its tree. Either way `okf registry set`/`del`
+  # and a later bare `okf server` share one on-disk list. Part of the shell — it
+  # reads and writes a file.
   #
   #   registry = OKF::Registry.load
   #   registry.add("docs")               # persists, returns the Entry
@@ -54,6 +57,17 @@ module OKF
     HOME_ENV = "OKF_HOME"
     DEFAULT_HOME = "~/.okf"
 
+    # A project-local registry: the same JSON, discovered by walking up from the
+    # working directory rather than read from $OKF_HOME. Its presence is the whole
+    # state — no stored "local mode" flag — so a bare `okf server` inside a repo
+    # serves that repo's bundles with no global setup.
+    LOCAL_FILE = ".okf-registry.json"
+
+    # The lever that forces the global registry even when a local one is on the
+    # path up from cwd. Set it (inline) and discovery is skipped — the escape hatch
+    # for a fixed-cwd caller (CI, a tool, the tests) that wants $OKF_HOME.
+    NO_DISCOVERY_ENV = "OKF_NO_DISCOVERY"
+
     # Slugs the ref grammar has already spoken for. `@all` means every registered
     # bundle, so a bundle slugged "all" could never be named — reserve it here,
     # where both slug paths pass, rather than let one register and then be
@@ -84,8 +98,34 @@ module OKF
         raise OKF::Error, "cannot expand #{base}: #{e.message}"
       end
 
-      def load(home: nil)
-        new(path(home: home))
+      # The registry a run resolves to. Precedence, highest first: OKF_NO_DISCOVERY
+      # forces the global one; else a `.okf-registry.json` discovered on the path
+      # up from +cwd+ wins; else the global $OKF_HOME registry, exactly as before.
+      # +cwd+ nil ⇒ no discovery, so an embedding app that calls `load` with no
+      # arguments keeps the global-only behavior — only the CLI opts in by passing
+      # `cwd: Dir.pwd`. $OKF_HOME names *where the global registry lives*; it does
+      # not veto a nearer local one (it is commonly exported, so letting it would
+      # silently defeat the feature for its own audience).
+      def load(home: nil, cwd: nil)
+        looking = cwd && ENV[NO_DISCOVERY_ENV].to_s.empty?
+        local = looking ? discover(cwd) : nil
+        new(local || path(home: home))
+      end
+
+      # Walk up from +start+ looking for a local registry; return its absolute path
+      # or nil. Stops at the filesystem root (parent == self), so it never loops.
+      def discover(start)
+        dir = expand(start.to_s)
+        loop do
+          candidate = File.join(dir, LOCAL_FILE)
+          return candidate if File.file?(candidate)
+
+          parent = File.dirname(dir)
+          break if parent == dir
+
+          dir = parent
+        end
+        nil
       end
 
       # Normalize +base+ to a url-safe slug (lowercase, dashes) — "" when nothing
@@ -355,6 +395,14 @@ module OKF
       seen = []
       resolve_into(self.class.normalize(slug), entries, seen, [])
       entries
+    end
+
+    # Persist the current state to disk. The mutating verbs write as a side effect
+    # of the change; `save` is the public seam for the one caller that creates a
+    # registry with nothing to change yet — `okf registry init`, materializing an
+    # empty local file so discovery has something to find.
+    def save
+      write
     end
 
     # One row per group for `registry list`: its members and how many bundles it

@@ -30,21 +30,33 @@ class CLIIntegrationCase < OKF::TestCase
 
   Result = Struct.new(:status, :out, :err)
 
-  # $OKF_HOME is the only lever the CLI offers on the registry, so isolation is
-  # not something a test opts into: point it at a scratch dir for *every* test,
-  # and the real ~/.okf is unreachable from the suite by construction. A test
-  # that never touches the registry simply leaves the scratch one empty.
+  # $OKF_HOME and cwd are the two levers the CLI offers on the registry, so
+  # isolation is not something a test opts into: for *every* test, point $OKF_HOME
+  # at a scratch dir and chdir into a scratch dir with no local .okf-registry.json
+  # above it, so the real ~/.okf and any project-local registry are both
+  # unreachable from the suite by construction. OKF_NO_DISCOVERY=1 is belt to the
+  # chdir's braces — a stray .okf-registry.json in the tmp ancestry cannot leak
+  # in, and the suite matches how a fixed-cwd caller (CI, a tool) forces global.
+  # A discovery test opts *out*: it clears OKF_NO_DISCOVERY inside an in_dir block.
   setup do
     @out_dir = Dir.mktmpdir("okf-integration")
     @home = Dir.mktmpdir("okf-integration-home")
+    @cwd_dir = Dir.mktmpdir("okf-integration-cwd")
     @okf_home_was = ENV.fetch("OKF_HOME", nil)
+    @no_discovery_was = ENV.fetch("OKF_NO_DISCOVERY", nil)
+    @cwd_was = Dir.pwd
     ENV["OKF_HOME"] = @home
+    ENV["OKF_NO_DISCOVERY"] = "1"
+    Dir.chdir(@cwd_dir)
   end
 
   teardown do
+    Dir.chdir(@cwd_was)
     @okf_home_was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = @okf_home_was
+    @no_discovery_was.nil? ? ENV.delete("OKF_NO_DISCOVERY") : ENV["OKF_NO_DISCOVERY"] = @no_discovery_was
     FileUtils.rm_rf(@out_dir)
     FileUtils.rm_rf(@home)
+    FileUtils.rm_rf(@cwd_dir)
   end
 
   private
@@ -130,6 +142,22 @@ class CLIIntegrationCase < OKF::TestCase
     yield
   ensure
     was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = was
+  end
+
+  # Run the block from +dir+ as cwd, with discovery *on* (the suite suppresses it
+  # by default — see setup). This is how a discovery test opts into the second
+  # lever: chdir into a tree that carries a .okf-registry.json and let the CLI
+  # walk up to it. Both the cwd and the env flag are restored on the way out, so
+  # the next test is back to the hermetic default.
+  def in_dir(dir)
+    was_cwd = Dir.pwd
+    was_flag = ENV.fetch("OKF_NO_DISCOVERY", nil)
+    ENV.delete("OKF_NO_DISCOVERY")
+    Dir.chdir(dir)
+    yield
+  ensure
+    Dir.chdir(was_cwd)
+    was_flag.nil? ? ENV.delete("OKF_NO_DISCOVERY") : ENV["OKF_NO_DISCOVERY"] = was_flag
   end
 
   # `okf server` blocks on a real runner, so the integration tests drive it with

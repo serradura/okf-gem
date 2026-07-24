@@ -29,6 +29,23 @@ module AcrossBundles
       end
     end
 
+    test "several @refs resolve through a discovered local registry" do
+      tree = File.join(@out_dir, "search-proj")
+      FileUtils.mkdir_p(tree)
+      File.write(File.join(tree, ".okf-registry.json"), JSON.generate("bundles" => [], "groups" => []))
+      in_dir(tree) do
+        okf("registry", "set", fixture("conformant"))
+        okf("registry", "set", fixture("rooted"))
+      end
+
+      result = in_dir(tree) { okf("search", "@conformant", "@rooted", "the") }
+
+      assert_equal 0, result.status
+      assert_match(/Search — @conformant @rooted · the \(5 concepts\)/, result.out,
+        "both refs resolved through the local registry, and merged into one ranking")
+      assert_match(/@rooted\s+charter\s+Charter/, result.out)
+    end
+
     test "a single @ref is still registry mode — the envelope switches on form, not count" do
       with_registry("mentions") do
         human = okf("search", "@mentions", "payments")

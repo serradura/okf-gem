@@ -24,7 +24,7 @@ class CLIHelpTest < CLIIntegrationCase
   test "help documents the registry subcommands, not just the umbrella" do
     result = okf("--help")
 
-    %w[list set del default rename].each do |subcommand|
+    %w[init list set del default rename].each do |subcommand|
       assert_match(/^\s+registry\s+.*\b#{subcommand}\b/, result.out,
         "help should reach `registry #{subcommand}` — an unlisted subcommand is unfindable")
     end

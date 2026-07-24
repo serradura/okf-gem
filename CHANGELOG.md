@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`okf registry init`** — create a project-local `.okf-registry.json` in the
+  current directory. Once it exists, okf discovers it by walking up from the
+  working directory, and every registry operation — and every `@slug` — resolves
+  through it in place of the global `$OKF_HOME` registry, so a bare `okf server`
+  inside a repo serves that repo's bundles with no global setup. The nearest one
+  on the path wins (nested registries resolve nearest-first), `okf registry list`
+  names the local file it found, and `OKF_NO_DISCOVERY=1` forces the global one —
+  the escape hatch for a fixed-cwd caller (CI, a tool). Paths are stored absolute,
+  as the global registry stores them.
+
 ## [1.11.0] - 2026-07-22
 
 ### Added

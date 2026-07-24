@@ -442,7 +442,16 @@ page listing the hosted bundles, so a stale bookmark after a rename gets a way
 home. With **no** dir it serves the *persistent registry*, a plain JSON file
 under `$OKF_HOME` (default `~/.okf`), managed by the
 `okf registry` umbrella — like git's `remote` family, and split by what each
-verb keys on. **Entry verbs** take a path: `okf registry set <dir>` adds it
+verb keys on.
+**`okf registry init`** creates a *project-local* registry instead: a
+`.okf-registry.json` in the current directory, which okf discovers by walking up
+from the working directory and uses in place of the global one while you are
+inside its tree (the nearest wins, so nested registries resolve nearest-first).
+Every registry op — and every `@slug` — then resolves through it, so a bare
+`okf server` inside a repo serves that repo's bundles with no `$OKF_HOME` setup;
+`okf registry list` names the local file it found. `OKF_NO_DISCOVERY=1` forces
+the global registry — the escape hatch for a fixed-cwd caller (CI, a tool).
+**Entry verbs** take a path: `okf registry set <dir>` adds it
 (slug from the basename, or `--as`, which errors on a collision; `--default`
 puts it first), and because the entry is keyed by path, `set` on an
 already-registered dir updates it in place — refreshing its title, and renaming

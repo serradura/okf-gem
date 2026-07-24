@@ -90,7 +90,7 @@ module OKF
         if dirs.empty?
           # A malformed registry raises OKF::Error, which `server` rescues into a
           # usage error — no guarded load needed on this path.
-          reg = OKF::Registry.load
+          reg = open_registry
           # The hub's own loader, so the set it rebuilds after a browser-side
           # write is built exactly the way this one was.
           bundles = OKF::Server::Hub.bundles_for(reg) { |entry| skip_registered(entry) }
