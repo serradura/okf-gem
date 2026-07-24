@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **The repository became a monorepo, and the gem moved into `okf/`.** Nothing
-  about the published gem changes — same name, same contents bar one file, same
-  `v*` tag series, same image — but a checkout is laid out differently: one
+  about the published gem changes in kind — same name, same library, same `v*` tag
+  series, same image, byte-identical in size to a pre-move build — but a checkout is laid out differently: one
   directory per gem, named for the gem it ships, so `okf-mcp/` and the rest can
   land beside the baseline without reshaping anything. `plugin/`,
   `.claude-plugin/`, `.okf/` and the `Dockerfile` stay at the root; the last of

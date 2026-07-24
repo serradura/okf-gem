@@ -35,8 +35,10 @@ These constraints apply to `okf/test/` too, because the suite runs on 2.4 as wel
 every supported Ruby, and locally by copying the tree into a throwaway build dir,
 dropping `Gemfile.lock` (the lockfile is written by a modern Bundler that 2.4's
 own cannot read), and mounting the checkout **read-only** so the run cannot write
-one back. Run from the gem's own directory — the floor is a property of `okf`,
-not of the repository, and the [siblings](monorepo-layout.md) do not share it:
+one back. Run it from the **repository root** — `$PWD` becomes `/src`, and the
+command steps into the gem on the other side, because the floor is a property of
+`okf` rather than of the repository and the [siblings](monorepo-layout.md) will
+not share it:
 
 ```bash
 docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \

@@ -122,7 +122,7 @@ writer, and the lower-level pieces.
 ## validate and lint are two different questions
 
 `validate` asks *"is this legal OKF?"* and implements the spec's
-[§9](lib/okf/skill/reference/SPEC.md) exactly — which means it is *forbidden* to
+[§9](lib/okf/skill/reference/SPEC.md#9-conformance) exactly — which means it is *forbidden* to
 reject a bundle for a broken link or a missing optional field.
 
 `lint` asks the complementary question, *"is this well-curated, navigable,

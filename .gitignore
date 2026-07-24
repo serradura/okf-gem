@@ -1,8 +1,10 @@
 # Repo-level only. Everything that belongs to a gem is ignored from that gem's
 # own .gitignore, where a leading `/` anchors to the gem directory rather than
-# to here — see okf/.gitignore. Every gem-level entry that used to live in this
-# file stopped matching the moment the gem moved down a level, which is exactly
-# the failure this split exists to prevent.
+# to here — see okf/.gitignore. Every *anchored* gem-level entry that used to
+# live in this file stopped matching the moment the gem moved down a level,
+# which is the failure this split exists to prevent. The unanchored ones
+# (`*.gem`, `Gemfile.lock`) kept working, so the breakage was partial — which is
+# what would have made it easy to miss.
 
 /tmp/
 

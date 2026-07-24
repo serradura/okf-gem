@@ -66,9 +66,13 @@ feature of this gem, not an accident.
 
 # A packaging note
 
-`spec.files` comes from `git ls-files` minus `test/`, `bin/`, `.github/`, etc., so
-a new top-level file ships in the gem unless the gemspec rejects it — check
-`gem build` output when adding one.
+`spec.files` comes from `git ls-files` run with `chdir:` into the gem's own
+directory, minus `test/`, `bin/`, the `Gemfile`, the `Rakefile` and a couple more.
+Because of that `chdir:`, everything at the repository root is invisible to it —
+so a new *repo*-level file never ships, and needs no reject. A new top-level file
+**inside the gem** does ship unless the gemspec rejects it; check `gem build`
+output when adding one. See [the monorepo layout](monorepo-layout.md) for the
+one-directional rule that ties the reject list to `.dockerignore`.
 
 # Citations
 

@@ -200,11 +200,15 @@ deterministic check enforces the point,`<!-- rule:okf-<slug> -->` for
    the gem need no pairing at all — the gemspec runs with `chdir:` into `okf/`
    and never sees them.
    The same section's other rule: **nothing in `spec.files` may be a symlink.**
-   `gem build` writes one into the package as a symlink and RubyGems refuses to
-   extract one pointing outside the gem, so `LICENSE.txt` and `NOTICE` are real
-   duplicates of the root's rather than links to them. The build succeeds either
-   way; only `gem install` fails, on someone else's machine.
-   `test/unit/packaging_test.rb` pins both files.
+   `gem build` does not resolve one — it writes a symlink into the package, warns,
+   and succeeds. RubyGems >= 3.2 then refuses to extract a link pointing outside
+   the gem (`Gem::Package::SymlinkError`); **RubyGems < 3.2 has no guard at all**,
+   so on Ruby 2.7 (RubyGems 3.1.6, inside the supported range) `gem install`
+   exits 0 and installs a *dangling* file. The old half of the matrix is the
+   dangerous one: the gem installs cleanly and carries no licence. So
+   `LICENSE.txt` and `NOTICE` are real duplicates of the root's, and
+   `test/unit/packaging_test.rb` pins that they are not symlinks, are
+   byte-identical to the root's, and are actually in `spec.files`.
 
 ## Testing: integration first
 
@@ -337,8 +341,15 @@ CI (`.github/workflows/main.yml`) runs the gem's default task on every supported
 Ruby, 2.4 through the current stable, with `working-directory: okf` on both the
 job and `ruby/setup-ruby` (the action needs its own input to find the Gemfile it
 caches against). It is one job per gem, not a gem axis on the matrix: the floors
-diverge, so a shared matrix would be mostly exclusions. A change is not done
-until that matrix is green.
+diverge, so a shared matrix would be mostly exclusions.
+
+Alongside it, a single `lint` job runs the root `rake rubocop` on one modern Ruby.
+That job is the only thing standing between `plugin/hooks/scripts/curate.rb` and
+being linted by nobody: no gem's own `rake rubocop` reaches a file outside every
+gem, and before it existed this repo shipped a commit claiming the root
+`.rubocop.yml` "restores lint coverage" when in CI it did nothing at all.
+
+A change is not done until both are green.
 
 ## Testing the graph page
 
@@ -407,7 +418,13 @@ block, one worked example per surface. No hero images: it is read on
 rubygems.org and in a terminal.
 
 Neither is a symlink or a generated copy of the other; they say different things.
-What follows applies to both.
+
+What follows is written for the root README, which is where the diagrams, the
+comparison table and the `.okf/` links live. The gem's carries none of those —
+`.okf/` does not ship, and a package page is no place for a hero image. What
+*does* bind both, without exception, is the four rules below: every command runs
+as written, every number is measured now, no deprecated spelling, and a new verb
+ships with its line in each README that lists verbs.
 
 **The site owns the manual; a README is a front door.** Every verb is
 documented at [okfgem.com/docs](https://okfgem.com/docs/), so a README spends
@@ -440,9 +457,10 @@ Four rules that outrank taste, because each has already gone wrong here:
   file. A verb absent from the command block does not exist to a reader.
 
 **Benchmarks name the shape of what was measured, never where it lives** — "a
-400-concept bundle", not a path. Scratch material under `tmp/` is a working
-reference, not part of the published record, and must not be named in the README,
-the CHANGELOG, `.okf/`, or the skill.
+400-concept bundle", not a path. Scratch material under the repo root's `tmp/`
+(the one exception to the path convention above, since it belongs to no gem) is a
+working reference, not part of the published record, and must not be named in
+either README, the CHANGELOG, `.okf/`, or the skill.
 
 **Alt text carries the whole content of its image.** The hero and overview PNGs
 say everything the diagram says, in prose, because the README is read in
@@ -564,7 +582,8 @@ everything would have been tidier and would have ended a public tag series
 mid-history to buy nothing.
 
 Gem packaging detail: `spec.files` comes from `git ls-files` run with `chdir:`
-into `okf/`, minus `test/`, `bin/`, the Gemfile and Rakefile. Everything at the
+into `okf/`, minus `test/`, `bin/`, the Gemfile, the Rakefile, `.gitignore`,
+`.rubocop.yml` and the gemspec itself. Everything at the
 repo root is invisible to it, so a new *root* file needs no reject — but a new
 top-level file **inside the gem** ships unless the gemspec rejects it, so check
 `gem build` output when adding one. Constraint 9 is the other half of this.

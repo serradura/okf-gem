@@ -49,13 +49,15 @@ four says so when it stops working.
 **`spec.files` needed nothing.** `git ls-files` with `chdir:` returns paths
 relative to the directory it runs in, so the gemspec sees its own tree and
 nothing above it. Everything at the root is invisible to it by construction —
-which also means its reject list shrank, because seven of its entries had been
-rejecting paths that are no longer under the gem.
+which also means its reject list shrank from fourteen prefixes to six, the eight
+removed having been rejecting paths that are no longer under the gem.
 
-**`.gitignore` failed silently.** Every entry was root-anchored, so all of them
-stopped matching at once and the first test run would have staged a coverage
-report. Gem-level entries live in the gem's own `.gitignore` now, where a
-leading `/` anchors to the gem.
+**`.gitignore` failed silently.** Every *anchored* entry — sixteen of the
+nineteen, everything with a leading `/` — stopped matching at once, and the first
+test run would have staged a coverage report. (`*.gem` and `Gemfile.lock` carry
+no anchor and kept working, which is exactly what made the breakage partial and
+therefore easy to miss.) Gem-level entries live in the gem's own `.gitignore`
+now, where a leading `/` anchors to the gem.
 
 **SimpleCov failed silently, and in the direction that looks like success.** Its
 root defaults to the working directory, so the plugin's curation hook — a
@@ -79,13 +81,24 @@ an ignore file, a coverage root — are worse than the ones that crash.
 
 The gem must distribute `LICENSE.txt` and `NOTICE`, and `git ls-files` from the
 gem directory cannot see the root's copies. The obvious fix is a symlink, and it
-is a trap worth recording because every signal says it worked:
+is a trap worth recording — with the detail that matters being *which* half of
+the support matrix it breaks on.
 
-`gem build` does **not** resolve the link. It writes it into the package tar as
-a symlink, and RubyGems refuses to extract one pointing outside the gem —
-`Gem::Package::SymlinkError`. The build succeeds. `spec.files` lists the file.
-`gem contents` looks right. The failure lands on a stranger's machine at
-`gem install`, after the release is public.
+`gem build` does **not** resolve the link. It writes it into the package tar as a
+symlink, prints `WARNING: LICENSE.txt is a symlink, which is not supported on all
+platforms`, and succeeds. What happens next depends on the installer's RubyGems:
+
+- **RubyGems >= 3.2** (Ruby 3.0 and up) refuses to extract a symlink pointing
+  outside the gem — `Gem::Package::SymlinkError`. `gem install` fails outright.
+- **RubyGems < 3.2** has no such guard. Measured on Ruby 2.7 (RubyGems 3.1.6),
+  which is inside this gem's [supported range](ruby-floor.md): `gem install`
+  **succeeds**, exit 0, and installs a dangling `LICENSE.txt` pointing at a path
+  that does not exist on that machine.
+
+The older half is the worse one, which inverts the intuition: the failure there
+is not a refusal but a gem that installs cleanly and ships no licence. And a
+build warning is the only notice either way — `spec.files` lists the file and
+`gem contents` reads right.
 
 So they are real duplicated files, with a test asserting they are byte-identical
 to the root's and that neither is a symlink. A per-package license copy is what
