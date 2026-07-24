@@ -158,8 +158,17 @@ module OKF
         pairs
       end
 
-      # One @ref as a single-element [[slug, dir]], or nil after reporting.
+      # One @ref as [[slug, dir], …]: a group fans out to its readable member
+      # bundles, a plain @slug is the single-element pair it always was. nil after
+      # reporting. `ref_targets` dedupes across refs, and #expand within a group, so
+      # `@backend @okf` (okf ∈ backend) still searches okf once.
       def ref_pair(ref)
+        registry = load_registry
+        return nil unless registry
+
+        slug = OKF::Registry.normalize(ref[1..-1])
+        return group_pairs(registry, slug) if !slug.empty? && registry.group?(slug)
+
         path = resolve_registered(ref)
         unless path
           # Only an unknown slug is plausibly a mistyped term — a broken registry
@@ -168,6 +177,28 @@ module OKF
           return nil
         end
         [ [ ref_slugs[path], path ] ]
+      end
+
+      # A group's readable member bundles as [slug, dir] pairs, skipping vanished
+      # ones with a note (as `@all` does) and labelling each leaf by its own slug.
+      # nil (reported) when nothing readable is left, or on a hand-edited cycle.
+      def group_pairs(registry, slug)
+        pairs = []
+        registry.expand(slug).each do |entry|
+          if File.directory?(entry.path)
+            ref_slugs[entry.path] = entry.slug
+            pairs << [ entry.slug, entry.path ]
+          else
+            skip_registered(entry)
+          end
+        end
+        return pairs unless pairs.empty?
+
+        @err.puts "error: @#{slug} resolves to no readable bundle (okf registry list)"
+        nil
+      rescue OKF::Error => e
+        @err.puts "error: #{e.message}"
+        nil
       end
 
       # Search every bundle at once and merge the rankings, each row labeled with

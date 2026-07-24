@@ -46,6 +46,21 @@ module AcrossBundles
       refute_match(/empty/, result.err)
     end
 
+    test "a group @ref is refused (2) — a single-bundle verb cannot take a set" do
+      # The seam is shared in #resolve_registered, so one representative verb
+      # proves it for every single-bundle verb: a group names several bundles, and
+      # lint answers about one.
+      with_registry("conformant", "minimal") do
+        okf("registry", "group", "docs", "@conformant", "@minimal")
+
+        result = okf("lint", "@docs")
+
+        assert_equal 2, result.status
+        assert_match(/@docs names a group of 2 members; only `okf search` and `okf server` take a group/, result.err)
+        assert_empty result.out
+      end
+    end
+
     test "the refusal is a usage verdict (2), never --fail-on warn's failing one (1)" do
       assert_equal 1, okf("lint", fixture("unhealthy"), "--fail-on", "warn").status # the bundle itself gates
 

@@ -36,7 +36,10 @@ module OKF
           o.on("--read-only", "serve the bundles list without its registry controls") { options[:read_only] = true }
           help_flag(o)
         end
-        dirs = positional_dirs(parser, argv) or return 2
+        # expand_groups: `okf server @backend` fans a group out to its member
+        # bundles (single-bundle verbs reject a group; server is one of the two that
+        # take a set).
+        dirs = positional_dirs(parser, argv, expand_groups: true) or return 2
 
         # A flag that will have no effect in this mode gets a note, not silence.
         @err.puts "note: --title/--link apply to a single-bundle server; ignored" if dirs.size != 1 && (options[:title] || options[:link])

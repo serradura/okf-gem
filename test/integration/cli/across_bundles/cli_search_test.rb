@@ -613,6 +613,64 @@ module AcrossBundles
       end
     end
 
+    # -- groups: a named @ref that fans out to member bundles
+
+    test "a group @ref searches its members, merged and labelled like the refs it stands for" do
+      with_registry("conformant", "rooted") do
+        okf("registry", "group", "docs", "@conformant", "@rooted")
+
+        grouped = okf("search", "@docs", "the", "--json")
+        spelled = okf("search", "@conformant", "@rooted", "the", "--json")
+
+        assert_equal 0, grouped.status
+        assert_equal json(spelled)["matches"].map { |row| [ row["slug"], row["id"] ] },
+          json(grouped)["matches"].map { |row| [ row["slug"], row["id"] ] },
+          "@docs resolves to exactly the two bundles it groups, ranked as one corpus"
+      end
+    end
+
+    test "a group and an overlapping ref dedupe — the shared member is searched once" do
+      with_registry("conformant", "rooted") do
+        okf("registry", "group", "docs", "@conformant", "@rooted")
+
+        data = json(okf("search", "@docs", "@conformant", "the", "--json"))
+
+        assert_equal %w[conformant rooted], data["bundles"].map { |bundle| bundle["slug"] },
+          "conformant, named by the group and again by @conformant, appears once"
+      end
+    end
+
+    test "a vanished group member is skipped with a note, the rest still search" do
+      doomed = scratch_bundle("doomed")
+      with_registry("conformant") do
+        okf("registry", "set", doomed)
+        okf("registry", "group", "docs", "@conformant", "@doomed")
+        FileUtils.rm_rf(doomed)
+
+        result = okf("search", "@docs", "the", "--json")
+
+        assert_equal 0, result.status
+        assert_match(/note: skipping doomed — cannot read #{Regexp.escape(doomed)}/, result.err)
+        assert_equal [ "conformant" ], json(result)["bundles"].map { |bundle| bundle["slug"] }
+      end
+    end
+
+    test "a group whose every member vanished errors, not a silent empty search" do
+      a = scratch_bundle("a")
+      b = scratch_bundle("b")
+      okf("registry", "set", a)
+      okf("registry", "set", b)
+      okf("registry", "group", "docs", "@a", "@b")
+      FileUtils.rm_rf(a)
+      FileUtils.rm_rf(b)
+
+      result = okf("search", "@docs", "the")
+
+      assert_equal 2, result.status
+      assert_match(/@docs resolves to no readable bundle/, result.err)
+      assert_empty result.out
+    end
+
     # -- best effort
 
     test "a malformed bundle among several is best-effort: noted on stderr, stdout stays parseable" do

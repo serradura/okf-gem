@@ -267,6 +267,58 @@ module AcrossBundles
       refute_match(%r{/b/conformant/}, result.out)
     end
 
+    # -- a group @ref fans out to its member bundles
+
+    test "a group ref mounts each of its members under its registered slug" do
+      okf("registry", "set", fixture("conformant"), "--as", "handbook")
+      okf("registry", "set", fixture("mentions"), "--as", "runbooks")
+      okf("registry", "group", "docs", "@handbook", "@runbooks")
+
+      result, booted = okf_server("@docs")
+      hub = booted_app(booted.first)
+
+      assert_equal 0, result.status
+      assert_kind_of OKF::Server::Hub, hub
+      assert_match(%r{^ {2}\* /b/handbook/\s+fixtures/conformant$}, result.out, "the group's first member lands at /")
+      assert_match(%r{^ {4}/b/runbooks/\s+fixtures/mentions$}, result.out)
+
+      status, headers, = get_page(hub)
+      assert_equal 302, status
+      assert_equal "/b/handbook/", headers["location"], "the mount table's * and the hub's / agree"
+    end
+
+    test "a vanished group member is skipped with a note; the rest still serve" do
+      doomed = scratch_bundle("doomed")
+      okf("registry", "set", fixture("conformant"), "--as", "handbook")
+      okf("registry", "set", doomed)
+      okf("registry", "group", "docs", "@handbook", "@doomed")
+      FileUtils.rm_rf(doomed)
+
+      result, _booted = okf_server("@docs")
+
+      assert_equal 0, result.status
+      assert_match(/note: skipping doomed — cannot read #{Regexp.escape(doomed)}/, result.err)
+      # One surviving member takes the single-bundle path (arity decides the mode),
+      # so it serves at / with the single-bundle serving line.
+      assert_match(/serving 3 concepts at/, result.out, "the readable member still serves")
+    end
+
+    test "a group whose every member vanished fails the server (exit 2), booting nothing" do
+      a = scratch_bundle("a")
+      b = scratch_bundle("b")
+      okf("registry", "set", a, "--as", "aa")
+      okf("registry", "set", b, "--as", "bb")
+      okf("registry", "group", "docs", "@aa", "@bb")
+      FileUtils.rm_rf(a)
+      FileUtils.rm_rf(b)
+
+      result, booted = okf_server("@docs")
+
+      assert_equal 2, result.status
+      assert_nil booted, "nothing half-boots on an empty resolution"
+      assert_match(/@docs resolves to no readable bundle/, result.err)
+    end
+
     # -- flags in multi form
 
     test "-p/--bind reach the runner for a hub" do
