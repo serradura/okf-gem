@@ -15,6 +15,11 @@ def browser_sh(command, env = {})
   Dir.chdir(BROWSER_DIR) { sh(env, command) }
 end
 
+# The repo root, one level up: the two things this gem's tasks reach outside
+# itself both live there — the project's own .okf bundle (browser:shots) and the
+# Claude Code plugin the skill is synced into (plugin:sync).
+REPO_ROOT = File.expand_path("..", __dir__)
+
 # The README's graph shot, in both themes: boots the server on this repo's own
 # .okf and hands it to shots.mjs, which drives Chromium and writes the two PNGs.
 # It has nothing to do with the test suite beyond borrowing its Chromium — it
@@ -28,7 +33,7 @@ def regenerate_shots
 
   port = ENV.fetch("SHOT_PORT", "8877")
   server = spawn(RbConfig.ruby, "-I#{__dir__}/lib", "#{__dir__}/exe/okf",
-    "server", "#{__dir__}/.okf", "-p", port, "--title", "okf-gem",
+    "server", "#{REPO_ROOT}/.okf", "-p", port, "--title", "okf-gem",
     out: File::NULL, err: File::NULL)
   begin
     sleep 2 # WEBrick's boot; the script's own goto retries nothing
@@ -135,24 +140,30 @@ task :set_integration_coverage_dir do
   ENV["OKF_COVERAGE_NAME"] = "Integration Tests (alone)"
 end
 
-# The Claude Code plugin (plugin/) carries a copy of the canonical skill and the
-# gem's version in its manifest. This regenerates both from their sources
+# The Claude Code plugin (../plugin/) carries a copy of the canonical skill and
+# the gem's version in its manifest. This regenerates both from their sources
 # (lib/okf/skill and lib/okf/version.rb); test/plugin/sync_test.rb fails
 # whenever they drift, so the "single editable skill copy" constraint stays
 # auditable in CI.
+#
+# The plugin lives at the repo root, not in this gem, but these tasks stay here:
+# both of its inputs are the gem's, and keeping them here is what lets
+# `task build: "plugin:verify"` below stay a plain dependency — the guard that
+# makes a release with a stale manifest impossible rather than a CI failure
+# after the fact.
 namespace :plugin do
-  desc "Regenerate plugin/skills/okf from lib/okf/skill and stamp the gem version into plugin.json"
+  desc "Regenerate ../plugin/skills/okf from lib/okf/skill and stamp the gem version into plugin.json"
   task :sync do
     require "fileutils"
     require "json"
     require_relative "lib/okf/version"
 
-    dest = File.expand_path("plugin/skills/okf", __dir__)
+    dest = File.join(REPO_ROOT, "plugin/skills/okf")
     FileUtils.rm_rf(dest)
     FileUtils.mkdir_p(dest)
     FileUtils.cp_r(File.join(File.expand_path("lib/okf/skill", __dir__), "."), dest)
 
-    manifest_path = File.expand_path("plugin/.claude-plugin/plugin.json", __dir__)
+    manifest_path = File.join(REPO_ROOT, "plugin/.claude-plugin/plugin.json")
     manifest = JSON.parse(File.read(manifest_path))
     manifest["version"] = OKF::VERSION
     File.write(manifest_path, JSON.pretty_generate(manifest) + "\n")
@@ -166,7 +177,7 @@ namespace :plugin do
     require "json"
     require_relative "lib/okf/version"
 
-    manifest = JSON.parse(File.read(File.expand_path("plugin/.claude-plugin/plugin.json", __dir__)))
+    manifest = JSON.parse(File.read(File.join(REPO_ROOT, "plugin/.claude-plugin/plugin.json")))
     unless manifest["version"] == OKF::VERSION
       abort "plugin.json is at #{manifest["version"]} but the gem is #{OKF::VERSION}: run `bundle exec rake plugin:sync`"
     end

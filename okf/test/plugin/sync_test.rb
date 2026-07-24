@@ -11,9 +11,13 @@ require "json"
 # detected by SHA-256: every file in the canonical tree must exist in the
 # plugin copy with the same checksum, and no extra file may appear there.
 class OKF::PluginSyncTest < OKF::TestCase
-  ROOT = File.expand_path("../..", __dir__)
-  CANONICAL = File.join(ROOT, "lib/okf/skill")
-  COPY = File.join(ROOT, "plugin/skills/okf")
+  # Two roots, named apart on purpose: the canonical skill is the *gem's*, the
+  # plugin is the *repo's*, and a single ROOT that silently meant one or the
+  # other is the ambiguity this pairing exists to remove.
+  GEM_ROOT = File.expand_path("../..", __dir__)
+  REPO_ROOT = File.expand_path("..", GEM_ROOT)
+  CANONICAL = File.join(GEM_ROOT, "lib/okf/skill")
+  COPY = File.join(REPO_ROOT, "plugin/skills/okf")
 
   test "plugin/skills/okf carries the same files as lib/okf/skill — run `rake plugin:sync` after editing the skill" do
     assert File.directory?(COPY), "plugin/skills/okf is missing — run `rake plugin:sync`"
@@ -31,7 +35,7 @@ class OKF::PluginSyncTest < OKF::TestCase
   end
 
   test "plugin.json carries the gem version — run `rake plugin:sync` after a version bump" do
-    manifest = JSON.parse(File.read(File.join(ROOT, "plugin/.claude-plugin/plugin.json")))
+    manifest = JSON.parse(File.read(File.join(REPO_ROOT, "plugin/.claude-plugin/plugin.json")))
     assert_equal OKF::VERSION, manifest["version"]
   end
 

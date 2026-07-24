@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { repoRoot, bundleDir, staticPage, hostileDir, hostilePage, panelHome, panelDir, treeDir, treePage, manytagsDir, manytagsPage, deeppathDir, deeppathPage, biggraphDir, biggraphPage, densegraphDir, densegraphPage, bundleMapPage } from "./paths.js";
+import { gemRoot, bundleDir, staticPage, hostileDir, hostilePage, panelHome, panelDir, treeDir, treePage, manytagsDir, manytagsPage, deeppathDir, deeppathPage, biggraphDir, biggraphPage, densegraphDir, densegraphPage, bundleMapPage } from "./paths.js";
 
 // Bake the static page the `static` project loads over file://. Rendering it
 // here rather than committing it keeps the suite honest: every run tests the
@@ -47,6 +47,6 @@ function okf(argv, env = {}) {
   execFileSync(
     "bundle",
     [ "exec", "ruby", "-Ilib", "exe/okf", ...argv ],
-    { cwd: repoRoot, env: { ...process.env, ...env }, stdio: [ "ignore", "ignore", "inherit" ] }
+    { cwd: gemRoot, env: { ...process.env, ...env }, stdio: [ "ignore", "ignore", "inherit" ] }
   );
 }

@@ -4,13 +4,29 @@
 # simply skipped where it cannot load.
 begin
   require "simplecov"
+
+  gem_root = File.expand_path("..", __dir__)   # okf/
+  repo_root = File.expand_path("..", gem_root) # the monorepo root
+
   SimpleCov.start do
     enable_coverage :branch
+    # The repo root, not this gem: SimpleCov tracks nothing outside its root, and
+    # the plugin's curation hook (../plugin/hooks/scripts/curate.rb) is a
+    # repo-level file this suite tests. Left at the default, moving the gem into
+    # a subdirectory dropped its ~100 lines out of the report — the coverage
+    # percentage went *up* while the thing being measured got smaller, which is
+    # the one way a coverage figure lies without anything failing.
+    root repo_root
     add_filter "/test/"
+    # The report itself stays inside the gem, though: it is this gem's report,
+    # and `root` above only says what may be *counted*. Absolute, because a
+    # relative coverage_dir resolves against root and would land it at the
+    # repo root.
+    #
     # `rake test:integration` points these at a separate report, so the
     # integration-only figure — the honest one, since it only counts what a user
     # can reach through the CLI — never overwrites the full suite's.
-    coverage_dir ENV["OKF_COVERAGE_DIR"] if ENV["OKF_COVERAGE_DIR"]
+    coverage_dir File.join(gem_root, ENV["OKF_COVERAGE_DIR"] || "coverage")
     command_name ENV["OKF_COVERAGE_NAME"] if ENV["OKF_COVERAGE_NAME"]
   end
   # Generate the coverage report *after* the Minitest suite finishes rather than

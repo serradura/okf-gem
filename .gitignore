@@ -1,38 +1,18 @@
-/.bundle/
-/.yardoc
-/_yardoc/
-/coverage/
-/doc/
-/pkg/
-/spec/reports/
+# Repo-level only. Everything that belongs to a gem is ignored from that gem's
+# own .gitignore, where a leading `/` anchors to the gem directory rather than
+# to here — see okf/.gitignore. Every gem-level entry that used to live in this
+# file stopped matching the moment the gem moved down a level, which is exactly
+# the failure this split exists to prevent.
+
 /tmp/
+
+# Built gems, wherever they land.
 *.gem
 
-# The gem is tested against many Rubies; each resolves its own dependency set.
-Gemfile.lock
-
 # Local skill installs (okf skill <dest>) stay out of the repo; the canonical
-# skill lives in lib/okf/skill/.
-/.agents/
+# skill lives in okf/lib/okf/skill/. Unanchored, so a run from the repo root and
+# a run from inside a gem directory are both covered.
+.agents/
 
 /.claude/*
 !/.claude/CLAUDE.md
-
-# The browser suite's node toolchain and its scratch output (the rendered
-# static page, traces, screenshots, the HTML report). The specs and the
-# fixture bundle are committed; nothing under these is.
-#
-# playwright-report/ and test-results/ are Playwright's *defaults*, which the
-# config redirects into .tmp/. They are still ignored, because anything run
-# outside `rake test:browser` — a bare `npx playwright test --reporter=html`,
-# an editor plugin, a `-c` pointing elsewhere — writes to the default names
-# and would otherwise stage a few dozen build artifacts.
-/test/browser/node_modules/
-/test/browser/.tmp/
-# The read-through cache of the page's CDN libraries (vendor-cache.js). Build
-# output, not source: it is populated by the first run that needs each file and
-# keyed on the URL, so deleting it only costs one slow suite.
-/test/browser/vendor/
-/test/browser/playwright-report/
-/test/browser/test-results/
-/test/browser/package-lock.json
