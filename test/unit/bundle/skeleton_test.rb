@@ -180,7 +180,7 @@ class OKF::Bundle::SkeletonTest < OKF::TestCase
     cuts = skeleton.cuts_for(graph_edges)
 
     assert_equal graph_edges.size, cuts.size
-    assert cuts.all?(Integer)
+    assert cuts.all? { |cut| cut.is_a?(Integer) }
     # Matched on the pair, not the index — so a reordered list still lines up.
     shuffled = graph_edges.reverse
     assert_equal skeleton.cuts_for(graph_edges).reverse, skeleton.cuts_for(shuffled)

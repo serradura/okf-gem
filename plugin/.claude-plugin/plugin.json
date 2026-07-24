@@ -1,6 +1,6 @@
 {
   "name": "okf",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "description": "Open Knowledge Format for Claude: the OKF skill, /okf:gem setup and doctor, and a post-edit hook that runs the okf CLI's validate and lint checks on the bundle you touched.",
   "author": {
     "name": "Rodrigo Serradura",

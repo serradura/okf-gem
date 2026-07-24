@@ -5,23 +5,55 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- **The derived `area` field is renamed `top_dir`** — the first-path-segment
-  rollup the catalog, search, `stats`, and `graph --hubs` carry. `area` was never
-  the OKF spec's word (the spec speaks only of `dir`), so the rollup now names
-  itself in the spec's vocabulary: it is the `dir` at the top level. The `--json`
-  keys move with it — catalog/search rows carry `top_dir` in place of `area`,
-  `stats` emits `top_dirs`/`by_top_dir`, and `graph --hubs` emits
-  `top_dir`/`by_top_dir`. The **deprecated `--area`/`--by area` input flags are
-  unchanged** — they still warn and map to `--dir`/`--by dir`, and now source the
-  renamed field internally. No behavior changes; the well-homed-hub numbers are
-  identical.
+## [1.12.0] - 2026-07-24
 
 ### Added
 
+- **`okf graph --traffic`** — the link graph read one grain coarser. `--hubs`
+  measures concepts, but the refine playbook's directory judgements ("does this
+  directory prune? a concern, or a container?") had nothing measured at their
+  grain. `--traffic` collapses each concept into its directory and the links
+  between two directories into one weighted arc, so every row carries its
+  internal / out / in traffic and a **cohesion** — its internal share of that
+  total. That is cohesion versus coupling on a knowledge tree: near-zero cohesion
+  under heavy inbound is a shared vocabulary doing its job, heavy outbound with
+  nothing back is a projection wearing a directory. The rows sort by cohesion
+  ascending, so the directories with a case to answer come first, and a directory
+  with no traffic at all prints `—` rather than a `0%` it did not earn. The arc
+  **cut** is fitted to the bundle, not fixed — at weight 3, ten bundles ranged
+  from 2 arcs to 136 — and `--cut N` overrides it; cohesion is computed over
+  *every* arc regardless, so narrowing the drawn picture never moves the
+  evidence. JSON: `{ bundle, cut, fitted, dirs, arcs, total_arcs }`. The pure
+  model underneath is `Bundle::Skeleton` — concepts folded to directories, links
+  to weighted arcs, every edge tagged with the cut it survives (a local-degree
+  sparsifier, union rule, so no linked concept is ever stranded) — and it does no
+  I/O and draws nothing: it names a cut rather than taking one, so both the graph
+  page and the CLI narrow the same emission their own way.
+- **The graph page draws links in three amounts, and opens dense on its spine.**
+  227 links over 47 concepts at degree 9.7 is unreadable because of its arrows,
+  not its dots — so links become a layer: **every** link, the **spine** (each
+  concept's strongest edge — the Skeleton's `keep_at===0` set, chosen so it
+  touches every linked concept), or **none**, with a selected concept's own links
+  always shown in full. A dense bundle now opens on its spine rather than greeting
+  the reader with the thicket; the trigger is undirected degree above a floor set
+  between a tree's ~2 and the 9.7 that drove it, and `--map` overrides to none
+  with the directories boxed. Above 800 edges the first layout runs on the spine
+  alone and the rest arrive a frame later with no re-layout — **6.25 s → 3.29 s**
+  on 414 concepts, nothing on screen moving. Proven in both render modes on a
+  committed 110-concept / 880-link fixture, the only one over both floors.
+- **Registry groups — a named, recursive set of bundles.** A group is a registry
+  slug that names a list of members (bundle *or* group slugs, so they nest) and
+  resolves recursively, path-deduped, to its bundle leaves. `okf registry group
+  <slug> <@member…>` creates one or adds to it, `ungroup` removes members (and
+  emptying a group deletes it), and `del`/`rename` now span a group slug too —
+  one name cascades across every member list, one `del` cascade-drops the slug and
+  deletes any group it empties. Groups live in their own list in the registry
+  JSON, so the first-is-default rule and the `File.directory?` guards never meet a
+  pathless entry. `okf search @backend` merges the members into one ranking and
+  `okf server @backend` mounts each (the first at `/`), both skipping a vanished
+  member with a note, exactly as `@all` does. Every single-bundle verb **refuses**
+  a `@group` (exit 2) — the same rule that refuses a second bundle, through the
+  same `resolve_registered` seam.
 - **`okf registry init`** — create a project-local `.okf-registry.json` in the
   current directory. Once it exists, okf discovers it by walking up from the
   working directory, and every registry operation — and every `@slug` — resolves
@@ -38,6 +70,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   absolute everywhere the CLI reports them; the relative form lives only on disk,
   and an existing absolute local entry migrates to relative on its next write. The
   global `$OKF_HOME` registry is unchanged — it stores absolute paths as before.
+
+### Changed
+
+- **The derived `area` field is renamed `top_dir`** — the first-path-segment
+  rollup the catalog, search, `stats`, and `graph --hubs` carry. `area` was never
+  the OKF spec's word (the spec speaks only of `dir`), so the rollup now names
+  itself in the spec's vocabulary: it is the `dir` at the top level. The `--json`
+  keys move with it — catalog/search rows carry `top_dir` in place of `area`,
+  `stats` emits `top_dirs`/`by_top_dir`, and `graph --hubs` emits
+  `top_dir`/`by_top_dir`. The **deprecated `--area`/`--by area` input flags are
+  unchanged** — they still warn and map to `--dir`/`--by dir`, and now source the
+  renamed field internally. No behavior changes; the well-homed-hub numbers are
+  identical.
+
+### Fixed
+
+- **A local-registry server preserves its relative-path anchor across a
+  re-open.** The hub re-read its boot registry with `OKF::Registry.new(path)`,
+  which drops the `relative_base` a discovered `.okf-registry.json` carries — so
+  on a project-local server the Bundles panel matched each mounted bundle's
+  absolute root against the re-read entry's *relative* path, missed, and drew
+  every in-tree bundle as "folder is gone", while a browser add flattened the new
+  bundle to an absolute path, undoing the portability relative storage exists for.
+  `Registry#reopen` re-reads the same file anchored the same way, and both hub
+  re-open sites use it.
 
 ## [1.11.0] - 2026-07-22
 
