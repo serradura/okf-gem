@@ -1,17 +1,29 @@
 # Keep the build context small. NOTE: .git is intentionally NOT ignored —
 # okf.gemspec builds spec.files from `git ls-files`, so the build stage needs it.
+#
+# LOAD-BEARING: anything excluded here from under okf/ must ALSO be in the
+# gemspec's reject list, and vice versa. `git ls-files` reads the index, so a
+# path dropped from the context is still listed in spec.files — and `gem build`
+# then fails on a file that is not there. The two lists move together.
+#
+# Paths outside okf/ (.okf, plugin/, .github…) need no such pairing: the gemspec
+# runs `git ls-files` with chdir into okf/ and never sees them. They are here
+# only to keep the context small.
 node_modules
-coverage
 tmp
-pkg
 *.gem
-.rubocop.yml
+.ruby-lsp
+.DS_Store
+
+# Repo-level — invisible to the gemspec.
 .claude
 .claude-plugin
 .okf
 .github
-test
-mcp
-sqlite3
-.ruby-lsp
-.DS_Store
+plugin
+
+# Under okf/ — each of these is also in okf.gemspec's reject list. See above.
+okf/test
+okf/coverage
+okf/pkg
+okf/.rubocop.yml
