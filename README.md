@@ -460,17 +460,17 @@ OKF::Server::App.new(folder)     # => a Rack app: the interactive graph, mountab
 
 That last line is the point of the Rack app: the graph mounts inside an app you
 already have, auth included. The [Rails guide](https://okfgem.com/docs/guides/rails/)
-walks it, and the [library API](.okf/capabilities/library-api.md) concept covers
+walks it, and the [library API](https://okfgem.com/docs/library/) covers
 the pure layer, the writer, and the lower-level pieces.
 
 ### validate and lint are two different questions
 
-`validate` (the [conformance validator](.okf/capabilities/validator.md)) asks
+`validate` (the [conformance validator](https://okfgem.com/docs/cli/validate/)) asks
 _"is this legal OKF?"_ and implements the spec's
 [§9](lib/okf/skill/reference/SPEC.md#9-conformance) exactly — which means it is
 *forbidden* to reject a bundle for a broken link or a missing optional field.
 
-`lint` (the [curation linter](.okf/capabilities/linter.md)) asks the
+`lint` (the [curation linter](https://okfgem.com/docs/cli/lint/)) asks the
 complementary question, _"is this well-curated, navigable, trustworthy?"_, over
 exactly those tolerated things: reachability, backlog, completeness, freshness,
 provenance, hygiene. It is advisory and exits `0` even with findings unless you
