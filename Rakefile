@@ -52,9 +52,20 @@ task(:test) { each_gem("test") }
 # The repo-level Ruby — this file and the plugin's curation hook — sits outside
 # every gem, so no gem's `rake rubocop` reaches it. Run from the root against
 # the root config, borrowing okf's bundle for the rubocop binary itself.
+# CI runs this as its own job (see .github/workflows/main.yml) because no gem's
+# own `rake rubocop` reaches these two files.
+#
+# It degrades where RuboCop is absent, exactly as the gem's default task does:
+# okf/Gemfile only installs it from 2.7 up, so on the old Rubies this would
+# otherwise take the root `rake` down with it.
 desc "RuboCop the repo-level Ruby (this Rakefile and the plugin hook)"
 task :rubocop do
-  sh gemfile_env("okf"), "bundle exec rubocop"
+  env = gemfile_env("okf")
+  if system(env, "bundle exec rubocop --version", out: File::NULL, err: File::NULL)
+    sh env, "bundle exec rubocop"
+  else
+    puts "rubocop is not installed on this Ruby (okf/Gemfile installs it from 2.7) — skipping the repo-level lint"
+  end
 end
 
 desc "Validate and lint this repo's own .okf bundle with the checkout's CLI"

@@ -9,7 +9,13 @@
 # plain stdlib Ruby held to the same floor.
 inherit_from: okf/.rubocop.yml
 
+# inherit_mode keeps RuboCop's own AllCops defaults (node_modules/, vendor/,
+# .git/ …) instead of replacing them with just these two — the same reason the
+# gem's config uses it on Metrics/BlockLength.
 AllCops:
+  inherit_mode:
+    merge:
+      - Exclude
   Exclude:
     - "okf/**/*"
     - "tmp/**/*"

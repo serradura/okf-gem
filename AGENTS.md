@@ -190,11 +190,14 @@ deterministic check enforces the point,`<!-- rule:okf-<slug> -->` for
    behaves; an integration test proves the *product* behaves, so when the two
    compete for effort, integration wins. See the section below for what that
    obliges you to do.
-9. **`.dockerignore` and the gemspec's reject list move together.** Whatever the
-   one drops from under `okf/`, the other must reject. `git ls-files` reads the
-   *index*, so a path excluded from the Docker build context is still listed in
-   `spec.files` and `gem build` then fails on a file that is not there. Paths
-   outside the gem need no pairing — the gemspec runs with `chdir:` into `okf/`
+9. **`.dockerignore` implies the gemspec's reject list, one way only.** Anything
+   `.dockerignore` drops from under `okf/` must also be rejected by the gemspec
+   (or be gitignored). `git ls-files` reads the *index*, so a path excluded from
+   the Docker build context is still listed in `spec.files` and `gem build` then
+   fails on a file that is not there. **The converse does not hold** and must not
+   be "restored" for symmetry: `okf/bin`, `okf/Gemfile` and `okf/Rakefile` are
+   rejected from the gem and stay in the build context on purpose. Paths outside
+   the gem need no pairing at all — the gemspec runs with `chdir:` into `okf/`
    and never sees them.
    The same section's other rule: **nothing in `spec.files` may be a symlink.**
    `gem build` writes one into the package as a symlink and RubyGems refuses to

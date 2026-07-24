@@ -51,9 +51,12 @@ Gem::Specification.new do |spec|
   # .github/, AGENTS.md, the Dockerfile — is invisible here by construction and
   # needs no reject entry.
   #
-  # Whatever this list rejects, .dockerignore must also exclude, and vice versa:
-  # git ls-files reads the *index*, so a file excluded from the Docker build
-  # context is still listed here and `gem build` then fails on a missing file.
+  # The rule runs one way only: anything .dockerignore drops from under okf/ has
+  # to be rejected here (or gitignored). `git ls-files` reads the *index*, so a
+  # file missing from the build context is still listed in spec.files and
+  # `gem build` fails on it. The converse does not hold and must not be
+  # "restored" — bin/, Gemfile and Rakefile are rejected here and deliberately
+  # left in the context, because nothing breaks by shipping them to the builder.
   gemspec = File.basename(__FILE__)
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).reject do |f|

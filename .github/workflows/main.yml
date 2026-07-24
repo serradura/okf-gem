@@ -55,6 +55,27 @@ jobs:
       - name: Run the default task
         run: bundle exec rake
 
+  # The Ruby that belongs to no gem — this repo's Rakefile and the Claude Code
+  # plugin's curation hook — is linted by no gem's `rake rubocop`, so without
+  # this job it is held to the 2.4 floor by comment only. One modern Ruby is
+  # enough: RuboCop only installs from 2.7 up (see okf/Gemfile), and it is the
+  # *target* version that does the checking, not the running one.
+  lint:
+    name: repo-level lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+          working-directory: okf
+      - name: Lint the repo-level Ruby
+        run: rake rubocop
+
 # The graph page's Chromium suite (test/browser) is deliberately *not* here. It
 # ran as a non-blocking job for several releases and failed 5 of its last 7 runs
 # while the matrix above stayed green — the page boots against a CDN, so most of

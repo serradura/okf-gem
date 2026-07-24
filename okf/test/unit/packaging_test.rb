@@ -25,5 +25,21 @@ class OKF::PackagingTest < OKF::TestCase
       assert_equal File.binread(File.join(REPO_ROOT, name)), File.binread(File.join(GEM_ROOT, name)),
         "#{name} has drifted from the repo root's copy — they must stay identical"
     end
+
+    # The file existing is not the obligation; the file *shipping* is. Present
+    # but untracked, or newly caught by the gemspec's reject list, and the gem
+    # goes out without the licence it is required to distribute — with all the
+    # assertions above still green.
+    test "#{name} is in spec.files, so it actually ships" do
+      assert_includes spec.files, name, "#{name} is not in spec.files — the gem would ship without it"
+    end
+  end
+
+  private
+
+  def spec
+    # Loaded from the gem's own directory: spec.files comes from `git ls-files`
+    # with chdir, so the working directory it is evaluated in decides the answer.
+    @spec ||= Dir.chdir(GEM_ROOT) { Gem::Specification.load(File.join(GEM_ROOT, "okf.gemspec")) }
   end
 end

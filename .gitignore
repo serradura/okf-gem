@@ -6,6 +6,13 @@
 
 /tmp/
 
+# The repo root's own build output. These used to be here for the gem's sake and
+# were re-anchored into okf/.gitignore with it — but the root can still grow a
+# coverage/ or pkg/ (a stray run, an older checkout), and `*.gem` below only
+# catches a pkg directory's *contents*, never the directory itself.
+/coverage/
+/pkg/
+
 # Built gems, wherever they land.
 *.gem
 

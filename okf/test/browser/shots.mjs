@@ -19,9 +19,10 @@ import path from "node:path";
 // shaved by its first glyph, and only in the re-themed shot.
 const PORT = process.env.SHOT_PORT || "8877";
 const here = path.dirname(fileURLToPath(import.meta.url));
-// Four hops, not three: `.github/` belongs to the repository, and this file sits
-// inside the gem (okf/test/browser/). Written against the gem root it wrote to a
-// directory nobody reads, silently, while still printing that it had succeeded.
+// Three hops, not two: `.github/` belongs to the repository, and this file sits
+// inside the gem (okf/test/browser/), so two hops reach the gem root rather than
+// the repo's. Written that way it created a stray okf/.github and wrote the
+// images there, silently, while still printing that it had succeeded.
 const OUT = path.resolve(here, "..", "..", "..", ".github");
 // 1727x964 at DPR 2 lands within a few pixels of the images being replaced
 // (3454x1928), so the README's layout does not shift under the swap.

@@ -26,7 +26,9 @@ begin
     # `rake test:integration` points these at a separate report, so the
     # integration-only figure — the honest one, since it only counts what a user
     # can reach through the CLI — never overwrites the full suite's.
-    coverage_dir File.join(gem_root, ENV["OKF_COVERAGE_DIR"] || "coverage")
+    # expand_path, not join: an absolute OKF_COVERAGE_DIR (a CI artifact path)
+    # must be honoured, and File.join would have quietly nested it under the gem.
+    coverage_dir File.expand_path(ENV["OKF_COVERAGE_DIR"] || "coverage", gem_root)
     command_name ENV["OKF_COVERAGE_NAME"] if ENV["OKF_COVERAGE_NAME"]
   end
   # Generate the coverage report *after* the Minitest suite finishes rather than
