@@ -4,7 +4,7 @@ title: The okf command-line front end
 description: The only layer that parses argv, prints, writes files, and decides exit codes.
 resource: lib/okf/cli.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-20T12:00:00Z
+timestamp: 2026-07-24T12:00:00Z
 ---
 
 # Overview
@@ -43,7 +43,7 @@ it; a group here that no command returns is a group nobody sees.
 | Group | Verbs | Notes |
 |-------|-------|-------|
 | `:act` | `skill`, `server`, `render` | boot the [graph server](capabilities/graph-server.md) or write it as a [static file](capabilities/render.md); install the [agent skill](capabilities/agent-skill.md). |
-| `:registry` | `registry` | one umbrella verb over five subcommands — curate the [bundle registry](registry.md). |
+| `:registry` | `registry` | one umbrella verb over its subcommands — curate the [bundle registry](registry.md), global or [project-local](registry.md#global-by-default-project-local-by-discovery). |
 | `:judge` | `lint`, `loose`, `validate` | [validate](capabilities/validator.md) and [lint](capabilities/linter.md) answer different questions and stay separate. |
 | `:read` | `search`, `index`, `stats`, `types`, `tags`, `files`, `catalog` | the [browser views as text](capabilities/read-views.md), plus the `index` map and [ranked search](capabilities/search.md). |
 | `:graph` | `graph` | its own group because it is the whole model at once, not a view onto part of it. |
@@ -66,16 +66,22 @@ Passing dirs never writes to the registry: an ad-hoc look at two bundles side by
 side should not enrol them in the user's durable list. Registering is always the
 explicit act of `okf registry set`.
 
-`registry` is an umbrella verb — `list`, `set`, `del`, `default`, `rename` — over
-one persistent file, and `$OKF_HOME` points every one of them at a different
-registry, which is what keeps the tests off the real `~/.okf`.
+`registry` is an umbrella verb — `init`, `list`, `set`, `del`, `default`,
+`rename`, `group`, `ungroup` — over one persistent file. `$OKF_HOME` points every
+one of them at a different global registry, which is what keeps the tests off the
+real `~/.okf`; `registry init` and discovery add a [project-local](registry.md#global-by-default-project-local-by-discovery)
+one that replaces it while you stand in its tree, with `OKF_NO_DISCOVERY=1` to
+force the global one.
 
-One lever, not two. An earlier design also carried a `--home DIR` flag, which had
-to be remembered on the three verbs that offered it and forgotten on every other
-one — a flag whose whole job was to name a location the env var already
-named. `$OKF_HOME` composes where a flag cannot: it reaches every verb at once
-without being typed, it survives into a subprocess, and if the directory ever
-holds more than `registry.json` it keeps meaning the same thing.
+One lever, not two — and the levers that exist are env vars, never flags. An
+earlier design also carried a `--home DIR` flag, which had to be remembered on the
+three verbs that offered it and forgotten on every other one — a flag whose whole
+job was to name a location the env var already named. `$OKF_HOME` composes where a
+flag cannot: it reaches every verb at once without being typed, it survives into a
+subprocess, and if the directory ever holds more than `registry.json` it keeps
+meaning the same thing. `OKF_NO_DISCOVERY` earns its keep the same way — one signal
+that reaches every verb, so project-local resolution has no per-verb `--global` to
+thread and forget.
 
 # Every output names its bundle, in the identity the caller used
 
@@ -100,9 +106,11 @@ used is the identity they get back.
 Wherever a `<dir>` goes, `@slug` resolves a [registered bundle](registry.md)
 and bare `@` the registry's default — one resolution seam (`resolve_ref`, shared
 by the positional parsers and search's ref list), inherited by all verbs at once,
-so `okf lint @handbook` works from any directory. They read `$OKF_HOME`, which is
-why the not-registered error names the registry file it consulted, so a mismatch
-self-diagnoses rather than reading as "never registered".
+so `okf lint @handbook` works from any directory. They read the
+[active registry](registry.md#global-by-default-project-local-by-discovery) — a
+project-local one discovered from the working directory, else `$OKF_HOME` — which
+is why the not-registered error names the registry file it consulted, so a
+mismatch self-diagnoses rather than reading as "never registered".
 
 A leading `@` always means the registry (`./@name` keeps an odd directory
 reachable), the registry file loads only when a ref appears, and an explicit ask

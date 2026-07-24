@@ -1,5 +1,20 @@
 # Update Log
 
+## 2026-07-24
+* **Sync**: caught the bundle up with **project-local registries** — the
+  [registry](registry.md) now has two homes, and which one answers is decided by
+  where you stand: `okf registry init` drops a `.okf-registry.json` that okf
+  discovers by walking up from the working directory and uses in place of the
+  global `$OKF_HOME` one while you are inside its tree (the file's presence is the
+  whole state, the nearest one on the path wins, and `OKF_NO_DISCOVERY=1` forces
+  the global one for a fixed-cwd caller). A bundle inside the tree is stored
+  **relative** to the file, so a committed registry travels with the repo — a
+  checkout elsewhere, or a container mounting it, resolves the same bundles
+  unchanged — while paths still read back absolute everywhere the CLI reports
+  them. The [CLI](cli.md) records the grown subcommand list (`init` through
+  `group`/`ungroup`, correcting a groups-era omission) and that `@slug` now
+  resolves through a discovered local registry before falling back to `$OKF_HOME`.
+
 ## 2026-07-23
 * **Addition**: the [registry](registry.md) grows **groups** — a slug that names
   a set of bundles (members are bundle or group slugs, so groups nest) and

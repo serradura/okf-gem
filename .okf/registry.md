@@ -1,10 +1,10 @@
 ---
 type: Component
 title: The bundle registry
-description: A per-user, ordered list of bundle references persisted as one JSON file under $OKF_HOME — the kernel behind a bare `okf server`.
+description: An ordered list of bundle references persisted as JSON — global under $OKF_HOME, or project-local via `okf registry init` and discovered from the working directory — the kernel behind a bare `okf server`.
 resource: lib/okf/registry.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-23T12:00:00Z
+timestamp: 2026-07-24T12:00:00Z
 ---
 
 # Overview
@@ -15,7 +15,9 @@ tomorrow share one list. It is a plain JSON file — `$OKF_HOME/registry.json`,
 `$OKF_HOME` defaulting to `~/.okf` — and that is a design choice, not a stopgap: a
 database would break the [two-dependency rule](design/runtime-dependencies.md),
 and the file is per-user, hand-editable, and greppable. It is part of the
-[shell](design/core-shell-split.md); it reads and writes a file.
+[shell](design/core-shell-split.md); it reads and writes a file. That is the
+*global* registry; a project can keep its own, discovered from the working
+directory — see [Global by default, project-local by discovery](#global-by-default-project-local-by-discovery).
 
 The registry stores *references*, never content. It holds a path, a slug, and a
 title — the bundles themselves stay where they are on disk, owned by the repos
@@ -205,6 +207,50 @@ Writes go to a temp file and are promoted with `rename`, the same atomic
 promotion the [bundle writer](capabilities/library-api.md) uses, so a booting
 server never reads a torn file. Two racing writers stay last-writer-wins: this is
 a per-user file, and locking would buy nothing worth the complexity.
+
+# Global by default, project-local by discovery
+
+The registry has two homes, and which one answers is decided by *where you stand*,
+not by a flag. The global one is the `$OKF_HOME/registry.json` above — one per
+user, shared across every repo. The project-local one is a `.okf-registry.json`
+that `okf registry init` drops in a directory; okf finds it by walking up from the
+working directory, and while you are inside its tree it **replaces** the global one
+— every registry op, and every [`@slug`](cli.md), resolves through it. So a bare
+`okf server` inside a repo serves that repo's bundles with no `$OKF_HOME` setup,
+and a project carries its own named set without touching the user's global list.
+
+**The file's presence is the whole state.** There is no stored "local mode", the
+same way the [default is a position, not a stored name](#the-default-is-a-position-not-a-stored-name):
+a mode flag would be one more thing to set, dangle, and reconcile, where the file
+being *there* is self-evident and self-cleaning. The nearest one on the path up
+wins, so nested registries resolve nearest-first, and `okf registry list` names the
+file it found so which one is answering is never a guess.
+
+`$OKF_HOME` still names *where the global registry lives*; it does **not** veto a
+nearer local one. That direction is deliberate: `$OKF_HOME` is commonly exported
+once and left, so letting it win would silently defeat the feature for exactly the
+users who set up a project registry. The escape hatch is therefore a per-invocation
+signal, not a second sticky variable — `OKF_NO_DISCOVERY=1`, set inline, forces the
+global registry for a fixed-cwd caller (CI, a tool) that cannot just `cd` out.
+
+# A project-local registry stores portable paths
+
+The global registry stores absolute paths — correct for `~/.okf`, whose bundles
+are scattered across the disk with no shared anchor. A committed project registry
+needs the opposite: a bundle **inside** the registry's own tree is stored *relative*
+to the `.okf-registry.json`, so the file travels with the repo — a checkout on
+another machine, or a container mounting it, resolves the same bundles unchanged. A
+bundle **outside** the tree keeps an absolute path, because a relative path that
+climbs out cannot be re-anchored anywhere useful, and being honest that it will not
+travel beats a `../../..` that breaks on the first move.
+
+The relative form lives **only on disk**. A path resolves to absolute the moment it
+is read, so `entry.path`, [`registry list`](cli.md), and the server mount all go on
+seeing the absolute paths they always did — the portability is a property of the
+file, invisible to every consumer. And because only the write side relativizes, an
+existing absolute local entry migrates to relative on its next write: a registry
+written before this existed heals itself the first time it changes.
+<!-- rule:okf-registry-local-discovery -->
 
 # It costs an embedding app nothing
 
