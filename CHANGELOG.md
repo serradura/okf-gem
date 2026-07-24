@@ -16,8 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inside a repo serves that repo's bundles with no global setup. The nearest one
   on the path wins (nested registries resolve nearest-first), `okf registry list`
   names the local file it found, and `OKF_NO_DISCOVERY=1` forces the global one —
-  the escape hatch for a fixed-cwd caller (CI, a tool). Paths are stored absolute,
-  as the global registry stores them.
+  the escape hatch for a fixed-cwd caller (CI, a tool).
+- **A local registry stores portable, relative paths.** A bundle inside the
+  registry's own tree is written relative to the `.okf-registry.json`, so the file
+  can be committed and travels with the repo — a checkout on another machine, or a
+  container that mounts it, resolves the same bundles unchanged. A bundle outside
+  the tree keeps an absolute path (it cannot travel). Paths still read back
+  absolute everywhere the CLI reports them; the relative form lives only on disk,
+  and an existing absolute local entry migrates to relative on its next write. The
+  global `$OKF_HOME` registry is unchanged — it stores absolute paths as before.
 
 ## [1.11.0] - 2026-07-22
 

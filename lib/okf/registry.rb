@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "json"
+require "pathname"
 
 module OKF
   # A persistent, ordered registry of bundle references — the kernel behind the
@@ -109,7 +110,9 @@ module OKF
       def load(home: nil, cwd: nil)
         looking = cwd && ENV[NO_DISCOVERY_ENV].to_s.empty?
         local = looking ? discover(cwd) : nil
-        new(local || path(home: home))
+        # A local registry anchors its relative paths on its own directory; the
+        # global one has no common anchor, so it stays absolute (relative_base nil).
+        new(local || path(home: home), relative_base: local && File.dirname(local))
       end
 
       # Walk up from +start+ looking for a local registry; return its absolute path
@@ -175,8 +178,13 @@ module OKF
 
     attr_reader :path
 
-    def initialize(path)
+    # +relative_base+ is the directory a local registry's relative paths anchor on
+    # (see .load). nil means an absolute-path registry — the global $OKF_HOME one,
+    # and every library caller — so its behavior is exactly what it was before
+    # relative storage existed.
+    def initialize(path, relative_base: nil)
       @path = path
+      @relative_base = relative_base
       @entries = []
       @groups = []
       read
@@ -572,7 +580,35 @@ module OKF
       unless row.is_a?(Hash) && row["slug"].is_a?(String) && row["path"].is_a?(String) && !row["path"].empty?
         malformed('every entry needs a "slug" and a "path" (fix or delete the file)')
       end
-      Entry.new(row["slug"], row["path"], row["title"] || File.basename(row["path"]))
+      path = resolve_stored(row["path"])
+      Entry.new(row["slug"], path, row["title"] || File.basename(path))
+    end
+
+    # Resolve a stored path to an absolute one: a relative path is anchored on the
+    # local registry's directory, an absolute one (and every path in the global
+    # registry) is returned untouched. So entry.path is *always* absolute in
+    # memory, and every consumer — File.directory?, the listing, the server mount —
+    # goes on seeing the absolute paths it always did.
+    def resolve_stored(raw)
+      return raw if @relative_base.nil? || raw.start_with?("/")
+
+      File.expand_path(raw, @relative_base)
+    end
+
+    # The on-disk form of an absolute path. In a local registry a bundle inside the
+    # registry's own tree is stored *relative* to it, so the file travels with the
+    # repo (a checkout elsewhere, a container mounting it) and still resolves; a
+    # bundle outside the tree stays absolute, since a relative path that climbs out
+    # cannot be re-anchored anywhere useful, and being honest about that beats a
+    # `../../..` that breaks on the first move. The global registry (no base) always
+    # stores absolute — its behavior is unchanged.
+    def store_form(abs)
+      return abs if @relative_base.nil?
+
+      # Both are absolute — entry.path always is, and @relative_base is a dirname of
+      # one — so relative_path_from cannot fail to relate them on a POSIX tree.
+      rel = Pathname.new(abs).relative_path_from(Pathname.new(@relative_base)).to_s
+      rel.start_with?("..") ? abs : rel
     end
 
     # One row to a Group, shape-checked like #entry_from. Members are normalized on
@@ -629,7 +665,7 @@ module OKF
     # Two racing writers stay last-writer-wins; the registry is a per-user file.
     def write
       FileUtils.mkdir_p(File.dirname(@path))
-      rows = @entries.map { |entry| { "slug" => entry.slug, "path" => entry.path, "title" => entry.title } }
+      rows = @entries.map { |entry| { "slug" => entry.slug, "path" => store_form(entry.path), "title" => entry.title } }
       groups = @groups.map { |group| { "slug" => group.slug, "members" => group.members } }
       payload = { "bundles" => rows, "groups" => groups }
       tmp = "#{@path}.tmp-#{Process.pid}"

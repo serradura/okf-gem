@@ -302,6 +302,11 @@ it in place of the global one. So a bare `okf server` inside that repo serves *i
 bundles with no `$OKF_HOME` setup. The nearest registry wins, and
 `OKF_NO_DISCOVERY=1` forces the global one.
 
+Commit that file and it travels with the repo: a bundle under the project root is
+stored relative to the registry, so a checkout on another machine — or a container
+that mounts the repo — resolves the same bundles unchanged. (Bundles outside the
+tree keep absolute paths, which do not travel.)
+
 Behind the hub each bundle mounts at `/b/<slug>/`, `/b/` lists them all, and the
 `⌘/Ctrl-K` palette both switches bundles and **searches every one at once** — type
 a few words and the matching concepts appear with their bundle and a snippet, from

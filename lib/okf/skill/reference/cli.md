@@ -450,7 +450,12 @@ inside its tree (the nearest wins, so nested registries resolve nearest-first).
 Every registry op — and every `@slug` — then resolves through it, so a bare
 `okf server` inside a repo serves that repo's bundles with no `$OKF_HOME` setup;
 `okf registry list` names the local file it found. `OKF_NO_DISCOVERY=1` forces
-the global registry — the escape hatch for a fixed-cwd caller (CI, a tool).
+the global registry — the escape hatch for a fixed-cwd caller (CI, a tool). A
+local registry stores **portable** paths: a bundle inside its tree is written
+relative to the `.okf-registry.json`, so committing the file lets it travel with
+the repo (a checkout elsewhere, a container mounting it) and resolve unchanged;
+a bundle outside the tree stays absolute, since it cannot travel. Paths still read
+back absolute wherever the CLI reports them.
 **Entry verbs** take a path: `okf registry set <dir>` adds it
 (slug from the basename, or `--as`, which errors on a collision; `--default`
 puts it first), and because the entry is keyed by path, `set` on an
