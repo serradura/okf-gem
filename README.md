@@ -388,7 +388,7 @@ okf search    <dir|@slug…|@all> <term…>          # ranked retrieval; @all sp
 okf index     <dir|@slug> [--dir D] [--depth N]  # the §6 map: index bodies, rollups, listings
 okf dirs      <dir|@slug> [--dir D] [--depth N]  # the shape: every directory and what it holds
 okf catalog | files | tags | types | stats  <dir|@slug>   # the browser views, on the CLI
-okf graph     <dir|@slug> [--hubs]               # the raw graph; --hubs ranks by inbound links
+okf graph     <dir|@slug> [--hubs] [--traffic]   # the raw graph; --hubs ranks concepts, --traffic dirs
 okf server    [DIR|@slug…] [-p PORT] [--bind ADDR]   # the live graph: one bundle, or all of them
 okf render    <dir|@slug> [-o FILE]              # the same page as one static, self-contained file
 okf registry  list | set | del | default | rename    # name your bundles: @slug works anywhere

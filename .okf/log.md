@@ -1,5 +1,22 @@
 # Update Log
 
+## 2026-07-23
+* **Addition**: [read-views](capabilities/read-views.md) gains `graph
+  --traffic`, and [agent-skill](capabilities/agent-skill.md)'s refine playbook
+  gains it as a third structural read. The playbook's step 2 measured concepts
+  twice — tag locality and the hub origin test — while step 3 decides about
+  *directories* ("does this directory prune?", "concern or container?"), and
+  nothing measured at that grain. `--traffic` collapses concepts into their
+  directory and the links between two directories into one weighted arc, so each
+  row carries internal/out/in traffic and a cohesion ratio: cohesion versus
+  coupling, applied to a knowledge tree. On a 47-concept bundle it read three
+  findings off one screen — a directory with 50 outbound links and 4 inbound
+  behaving like a projection rather than a container, two directories at 0%
+  cohesion holding inert reference material, and a central `decisions/` reading
+  low for the reason the playbook already predicts, which is centrality rather
+  than mis-homing. The cut is fitted to the bundle rather than fixed: at a fixed
+  weight of 3, ten bundles ranged from 2 arcs to 136.
+
 ## 2026-07-22
 * **Correction**: [browser-tests](design/browser-tests.md) drops the CI job. The
   concept argued a non-blocking check was worth its noise because a red job still

@@ -82,6 +82,35 @@ module AcrossBundles
       assert_empty trailing.out + leading.out
     end
 
+    test "--traffic still answers about one bundle, and a second behind it is refused" do
+      assert_match(/\(4 dirs, 2 arcs/, okf("graph", fixture("shapely"), "--traffic", "--cut", "1").out)
+
+      second = okf("graph", fixture("shapely"), "--traffic", fixture("minimal"))
+
+      assert_equal 2, second.status
+      assert_match(/unexpected argument '#{Regexp.escape(fixture("minimal"))}'/, second.err)
+      assert_empty second.out
+    end
+
+    test "a second bundle is refused whichever side of --traffic's own flags it sits on" do
+      trailing = okf("graph", fixture("shapely"), "--traffic", "--cut", "1", fixture("minimal"))
+      leading = okf("graph", "--traffic", "--cut", "1", fixture("shapely"), fixture("minimal"))
+
+      assert_equal 2, trailing.status
+      assert_equal 2, leading.status
+      assert_empty trailing.out + leading.out
+    end
+
+    test "the second bundle outranks a bad --cut: usage is refused before it is read" do
+      # Both are exit 2, so the status cannot tell them apart — the message must.
+      result = okf("graph", fixture("shapely"), fixture("minimal"), "--traffic", "--cut", "0")
+
+      assert_equal 2, result.status
+      assert_match(/unexpected argument '#{Regexp.escape(fixture("minimal"))}'/, result.err)
+      refute_match(/--cut must be/, result.err)
+      assert_empty result.out
+    end
+
     test "--hubs still answers about one bundle, and a second behind it is refused" do
       assert_match(/2 of 4 concepts with inbound links/, okf("graph", fixture("shapely"), "--hubs").out)
 
