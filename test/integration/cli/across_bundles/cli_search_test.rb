@@ -438,7 +438,7 @@ module AcrossBundles
 
         bogus = okf("search", "@conformant", "@rooted", "the", "--fields", "nope")
         assert_equal 2, bogus.status
-        assert_match(/error: unknown field\(s\): nope \(available: slug, id, title, type, dir, area, tags, matched, score, snippet\)/,
+        assert_match(/error: unknown field\(s\): nope \(available: slug, id, title, type, dir, top_dir, tags, matched, score, snippet\)/,
           bogus.err, "the available list names slug — the field the multi-bundle envelope adds")
       end
     end

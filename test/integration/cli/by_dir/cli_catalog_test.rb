@@ -36,7 +36,7 @@ module ByDir
       assert_equal 3, data.fetch("count")
       assert_equal 3, data.fetch("concepts").size
       keys = data.fetch("concepts").first.keys.sort
-      assert_equal %w[area backlog_ref description dir id links_in links_out status tags timestamp title type], keys
+      assert_equal %w[backlog_ref description dir id links_in links_out status tags timestamp title top_dir type], keys
       assert_equal "datasets/sales", data.fetch("concepts").first.fetch("id")
       assert_equal %w[sales orders], data.fetch("concepts").last.fetch("tags")
     end
@@ -119,7 +119,7 @@ module ByDir
     test "--area selects a top-level area, case-insensitively, and takes `root`" do
       data = json(okf("catalog", fixture("conformant"), "--area", "TABLES", "--json"))
       assert_equal 2, data.fetch("count")
-      assert_equal %w[tables tables], data.fetch("concepts").map { |row| row["area"] }
+      assert_equal %w[tables tables], data.fetch("concepts").map { |row| row["top_dir"] }
 
       # `root` is the (root) area spelled without shell quoting.
       rooted = json(okf("catalog", fixture("edge-cases"), "--area", "root", "--json"))

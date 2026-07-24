@@ -82,17 +82,17 @@ class OKF::Bundle::SearchTest < OKF::TestCase
     row = rows.first
 
     assert_equal "services/billing", row[:id]
-    assert_equal "services", row[:area]
+    assert_equal "services", row[:top_dir]
     assert_equal %w[payments core], row[:tags]
     assert_equal [ "tags" ], row[:matched]
   end
 
-  test "a root concept lives in the (root) area" do
+  test "a root concept lives in the (root) top-level dir" do
     bundle = OKF::Bundle.new(concepts: [ concept("mission", title: "Mission") ])
 
     rows = OKF::Bundle::Search.call(bundle, [ "mission" ])
 
-    assert_equal "(root)", rows.first[:area]
+    assert_equal "(root)", rows.first[:top_dir]
   end
 
   test "no terms, blank terms, or no hits mean no rows" do

@@ -250,7 +250,7 @@ consuming agent is the fuzzy layer — when terms miss, learn the bundle's
 vocabulary from `tags`/`types` and re-ask in its own words, rather than
 hammering synonyms or reaching for `--fuzzy` before you have looked. Advisory read: **exit 0 even with zero matches**.
 JSON, plain-dir mode: `{ bundle, query, count, matches: [{ id, title, type,
-area, tags, matched, score, snippet }] }`. Registry mode — any leading @ref,
+dir, top_dir, tags, matched, score, snippet }] }`. Registry mode — any leading @ref,
 `@all` or a `@group` among them (a group fans out to its member bundles) — swaps the envelope: `{ bundles: [{ slug, dir }, …],
 query, count, matches: [{ slug, id, … }] }`; a parser must branch on which form
 it called. The head maps each slug to its dir once, so a row resolves to
@@ -357,10 +357,10 @@ All are advisory reads (exit 0) sharing one data source (per-concept metadata pl
 in/out link degree). Add `--json` to any for a machine substrate.
 
 - **`catalog`** — every concept with its metadata (type, status, tags, timestamp,
-  in/out link degree, description), grouped by top-level area (`dir` on every row
-  carries the full path). The "what's here, in
+  in/out link degree, description), grouped by top-level dir (`dir` on every row
+  carries the full path, `top_dir` the first segment). The "what's here, in
   detail" view. JSON: `{ bundle, count, concepts: [{ id, title, type, description,
-  tags, timestamp, status, backlog_ref, dir, area, links_out, links_in }] }`.
+  tags, timestamp, status, backlog_ref, dir, top_dir, links_out, links_in }] }`.
 - **`files`** — the folder tree: each concept's filename + title, grouped by
   directory. The "how it's organised" view. JSON: `{ bundle, count, files: [{ path,
   id, dir, type, title, description }] }`.
@@ -380,9 +380,9 @@ in/out link degree). Add `--json` to any for a machine substrate.
   [{ type, count, concepts: [id, …] }] }`.
 - **`stats`** — bundle rollups: concept / dir / type / cross-link / distinct-tag
   totals plus per-type and per-dir breakdowns. The "shape at a glance" view. JSON:
-  `{ bundle, concepts, dirs, areas, concept_types, cross_links, distinct_tags,
-  by_type, by_dir, by_area }` (`areas`/`by_area` are the deprecated first-segment
-  cut, kept for one release). `dirs`/`by_dir` cover every directory `okf dirs`
+  `{ bundle, concepts, dirs, top_dirs, concept_types, cross_links, distinct_tags,
+  by_type, by_dir, by_top_dir }` (`top_dirs`/`by_top_dir` are the first-segment
+  rollup). `dirs`/`by_dir` cover every directory `okf dirs`
   lists — counts are direct, so a directory holding nothing itself is present at
   `0` rather than missing, and `by_dir.keys` is a complete list of what `--dir`
   can address.
@@ -557,10 +557,10 @@ only when the task truly consumes every body; for one question, the
 
 `--hubs` swaps the dump for the **inbound ranking**: every concept with at
 least one inbound link, ranked by inbound degree, each with its links grouped
-by *source area* (`core/status  ×3   flows 2, billing 1`) — the evidence for
+by *source top-level dir* (`core/status  ×3   flows 2, billing 1`) — the evidence for
 [refine](../playbooks/refine.md)'s hub origin test ("is this hub well-homed?").
 A source at the bundle root counts under `(root)`. JSON: `{ bundle, count,
-hubs: [{ id, area, inbound, by_area: { <area>: n } }] }`. Advisory read, exit 0;
+hubs: [{ id, top_dir, inbound, by_top_dir: { <top_dir>: n } }] }`. Advisory read, exit 0;
 `--minimal`/`--no-body` shape node payloads and change nothing here.
 
 `--traffic` asks the same question one grain coarser: **directories**, not

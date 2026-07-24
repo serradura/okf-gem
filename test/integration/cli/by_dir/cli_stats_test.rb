@@ -38,11 +38,11 @@ module ByDir
         "count descending, then path — so two dirs at the same count cannot swap between runs"
     end
 
-    test "by_dir keeps the whole path where by_area only ever kept the first segment" do
+    test "by_dir keeps the whole path where by_top_dir only ever kept the first segment" do
       data = json(okf("stats", fixture("edge-cases"), "--json"))
 
       assert_equal({ "." => 3, "deeply/nested/path" => 1, "deeply" => 0, "deeply/nested" => 0 }, data.fetch("by_dir"))
-      assert_equal({ "(root)" => 3, "deeply" => 1 }, data.fetch("by_area"), "kept for the deprecation window")
+      assert_equal({ "(root)" => 3, "deeply" => 1 }, data.fetch("by_top_dir"), "the first-segment rollup, kept beside by_dir")
       assert_equal 4, data.fetch("dirs")
     end
 
@@ -74,14 +74,14 @@ module ByDir
     test "--json emits the rollups under their machine keys" do
       data = json(okf("stats", fixture("conformant"), "--json"))
 
-      assert_equal %w[areas bundle by_area by_dir by_type concept_types concepts cross_links dirs distinct_tags], data.keys.sort
+      assert_equal %w[bundle by_dir by_top_dir by_type concept_types concepts cross_links dirs distinct_tags top_dirs], data.keys.sort
       assert_equal 3, data.fetch("concepts")
-      assert_equal 2, data.fetch("areas")
+      assert_equal 2, data.fetch("top_dirs")
       assert_equal 2, data.fetch("concept_types") # `types` in the human view, `concept_types` here
       assert_equal 6, data.fetch("cross_links")
       assert_equal 2, data.fetch("distinct_tags")
       assert_equal({ "BigQuery Table" => 2, "BigQuery Dataset" => 1 }, data.fetch("by_type"))
-      assert_equal({ "tables" => 2, "datasets" => 1 }, data.fetch("by_area"))
+      assert_equal({ "tables" => 2, "datasets" => 1 }, data.fetch("by_top_dir"))
     end
 
     test "--pretty implies --json and indents it" do
@@ -99,7 +99,7 @@ module ByDir
       assert_equal 1, data.fetch("concepts")
       assert_equal 0, data.fetch("cross_links")
       assert_equal 0, data.fetch("distinct_tags")
-      assert_equal({ "(root)" => 1 }, data.fetch("by_area"))
+      assert_equal({ "(root)" => 1 }, data.fetch("by_top_dir"))
     end
 
     test "an empty bundle is all zeroes, with no breakdowns and no crash" do
@@ -151,7 +151,7 @@ module ByDir
       assert_match(/skipped 2 unusable file\(s\)/, result.err)
       data = json(result)
       assert_equal 3, data.fetch("concepts") # the three that parse still count
-      assert_equal({ "(root)" => 3 }, data.fetch("by_area"))
+      assert_equal({ "(root)" => 3 }, data.fetch("by_top_dir"))
       refute_match(/note:/, result.out)
     end
   end

@@ -279,7 +279,7 @@ module OKF
       end
 
       # Ranked match rows, catalog-style identity plus where the terms hit:
-      # [{ slug:, id:, title:, type:, dir:, area:, tags:, matched: [field, …], score:, snippet: }, …]
+      # [{ slug:, id:, title:, type:, dir:, top_dir:, tags:, matched: [field, …], score:, snippet: }, …]
       # ordered by score descending, then slug, then id. `slug` is present only
       # when searching across bundles. No terms means no matches.
       def results
@@ -367,7 +367,7 @@ module OKF
           title: (concept.title || concept.id).to_s,
           type: concept.type.to_s,
           dir: OKF.dir_of(concept.id),
-          area: area_of(concept.id),
+          top_dir: top_dir_of(concept.id),
           tags: Array(concept.tags).map(&:to_s),
           matched: matched,
           score: score.round(4),
@@ -421,9 +421,9 @@ module OKF
         end
       end
 
-      # A concept's top-level area, mirroring the catalog's definition. Deprecated
-      # in favour of OKF.dir_of, which keeps the levels this one throws away.
-      def area_of(id)
+      # A concept's top-level dir, mirroring the catalog's definition — the first
+      # path segment. OKF.dir_of keeps the levels this one rolls up.
+      def top_dir_of(id)
         id.include?("/") ? id.split("/").first : "(root)"
       end
     end

@@ -32,14 +32,14 @@ module OKF
     # Declared in emission order, so the "available:" list a typo prints reads
     # the same as the rows themselves.
     ROW_FIELDS = {
-      "matches" => %w[id title type dir area tags matched score snippet],
+      "matches" => %w[id title type dir top_dir tags matched score snippet],
       # Registry mode labels every row with the bundle it came from; a plain-dir
       # search has one bundle and no slug to carry. Two shapes, because the typo
       # guard checks against the *declared* one — a single shape covering both
       # would let `--fields slug` pass on a search whose rows have none, and hand
       # back an empty object per match under a count that says otherwise.
-      "matches_by_ref" => %w[slug id title type dir area tags matched score snippet],
-      "concepts" => %w[id title type description tags timestamp status backlog_ref dir area links_out links_in],
+      "matches_by_ref" => %w[slug id title type dir top_dir tags matched score snippet],
+      "concepts" => %w[id title type description tags timestamp status backlog_ref dir top_dir links_out links_in],
       "files" => %w[path id dir type title description],
       "directories" => %w[dir ancestor index_path present synthesized count types tags subdirs body listing],
       "dirs" => %w[dir ancestor count subtree subdirs],

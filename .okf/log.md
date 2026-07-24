@@ -14,6 +14,15 @@
   them. The [CLI](cli.md) records the grown subcommand list (`init` through
   `group`/`ungroup`, correcting a groups-era omission) and that `@slug` now
   resolves through a discovered local registry before falling back to `$OKF_HOME`.
+* **Sync**: the derived `area` field is renamed **`top_dir`** — the
+  first-path-segment rollup the [read views](capabilities/read-views.md) and
+  [search facade](design/search-engines.md) carry. "Area" was never the OKF
+  spec's word (the earlier `dir` rename already established that); the rollup now
+  names itself in the spec's vocabulary, the `dir` at the top level. The `--json`
+  keys move with it (`catalog`/`search` rows carry `top_dir`, `stats` emits
+  `top_dirs`/`by_top_dir`, `graph --hubs` emits `top_dir`/`by_top_dir`). The
+  deprecated `--area`/`--by area` *input* flags are untouched — they still warn
+  and map to `--dir`/`--by dir`, and now source the renamed field internally.
 
 ## 2026-07-23
 * **Addition**: the [registry](registry.md) grows **groups** — a slug that names

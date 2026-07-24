@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The derived `area` field is renamed `top_dir`** — the first-path-segment
+  rollup the catalog, search, `stats`, and `graph --hubs` carry. `area` was never
+  the OKF spec's word (the spec speaks only of `dir`), so the rollup now names
+  itself in the spec's vocabulary: it is the `dir` at the top level. The `--json`
+  keys move with it — catalog/search rows carry `top_dir` in place of `area`,
+  `stats` emits `top_dirs`/`by_top_dir`, and `graph --hubs` emits
+  `top_dir`/`by_top_dir`. The **deprecated `--area`/`--by area` input flags are
+  unchanged** — they still warn and map to `--dir`/`--by dir`, and now source the
+  renamed field internally. No behavior changes; the well-homed-hub numbers are
+  identical.
+
 ### Added
 
 - **`okf registry init`** — create a project-local `.okf-registry.json` in the
@@ -226,7 +239,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rendered `(root)` for humans — and "cluster" stays prose for what a dir
   groups. Both deprecated spellings keep their **old behavior exactly** and warn
   once per run on stderr (`--json` on stdout is unaffected); they go in a later
-  release, along with `by_area` and the `area` row field.
+  release.
 
 ## [1.10.0] - 2026-07-21
 

@@ -193,7 +193,7 @@ module OKF
       def filter_entries(entries, options)
         entries.select do |entry|
           (options[:type].nil? || fold(entry[:type]) == fold(options[:type])) &&
-            (options[:area].nil? || fold(entry[:area]) == fold_area(options[:area])) &&
+            (options[:area].nil? || fold(entry[:top_dir]) == fold_area(options[:area])) &&
             (options[:dir].nil? || under_dir?(entry[:dir], options[:dir])) &&
             (options[:tag].nil? || entry[:tags].any? { |tag| fold(tag) == fold(options[:tag]) })
         end

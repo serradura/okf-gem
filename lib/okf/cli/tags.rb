@@ -93,7 +93,7 @@ module OKF
         case dim
         when :type then entry_type(entry)
         when :dir then entry[:dir]
-        else entry[:area]
+        else entry[:top_dir]
         end
       end
 

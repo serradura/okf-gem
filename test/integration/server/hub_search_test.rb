@@ -46,7 +46,7 @@ class OKF::Server::HubSearchTest < OKF::TestCase
     assert_equal "dedup", row["id"]
     assert_equal "Dedup", row["title"]
     assert_equal "Note", row["type"]
-    assert_equal "(root)", row["area"]
+    assert_equal "(root)", row["top_dir"]
     assert_includes row["matched"], "body"
     assert_includes row["snippet"], "dedups on a natural key"
     assert_kind_of Numeric, row["score"]

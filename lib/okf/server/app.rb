@@ -21,7 +21,7 @@ module OKF
     #   GET /node/meta?id=… its description, as an escaped HTML fragment
     #   GET /catalog        rich per-concept metadata for the catalog/files/stats
     #                       views: { concepts: [ {id, title, type, description,
-    #                       tags, timestamp, status, area, dir, links_*} ] } (JSON)
+    #                       tags, timestamp, status, top_dir, dir, links_*} ] } (JSON)
     #   GET /tags           the tag index  { tag  => [id, …] } (JSON)
     #   GET /types          the type index { type => [id, …] } (JSON)
     #   GET /index          the §6 progressive-disclosure map for the Index panel:

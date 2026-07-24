@@ -27,7 +27,7 @@ module OKF
           json_flags(o, options, "emit nodes and edges as JSON")
           o.on("--minimal", "leanest nodes (id + title); adds type/tag indexes") { options[:minimal] = true }
           o.on("--[no-]body", "include each concept's body (default: yes)") { |v| options[:body] = v }
-          o.on("--hubs", "rank concepts by inbound links, with the source areas") { options[:hubs] = true }
+          o.on("--hubs", "rank concepts by inbound links, with the source top-level dirs") { options[:hubs] = true }
           o.on("--traffic", "collapse concepts into their dirs; count the links between them") { options[:traffic] = true }
           o.on("--cut N", Integer, "least arc weight to draw (default: fitted to the bundle)") { |v| options[:cut] = v }
           help_flag(o)
@@ -159,15 +159,15 @@ module OKF
       end
 
       # `graph --hubs`: the inbound ranking with each hub's links grouped by
-      # source area — the "is this hub well-homed?" evidence. A hub whose
-      # inbound majority comes from outside its own area is a move candidate;
-      # --minimal/--no-body shape node payloads and change nothing here.
+      # source top-level dir — the "is this hub well-homed?" evidence. A hub whose
+      # inbound majority comes from outside its own top-level dir is a move
+      # candidate; --minimal/--no-body shape node payloads and change nothing here.
       def print_hubs(dir, options)
         folder = OKF::Bundle::Folder.load(dir)
         hubs = folder.hubs
         report_skipped(folder)
         if options[:json]
-          rows = hubs.map { |row| { "id" => row[:id], "area" => row[:area], "inbound" => row[:inbound], "by_area" => row[:by_area] } }
+          rows = hubs.map { |row| { "id" => row[:id], "top_dir" => row[:top_dir], "inbound" => row[:inbound], "by_top_dir" => row[:by_top_dir] } }
           emit_json(bundle_head(dir).merge("count" => hubs.size, "hubs" => rows))
         else
           @out.puts "Hubs — #{bundle_label(dir)} (#{counted(hubs.size, folder.concepts.size, "concept")} with inbound links)"
@@ -175,7 +175,7 @@ module OKF
           width = hubs.map { |row| row[:id].length }.max || 0
           dwidth = hubs.map { |row| row[:inbound].to_s.length }.max || 0
           hubs.each do |row|
-            sources = row[:by_area].map { |area, count| "#{area} #{count}" }.join(", ")
+            sources = row[:by_top_dir].map { |top_dir, count| "#{top_dir} #{count}" }.join(", ")
             @out.puts "  #{row[:id].ljust(width)}  ×#{row[:inbound].to_s.rjust(dwidth)}   #{sources}"
           end
         end

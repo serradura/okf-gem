@@ -60,7 +60,7 @@ module ByDir
       assert_equal %w[description id tags title type], node.keys.sort
     end
 
-    test "--hubs ranks concepts by inbound links, each with the areas the links come from" do
+    test "--hubs ranks concepts by inbound links, each with the top-level dirs the links come from" do
       result = okf("graph", fixture("shapely"), "--hubs")
 
       assert_equal 0, result.status
@@ -70,20 +70,20 @@ module ByDir
       assert_operator result.out.index("core/status"), :<, result.out.index("flows/activate"), "ranked by inbound degree"
     end
 
-    test "--hubs --json emits the ranked rows with the per-source-area breakdown" do
+    test "--hubs --json emits the ranked rows with the per-source-top-dir breakdown" do
       data = json(okf("graph", fixture("shapely"), "--hubs", "--json"))
 
       assert_equal 2, data.fetch("count")
-      assert_equal [ { "id" => "core/status", "area" => "core", "inbound" => 3, "by_area" => { "flows" => 2, "billing" => 1 } },
-                     { "id" => "flows/activate", "area" => "flows", "inbound" => 1, "by_area" => { "flows" => 1 } } ],
+      assert_equal [ { "id" => "core/status", "top_dir" => "core", "inbound" => 3, "by_top_dir" => { "flows" => 2, "billing" => 1 } },
+                     { "id" => "flows/activate", "top_dir" => "flows", "inbound" => 1, "by_top_dir" => { "flows" => 1 } } ],
         data.fetch("hubs")
     end
 
-    test "--hubs labels a root-level source area (root), like every grouped view" do
+    test "--hubs labels a root-level source top-level dir (root), like every grouped view" do
       data = json(okf("graph", fixture("rooted"), "--hubs", "--json"))
 
       gateway = data.fetch("hubs").find { |row| row.fetch("id") == "services/gateway" }
-      assert_equal({ "(root)" => 1 }, gateway.fetch("by_area"))
+      assert_equal({ "(root)" => 1 }, gateway.fetch("by_top_dir"))
     end
 
     test "--hubs on a linkless bundle reports zero hubs, not an error" do

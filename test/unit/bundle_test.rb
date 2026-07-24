@@ -72,7 +72,7 @@ class OKF::BundleTest < OKF::TestCase
     assert_empty bundle.paths
   end
 
-  test "hubs ranks concepts by inbound degree with the source areas each link comes from" do
+  test "hubs ranks concepts by inbound degree with the source top-level dirs each link comes from" do
     core = OKF::Concept.new(path: "core/status.md", frontmatter: { "type" => "Reference" }, body: "the hub")
     a = OKF::Concept.new(path: "flows/a.md", frontmatter: { "type" => "Flow" }, body: "see [s](/core/status.md)")
     b = OKF::Concept.new(path: "flows/b.md", frontmatter: { "type" => "Flow" }, body: "see [s](/core/status.md) and [a](/flows/a.md)")
@@ -80,8 +80,8 @@ class OKF::BundleTest < OKF::TestCase
     bundle = OKF::Bundle.new(concepts: [ core, a, b, root ])
 
     assert_equal [
-      { id: "core/status", area: "core", inbound: 3, by_area: { "flows" => 2, "(root)" => 1 } },
-      { id: "flows/a", area: "flows", inbound: 1, by_area: { "flows" => 1 } }
+      { id: "core/status", top_dir: "core", inbound: 3, by_top_dir: { "flows" => 2, "(root)" => 1 } },
+      { id: "flows/a", top_dir: "flows", inbound: 1, by_top_dir: { "flows" => 1 } }
     ], bundle.hubs
   end
 
