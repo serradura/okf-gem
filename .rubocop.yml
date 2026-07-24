@@ -1,0 +1,15 @@
+# The repo-level Ruby only: this repo's own Rakefile and the Claude Code
+# plugin's curation hook. Every gem lints itself through its own .rubocop.yml,
+# which is what `cd okf && bundle exec rake` and CI run — this file exists
+# because those two files sit outside every gem and the move into okf/ left them
+# linted by nobody.
+#
+# The house style is the gem's, inherited rather than restated so the two cannot
+# drift. That also carries the 2.4 target, which is right: the curation hook is
+# plain stdlib Ruby held to the same floor.
+inherit_from: okf/.rubocop.yml
+
+AllCops:
+  Exclude:
+    - "okf/**/*"
+    - "tmp/**/*"
