@@ -35,7 +35,8 @@ is the lede.
      to close.
    - **clean, but the shape strains** — one area dwarfing the rest in
      `okf stats`, tags spread thin across dirs in `okf tags --by dir`, hubs
-     whose inbound links are mostly foreign in `okf graph --hubs` → offer
+     whose inbound links are mostly foreign in `okf graph --hubs`, a directory
+     with almost no internal traffic in `okf graph --traffic` → offer
      **`refine`** (evidence-driven restructuring; it proposes before it
      touches anything).
 4. **Freshness is off by default.** If the bundle carries timestamps, note that a

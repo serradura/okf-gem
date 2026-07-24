@@ -195,7 +195,7 @@ class OKF::CLITest < OKF::TestCase
     data = JSON.parse(@out.string)
     assert_equal 3, data["count"]
     alpha = data["concepts"].find { |concept| concept["id"] == "features/a" }
-    assert_equal "features", alpha["area"]
+    assert_equal "features", alpha["top_dir"]
     assert_equal 1, alpha["links_out"]
     assert_equal 1, alpha["links_in"]
   end
@@ -322,12 +322,12 @@ class OKF::CLITest < OKF::TestCase
     assert_match(/\(0 distinct\)/, @out.string)
   end
 
-  test "a concept at the bundle root lives in the (root) area" do
+  test "a concept at the bundle root lives in the (root) top-level dir" do
     write("loose-note.md", concept("Root note"))
     write("features/a.md", concept("Alpha"))
 
     assert_equal 0, invoke("stats", @tmpdir, "--json")
-    assert_equal({ "features" => 1, "(root)" => 1 }, JSON.parse(@out.string)["by_area"])
+    assert_equal({ "features" => 1, "(root)" => 1 }, JSON.parse(@out.string)["by_top_dir"])
 
     @out = StringIO.new
     assert_equal 0, invoke("catalog", @tmpdir, "--area", "root")
@@ -336,7 +336,7 @@ class OKF::CLITest < OKF::TestCase
     assert_match(/Root note/, @out.string)
   end
 
-  test "stats reports rollups and --json emits by_type / by_area" do
+  test "stats reports rollups and --json emits by_type / by_top_dir" do
     build_sample
 
     assert_equal 0, invoke("stats", @tmpdir)
@@ -346,10 +346,10 @@ class OKF::CLITest < OKF::TestCase
     @out = StringIO.new
     assert_equal 0, invoke("stats", @tmpdir, "--json")
     data = JSON.parse(@out.string)
-    assert_equal 2, data["areas"]
+    assert_equal 2, data["top_dirs"]
     assert_equal 2, data["cross_links"]
     assert_equal({ "Feature" => 2, "Mission" => 1 }, data["by_type"])
-    assert_equal 2, data["by_area"]["features"]
+    assert_equal 2, data["by_top_dir"]["features"]
   end
 
   test "index maps directories with their authored index body and rollups" do
@@ -520,7 +520,7 @@ class OKF::CLITest < OKF::TestCase
     assert_equal [ "alpha" ], data["query"]
     assert_equal 2, data["count"]
     assert_equal "features/a", data["matches"].first["id"]
-    assert_equal %w[area dir id matched score snippet tags title type], data["matches"].first.keys.sort
+    assert_equal %w[dir id matched score snippet tags title top_dir type], data["matches"].first.keys.sort
   end
 
   test "search terms are ANDed across fields" do
@@ -643,7 +643,7 @@ class OKF::CLITest < OKF::TestCase
     assert_equal 0, invoke("registry", "list", "--json")
     payload = JSON.parse(@out.string)
     assert_kind_of Hash, payload, "a bare array would break the CLI's one JSON shape"
-    assert_equal %w[bundles count registry], payload.keys.sort
+    assert_equal %w[bundles count groups registry], payload.keys.sort
   end
 
   test "--pretty does not leak into a later run on a reused CLI instance" do
@@ -676,7 +676,7 @@ class OKF::CLITest < OKF::TestCase
   test "an unknown registry subcommand is a usage error, not a silent listing" do
     assert_equal 2, invoke("registry", "remove", "docs")
     assert_match(/unknown registry subcommand 'remove'/, @err.string)
-    assert_match(/expected: set, del, list, default, rename/, @err.string)
+    assert_match(/expected: init, set, del, list, default, rename/, @err.string)
   end
 
   test "extra positionals are rejected, not silently dropped" do
@@ -1230,8 +1230,8 @@ class OKF::CLITest < OKF::TestCase
     "---\ntype: Note\ntitle: #{title}\ndescription: d\n---\n\nhi\n"
   end
 
-  # A tiny bundle for the catalog/files/tags/stats views: two areas, three
-  # concepts, a two-edge chain (mission → a → b), and shared/unique tags.
+  # A tiny bundle for the catalog/files/tags/stats views: two top-level dirs,
+  # three concepts, a two-edge chain (mission → a → b), and shared/unique tags.
   def build_sample
     write("product/mission.md", "---\ntype: Mission\ntitle: Mission\ntags: [m, okf]\n---\n\n[Alpha](/features/a.md)\n")
     write("features/a.md", "---\ntype: Feature\ntitle: Alpha\nstatus: shipped\ntags: [x, okf]\n---\n\n[Beta](/features/b.md)\n")

@@ -4,7 +4,7 @@ title: OKF::Bundle::Graph
 description: The in-memory knowledge graph — concepts as nodes, cross-links as directed edges, with type and tag indexes.
 resource: lib/okf/bundle/graph.rb
 tags: [graph, pure]
-timestamp: 2026-07-21T18:00:00Z
+timestamp: 2026-07-23T12:00:00Z
 ---
 
 # Overview
@@ -42,6 +42,16 @@ every concept:
 Those indexes, plus `unlinked_ids` (degree-0 nodes), are what the
 [read views](../capabilities/read-views.md) — `types`, `tags`, `stats`, `loose`
 — are built from, and what their `--type`/`--dir`/`--tag` filters match against.
+
+# Reduced to a skeleton
+
+Where this graph is the full wiring, the [skeleton](skeleton.md) is the same
+graph made holdable: concepts collapsed into their directory, the links between
+two directories collapsed into one weighted arc, and every link tagged with the
+cut it survives. It is the reduction [`graph --traffic`](../capabilities/read-views.md)
+reads for cohesion and the [graph page](../capabilities/graph-server.md) lays a
+large bundle out on — built from this graph's own nodes and edges, and just as
+pure.
 
 # Citations
 

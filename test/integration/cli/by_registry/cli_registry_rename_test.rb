@@ -69,7 +69,7 @@ class CLIRegistryRenameTest < CLIIntegrationCase
     result = okf("registry", "rename", "ghost", "handbook")
 
     assert_equal 2, result.status
-    assert_match(/error: no such bundle: ghost/, result.err)
+    assert_match(/error: no such bundle or group: ghost/, result.err)
     assert_empty result.out
     assert_equal %w[conformant], registry_json["bundles"].map { |row| row["slug"] }
   end
@@ -115,7 +115,7 @@ class CLIRegistryRenameTest < CLIIntegrationCase
     stray = with_home(other) { okf("registry", "rename", "conformant", "handbook") }
 
     assert_equal 2, stray.status
-    assert_match(/error: no such bundle: conformant/, stray.err)
+    assert_match(/error: no such bundle or group: conformant/, stray.err)
     assert_equal %w[conformant], registry_json["bundles"].map { |row| row["slug"] },
       "the other home's rename cannot reach this one"
   end
@@ -143,6 +143,40 @@ class CLIRegistryRenameTest < CLIIntegrationCase
 
     assert_equal 0, result.status
     assert_match(/^renamed docs → handbook$/, result.out, "no bundle called DOCS was ever registered")
+  end
+
+  test "renaming a bundle propagates into every group that names it" do
+    with_registry("conformant", "minimal") do
+      okf("registry", "group", "docs", "@conformant", "@minimal")
+
+      okf("registry", "rename", "@conformant", "handbook")
+
+      assert_equal %w[handbook minimal], registry_json["groups"].first["members"], "the member follows the rename"
+    end
+  end
+
+  test "renaming a group renames the group itself" do
+    with_registry("conformant") do
+      okf("registry", "group", "docs", "@conformant")
+
+      result = okf("registry", "rename", "@docs", "manuals")
+
+      assert_equal 0, result.status
+      assert_equal %w[manuals], registry_json["groups"].map { |g| g["slug"] }
+    end
+  end
+
+  test "renaming a group propagates into a parent group that names it" do
+    with_registry("conformant") do
+      okf("registry", "group", "inner", "@conformant")
+      okf("registry", "group", "outer", "@inner")
+
+      okf("registry", "rename", "@inner", "core")
+
+      groups = registry_json["groups"].each_with_object({}) { |g, h| h[g["slug"]] = g["members"] }
+      assert_equal %w[core], groups["outer"], "the parent's member follows the group's rename"
+      assert_equal %w[conformant], groups["core"], "the renamed group keeps its own members"
+    end
   end
 
   private

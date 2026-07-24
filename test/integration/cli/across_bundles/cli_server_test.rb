@@ -119,6 +119,82 @@ module AcrossBundles
       assert_equal "/b/rooted/", headers["location"], "/ opens the bundle the registry chose"
     end
 
+    test "a bare server inside a project tree discovers and serves its local registry" do
+      # The payoff: no $OKF_HOME setup — a .okf-registry.json in the tree is what
+      # a bare `okf server` here serves.
+      tree = File.join(@out_dir, "proj")
+      FileUtils.mkdir_p(tree)
+      File.write(File.join(tree, ".okf-registry.json"), JSON.generate("bundles" => [], "groups" => []))
+      in_dir(tree) do
+        okf("registry", "set", fixture("conformant"))
+        okf("registry", "set", fixture("minimal"))
+      end
+
+      result, booted = in_dir(tree) { okf_server }
+      hub = booted_app(booted.first)
+
+      assert_equal 0, result.status
+      assert_kind_of OKF::Server::Hub, hub
+      assert_match(%r{/b/conformant/}, result.out)
+      assert_match(%r{/b/minimal/}, result.out)
+      refute_path_exists File.join(@home, "registry.json"), "the global $OKF_HOME registry was never written"
+    end
+
+    test "OKF_NO_DISCOVERY makes a bare server serve the global registry, not a local one under cwd" do
+      File.write(File.join(Dir.pwd, ".okf-registry.json"), JSON.generate(
+        "bundles" => [ { "slug" => "localonly", "path" => fixture("minimal"), "title" => "t" } ], "groups" => []
+      ))
+
+      # The harness keeps OKF_NO_DISCOVERY=1, so the local file under cwd is ignored.
+      result, = with_registry("conformant") { okf_server }
+
+      assert_match(%r{/b/conformant/}, result.out, "the escape hatch serves the global registry")
+      refute_match(/localonly/, result.out)
+    end
+
+    test "the manager lists a discovered local registry's in-tree bundles as hosted, not gone" do
+      # The Bundles panel re-reads the registry per request, and a re-read that
+      # dropped the local anchor would leave the stored path relative ("one")
+      # while the mounted bundle knows its absolute root — so the panel's
+      # dir-match misses and a bundle that is serving fine renders "folder is
+      # gone". Change 2's anchor has to survive the re-open, not just the boot.
+      tree = local_tree("proj")
+      File.write(File.join(tree, ".okf-registry.json"), JSON.generate("bundles" => [], "groups" => []))
+      FileUtils.cp_r(fixture("conformant"), File.join(tree, "one"))
+
+      _result, booted = in_dir(tree) do
+        okf("registry", "set", File.join(tree, "one"))
+        okf_server
+      end
+      hub = booted_app(booted.first)
+
+      row = JSON.parse(get_page(hub, "/bundles").last)["bundles"].find { |r| r["slug"] == "one" }
+      assert_equal "one", row["mount"], "the in-tree bundle is hosted at its slug, not reported gone"
+      refute_equal "missing", row["health"], "a bundle that is mounted and serving is not 'folder is gone'"
+    end
+
+    test "a browser add to a discovered local registry stores the in-tree bundle relative, not absolute" do
+      # The write path's half of the same anchor. The manager re-opens the
+      # registry to apply a POST, and a re-open that lost the base would store
+      # the freshly-added in-tree bundle absolute — one click in the Bundles
+      # panel undoing the portability Change 2 exists to give.
+      tree = local_tree("proj")
+      File.write(File.join(tree, ".okf-registry.json"), JSON.generate("bundles" => [], "groups" => []))
+      FileUtils.cp_r(fixture("conformant"), File.join(tree, "one"))
+      FileUtils.cp_r(fixture("minimal"), File.join(tree, "two"))
+
+      in_dir(tree) do
+        okf("registry", "set", File.join(tree, "one"))
+        _result, booted = okf_server
+        status, = post(booted_app(booted.first), "/registry/add", "path" => File.join(tree, "two"))
+        assert_equal 200, status
+      end
+
+      stored = JSON.parse(read_utf8(File.join(tree, ".okf-registry.json")))["bundles"].map { |b| b["path"] }
+      assert_equal %w[one two], stored,
+        "both in-tree bundles stay stored relative — the browser write kept the local registry's anchor"
+    end
+
     test "a bundle-less run with no chosen default falls back to the first registered bundle" do
       result, booted = with_registry("conformant", "rooted") { okf_server }
 
@@ -265,6 +341,58 @@ module AcrossBundles
       assert_match(%r{^ {2}\* /b/handbook/\s+fixtures/conformant$}, result.out,
         "the registered slug wins over the basename the plain dir would have taken")
       refute_match(%r{/b/conformant/}, result.out)
+    end
+
+    # -- a group @ref fans out to its member bundles
+
+    test "a group ref mounts each of its members under its registered slug" do
+      okf("registry", "set", fixture("conformant"), "--as", "handbook")
+      okf("registry", "set", fixture("mentions"), "--as", "runbooks")
+      okf("registry", "group", "docs", "@handbook", "@runbooks")
+
+      result, booted = okf_server("@docs")
+      hub = booted_app(booted.first)
+
+      assert_equal 0, result.status
+      assert_kind_of OKF::Server::Hub, hub
+      assert_match(%r{^ {2}\* /b/handbook/\s+fixtures/conformant$}, result.out, "the group's first member lands at /")
+      assert_match(%r{^ {4}/b/runbooks/\s+fixtures/mentions$}, result.out)
+
+      status, headers, = get_page(hub)
+      assert_equal 302, status
+      assert_equal "/b/handbook/", headers["location"], "the mount table's * and the hub's / agree"
+    end
+
+    test "a vanished group member is skipped with a note; the rest still serve" do
+      doomed = scratch_bundle("doomed")
+      okf("registry", "set", fixture("conformant"), "--as", "handbook")
+      okf("registry", "set", doomed)
+      okf("registry", "group", "docs", "@handbook", "@doomed")
+      FileUtils.rm_rf(doomed)
+
+      result, _booted = okf_server("@docs")
+
+      assert_equal 0, result.status
+      assert_match(/note: skipping doomed — cannot read #{Regexp.escape(doomed)}/, result.err)
+      # One surviving member takes the single-bundle path (arity decides the mode),
+      # so it serves at / with the single-bundle serving line.
+      assert_match(/serving 3 concepts at/, result.out, "the readable member still serves")
+    end
+
+    test "a group whose every member vanished fails the server (exit 2), booting nothing" do
+      a = scratch_bundle("a")
+      b = scratch_bundle("b")
+      okf("registry", "set", a, "--as", "aa")
+      okf("registry", "set", b, "--as", "bb")
+      okf("registry", "group", "docs", "@aa", "@bb")
+      FileUtils.rm_rf(a)
+      FileUtils.rm_rf(b)
+
+      result, booted = okf_server("@docs")
+
+      assert_equal 2, result.status
+      assert_nil booted, "nothing half-boots on an empty resolution"
+      assert_match(/@docs resolves to no readable bundle/, result.err)
     end
 
     # -- flags in multi form
@@ -457,6 +585,17 @@ module AcrossBundles
     end
 
     private
+
+    # A fresh directory for a project-local registry, its path canonicalized with
+    # realpath. Change 2 stores an in-tree bundle relative by a *lexical*
+    # relative_path_from, and on macOS Dir.pwd is the physical path (/private/var)
+    # while a bare mktmpdir path is the symlink (/var) — the two must match or the
+    # would-be-relative store climbs out with ../.. and falls back to absolute.
+    def local_tree(name)
+      dir = File.join(@out_dir, name)
+      FileUtils.mkdir_p(dir)
+      File.realpath(dir)
+    end
 
     # A throwaway copy of a fixture bundle at <out_dir>/<relative> — for the slug
     # questions (dedupe, reservation) that turn on a directory's basename. Nested

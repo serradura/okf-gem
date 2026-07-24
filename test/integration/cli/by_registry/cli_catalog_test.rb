@@ -40,7 +40,7 @@ module ByRegistry
         assert_equal "conformant", data.fetch("slug"), "`slug` is only ever the registry slug"
         assert_equal 3, data.fetch("count")
         keys = data.fetch("concepts").first.keys.sort
-        assert_equal %w[area backlog_ref description dir id links_in links_out status tags timestamp title type], keys
+        assert_equal %w[backlog_ref description dir id links_in links_out status tags timestamp title top_dir type], keys
         assert_equal "datasets/sales", data.fetch("concepts").first.fetch("id")
       end
     end
@@ -153,7 +153,7 @@ module ByRegistry
       with_registry("conformant", "edge-cases") do
         data = json(okf("catalog", "@conformant", "--area", "TABLES", "--json"))
         assert_equal 2, data.fetch("count")
-        assert_equal %w[tables tables], data.fetch("concepts").map { |row| row["area"] }
+        assert_equal %w[tables tables], data.fetch("concepts").map { |row| row["top_dir"] }
 
         rooted = json(okf("catalog", "@edge-cases", "--area", "root", "--json"))
         assert_equal %w[links-in-fences reference-style target], rooted.fetch("concepts").map { |row| row["id"] }

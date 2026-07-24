@@ -296,7 +296,7 @@ module ByDir
       result = okf("search", fixture("conformant"), "orders", "--fields", "slug", "--json")
 
       assert_equal 2, result.status
-      assert_match(/^error: unknown field\(s\): slug \(available: id, title, type, dir, area, tags, matched, score, snippet\)$/, result.err)
+      assert_match(/^error: unknown field\(s\): slug \(available: id, title, type, dir, top_dir, tags, matched, score, snippet\)$/, result.err)
       assert_empty result.out, "an unprojectable field is a refusal, never an answer shaped like one"
     end
 

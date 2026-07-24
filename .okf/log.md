@@ -1,5 +1,75 @@
 # Update Log
 
+## 2026-07-24
+* **Sync**: caught the bundle up with **project-local registries** — the
+  [registry](registry.md) now has two homes, and which one answers is decided by
+  where you stand: `okf registry init` drops a `.okf-registry.json` that okf
+  discovers by walking up from the working directory and uses in place of the
+  global `$OKF_HOME` one while you are inside its tree (the file's presence is the
+  whole state, the nearest one on the path wins, and `OKF_NO_DISCOVERY=1` forces
+  the global one for a fixed-cwd caller). A bundle inside the tree is stored
+  **relative** to the file, so a committed registry travels with the repo — a
+  checkout elsewhere, or a container mounting it, resolves the same bundles
+  unchanged — while paths still read back absolute everywhere the CLI reports
+  them. The [CLI](cli.md) records the grown subcommand list (`init` through
+  `group`/`ungroup`, correcting a groups-era omission) and that `@slug` now
+  resolves through a discovered local registry before falling back to `$OKF_HOME`.
+* **Sync**: the derived `area` field is renamed **`top_dir`** — the
+  first-path-segment rollup the [read views](capabilities/read-views.md) and
+  [search facade](design/search-engines.md) carry. "Area" was never the OKF
+  spec's word (the earlier `dir` rename already established that); the rollup now
+  names itself in the spec's vocabulary, the `dir` at the top level. The `--json`
+  keys move with it (`catalog`/`search` rows carry `top_dir`, `stats` emits
+  `top_dirs`/`by_top_dir`, `graph --hubs` emits `top_dir`/`by_top_dir`). The
+  deprecated `--area`/`--by area` *input* flags are untouched — they still warn
+  and map to `--dir`/`--by dir`, and now source the renamed field internally.
+
+## 2026-07-23
+* **Addition**: the [registry](registry.md) grows **groups** — a slug that names
+  a set of bundles (members are bundle or group slugs, so groups nest) and
+  resolves recursively to its bundle leaves. `okf registry group backend @orders
+  @billing` / `ungroup` manage them; `@backend` then stands in for the set
+  wherever the two set-taking verbs run — [`search`](capabilities/search.md)
+  merges the members into one ranking, [`server`](capabilities/graph-server.md)
+  mounts each. Every single-bundle verb refuses a `@group` with exit 2, the same
+  second-bundle rule, and `@all` is unchanged (a group is a named subset of the
+  bundles it already covers). Groups live in their own list so the
+  first-is-default rule and the `File.directory?` guards never meet a pathless
+  entry; one namespace spans both, so a `rename` cascades the new name across
+  member lists and a `del` cascade-drops the slug, deleting any group it empties.
+* **Addition**: [read-views](capabilities/read-views.md) gains `graph
+  --traffic`, and [agent-skill](capabilities/agent-skill.md)'s refine playbook
+  gains it as a third structural read. The playbook's step 2 measured concepts
+  twice — tag locality and the hub origin test — while step 3 decides about
+  *directories* ("does this directory prune?", "concern or container?"), and
+  nothing measured at that grain. `--traffic` collapses concepts into their
+  directory and the links between two directories into one weighted arc, so each
+  row carries internal/out/in traffic and a cohesion ratio: cohesion versus
+  coupling, applied to a knowledge tree. On a 47-concept bundle it read three
+  findings off one screen — a directory with 50 outbound links and 4 inbound
+  behaving like a projection rather than a container, two directories at 0%
+  cohesion holding inert reference material, and a central `decisions/` reading
+  low for the reason the playbook already predicts, which is centrality rather
+  than mis-homing. The cut is fitted to the bundle rather than fixed: at a fixed
+  weight of 3, ten bundles ranged from 2 arcs to 136.
+* **Update**: the graph page draws links in three amounts rather than always
+  all of them — every link, the *spine* (each concept's strongest, about one per
+  concept, and chosen so it touches every linked concept), or none, with a
+  selected concept's own links always shown in full. A dense bundle opens on its
+  spine by default rather than greeting the reader with the thicket: the trigger
+  is undirected degree, the measure the bundle above reads at 9.7, above a floor
+  set between that and a tree's ~2, so a browsable graph is left on every link.
+  `okf server --map` / `okf render --map` override that to no links with the
+  directories boxed. A dense bundle is unreadable because of its arrows, not its
+  dots: 227 links over 47 concepts at an average degree of 9.7, three quarters of
+  them crossing a directory boundary.
+* **Maintenance**: the bundle catches up with both. [The model](model/) gains a
+  fourth member, [skeleton](model/skeleton.md) — the graph reduced to directories,
+  arcs and per-link cuts, which [`--traffic`](capabilities/read-views.md) and the
+  page's link layer both read. [graph-server](capabilities/graph-server.md) gains
+  the link layer, the dense-opens-on-spine default and `--map`;
+  [render](capabilities/render.md) gains the baked `--map` flag.
+
 ## 2026-07-22
 * **Correction**: [browser-tests](design/browser-tests.md) drops the CI job. The
   concept argued a non-blocking check was worth its noise because a red job still

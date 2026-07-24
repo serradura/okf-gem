@@ -193,7 +193,7 @@ module OKF
       def filter_entries(entries, options)
         entries.select do |entry|
           (options[:type].nil? || fold(entry[:type]) == fold(options[:type])) &&
-            (options[:area].nil? || fold(entry[:area]) == fold_area(options[:area])) &&
+            (options[:area].nil? || fold(entry[:top_dir]) == fold_area(options[:area])) &&
             (options[:dir].nil? || under_dir?(entry[:dir], options[:dir])) &&
             (options[:tag].nil? || entry[:tags].any? { |tag| fold(tag) == fold(options[:tag]) })
         end
@@ -421,12 +421,55 @@ module OKF
       # Parse options, then take zero or more bundle positionals (the multi-bundle
       # server) — directories or @refs. Returns the resolved array (possibly
       # empty), or nil (after reporting) so the caller returns 2.
-      def positional_dirs(parser, argv)
+      def positional_dirs(parser, argv, expand_groups: false)
         parser.parse!(argv)
-        dirs = argv.map { |dir| resolve_ref(dir) }
+        dirs = if expand_groups
+                 argv.flat_map { |arg| resolve_ref_expanding(arg) }
+               else
+                 argv.map { |dir| resolve_ref(dir) }
+               end
         dirs.include?(nil) ? nil : dirs
       rescue OptionParser::ParseError => e
         @err.puts e.message
+        nil
+      end
+
+      # Like #resolve_ref, but a group @ref fans out to its member directories —
+      # the multi-bundle expansion only `server` wants (single-bundle verbs reject
+      # a group in #resolve_registered). Always returns an array of dirs so the
+      # caller can flat_map, or nil (reported) to fail the run.
+      def resolve_ref_expanding(arg)
+        return [ resolve_ref(arg) ] unless arg.start_with?("@")
+
+        registry = load_registry
+        return [ nil ] unless registry
+
+        slug = OKF::Registry.normalize(arg[1..-1])
+        return [ resolve_ref(arg) ] if slug.empty? || registry.group?(slug).nil?
+
+        group_member_dirs(registry, slug)
+      end
+
+      # A group's member directories, in order, skipping ones whose directory has
+      # vanished with the same note `@all` gives — and populating +ref_slugs+ so the
+      # hub mounts each under its registered slug. nil (reported) when nothing
+      # readable is left, or on a hand-edited cycle.
+      def group_member_dirs(registry, slug)
+        dirs = []
+        registry.expand(slug).each do |entry|
+          if File.directory?(entry.path)
+            ref_slugs[entry.path] = entry.slug
+            dirs << entry.path
+          else
+            skip_registered(entry)
+          end
+        end
+        return dirs unless dirs.empty?
+
+        @err.puts "error: @#{slug} resolves to no readable bundle (okf registry list)"
+        nil
+      rescue OKF::Error => e
+        @err.puts "error: #{e.message}"
         nil
       end
 
@@ -452,15 +495,24 @@ module OKF
       # only `server` and the `registry` verbs rescue one. Returns nil after
       # reporting, so every caller returns 2.
       def load_registry
-        require "okf/registry"
-        OKF::Registry.load
+        open_registry
       rescue OKF::Error => e
         @err.puts "error: #{e.message}"
         nil
       end
 
-      # Resolve one @ref through the registry under $OKF_HOME (default ~/.okf).
-      # The slug part is normalized
+      # The registry a verb resolves against — the single seam that opts the CLI
+      # into discovery. `cwd: Dir.pwd` is what makes OKF::Registry.load walk up for
+      # a project-local .okf-registry.json; a library caller passing no cwd stays
+      # global-only. The registry subcommands and `server` open through here too,
+      # so a bare `okf server` inside a repo serves that repo's bundles.
+      def open_registry
+        require "okf/registry"
+        OKF::Registry.load(cwd: Dir.pwd)
+      end
+
+      # Resolve one @ref through the active registry — a discovered project-local
+      # one, else the global $OKF_HOME (default ~/.okf). The slug part is normalized
       # exactly as registration normalized it, so @One finds the bundle
       # registered from dir One — but never through #slugify's mint-a-name
       # placeholder, so "@***" is a bad ref rather than whatever is slugged
@@ -486,6 +538,19 @@ module OKF
 
         asked = ref[1..-1]
         slug = OKF::Registry.normalize(asked)
+
+        # A group is a set, and this verb takes one bundle. Reading its first member
+        # would answer confidently about a bundle the user never singled out — the
+        # silent-wrong-answer shape the second-bundle rule already forbids — so it is
+        # exit 2, with the two verbs that *can* take a group named.
+        group = slug.empty? ? nil : registry.group?(slug)
+        if group
+          count = group.members.size
+          @err.puts "error: @#{slug} names a group of #{count} #{count == 1 ? "member" : "members"}; " \
+                    "only `okf search` and `okf server` take a group"
+          return nil
+        end
+
         entry = if asked.empty?
                   registry.default # bare "@"
                 elsif slug.empty?

@@ -23,20 +23,21 @@ module OKF
       def call(argv)
         require "okf/render/graph"
 
-        options = { output: nil, title: nil, link: nil, layout: "cose" }
+        options = { output: nil, title: nil, link: nil, layout: "cose", map: false }
         parser = OptionParser.new do |o|
           o.banner = "Usage: okf render <dir|@slug> [-o FILE] [--layout NAME] [-t title] [-l url]"
           o.on("-o", "--output FILE", "write to FILE instead of stdout") { |v| options[:output] = v }
           o.on("-t", "--title TITLE", "graph title (default: parent/bundle dir name)") { |v| options[:title] = v }
           o.on("-l", "--link URL", "source URL shown in the header") { |v| options[:link] = v }
           o.on("--layout NAME", OKF::Render::Graph::LAYOUTS, "initial layout (#{OKF::Render::Graph::LAYOUTS.join(", ")})") { |v| options[:layout] = v }
+          o.on("--map", "open in the Map view: concepts boxed by directory, links on selection") { options[:map] = true }
           help_flag(o)
         end
         dir = positional_dir(parser, argv) or return 2
 
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)
-        html = OKF::Render::Graph.static(folder, title: options[:title], link: options[:link], layout: options[:layout])
+        html = OKF::Render::Graph.static(folder, title: options[:title], link: options[:link], layout: options[:layout], map: options[:map])
         if options[:output]
           # A bad -o path (a missing directory, a permission denial) is a bad
           # *argument*: exit 2 with the reason, never a backtrace and an exit code

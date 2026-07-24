@@ -17,6 +17,14 @@ export const bundleDir = path.join(here, "fixtures", "bundle");
 export const staticPage = path.join(here, ".tmp", "graph.html");
 export const PORT = Number(process.env.OKF_TEST_PORT || 8899);
 
+// The main bundle baked with `okf render --map` — the page opens in the Map
+// view (no arrows, directories boxed). Static only: `--map` bakes `map_json`
+// into the template identically in both render modes, so a file:// page
+// exercises the same boot rAF (setLinks('none') + setClustered) that the TDZ
+// hazard lives in, and a server of its own would prove nothing the static page
+// does not. Reached by path, so it needs no Playwright project.
+export const bundleMapPage = path.join(here, ".tmp", "map.html");
+
 // The hostile bundle gets its own server and its own static page rather than
 // joining the main fixture: every count assertion in boot.spec.js and
 // filters.spec.js is written against those 8 concepts, and a bundle carrying
@@ -62,6 +70,18 @@ export const DEEPPATH_PORT = PORT + 6;
 export const biggraphDir = path.join(here, "fixtures", "biggraph");
 export const biggraphPage = path.join(here, ".tmp", "biggraph.html");
 export const BIGGRAPH_PORT = PORT + 7;
+
+// 110 concepts wired at out-degree 8 — 880 links, over the page's
+// BOOT_MIN_EDGES (800). The one shape that activates the boot split: the first
+// layout runs on the spine alone (each concept's strongest link, EDGE_CUT===0)
+// and the rest of the edges arrive on the next frame with no re-layout. Every
+// other fixture sits under 800 and never splits, so this branch — and the
+// "no edge is lost by the split" invariant — has no other way in. Served with
+// circle because the split is layout-independent and cose on 880 edges is the
+// slow path this optimisation exists to avoid. Own server + static page.
+export const densegraphDir = path.join(here, "fixtures", "densegraph");
+export const densegraphPage = path.join(here, ".tmp", "densegraph.html");
+export const DENSEGRAPH_PORT = PORT + 10;
 
 // The Bundles panel's own registry hub. It gets a world of its own for the
 // reason every other special fixture here does: its specs *write* — rename,

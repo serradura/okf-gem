@@ -41,18 +41,18 @@ module OKF
         graph = folder.graph(minimal: true)
         entries = folder.catalog
         by_type = graph.type_index.transform_values(&:size).sort_by { |_, n| -n }.to_h
-        by_area = entries.group_by { |entry| entry[:area] }.transform_values(&:size).sort_by { |_, n| -n }.to_h
+        by_top_dir = entries.group_by { |entry| entry[:top_dir] }.transform_values(&:size).sort_by { |_, n| -n }.to_h
         by_dir = directory_counts(folder)
         {
           concepts: entries.size,
           dirs: by_dir.size,
-          areas: by_area.size,
+          top_dirs: by_top_dir.size,
           types: by_type.size,
           cross_links: graph.edges.size,
           tags: graph.tag_index.size,
           by_type: by_type,
           by_dir: by_dir,
-          by_area: by_area
+          by_top_dir: by_top_dir
         }
       end
 
@@ -83,9 +83,9 @@ module OKF
         @out.puts "  cross-links    #{stats[:cross_links]}"
         @out.puts "  distinct tags  #{stats[:tags]}"
         print_stat_breakdown("By type", stats[:by_type])
-        # One grouping word in the human view: `by_area` stays in --json for the
-        # deprecation window, but a screen that printed both would be teaching the
-        # vocabulary the rest of this change is retiring.
+        # One grouping word in the human view: `by_top_dir` stays in --json (the
+        # first-segment rollup) but a screen that printed both it and `by_dir`
+        # would double up on one idea, so the human view shows the full-path cut.
         print_stat_breakdown("By dir", stats[:by_dir]) { |label| dir_label(label) }
       end
 
@@ -101,9 +101,9 @@ module OKF
 
       def print_stats_json(dir, stats)
         emit_json(bundle_head(dir).merge(
-          "concepts" => stats[:concepts], "dirs" => stats[:dirs], "areas" => stats[:areas],
+          "concepts" => stats[:concepts], "dirs" => stats[:dirs], "top_dirs" => stats[:top_dirs],
           "concept_types" => stats[:types], "cross_links" => stats[:cross_links], "distinct_tags" => stats[:tags],
-          "by_type" => stats[:by_type], "by_dir" => stats[:by_dir], "by_area" => stats[:by_area]
+          "by_type" => stats[:by_type], "by_dir" => stats[:by_dir], "by_top_dir" => stats[:by_top_dir]
         ))
       end
     end

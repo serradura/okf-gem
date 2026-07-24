@@ -289,6 +289,24 @@ okf search @all rate limit              # ranked retrieval across every register
 okf server                              # no args: the whole registry behind one hub
 ```
 
+Related bundles can share a name: `okf registry group backend @handbook @runbooks`
+makes `@backend` stand for the set (members can be groups too, so they nest), and
+`okf search @backend rate limit` or `okf server @backend` then targets all of them
+at once — a durable subset for the two verbs that take several bundles.
+
+The registry lives under `$OKF_HOME` (default `~/.okf`) — one per user. For one
+scoped to a single project instead, `okf registry init` drops a
+`.okf-registry.json` in the current directory; okf then discovers it by walking up
+from wherever you run, and every registry op — and every `@slug` — resolves through
+it in place of the global one. So a bare `okf server` inside that repo serves *its*
+bundles with no `$OKF_HOME` setup. The nearest registry wins, and
+`OKF_NO_DISCOVERY=1` forces the global one.
+
+Commit that file and it travels with the repo: a bundle under the project root is
+stored relative to the registry, so a checkout on another machine — or a container
+that mounts the repo — resolves the same bundles unchanged. (Bundles outside the
+tree keep absolute paths, which do not travel.)
+
 Behind the hub each bundle mounts at `/b/<slug>/`, `/b/` lists them all, and the
 `⌘/Ctrl-K` palette both switches bundles and **searches every one at once** — type
 a few words and the matching concepts appear with their bundle and a snippet, from
@@ -388,10 +406,10 @@ okf search    <dir|@slug…|@all> <term…>          # ranked retrieval; @all sp
 okf index     <dir|@slug> [--dir D] [--depth N]  # the §6 map: index bodies, rollups, listings
 okf dirs      <dir|@slug> [--dir D] [--depth N]  # the shape: every directory and what it holds
 okf catalog | files | tags | types | stats  <dir|@slug>   # the browser views, on the CLI
-okf graph     <dir|@slug> [--hubs]               # the raw graph; --hubs ranks by inbound links
+okf graph     <dir|@slug> [--hubs] [--traffic]   # the raw graph; --hubs ranks concepts, --traffic dirs
 okf server    [DIR|@slug…] [-p PORT] [--bind ADDR]   # the live graph: one bundle, or all of them
 okf render    <dir|@slug> [-o FILE]              # the same page as one static, self-contained file
-okf registry  list | set | del | default | rename    # name your bundles: @slug works anywhere
+okf registry  init | list | set | del | default | rename | group | ungroup   # name & group your bundles; @slug works anywhere
 okf skill     <dest>                             # install the companion agent skill
 okf --version
 ```
@@ -460,17 +478,17 @@ OKF::Server::App.new(folder)     # => a Rack app: the interactive graph, mountab
 
 That last line is the point of the Rack app: the graph mounts inside an app you
 already have, auth included. The [Rails guide](https://okfgem.com/docs/guides/rails/)
-walks it, and the [library API](.okf/capabilities/library-api.md) concept covers
+walks it, and the [library API](https://okfgem.com/docs/library/) covers
 the pure layer, the writer, and the lower-level pieces.
 
 ### validate and lint are two different questions
 
-`validate` (the [conformance validator](.okf/capabilities/validator.md)) asks
+`validate` (the [conformance validator](https://okfgem.com/docs/cli/validate/)) asks
 _"is this legal OKF?"_ and implements the spec's
 [§9](lib/okf/skill/reference/SPEC.md#9-conformance) exactly — which means it is
 *forbidden* to reject a bundle for a broken link or a missing optional field.
 
-`lint` (the [curation linter](.okf/capabilities/linter.md)) asks the
+`lint` (the [curation linter](https://okfgem.com/docs/cli/lint/)) asks the
 complementary question, _"is this well-curated, navigable, trustworthy?"_, over
 exactly those tolerated things: reachability, backlog, completeness, freshness,
 provenance, hygiene. It is advisory and exits `0` even with findings unless you

@@ -46,6 +46,11 @@ Style/IfUnlessModifier:
   Enabled: false
 Style/MultilineBlockChain:
   Enabled: false
+# The cop's fix — `all?(Integer)` over `all? { |x| x.is_a?(Integer) }` — is the
+# 2.5+ pattern-argument form, which raises ArgumentError on the 2.4 floor. Its
+# advice is incompatible with this project, so the block form has to stand.
+Style/PredicateWithKind:
+  Enabled: false
 Style/RegexpLiteral:
   Enabled: false
 Style/Semicolon:

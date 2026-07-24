@@ -45,8 +45,10 @@ module OKF
       # `okf render`: the whole page as one self-contained file, the bundle baked
       # in, so it hosts where no server answers a fetch. Takes any bundle handle
       # (an OKF::Bundle::Folder) and returns the HTML string.
-      def self.static(folder, title: nil, link: nil, layout: "cose")
-        new(folder.graph(minimal: true), title: title || folder.name, link: link, layout: layout, embed: payload(folder)).render
+      def self.static(folder, title: nil, link: nil, layout: "cose", map: false)
+        graph = folder.graph(minimal: true)
+        new(graph, title: title || folder.name, link: link, layout: layout, embed: payload(folder),
+          cuts: folder.skeleton.cuts_for(graph.edges), map: map).render
       end
 
       # What the baked page carries in place of the endpoints a live server would
@@ -73,10 +75,17 @@ module OKF
       # default — injects an empty SIBLINGS, so the switcher never appears in a
       # single bundle or a static file. +search_endpoint+ rides along with them:
       # the hub's cross-bundle /search, which only a hub can answer.
+      # +cuts+ is one integer per edge, in @graph.edges order: the cut that edge
+      # survives (OKF::Bundle::Skeleton). It rides inline rather than being
+      # fetched because its only consumer needs it *before* the first layout
+      # runs, which is earlier than any request could answer. nil is allowed and
+      # simply turns the reduced first layout off.
       def initialize(graph, title: nil, link: nil, layout: "cose", node_endpoint: "node", meta_endpoint: "node/meta", embed: nil,
                      siblings: nil, self_slug: nil, hub_path: nil, search_endpoint: nil,
-                     manage_root: nil, manage_token: nil)
+                     manage_root: nil, manage_token: nil, cuts: nil, map: false)
         @graph = graph
+        @cuts = cuts
+        @map = map
         @title = title
         @link = link
         @layout = layout
@@ -131,6 +140,21 @@ module OKF
 
       def edges_json
         json_for_script(@graph.edges)
+      end
+
+      # Index-aligned with EDGES: `EDGE_CUT[i]` is the cut `EDGES[i]` survives.
+      # An array of small integers rather than a keyed map, because keying it by
+      # "source target" would cost more bytes than the edge list it annotates.
+      def edge_cuts_json
+        json_for_script(@cuts)
+      end
+
+      # Whether the page opens in the Map view — every concept, boxed by the
+      # directory it lives in, with the cross-links undrawn until one is
+      # selected. A boot state rather than a different page: the toggle is the
+      # same one the reader can press, so `--map` only decides where they start.
+      def map_json
+        json_for_script(@map ? true : false)
       end
 
       # { type => [id, …] } — the client builds an id→type map for node colour.

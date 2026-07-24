@@ -95,6 +95,10 @@ module OKF
       Graph.build(self, minimal: minimal, body: body)
     end
 
+    def skeleton
+      Skeleton.build(self)
+    end
+
     # Rich per-concept metadata the catalog / files / stats consumers want but the
     # lean graph omits — the descriptive frontmatter fields plus in/out link degree
     # taken from the graph edges. Pure: derived from the concepts and their links,
@@ -119,28 +123,28 @@ module OKF
           status: concept.frontmatter["status"]&.to_s,
           backlog_ref: concept.frontmatter["backlog_ref"]&.to_s,
           dir: OKF.dir_of(id),
-          area: area_of(id),
+          top_dir: top_dir_of(id),
           links_out: out_degree[id],
           links_in: in_degree[id]
         }
       end.sort_by { |entry| entry[:id] }
     end
 
-    # Concepts ranked by inbound link degree, each with the areas its inbound
-    # links come from — the evidence for "is this hub well-homed?": a hub whose
-    # inbound majority is foreign to its own area is a move candidate, one with
-    # a single dominant foreign area already names its better home. Only
-    # concepts with at least one inbound link appear. Pure: derived from the
-    # graph edges. Shared by the `okf graph --hubs` view.
+    # Concepts ranked by inbound link degree, each with the top-level dirs its
+    # inbound links come from — the evidence for "is this hub well-homed?": a hub
+    # whose inbound majority is foreign to its own top-level dir is a move
+    # candidate, one with a single dominant foreign dir already names its better
+    # home. Only concepts with at least one inbound link appear. Pure: derived
+    # from the graph edges. Shared by the `okf graph --hubs` view.
     def hubs
       inbound = {}
       graph(minimal: true).edges.each do |edge|
-        (inbound[edge[:target]] ||= Hash.new(0))[area_of(edge[:source])] += 1
+        (inbound[edge[:target]] ||= Hash.new(0))[top_dir_of(edge[:source])] += 1
       end
 
       inbound.map do |id, sources|
-        by_area = sources.sort_by { |area, count| [ -count, area ] }.to_h
-        { id: id, area: area_of(id), inbound: by_area.values.reduce(0, :+), by_area: by_area }
+        by_top_dir = sources.sort_by { |top_dir, count| [ -count, top_dir ] }.to_h
+        { id: id, top_dir: top_dir_of(id), inbound: by_top_dir.values.reduce(0, :+), by_top_dir: by_top_dir }
       end.sort_by { |row| [ -row[:inbound], row[:id] ] }
     end
 
@@ -189,9 +193,10 @@ module OKF
 
     private
 
-    # A concept's top-level area, derived from its id — the same derivation the
-    # catalog exposes, so every grouped view labels the bundle root "(root)".
-    def area_of(id)
+    # A concept's top-level dir, derived from its id — the first path segment, the
+    # same derivation the catalog exposes, so every grouped view labels the bundle
+    # root "(root)". OKF.dir_of keeps the levels this one rolls up.
+    def top_dir_of(id)
       id.include?("/") ? id.split("/").first : "(root)"
     end
 

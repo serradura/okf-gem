@@ -1,10 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 import { repoRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, HUB_PORT,
   panelHome, PANEL_PORT, RO_PORT, treeDir, TREE_PORT, manytagsDir, MANYTAGS_PORT,
-  deeppathDir, DEEPPATH_PORT, biggraphDir, BIGGRAPH_PORT } from "./paths.js";
+  deeppathDir, DEEPPATH_PORT, biggraphDir, BIGGRAPH_PORT, densegraphDir, DENSEGRAPH_PORT } from "./paths.js";
 
-const serve = (dir, port) => ({
-  command: `bundle exec ruby -Ilib exe/okf server ${JSON.stringify(dir)} -p ${port}`,
+const serve = (dir, port, layout) => ({
+  command: `bundle exec ruby -Ilib exe/okf server ${JSON.stringify(dir)} -p ${port}${layout ? ` --layout ${layout}` : ""}`,
   cwd: repoRoot,
   url: `http://127.0.0.1:${port}/`,
   reuseExistingServer: !process.env.CI,
@@ -100,6 +100,9 @@ export default defineConfig({
     serve(manytagsDir, MANYTAGS_PORT),
     serve(deeppathDir, DEEPPATH_PORT),
     serve(biggraphDir, BIGGRAPH_PORT),
+    // circle, not the default cose: the boot split is layout-independent and a
+    // fast deterministic layout keeps 880 edges from dominating the run twice.
+    serve(densegraphDir, DENSEGRAPH_PORT, "circle"),
     serveHub([ bundleDir, hostileDir ], HUB_PORT),
     serveRegistry(PANEL_PORT, panelHome),
     serveReadOnly(RO_PORT, panelHome),

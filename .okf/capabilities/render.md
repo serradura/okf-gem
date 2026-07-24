@@ -4,7 +4,7 @@ title: Static render (render)
 description: One self-contained HTML file with the whole graph baked in — the same page `okf server` serves, written to disk so it hosts where nothing runs (`okf render`).
 resource: lib/okf/render/graph.rb
 tags: [server, graph]
-timestamp: 2026-07-18T16:00:00Z
+timestamp: 2026-07-23T12:00:00Z
 ---
 
 # Overview
@@ -47,8 +47,9 @@ laxer than the server it was baked from.
 or writes `-o FILE` directly, reporting the concept count when it does. A `-o`
 path it cannot write is a usage error (exit `2`), not a backtrace — the same
 [best-effort contract](../cli.md) the read views keep. `--layout NAME` bakes in a
-graph layout, and `-t`/`-l` set the title and the link the page unfurls as a
-preview card, since a static file cannot be told them later. The price is weight:
+graph layout, `--map` bakes the [Map view](graph-server.md) as the opening state
+(no arrows, the directories boxed), and `-t`/`-l` set the title and the link the
+page unfurls as a preview card, since a static file cannot be told them later. The price is weight:
 every body is inlined, where a live [`okf server`](graph-server.md) ships a minimal
 graph and pulls bodies on demand — so the server stays the choice for a bundle too
 large to ship whole, and the static file carries no compression of its own
@@ -59,5 +60,5 @@ server — bodies still lazy — can only index their metadata.
 
 # Citations
 
-[1] [lib/okf/cli/render.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/render.rb) — the `render` verb: stdout vs `-o FILE`, `--layout`/`-t`/`-l`, and the exit-2 on an unwritable path.
+[1] [lib/okf/cli/render.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli/render.rb) — the `render` verb: stdout vs `-o FILE`, `--layout`/`--map`/`-t`/`-l`, and the exit-2 on an unwritable path.
 [2] [lib/okf/render/graph.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/render/graph.rb) — `OKF::Render::Graph.static` and `.payload`, which bake the bundle into the template's `EMBED` payload.

@@ -68,7 +68,7 @@ module AcrossBundles
       payload = json(okf("stats", fixture("conformant"), "--json"))
 
       assert_equal 3, payload["concepts"] # the one bundle's own count, never a sum
-      assert_equal 2, payload["areas"]
+      assert_equal 2, payload["top_dirs"]
       assert_equal 0, okf("stats", fixture("conformant"), "--pretty").status
     end
 

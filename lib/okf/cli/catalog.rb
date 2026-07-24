@@ -2,8 +2,8 @@
 
 module OKF
   class CLI
-    # Every concept with its metadata, grouped by area. The widest of the read
-    # views, and the one the others narrow down from.
+    # Every concept with its metadata, grouped by top-level dir. The widest of the
+    # read views, and the one the others narrow down from.
     class Catalog < Command
       def self.id
         :catalog
@@ -15,7 +15,7 @@ module OKF
 
       def self.help_rows
         [
-          [ "catalog   <dir|@slug> [--json] [filters]", "list concepts with metadata, by area" ]
+          [ "catalog   <dir|@slug> [--json] [filters]", "list concepts with metadata, by top-level dir" ]
         ]
       end
 
@@ -44,9 +44,9 @@ module OKF
 
       def print_catalog(dir, entries, total)
         @out.puts "Catalog — #{bundle_label(dir)} (#{counted(entries.size, total, "concept")})"
-        entries.group_by { |entry| entry[:area] }.sort_by(&:first).each do |area, group|
+        entries.group_by { |entry| entry[:top_dir] }.sort_by(&:first).each do |top_dir, group|
           @out.puts
-          @out.puts "  #{area == "(root)" ? "(root)" : "#{area}/"} (#{group.size})"
+          @out.puts "  #{top_dir == "(root)" ? "(root)" : "#{top_dir}/"} (#{group.size})"
           group.each do |entry|
             links = entry[:links_out] + entry[:links_in]
             meta = [ entry[:type], (links.positive? ? "↳#{links}" : nil), entry[:status] ].compact.join("  ·  ")

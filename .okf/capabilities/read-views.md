@@ -3,7 +3,7 @@ type: Capability
 title: Read views (index, dirs, catalog, files, types, tags, stats, loose, graph)
 description: The server's browser panels reproduced on the CLI, plus the index map, so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-22T18:00:00Z
+timestamp: 2026-07-24T12:00:00Z
 ---
 
 # Overview
@@ -23,13 +23,13 @@ these views group by, for the price of a few rows.
 |------|-------|------------|
 | `index` | each directory's index body, type/tag rollup, child dirs, and concept listing | directory (root first) |
 | `dirs` | every directory with the concepts living directly in it | directory (root first) |
-| `catalog` | concepts with type, tags, link counts, status | area |
+| `catalog` | concepts with type, tags, link counts, status | top-level dir |
 | `files` | files with titles | folder |
 | `types` | [types](../format/frontmatter.md) with their concepts | count |
 | `tags` | [tags](../format/frontmatter.md) with their concepts | count |
 | `stats` | rollups: concepts, dirs, types, cross-links, tags | — |
 | `loose` | degree-0 concepts (no [links](../format/cross-links.md) in or out) | folder |
-| `graph` | the raw nodes and edges; `--hubs` ranks inbound links by source area | — (`--minimal` / `--no-body`) |
+| `graph` | the raw nodes and edges; `--hubs` ranks inbound links by source top-level dir; `--traffic` collapses concepts into dirs and links into weighted arcs, with cohesion | — (`--minimal` / `--no-body`) |
 
 `dirs` and `stats` answer about the *same* set of directories, deliberately:
 both read `Bundle#directory_index`, the map `--dir` is resolved against. Grouping
@@ -158,8 +158,22 @@ a plain count when the tag is wholly local — so a tag's *locality* (domain
 confined to one directory, or concern cutting across several) reads per row. The
 same evidence question for the graph: `graph --hubs` ranks every concept with
 inbound [links](../format/cross-links.md) by inbound degree and groups each
-hub's links by *source area* — whether a hub is well-homed, answered
+hub's links by *source top-level dir* — whether a hub is well-homed, answered
 mechanically.
+
+`graph --traffic` asks it one grain coarser, about **directories**. It reads the
+[skeleton](../model/skeleton.md): concepts collapse into the directory they live in
+and the links between two directories into one weighted arc, so each row carries
+that directory's traffic split three ways — internal, out, in — plus
+**cohesion**, its internal share. That is
+cohesion-versus-coupling applied to a knowledge tree, and it is the only read at
+the grain `refine` actually decides at: `--hubs` says whether a *concept* is
+well-homed, `--traffic` says whether a *directory* is holding together, acting
+as a shared vocabulary everyone cites, or behaving like a projection that should
+have been an index. `--cut` is fitted to the bundle rather than fixed, because a
+fixed weight left 2 arcs on one bundle and 136 on another; cohesion is computed
+over every arc regardless of the cut, so narrowing the picture never moves the
+evidence.
 
 # `loose` is a curation lens, not an error
 

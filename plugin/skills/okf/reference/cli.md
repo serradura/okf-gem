@@ -250,8 +250,8 @@ consuming agent is the fuzzy layer — when terms miss, learn the bundle's
 vocabulary from `tags`/`types` and re-ask in its own words, rather than
 hammering synonyms or reaching for `--fuzzy` before you have looked. Advisory read: **exit 0 even with zero matches**.
 JSON, plain-dir mode: `{ bundle, query, count, matches: [{ id, title, type,
-area, tags, matched, score, snippet }] }`. Registry mode — any leading @ref,
-`@all` among them — swaps the envelope: `{ bundles: [{ slug, dir }, …],
+dir, top_dir, tags, matched, score, snippet }] }`. Registry mode — any leading @ref,
+`@all` or a `@group` among them (a group fans out to its member bundles) — swaps the envelope: `{ bundles: [{ slug, dir }, …],
 query, count, matches: [{ slug, id, … }] }`; a parser must branch on which form
 it called. The head maps each slug to its dir once, so a row resolves to
 `<dir>/<id>.md` without a second lookup and without repeating a path per row.
@@ -357,10 +357,10 @@ All are advisory reads (exit 0) sharing one data source (per-concept metadata pl
 in/out link degree). Add `--json` to any for a machine substrate.
 
 - **`catalog`** — every concept with its metadata (type, status, tags, timestamp,
-  in/out link degree, description), grouped by top-level area (`dir` on every row
-  carries the full path). The "what's here, in
+  in/out link degree, description), grouped by top-level dir (`dir` on every row
+  carries the full path, `top_dir` the first segment). The "what's here, in
   detail" view. JSON: `{ bundle, count, concepts: [{ id, title, type, description,
-  tags, timestamp, status, backlog_ref, dir, area, links_out, links_in }] }`.
+  tags, timestamp, status, backlog_ref, dir, top_dir, links_out, links_in }] }`.
 - **`files`** — the folder tree: each concept's filename + title, grouped by
   directory. The "how it's organised" view. JSON: `{ bundle, count, files: [{ path,
   id, dir, type, title, description }] }`.
@@ -380,9 +380,9 @@ in/out link degree). Add `--json` to any for a machine substrate.
   [{ type, count, concepts: [id, …] }] }`.
 - **`stats`** — bundle rollups: concept / dir / type / cross-link / distinct-tag
   totals plus per-type and per-dir breakdowns. The "shape at a glance" view. JSON:
-  `{ bundle, concepts, dirs, areas, concept_types, cross_links, distinct_tags,
-  by_type, by_dir, by_area }` (`areas`/`by_area` are the deprecated first-segment
-  cut, kept for one release). `dirs`/`by_dir` cover every directory `okf dirs`
+  `{ bundle, concepts, dirs, top_dirs, concept_types, cross_links, distinct_tags,
+  by_type, by_dir, by_top_dir }` (`top_dirs`/`by_top_dir` are the first-segment
+  rollup). `dirs`/`by_dir` cover every directory `okf dirs`
   lists — counts are direct, so a directory holding nothing itself is present at
   `0` rather than missing, and `by_dir.keys` is a complete list of what `--dir`
   can address.
@@ -442,20 +442,38 @@ page listing the hosted bundles, so a stale bookmark after a rename gets a way
 home. With **no** dir it serves the *persistent registry*, a plain JSON file
 under `$OKF_HOME` (default `~/.okf`), managed by the
 `okf registry` umbrella — like git's `remote` family, and split by what each
-verb keys on. **Entry verbs** take a path: `okf registry set <dir>` adds it
+verb keys on.
+**`okf registry init`** creates a *project-local* registry instead: a
+`.okf-registry.json` in the current directory, which okf discovers by walking up
+from the working directory and uses in place of the global one while you are
+inside its tree (the nearest wins, so nested registries resolve nearest-first).
+Every registry op — and every `@slug` — then resolves through it, so a bare
+`okf server` inside a repo serves that repo's bundles with no `$OKF_HOME` setup;
+`okf registry list` names the local file it found. `OKF_NO_DISCOVERY=1` forces
+the global registry — the escape hatch for a fixed-cwd caller (CI, a tool). A
+local registry stores **portable** paths: a bundle inside its tree is written
+relative to the `.okf-registry.json`, so committing the file lets it travel with
+the repo (a checkout elsewhere, a container mounting it) and resolve unchanged;
+a bundle outside the tree stays absolute, since it cannot travel. Paths still read
+back absolute wherever the CLI reports them.
+**Entry verbs** take a path: `okf registry set <dir>` adds it
 (slug from the basename, or `--as`, which errors on a collision; `--default`
 puts it first), and because the entry is keyed by path, `set` on an
 already-registered dir updates it in place — refreshing its title, and renaming
-it when `--as` is given. `okf registry del <dir|@slug>` removes one — by name, so an entry whose
-directory is already gone still deletes. Slug *or* dir, never both readings at
+it when `--as` is given. `okf registry del <dir|@slug>` removes a bundle *or* a group — by name, so an
+entry whose directory is already gone still deletes, and removing a bundle
+**cascade-drops** it from every group that named it (a group emptied that way is
+deleted). Slug *or* dir, never both readings at
 once: an argument with a `/` in it names a location and only a location, so
 `del ./notes` refuses when no entry points there rather than stripping to the
 slug `notes` and deleting a bundle somewhere else entirely.
 <!-- rule:okf-registry-del-path-or-slug -->
 **Slug verbs** take the name — bare, or as an `@slug`: `okf registry default <@slug>`
-chooses which bundle `/` opens **by moving that entry to the front**, and
-`okf registry rename <@slug> <new>` renames a slug (mount path and switcher
-name) — `<new>` is a name being minted, so it is never a ref. The registry is ordered and **the first entry still on disk is the
+chooses which bundle `/` opens **by moving that entry to the front** (a group is
+refused — the default is one bundle), and
+`okf registry rename <@slug> <new>` renames a bundle *or* group slug (mount path
+and switcher name), **cascading** the new name into every group's member list —
+`<new>` is a name being minted, so it is never a ref. The registry is ordered and **the first entry still on disk is the
 default** — that is the whole rule, so the first bundle you register is the
 default until you move another one, a rename keeps its position, and a `del`
 promotes whatever is next. A vanished directory is stepped over (the server
@@ -464,11 +482,25 @@ cannot open one, so starring it would name a bundle `/` never serves), and
 gives a directory that is not there. The file is hand-editable and reorders
 visibly, which is the point: there is no stored slug that can dangle.
 <!-- rule:okf-registry-default-position -->
+**Group verbs** name a *set* of bundles under one slug — a durable subset for the
+two verbs that take several bundles. `okf registry group <slug> <@member…>`
+creates a group, or adds members to one (a union); members are bundle *or* group
+slugs, so groups nest. A group shares the slug namespace with bundles (a slug
+names one *or* the other, never both), `all` stays reserved, and a member set that
+would make the group reach itself is refused. `okf registry ungroup <slug>
+<@member…>` removes members; emptying a group deletes it. A group resolves,
+recursively and path-deduped, to its bundle leaves — which **only `okf search`
+and `okf server` consume**: every single-bundle verb (`lint`, `index`, …) refuses
+a `@group` with exit 2, the same rule that refuses a second bundle. `@all` is
+unchanged — it still names every registered *bundle*, groups being named subsets
+of that.
 `okf registry list` (or a bare
 `okf registry`) stars the default and flags vanished dirs `(missing)` — the
-server skips those with a note; `--json` answers
+server skips those with a note — and lists any groups with their members and
+resolved leaf count; `--json` answers
 `{ registry: <file>, count, bundles: [{ slug, title, dir, mount, default,
-missing }] }`, naming the file it read so a `$OKF_HOME` mismatch is visible. The hub roster is a
+missing }], groups: [{ slug, members, resolved }] }`, naming the file it read so a
+`$OKF_HOME` mismatch is visible. The hub roster is a
 **boot-time snapshot**: restart `okf server` after registry changes. Behind a
 hub the page gains a **bundle switcher** (⌘/Ctrl-K, or the rail button with its
 bundle-count badge): the current bundle is pinned, the default chipped; ⏎
@@ -481,7 +513,10 @@ them all with the registry's first entry still on disk at `/` — the way to kee
 several bundles a keystroke apart without re-passing paths.
 `okf server @a @b` serves a registry subset, each mounted under its registered
 slug — but as with any dirs-given run, the *first argument* lands at `/`; the
-registry's own order applies only to the bundle-less run.
+registry's own order applies only to the bundle-less run. A `@group` argument
+fans out to its member bundles in the same way (`okf server @backend`), its first
+member landing at `/`; `okf search @group <term…>` merges the group's members
+into one ranking, exactly as naming them individually would.
 
 **Trust boundary:** the page renders each fetched markdown body through
 DOMPurify and escapes everything it inlines (every `<` in the graph data is
@@ -522,8 +557,30 @@ only when the task truly consumes every body; for one question, the
 
 `--hubs` swaps the dump for the **inbound ranking**: every concept with at
 least one inbound link, ranked by inbound degree, each with its links grouped
-by *source area* (`core/status  ×3   flows 2, billing 1`) — the evidence for
+by *source top-level dir* (`core/status  ×3   flows 2, billing 1`) — the evidence for
 [refine](../playbooks/refine.md)'s hub origin test ("is this hub well-homed?").
 A source at the bundle root counts under `(root)`. JSON: `{ bundle, count,
-hubs: [{ id, area, inbound, by_area: { <area>: n } }] }`. Advisory read, exit 0;
+hubs: [{ id, top_dir, inbound, by_top_dir: { <top_dir>: n } }] }`. Advisory read, exit 0;
 `--minimal`/`--no-body` shape node payloads and change nothing here.
+
+`--traffic` asks the same question one grain coarser: **directories**, not
+concepts. Every concept collapses into the directory it lives in and every link
+between two directories collapses into one weighted arc, so a bundle's wiring
+becomes a table you can read — measured on one 47-concept bundle, 227 links
+collapsed into 50 arcs, of which the fitted cut draws 22. Each row carries the
+directory's traffic split three ways
+(`internal` / `out` / `in`) plus **cohesion**, its internal share of the total:
+the evidence for [refine](../playbooks/refine.md)'s container test, where
+`--hubs` only ever answered about concepts. Rows lead with the lowest cohesion,
+so the directories with a case to answer come first, and a directory with no
+traffic at all prints `—` rather than a `0%` it did not earn.
+
+`--cut N` is the least arc weight drawn. It defaults to a value **fitted to the
+bundle** — enough arcs for roughly 1.5 per directory, floored at 8 — because a
+fixed weight cannot serve both ends: measured at weight 3 across ten bundles it
+left 2 arcs on one and 136 on another. The JSON says which you got. Cohesion is
+computed over *every* arc and never the drawn ones, so tightening the cut
+changes the picture and never the evidence. JSON: `{ bundle, cut, fitted, dirs:
+[{ dir, parent, count, subtree, internal, out, in, cohesion }], arcs: [{ source,
+target, weight }], total_arcs }` — a fraction of the full dump (2.6 KB against
+27 KB on that bundle), and the shape rather than the contents. Advisory, exit 0.

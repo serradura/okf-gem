@@ -4,7 +4,7 @@ title: Search engines are adapters, and the facade owns the row
 description: One facade over N retrieval engines — the scan by default, the index when a query needs it or names it — with a shared conformance suite standing in for the oracle rule that multiple engines made impossible.
 resource: lib/okf/bundle/search.rb
 tags: [architecture, search, extensibility, testing]
-timestamp: 2026-07-22T12:00:00Z
+timestamp: 2026-07-24T12:00:00Z
 ---
 
 # Overview
@@ -18,7 +18,7 @@ only the retrieval question to an engine:
 | entry points (`.call`, `.across`) | which documents match |
 | document assembly and the `"<slug>\0<id>"` key | how well each matches |
 | the row hash and its key order | which fields the terms hit |
-| the snippet window, `area`, the final sort | which matcher to point the snippet at |
+| the snippet window, `top_dir`, the final sort | which matcher to point the snippet at |
 
 The split exists because an engine that built its own rows could disagree about
 what a match *means* — two engines, two answer shapes, and a merged ranking that

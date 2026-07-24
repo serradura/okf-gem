@@ -109,7 +109,7 @@ class OKF::Server::AppTest < OKF::TestCase
     orders = data["concepts"].find { |concept| concept["id"] == "tables/orders" }
     assert_equal "Table", orders["type"]
     assert_equal "the orders table", orders["description"]
-    assert_equal "tables", orders["area"]
+    assert_equal "tables", orders["top_dir"]
     assert_equal "tables", orders["dir"]
     assert_equal 0, orders["links_out"]
 

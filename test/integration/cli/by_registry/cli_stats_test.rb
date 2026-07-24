@@ -39,15 +39,15 @@ module ByRegistry
 
         assert_equal fixture("conformant"), data.fetch("bundle"), "`bundle` is always the directory"
         assert_equal "conformant", data.fetch("slug"), "`slug` is only ever the registry slug"
-        assert_equal %w[areas bundle by_area by_dir by_type concept_types concepts cross_links dirs distinct_tags slug], data.keys.sort,
+        assert_equal %w[bundle by_dir by_top_dir by_type concept_types concepts cross_links dirs distinct_tags slug top_dirs], data.keys.sort,
           "a ref adds `slug` to the path form's keys, and nothing else"
         assert_equal 3, data.fetch("concepts")
-        assert_equal 2, data.fetch("areas")
+        assert_equal 2, data.fetch("top_dirs")
         assert_equal 2, data.fetch("concept_types") # `types` in the human view, `concept_types` here
         assert_equal 6, data.fetch("cross_links")
         assert_equal 2, data.fetch("distinct_tags")
         assert_equal({ "BigQuery Table" => 2, "BigQuery Dataset" => 1 }, data.fetch("by_type"))
-        assert_equal({ "tables" => 2, "datasets" => 1 }, data.fetch("by_area"))
+        assert_equal({ "tables" => 2, "datasets" => 1 }, data.fetch("by_top_dir"))
       end
     end
 
@@ -102,7 +102,7 @@ module ByRegistry
         assert_equal 1, data.fetch("concepts")
         assert_equal 0, data.fetch("cross_links")
         assert_equal 0, data.fetch("distinct_tags")
-        assert_equal({ "(root)" => 1 }, data.fetch("by_area"))
+        assert_equal({ "(root)" => 1 }, data.fetch("by_top_dir"))
       end
     end
 
@@ -115,13 +115,13 @@ module ByRegistry
         assert_match(/^  concepts       0$/, result.out)
         assert_match(/^  cross-links    0$/, result.out)
         refute_match(/By type/, result.out) # an empty breakdown prints nothing, not an empty heading
-        refute_match(/By area/, result.out)
+        refute_match(/By dir/, result.out)
 
         data = json(okf("stats", "@empty", "--json"))
         assert_equal "empty", data.fetch("slug")
         assert_equal 0, data.fetch("concepts")
         assert_equal({}, data.fetch("by_type"))
-        assert_equal({}, data.fetch("by_area"))
+        assert_equal({}, data.fetch("by_top_dir"))
       end
     end
 
@@ -198,7 +198,7 @@ module ByRegistry
         assert_match(/skipped 2 unusable file\(s\)/, result.err)
         data = json(result)
         assert_equal 3, data.fetch("concepts") # the three that parse still count
-        assert_equal({ "(root)" => 3 }, data.fetch("by_area"))
+        assert_equal({ "(root)" => 3 }, data.fetch("by_top_dir"))
         assert_equal "malformed", data.fetch("slug")
         refute_match(/note:/, result.out)
       end

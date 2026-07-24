@@ -32,6 +32,12 @@ alarm, never the objective. <!-- rule:okf-cohesion-over-balance -->
      (the directories are right); one spread across areas names a *concern*.
    - `okf graph <dir> --hubs` — concepts ranked by inbound links, each with
      the areas those links come from: the **origin test** for every hub.
+   - `okf graph <dir> --traffic` — the same question one level up. Every
+     directory's link traffic split three ways (internal / out / in) with the
+     **cohesion** ratio, and the weighted arcs between directories. `--hubs`
+     measures concepts; step 3 decides about *directories*, and this is the
+     only read at that grain. Rows lead with the lowest cohesion, so the
+     directories with a case to answer are at the top.
 3. **Diagnose — you are the judgment.** The measurements are evidence, never
    verdicts:
    - **Concerns never become containers.** A directory built around a spread
@@ -43,6 +49,26 @@ alarm, never the objective. <!-- rule:okf-cohesion-over-balance -->
      exclusive, and roughly comparable in size. And small is not merge-worthy
      on its own — a two-concept area that is a genuinely distinct domain
      stays. <!-- rule:okf-directory-prunes -->
+   - **Cohesion discriminates the low rows, which are the ones the view floats
+     to the top.** High cohesion sorts to the bottom and means the directory
+     holds together — the shape the tree exists to express, nothing to do. The
+     rows that need reading are the near-zero ones, and two shapes land there
+     together. Heavy *outbound* with almost nothing coming back is the finding: a
+     directory that points at the bundle rather than holding a part of it is
+     behaving like a projection, and this playbook's own frame says a projection
+     rides an `index.md` or a tag, never a directory — ask what would be lost if
+     its concepts moved to the areas they point at and its listing became a map.
+     Heavy *inbound* with nothing outbound is its benign twin, a **shared
+     vocabulary**: everyone cites it, it cites nobody, a reference area doing its
+     job, not a mis-homing. Same low number, opposite verdicts — the direction of
+     the traffic is which one you are looking at.
+     <!-- rule:okf-cohesion-reads-the-container -->
+     Two cautions, both of which will otherwise generate false findings. A
+     directory holding one or two concepts has too little traffic for a ratio
+     to mean anything — read the raw counts, not the percentage. And in a
+     design bundle the central `decisions/` will read low for exactly the
+     reason its concepts fail the hub origin test: that is centrality, and the
+     measurement is confirming the bundle works, not that it is broken.
    - **The hub origin test.** Inbound majority from the hub's own area:
      well-homed, leave it. A dominant *foreign* area: that area is the better
      home. Foreign majority with *no* dominant area: a shared primitive — the

@@ -136,7 +136,11 @@ ambiguous, ask.
 **Which target?** A leading `@` is a *registry ref*, not a path: `@slug` names a
 bundle registered with `okf registry set`, bare `@` the default — route it
 straight to `okf <verb> @slug` and skip the directory hunt (`okf search` spans
-several: `@a @b`, or `@all`). A plain path is used as given. Given no target and a
+several: `@a @b`, or `@all`). A `@slug` may instead name a **group** — a saved set
+of bundles (`okf registry group backend @a @b`, members nest); it resolves like
+any ref for the two set-taking verbs (`okf search @backend`, `okf server
+@backend`) and every single-bundle verb refuses it with exit 2, the message
+saying which two take a group. A plain path is used as given. Given no target and a
 cwd that carries no bundle, `okf registry list` is the next move, not a hunt
 across sibling directories. Producing a *new* bundle with no path? Default to
 `.okf/` at the repo root, but first detect whether the project already keeps its

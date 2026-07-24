@@ -125,7 +125,8 @@ class CLIRegistrySetTest < CLIIntegrationCase
     okf("registry", "set", fixture("conformant"), "--as", "handbook")
 
     payload = registry_json
-    assert_equal [ "bundles" ], payload.keys, "the file carries the list and nothing else — the default is its first row"
+    assert_equal %w[bundles groups], payload.keys.sort, "the file carries the bundle list and the (here empty) groups list"
+    assert_equal [], payload["groups"]
     assert_equal 1, payload["bundles"].size
     entry = payload["bundles"].first
     assert_equal %w[path slug title], entry.keys.sort
@@ -242,6 +243,17 @@ class CLIRegistrySetTest < CLIIntegrationCase
       end
     ensure
       File.chmod(0o700, readonly)
+    end
+  end
+
+  test "--as a slug a group already holds is refused (one namespace)" do
+    with_registry("conformant", "minimal") do
+      okf("registry", "group", "backend", "@conformant")
+
+      result = okf("registry", "set", fixture("minimal"), "--as", "backend")
+
+      assert_equal 2, result.status
+      assert_match(/slug already taken/, result.err)
     end
   end
 

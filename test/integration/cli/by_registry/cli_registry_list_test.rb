@@ -47,7 +47,8 @@ class CLIRegistryListTest < CLIIntegrationCase
 
     assert_equal 0, result.status
     assert_kind_of Hash, payload, "a bare array would break the CLI's one JSON shape"
-    assert_equal %w[bundles count registry], payload.keys.sort
+    assert_equal %w[bundles count groups registry], payload.keys.sort
+    assert_equal [], payload["groups"], "the groups key is always present, empty when none are registered"
     assert_equal File.join(@home, "registry.json"), payload["registry"], "the envelope names the file it read, so a $OKF_HOME mismatch self-diagnoses"
     assert_equal 1, payload["count"]
 
@@ -277,6 +278,64 @@ class CLIRegistryListTest < CLIIntegrationCase
     assert_equal 2, result.status
     assert_match(/invalid option: --bogus/, result.err)
     refute_match(/\.rb:\d+/, result.err, "a bad flag is a message, never a backtrace")
+  end
+
+  # -- groups in the listing
+
+  test "the human listing shows groups under the bundles, with member refs and a resolved count" do
+    okf("registry", "set", fixture("conformant"))
+    okf("registry", "set", fixture("minimal"))
+    okf("registry", "group", "docs", "@conformant", "@minimal")
+
+    out = okf("registry", "list").out
+
+    assert_match(/^groups:$/, out, "the section is headed and set off from the bundle rows")
+    assert_match(/^  docs  @conformant, @minimal  \(2 bundles\)$/, out)
+  end
+
+  test "a group's resolved count is singular for one bundle, and slugs pad to a column" do
+    okf("registry", "set", fixture("conformant"))
+    okf("registry", "group", "a", "@conformant")
+    okf("registry", "group", "longer", "@conformant")
+
+    out = okf("registry", "list").out
+
+    assert_match(/^  a {7}@conformant  \(1 bundle\)$/, out, "one leaf is singular, and the short slug pads to the column")
+    assert_match(/^  longer  @conformant  \(1 bundle\)$/, out)
+  end
+
+  test "a group row missing its members array is a malformed registry, named for the fix" do
+    File.write(File.join(@home, "registry.json"), JSON.generate("bundles" => [], "groups" => [ { "slug" => "docs" } ]))
+
+    result = okf("registry", "list")
+
+    assert_equal 2, result.status
+    assert_match(/malformed registry/, result.err)
+    assert_match(/every group needs a "slug" and a "members" array/, result.err)
+  end
+
+  test "a hand-typed group slug is normalized on read, like a bundle slug" do
+    File.write(File.join(@home, "registry.json"), JSON.generate(
+      "bundles" => [ { "slug" => "one", "path" => fixture("conformant"), "title" => "t" } ],
+      "groups" => [ { "slug" => "My Group", "members" => %w[one] } ]
+    ))
+
+    groups = json(okf("registry", "list", "--json"))["groups"]
+
+    assert_equal "my-group", groups.first["slug"], "the listing shows the name a ref can reach, not one nothing resolves"
+  end
+
+  test "a hand-edited cyclic group lists as (cycle) rather than crashing the read" do
+    File.write(File.join(@home, "registry.json"), JSON.generate(
+      "bundles" => [ { "slug" => "one", "path" => fixture("conformant"), "title" => "t" } ],
+      "groups" => [ { "slug" => "a", "members" => %w[b] }, { "slug" => "b", "members" => %w[a] } ]
+    ))
+
+    result = okf("registry", "list")
+
+    assert_equal 0, result.status, "one unresolvable group is not a malformed file"
+    assert_match(/^  a\s+@b\s+\(cycle\)$/, result.out, "an unanswerable count reads (cycle), not a crash")
+    assert_match(/^  b\s+@a\s+\(cycle\)$/, result.out)
   end
 
   private

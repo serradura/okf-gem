@@ -4,7 +4,7 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-22T18:00:00Z
+timestamp: 2026-07-23T12:00:00Z
 ---
 
 # Overview
@@ -363,6 +363,38 @@ engines as "render every tick of the simulation" — the visible bounce, and
 hundreds of full re-renders for one settle. `'end'` runs the same simulation
 headless and moves the nodes once; past 250 nodes even that transition is
 dropped, because at that size the move itself is the jank.
+
+# The link layer draws the graph on fewer arrows
+
+A dense bundle is unreadable because of its **arrows**, not its dots: 227 links
+over 47 concepts at an average degree of 9.7, three quarters of them crossing a
+directory boundary, and no amount of moving the dots apart fixes a thicket of
+lines. So the toolbar carries a link layer with three honest amounts of wiring —
+**all** (the graph as authored), **spine** (each concept's single strongest
+link, the backbone the [skeleton](../model/skeleton.md) computes, chosen so it
+touches every linked concept and nothing floats), and **none**. In every
+setting, selecting a concept reveals *that* concept's own links in full: the
+wiring was never the answer to the standing question a reader arrives with —
+"what is in this bundle and how is it organised" — but it is exactly the answer
+to "what does *this* connect to", asked one concept at a time.
+
+The default follows the bundle. A graph dense enough to be a thicket **opens on
+its spine** rather than greeting the reader with every line; a graph sparse
+enough to read at a glance opens on all. The trigger is undirected degree — the
+same measure the density is described in above — set between a tree's ~2 and the
+9.7 that motivated the layer, so a browsable bundle is left alone. Above a large
+edge count the first layout runs on the spine alone and the rest of the links
+arrive a frame later with no re-layout, so a big bundle draws sooner and then
+gains its lines rather than making the reader wait for all of them.
+
+`okf server --map` and `okf render --map` open on **none with the directories
+boxed** — not a mode of its own but a *starting point* made of two ordinary
+controls, both of which the reader can move afterwards. Either half alone is half
+a picture: arrows off without boxes is a scatter of dots with nothing to read
+them against, and boxes with every arrow is the thicket this began with. The
+layer only ever *hides* link edges, so it composes with cluster, file-tree and
+the index layer rather than excluding them — the structural edges those draw are
+someone else's picture, never this one's noise, and are left untouched.
 
 # One page, from a phone to a desktop
 

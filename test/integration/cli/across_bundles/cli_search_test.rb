@@ -29,6 +29,23 @@ module AcrossBundles
       end
     end
 
+    test "several @refs resolve through a discovered local registry" do
+      tree = File.join(@out_dir, "search-proj")
+      FileUtils.mkdir_p(tree)
+      File.write(File.join(tree, ".okf-registry.json"), JSON.generate("bundles" => [], "groups" => []))
+      in_dir(tree) do
+        okf("registry", "set", fixture("conformant"))
+        okf("registry", "set", fixture("rooted"))
+      end
+
+      result = in_dir(tree) { okf("search", "@conformant", "@rooted", "the") }
+
+      assert_equal 0, result.status
+      assert_match(/Search — @conformant @rooted · the \(5 concepts\)/, result.out,
+        "both refs resolved through the local registry, and merged into one ranking")
+      assert_match(/@rooted\s+charter\s+Charter/, result.out)
+    end
+
     test "a single @ref is still registry mode — the envelope switches on form, not count" do
       with_registry("mentions") do
         human = okf("search", "@mentions", "payments")
@@ -421,7 +438,7 @@ module AcrossBundles
 
         bogus = okf("search", "@conformant", "@rooted", "the", "--fields", "nope")
         assert_equal 2, bogus.status
-        assert_match(/error: unknown field\(s\): nope \(available: slug, id, title, type, dir, area, tags, matched, score, snippet\)/,
+        assert_match(/error: unknown field\(s\): nope \(available: slug, id, title, type, dir, top_dir, tags, matched, score, snippet\)/,
           bogus.err, "the available list names slug — the field the multi-bundle envelope adds")
       end
     end
@@ -611,6 +628,64 @@ module AcrossBundles
         assert_match(/Usage: okf search <dir\|@slug…\|@all> <term…>/, every.err)
         assert_empty every.out
       end
+    end
+
+    # -- groups: a named @ref that fans out to member bundles
+
+    test "a group @ref searches its members, merged and labelled like the refs it stands for" do
+      with_registry("conformant", "rooted") do
+        okf("registry", "group", "docs", "@conformant", "@rooted")
+
+        grouped = okf("search", "@docs", "the", "--json")
+        spelled = okf("search", "@conformant", "@rooted", "the", "--json")
+
+        assert_equal 0, grouped.status
+        assert_equal json(spelled)["matches"].map { |row| [ row["slug"], row["id"] ] },
+          json(grouped)["matches"].map { |row| [ row["slug"], row["id"] ] },
+          "@docs resolves to exactly the two bundles it groups, ranked as one corpus"
+      end
+    end
+
+    test "a group and an overlapping ref dedupe — the shared member is searched once" do
+      with_registry("conformant", "rooted") do
+        okf("registry", "group", "docs", "@conformant", "@rooted")
+
+        data = json(okf("search", "@docs", "@conformant", "the", "--json"))
+
+        assert_equal %w[conformant rooted], data["bundles"].map { |bundle| bundle["slug"] },
+          "conformant, named by the group and again by @conformant, appears once"
+      end
+    end
+
+    test "a vanished group member is skipped with a note, the rest still search" do
+      doomed = scratch_bundle("doomed")
+      with_registry("conformant") do
+        okf("registry", "set", doomed)
+        okf("registry", "group", "docs", "@conformant", "@doomed")
+        FileUtils.rm_rf(doomed)
+
+        result = okf("search", "@docs", "the", "--json")
+
+        assert_equal 0, result.status
+        assert_match(/note: skipping doomed — cannot read #{Regexp.escape(doomed)}/, result.err)
+        assert_equal [ "conformant" ], json(result)["bundles"].map { |bundle| bundle["slug"] }
+      end
+    end
+
+    test "a group whose every member vanished errors, not a silent empty search" do
+      a = scratch_bundle("a")
+      b = scratch_bundle("b")
+      okf("registry", "set", a)
+      okf("registry", "set", b)
+      okf("registry", "group", "docs", "@a", "@b")
+      FileUtils.rm_rf(a)
+      FileUtils.rm_rf(b)
+
+      result = okf("search", "@docs", "the")
+
+      assert_equal 2, result.status
+      assert_match(/@docs resolves to no readable bundle/, result.err)
+      assert_empty result.out
     end
 
     # -- best effort

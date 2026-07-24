@@ -110,6 +110,48 @@ module ByRegistry
       end
     end
 
+    test "@slug --traffic keeps the identity head over the reduction" do
+      with_registry("shapely") do
+        result = okf("graph", "@shapely", "--traffic")
+
+        assert_equal 0, result.status
+        assert_match(/\ATraffic — @shapely \(#{Regexp.escape(fixture("shapely"))}\) \(4 dirs, 2 arcs at weight 1 or more\)\n/, result.out)
+        assert_match(/^  flows           2         1     2     0       33%$/, result.out, "the cohesion evidence rides along")
+      end
+    end
+
+    test "bare @ reports traffic for the registry default, and --json carries slug and path like every view" do
+      with_registry("shapely", "minimal") do
+        assert_match(/\ATraffic — @shapely /, okf("graph", "@", "--traffic").out)
+
+        data = json(okf("graph", "@shapely", "--traffic", "--json", "--cut", "1"))
+        assert_equal "shapely", data.fetch("slug")
+        assert_equal fixture("shapely"), data.fetch("bundle")
+        assert_equal 1, data.fetch("cut")
+        assert_equal %w[flows core], [ data.fetch("arcs").first["source"], data.fetch("arcs").first["target"] ]
+      end
+    end
+
+    test "a ref and its path report the same traffic, differing only in the identity named" do
+      with_registry("shapely") do
+        by_ref = json(okf("graph", "@shapely", "--traffic", "--json", "--cut", "1"))
+        by_path = json(okf("graph", fixture("shapely"), "--traffic", "--json", "--cut", "1"))
+
+        assert_equal by_ref.reject { |key, _| %w[bundle slug].include?(key) },
+          by_path.reject { |key, _| %w[bundle slug].include?(key) }
+        refute by_path.key?("slug"), "a path names no slug"
+      end
+    end
+
+    test "an unknown slug is refused before --traffic is honoured" do
+      with_registry("shapely") do
+        result = okf("graph", "@nope", "--traffic")
+
+        assert_equal 2, result.status
+        assert_empty result.out
+      end
+    end
+
     test "a malformed ref-named bundle is best-effort — skips noted, exit 0" do
       with_registry("malformed") do
         result = okf("graph", "@malformed")
