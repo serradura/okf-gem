@@ -2,7 +2,7 @@
 type: Capability
 title: Ranked text search (search)
 description: Full-text retrieval over concept metadata and bodies — raw-text matching by default, BM25+ token ranking on request, and explainable row by row either way.
-resource: lib/okf/bundle/search.rb
+resource: okf/lib/okf/bundle/search.rb
 tags: [read, cli, json, registry, search]
 timestamp: 2026-07-22T12:00:00Z
 ---
@@ -277,7 +277,7 @@ playbook rides that path, so its economics stay true by construction.
 
 # Citations
 
-[1] [lib/okf/bundle/search.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/bundle/search.rb) — the facade: the row, the snippet, the sort, the engine registry and router.
-[2] [test/integration/cli/by_dir/cli_search_test.rb](https://github.com/serradura/okf-gem/blob/main/test/integration/cli/by_dir/cli_search_test.rb) — the retrieval eval, and the default-engine pin.
-[3] [test/unit/bundle/search/recall_test.rb](https://github.com/serradura/okf-gem/blob/main/test/unit/bundle/search/recall_test.rb) — the default has no recall holes; the index's are named and pinned.
+[1] [okf/lib/okf/bundle/search.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb) — the facade: the row, the snippet, the sort, the engine registry and router.
+[2] [okf/test/integration/cli/by_dir/cli_search_test.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/integration/cli/by_dir/cli_search_test.rb) — the retrieval eval, and the default-engine pin.
+[3] [okf/test/unit/bundle/search/recall_test.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/unit/bundle/search/recall_test.rb) — the default has no recall holes; the index's are named and pinned.
 [4] Benchmark, 2026-07-18, Ruby 4.0.5, end to end through the CLI: 0.16 s / 0.83 s / 3.00 s for `--engine index` at 24 / 250 / 1,000 concepts, against 0.10 s / 0.18 s / 0.24 s for the default scan.

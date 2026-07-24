@@ -2,7 +2,7 @@
 type: Component
 title: OKF::Bundle::Graph
 description: The in-memory knowledge graph — concepts as nodes, cross-links as directed edges, with type and tag indexes.
-resource: lib/okf/bundle/graph.rb
+resource: okf/lib/okf/bundle/graph.rb
 tags: [graph, pure]
 timestamp: 2026-07-23T12:00:00Z
 ---
@@ -55,4 +55,4 @@ pure.
 
 # Citations
 
-[1] [lib/okf/bundle/graph.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/bundle/graph.rb) — graph construction and the type/tag indexes.
+[1] [okf/lib/okf/bundle/graph.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/graph.rb) — graph construction and the type/tag indexes.

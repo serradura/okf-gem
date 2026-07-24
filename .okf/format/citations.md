@@ -2,7 +2,7 @@
 type: Format
 title: Citations (spec §8)
 description: The provenance convention that ties empirical claims in a concept back to their sources.
-resource: lib/okf/markdown/citations.rb
+resource: okf/lib/okf/markdown/citations.rb
 tags: [provenance]
 timestamp: 2026-07-17T16:00:00Z
 ---
@@ -29,5 +29,5 @@ that a curator (or an agent) acts on, never a conformance failure.
 
 # Citations
 
-[1] [lib/okf/markdown/citations.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/markdown/citations.rb) — citation extraction.
-[2] [SPEC.md §8](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill/reference/SPEC.md) — the citations convention.
+[1] [okf/lib/okf/markdown/citations.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/markdown/citations.rb) — citation extraction.
+[2] [SPEC.md §8](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md) — the citations convention.

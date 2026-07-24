@@ -1,6 +1,9 @@
 # Update Log
 
 ## 2026-07-24
+* **Change**: the repository became a **monorepo**, and this bundle now documents a project rather than a gem. [The layout](design/monorepo-layout.md) is the new concept: one directory per gem named for the gem it ships (`okf/` is the baseline all-in-one; `okf-mcp/`, `okf-tui/`, `okf-sqlite3/` land beside it), so a directory, its release-tag prefix, its CI job and its `require` path are one word rather than four mappings. Everything that is not a gem stays at the root — `plugin/` and `.claude-plugin/` because `marketplace.json` publishes `./plugin`, this bundle because it covers the project, and the `Dockerfile` because its build context *must* be the root: the gemspec derives `spec.files` from `git ls-files`, which needs the `.git` only the root has. Every `resource:` and citation here moved down a level with the code.
+* **Note**: moving a gem down one level is mechanical; what is not is that **four mechanisms around it resolved paths from the repository root, and three of them failed without saying so**. `spec.files` needed nothing — `git ls-files` with `chdir:` returns paths relative to where it runs, so the gemspec sees its own tree and its reject list *shrank*, seven entries having been rejecting paths that are no longer under the gem. `.gitignore` was root-anchored top to bottom, so every entry stopped matching at once and the first test run would have staged a coverage report. SimpleCov failed in the direction that looks like success: its root defaults to the working directory, so the plugin's curation hook — a repo-level file this suite tests — fell out of the report and line coverage read **98.63% against 98.47%**, the percentage rising while the thing measured got smaller. Only `.dockerignore` fails loudly, and it is the one carrying a real invariant: whatever it drops from under the gem must also be in the gemspec's reject list, because `git ls-files` reads the *index* and an excluded path is still listed in `spec.files` — so `gem build` fails on a file that is not in the context. The generalizable half: **a path resolved from an implicit root is a dependency on where you are standing**, and the ones that degrade quietly are worse than the ones that crash.
+* **Note**: the gem must distribute `LICENSE.txt` and `NOTICE`, and `git ls-files` from the gem directory cannot see the root's copies. **A symlink builds a gem nobody can install.** `gem build` does not resolve it — it writes a symlink into the package tar, and RubyGems refuses to extract one pointing outside the gem (`Gem::Package::SymlinkError`). Every signal short of installing says it worked: the build succeeds, `spec.files` lists the file, `gem contents` reads right, and the failure lands on a stranger's machine after the release is public. They are duplicated real files now, with `okf/test/unit/packaging_test.rb` asserting both that neither is a symlink and that each is byte-identical to the root's — the assertion being what makes a duplicate safe rather than merely conventional. Found by building the thing and installing it instead of reasoning about it, which is the same lesson the recall probes taught from the other end.
 * **Sync**: caught the bundle up with **project-local registries** — the
   [registry](registry.md) now has two homes, and which one answers is decided by
   where you stand: `okf registry init` drops a `.okf-registry.json` that okf
@@ -218,7 +221,7 @@
   word (full path, `.` at root, `(root)` for humans) and "cluster" stays prose
   for what a dir groups. `--area` and `tags --by area` keep their old exact
   behavior and warn, for one release.
-* **Correction**: a maintain pass against `CHANGELOG.md` found the drift running
+* **Correction**: a maintain pass against `okf/CHANGELOG.md` found the drift running
   the *other* way — the bundle was current and the changelog was not. Every
   concept touched by this branch's server/page work had its body updated in the
   same commit as the code (`bundles-manager`, `graph-server`,
@@ -494,7 +497,7 @@
   the contract is a sub-frame timing the end state cannot see.
 * **Update**: [browser test coverage](design/browser-tests.md) climbed from ~10
   of the page's ~94 shipped-bug fixes to ~46, worked gap by gap down
-  `test/browser/COVERAGE.md` — dim/highlight ordering, Indexes-only, link
+  `okf/test/browser/COVERAGE.md` — dim/highlight ordering, Indexes-only, link
   resolution, the file-tree collapse machine, the mobile chrome, two layout
   races, the untouched surfaces (palette, help, deep links, theme,
   catalog/tags/stats, splitters), the first-visit notes, the index layer
@@ -613,7 +616,7 @@
   *graph build*. The change was right and stands; the reason given for it was
   invented rather than read, which is the same failure the testing rule names
   (*"never assert what you assume the code does"*) committed in a comment, where
-  no test can catch it. Corrected in both `lib/okf/cli/render.rb` and the Note.
+  no test can catch it. Corrected in both `okf/lib/okf/cli/render.rb` and the Note.
 * **Correction**: the fail-closed rule the entry below records **refused without
   saying why**. `plugin_gem_name` rescued the lookup and threw the exception
   away, so a machine with one corrupt gemspec lost *every* installed extension
@@ -642,7 +645,7 @@
   reads a memoizing accessor to decide whether the memo has been set is a bug
   waiting for a caller.
 * **Correction**: the correction below **fixed one comment and claimed the
-  file**. `lib/okf/cli.rb` carried the retired trust-first framing in *two*
+  file**. `okf/lib/okf/cli.rb` carried the retired trust-first framing in *two*
   places — on `plugin_paths` and, twelve lines above it, on the
   `PLUGIN_GEM_PREFIX` constant itself, which still asserted that the prefix
   "closes the case where the user chose nothing: a transitive dependency
@@ -686,7 +689,7 @@
   alone deliberately, as its own change.
 * **Correction**: the reframe below stopped at the docs and left the **code
   comment** behind. `plugin_paths` in
-  [`lib/okf/cli.rb`](https://github.com/serradura/okf-gem/blob/main/lib/okf/cli.rb)
+  [`okf/lib/okf/cli.rb`](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli.rb)
   still opened "Narrowed to gems named `okf-*`, which is a **trust** decision
   rather than a tidiness one" — the exact framing the commit below retired, in
   the file that concept's own citation points at. So the bundle, `AGENTS.md` and
@@ -713,15 +716,15 @@
   the prefix is not a defence from exactly the reader who needs that.
 * **Correction**: a maintain pass over the CLI restructure found three citations
   pointing at code that had moved, each reading perfectly and each now wrong:
-  [graph-server](capabilities/graph-server.md) cited `lib/okf/cli.rb` for the
+  [graph-server](capabilities/graph-server.md) cited `okf/lib/okf/cli.rb` for the
   `serve` boot seam and [render](capabilities/render.md) for the `render` verb —
-  both now live under `lib/okf/cli/` — and
+  both now live under `okf/lib/okf/cli/` — and
   [integration-first](design/integration-first.md) still called low coverage "in
   `cli.rb`" a hole, when `cli.rb` is now a dispatcher and the verbs it meant are
   in `cli/`. `validate` and `lint` called the bundle healthy throughout: a
   citation that names a real file nobody moved *to* is invisible to both.
 * **Update**: the **shipped skill** learned that the verb list is open. Its
-  [cli reference](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill/reference/cli.md)
+  [cli reference](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/cli.md)
   and `SKILL.md`'s verb row now say an installed extension adds verbs of its
   own, so a verb `okf help` shows and the reference does not document reads as
   **normal rather than a documentation error**. Worth doing because the skill is
@@ -737,7 +740,7 @@
   singletons naming one theme, on the two concepts that are about that theme and
   link to each other; `extensibility` was established first, so the newer name
   merged into it rather than the reverse. Singletons 9 → 7.
-* **Change**: the CLI became a **registry**, and with it an extension point — the new [extension points](design/extension-points.md) concept, with [cli](cli.md)'s dispatch section rewritten around it. `lib/okf/cli.rb` was 1,794 lines and a 15-arm `case`; the verbs now live one per file under `lib/okf/cli/`, each a `Command` subclass registering itself at load, with the shared surface (refs, flags, the JSON emitters, the printers) on a base class. Behaviour is unchanged and the suite says so: every existing test passed untouched. Any gem shipping `okf/plugin.rb` on its load path can now add a verb — `okf-tui` is the first, answering `okf tui` — with **no edit to this gem and no list of known addons**, which a test enforces by grepping `cli.rb` for their names. `Search.register` set the idiom and this copies it exactly: append-only, idempotent by id, duck type checked at registration, so an addon cannot displace a built-in.
+* **Change**: the CLI became a **registry**, and with it an extension point — the new [extension points](design/extension-points.md) concept, with [cli](cli.md)'s dispatch section rewritten around it. `okf/lib/okf/cli.rb` was 1,794 lines and a 15-arm `case`; the verbs now live one per file under `okf/lib/okf/cli/`, each a `Command` subclass registering itself at load, with the shared surface (refs, flags, the JSON emitters, the printers) on a base class. Behaviour is unchanged and the suite says so: every existing test passed untouched. Any gem shipping `okf/plugin.rb` on its load path can now add a verb — `okf-tui` is the first, answering `okf tui` — with **no edit to this gem and no list of known addons**, which a test enforces by grepping `cli.rb` for their names. `Search.register` set the idiom and this copies it exactly: append-only, idempotent by id, duck type checked at registration, so an addon cannot displace a built-in.
 * **Note**: discovery is **lazy**, and the arithmetic is the one that made the scan the default engine. `Gem.find_latest_files` costs ~11ms on the 2.4 floor — small, and still not worth paying on a run that only wanted `okf lint`, so a built-in resolves and dispatches without scanning at all. Only an unknown verb and `okf help` pay. An unplanned consequence, worth keeping: an addon claiming a built-in's verb is not merely refused, it is never loaded, because running that verb never triggers the scan.
 * **Note**: discovery is a **code-execution** decision, so the trust boundary is
   argued in [extension-points](design/extension-points.md) rather than assumed.
@@ -808,8 +811,8 @@
 * **Correction**: `all` was reserved on the two paths that *mint* a slug and not on the third that admits one — reading the file. A hand-typed `"slug": "all"` therefore listed and mounted perfectly well while no `@ref` could name it, since `@all` means every registered bundle: present but unreachable, which is precisely the shape the read-time shape checks exist to keep out. The reservation also leaked the other way, out of the registry and into `Registry.dedupe`, which the *ephemeral* hub mints through too — so `okf server ./all` invented a `/b/all-2/` whose `/b/all/` did not exist, dodging a collision with nothing. Reserving is the registry's business, because the registry is the only world with a grammar that spells `all`. One rule landing in the wrong layer under- and over-reached at once.
 * **Sync**: three simplifications landed before the registry ever shipped, and the bundle records the design rather than the removals. `$OKF_HOME` is the [CLI](cli.md)'s single lever on which registry a verb reads — the `--home` flag it replaces had to be remembered on the three verbs that offered it and forgotten on the eleven that did not, to name a location the env var already named. The [registry](registry.md)'s default became a **position**: the first entry is the default and `registry default <slug>` moves it there, because a stored slug is a foreign key into the same list it lives in, and every operation owed it referential integrity — carry it through a rename, re-point it after `add --as`, clear it on a remove, fall back when it dangled anyway. Position owes nothing, and a dangling default is now unrepresentable rather than handled. And "every registered bundle" became the ref `@all` instead of a `--all` flag: the flag *reinterpreted the positionals* (`search .okf home` read `.okf` as the bundle, `search --all .okf` as a term), so [search](capabilities/search.md)'s diagnostics existed only to explain the flip. As a ref there is one grammar — slot 1 is always a bundle identity — and both diagnostics are gone. `all` is reserved as a slug, which is the registry's own "may invent a name, never substitute one you chose" rule reaching one name further.
 * **Correction**: [search](capabilities/search.md) claimed `--all` took no directory — "one passed anyway is a usage error, because demoting it to a search term would answer a confident 'no matches' for a bundle nobody searched" — and the code did the opposite: it noted the demotion on stderr and searched, deliberately, so the command's fate would not depend on the cwd it ran in. The prose described a design that was considered and rejected; the CHANGELOG's unreleased notes carried the same false claim. Neither `validate` nor `lint` can catch a sentence that is merely untrue, which is what this log is for. Moot now — `@all` cannot take a directory to refuse — but recorded, because the *mechanism* is not: a rejected design's prose outlived the rejection in two places at once.
-* **Correction**: [search](capabilities/search.md)'s retrieval-eval citation pointed at `test/integration/cli/cli_search_test.rb`, a file the same branch deleted when the suite regrouped into [by_dir / by_registry / across_bundles](design/integration-first.md) — the concept cited its own evidence at an address that no longer resolves. Repointed at `by_dir/cli_search_test.rb`, where the eval lives. Citations are the one enumeration nothing checks: they are URLs, so neither `validate` (§9 tolerates broken links) nor `lint` follows them into the tree, and a move that renames a test file leaves the prose reading true while its proof goes missing.
-* **Sync**: the gem's testing rule became a design constraint, so the bundle records it — a new [integration first](design/integration-first.md) concept: the CLI is the product, so the suite that drives it end to end outranks the unit tests; the folders under `test/integration/cli/` are the three ways a user names a bundle (by path, by ref, several at once) with one file per command *and* subcommand; `rake test:integration` measures the layer alone because the full suite's number flatters (unit tests reach code no user can), which turns coverage into a map — a hole in `cli.rb` is a hole, a gap in `bundle/writer.rb` is the [library API](capabilities/library-api.md)'s to prove; and fixtures follow common closure, one group's living under that group. It carries its own argument: `rooted` and `mentions` exist because a branch no fixture can reach is a branch nobody has ever proven.
+* **Correction**: [search](capabilities/search.md)'s retrieval-eval citation pointed at `okf/test/integration/cli/cli_search_test.rb`, a file the same branch deleted when the suite regrouped into [by_dir / by_registry / across_bundles](design/integration-first.md) — the concept cited its own evidence at an address that no longer resolves. Repointed at `by_dir/cli_search_test.rb`, where the eval lives. Citations are the one enumeration nothing checks: they are URLs, so neither `validate` (§9 tolerates broken links) nor `lint` follows them into the tree, and a move that renames a test file leaves the prose reading true while its proof goes missing.
+* **Sync**: the gem's testing rule became a design constraint, so the bundle records it — a new [integration first](design/integration-first.md) concept: the CLI is the product, so the suite that drives it end to end outranks the unit tests; the folders under `okf/test/integration/cli/` are the three ways a user names a bundle (by path, by ref, several at once) with one file per command *and* subcommand; `rake test:integration` measures the layer alone because the full suite's number flatters (unit tests reach code no user can), which turns coverage into a map — a hole in `cli.rb` is a hole, a gap in `bundle/writer.rb` is the [library API](capabilities/library-api.md)'s to prove; and fixtures follow common closure, one group's living under that group. It carries its own argument: `rooted` and `mentions` exist because a branch no fixture can reach is a branch nobody has ever proven.
 * **Sync**: [`graph`](capabilities/read-views.md) was the last view that named no bundle — a bare pair of counts over a bare `nodes`/`edges` payload, by path or by ref alike. It carries the same identity head as every other view now, so the [read views](capabilities/read-views.md) concept can state the rule without an exception hiding under it.
 * **Sync**: the [CLI](cli.md)'s exit-code table gains the subtle member — a *second* bundle is a usage error, because only `search` merges and only `server` mounts several; reading the first and dropping the rest answered confidently about a bundle nobody asked about. A bad `-o` path joins it: exit 2, not a backtrace.
 * **Correction**: the [graph](model/graph.md) concept's `type_index` said nothing about blank types, and the code sorted `nil`, `""`, and `"  "` into three buckets — one of them a row labelled with spaces — while §9.2 and the [validator](capabilities/validator.md) reject all three identically via `OKF.blank?`. Folded to one `Untyped`, and the concept now says which spellings land there.

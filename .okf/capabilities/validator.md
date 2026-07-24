@@ -2,7 +2,7 @@
 type: Capability
 title: Conformance validator (validate)
 description: Implements the spec's §9 conformance definition exactly — three hard conditions, everything else a warning.
-resource: lib/okf/bundle/validator.rb
+resource: okf/lib/okf/bundle/validator.rb
 tags: [conformance, cli]
 timestamp: 2026-07-17T16:00:00Z
 ---
@@ -42,4 +42,4 @@ bundle is never written non-conformant.
 
 # Citations
 
-[1] [lib/okf/bundle/validator.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/bundle/validator.rb) — the §9 implementation.
+[1] [okf/lib/okf/bundle/validator.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/validator.rb) — the §9 implementation.

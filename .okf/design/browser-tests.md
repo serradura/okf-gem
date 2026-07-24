@@ -2,7 +2,7 @@
 type: Constraint
 title: The graph page is proven in a real browser
 description: A string assertion over rendered HTML cannot see a collapsed canvas or a folded breakpoint, so the page is driven in Chromium — in both render modes, with any thrown error failing the run.
-resource: test/browser
+resource: okf/test/browser
 tags: [testing, render, server, architecture]
 timestamp: 2026-07-22T12:00:00Z
 ---
@@ -14,10 +14,10 @@ template carrying ~1,300 lines of inline JS and CSS. Its regressions are not
 the kind a string assertion catches: a view that returns with a canvas
 Cytoscape measured at 0×0, a filter that stops composing with search, a
 breakpoint folding the wrong element, a handler that throws while the DOM
-still looks plausible. `test/integration/render/` proves the page is
+still looks plausible. `okf/test/integration/render/` proves the page is
 *emitted* correctly and cannot prove it *works*.
 
-`test/browser/` closes that gap with Playwright: real Chromium, DOM state and
+`okf/test/browser/` closes that gap with Playwright: real Chromium, DOM state and
 computed CSS at real viewport widths. It is the same argument
 [integration-first](integration-first.md) makes for the CLI, applied to the
 one surface the CLI cannot reach.
@@ -72,11 +72,11 @@ a broken gem, not as a slow CDN, and that reading is the expensive one.
 So the suite is a maintainer obligation run locally, enforced by nothing — the
 same standing as the 2.4 Docker floor and the PR shape. Restoring it to CI needs
 the flakiness gone first, not a second hedge on top of the first: cache
-`test/browser/vendor/` between runs so a cold runner stops reaching for jsdelivr,
+`okf/test/browser/vendor/` between runs so a cold runner stops reaching for jsdelivr,
 and only then judge the signal on what is left.
 
 The suite now answers those requests from a local read-through cache
-(`test/browser/vendor-cache.js`): a miss fetches and writes a gitignored
+(`okf/test/browser/vendor-cache.js`): a miss fetches and writes a gitignored
 `vendor/`, a hit serves from disk, and a warm run touches no network at all —
 proven by making the fetch path `throw` and watching 64 cases still pass. It is
 keyed on the **request URL**, not on a list of the versions the template pins,
@@ -121,7 +121,7 @@ yields ~230 behavioral contracts, ~94 of them fixes for bugs that actually
 shipped. A regression fix is the sharpest test target there is: a failure mode
 already proven reachable in this file.
 
-`test/browser/COVERAGE.md` now enumerates every contract per-commit and marks
+`okf/test/browser/COVERAGE.md` now enumerates every contract per-commit and marks
 each covered / partial / uncovered: of 181 net-live contracts, 176 (97%) are
 covered, with a ranked worklist of what remains — its Priority 1 (regression
 fixes reachable from the existing fixtures) is cleared, and Priority-2 is well
@@ -205,5 +205,5 @@ and two failures running is a regression, not this.
 
 # Citations
 
-[1] [test/browser/README.md](https://github.com/serradura/okf-gem/blob/main/test/browser/README.md) — the two projects, the fixture, the console watch, the assertion mistakes the first run shook out.
-[2] [test/browser/COVERAGE.md](https://github.com/serradura/okf-gem/blob/main/test/browser/COVERAGE.md) — the history-derived catalog and the ranked gap list.
+[1] [okf/test/browser/README.md](https://github.com/serradura/okf-gem/blob/main/okf/test/browser/README.md) — the two projects, the fixture, the console watch, the assertion mistakes the first run shook out.
+[2] [okf/test/browser/COVERAGE.md](https://github.com/serradura/okf-gem/blob/main/okf/test/browser/COVERAGE.md) — the history-derived catalog and the ranked gap list.

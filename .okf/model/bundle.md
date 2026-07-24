@@ -2,7 +2,7 @@
 type: Component
 title: OKF::Bundle
 description: The pure in-memory collection of concepts that validate, lint, and graph run over.
-resource: lib/okf/bundle.rb
+resource: okf/lib/okf/bundle.rb
 tags: [pure]
 timestamp: 2026-07-17T16:00:00Z
 ---
@@ -37,4 +37,4 @@ behind every read view.
 
 # Citations
 
-[1] [lib/okf/bundle.rb](https://github.com/serradura/okf-gem/blob/main/lib/okf/bundle.rb) — the in-memory collection and its `#validate` / `#lint` / `#graph` entry points.
+[1] [okf/lib/okf/bundle.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle.rb) — the in-memory collection and its `#validate` / `#lint` / `#graph` entry points.

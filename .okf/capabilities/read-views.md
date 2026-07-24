@@ -186,4 +186,4 @@ exits `0`.
 
 # Citations
 
-[1] [cli.md — read views](https://github.com/serradura/okf-gem/blob/main/lib/okf/skill/reference/cli.md) — the views and their flags.
+[1] [cli.md — read views](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/cli.md) — the views and their flags.
