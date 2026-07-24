@@ -4,7 +4,7 @@ title: The bundle registry
 description: A per-user, ordered list of bundle references persisted as one JSON file under $OKF_HOME — the kernel behind a bare `okf server`.
 resource: lib/okf/registry.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-17T13:00:00Z
+timestamp: 2026-07-23T12:00:00Z
 ---
 
 # Overview
@@ -144,6 +144,45 @@ them. `add` stays terminal-only, because a browser cannot hand over a filesystem
 path. The file stays the record: every write goes through here, and the hub
 re-reads it per request rather than trusting a snapshot, so an `okf registry
 rename` in another terminal shows on a refresh.
+
+# Groups: a named set of bundles
+
+A **group** is a slug that names not one bundle but a *list* of members — bundle
+or group slugs, so groups nest — and resolves, recursively and path-deduped, to
+the bundle leaves underneath. It is the durable form of typing `@a @b @c`: once
+several bundles earn a name together (`okf registry group backend @orders
+@billing`), `@backend` stands in for the set. `group`/`ungroup` add and remove
+members; emptying a group deletes it, since an empty set resolves to nothing.
+
+Groups live in **their own list** (`{ bundles: […], groups: […] }`), not among
+the entries — a deliberate separation. The first-is-default rule and every
+`File.directory?` guard assume an entry has a path, and a group has none;
+threading a nil path through all of them to host a pathless member would be the
+foreign-key tax the default rule already refused. A separate list leaves the
+bundle invariants untouched and makes a group exactly what it is: a view over
+them.
+
+**One namespace, two kinds.** A slug names a bundle *or* a group, never both, so
+`@backend` is unambiguous — the collision check that already spanned entries and
+the reserved `all` now spans groups too, in both directions (`registry set --as
+backend` is refused while a group holds it, and vice versa). And because a member
+list stores slugs, the two lifecycle verbs keep those references live: `rename`
+**cascades** the new name across every group that named the slug, and `del`
+**cascade-drops** it (a group emptied that way is deleted). Skipping either would
+orphan a member silently — the same drift the path-not-slug identity rule avoids
+for the default.
+
+**Only a set-taking verb consumes one.** [`search`](capabilities/search.md) and
+[`server`](capabilities/graph-server.md) are the two verbs that already take
+several bundles; a group feeds exactly them (`okf search @backend …` merges the
+members into one ranking, `okf server @backend` mounts each). Every single-bundle
+verb refuses a `@group` with exit 2 — the same second-bundle rule that stops
+`okf lint a b` from linting `a` and ignoring `b`, because a group resolving to
+three bundles is that ambiguity by another spelling. `@all` is unchanged: it
+still names every registered *bundle*, and a group is a named subset of what it
+already covers. A cycle is refused at write time and guarded again at resolution,
+since the file is hand-editable.
+<!-- rule:okf-registry-groups-cascade -->
 
 # It tolerates a world that changes underneath it
 

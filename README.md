@@ -289,6 +289,11 @@ okf search @all rate limit              # ranked retrieval across every register
 okf server                              # no args: the whole registry behind one hub
 ```
 
+Related bundles can share a name: `okf registry group backend @handbook @runbooks`
+makes `@backend` stand for the set (members can be groups too, so they nest), and
+`okf search @backend rate limit` or `okf server @backend` then targets all of them
+at once — a durable subset for the two verbs that take several bundles.
+
 Behind the hub each bundle mounts at `/b/<slug>/`, `/b/` lists them all, and the
 `⌘/Ctrl-K` palette both switches bundles and **searches every one at once** — type
 a few words and the matching concepts appear with their bundle and a snippet, from
@@ -391,7 +396,7 @@ okf catalog | files | tags | types | stats  <dir|@slug>   # the browser views, o
 okf graph     <dir|@slug> [--hubs] [--traffic]   # the raw graph; --hubs ranks concepts, --traffic dirs
 okf server    [DIR|@slug…] [-p PORT] [--bind ADDR]   # the live graph: one bundle, or all of them
 okf render    <dir|@slug> [-o FILE]              # the same page as one static, self-contained file
-okf registry  list | set | del | default | rename    # name your bundles: @slug works anywhere
+okf registry  list | set | del | default | rename | group | ungroup   # name & group your bundles; @slug works anywhere
 okf skill     <dest>                             # install the companion agent skill
 okf --version
 ```

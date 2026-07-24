@@ -1,6 +1,18 @@
 # Update Log
 
 ## 2026-07-23
+* **Addition**: the [registry](registry.md) grows **groups** — a slug that names
+  a set of bundles (members are bundle or group slugs, so groups nest) and
+  resolves recursively to its bundle leaves. `okf registry group backend @orders
+  @billing` / `ungroup` manage them; `@backend` then stands in for the set
+  wherever the two set-taking verbs run — [`search`](capabilities/search.md)
+  merges the members into one ranking, [`server`](capabilities/graph-server.md)
+  mounts each. Every single-bundle verb refuses a `@group` with exit 2, the same
+  second-bundle rule, and `@all` is unchanged (a group is a named subset of the
+  bundles it already covers). Groups live in their own list so the
+  first-is-default rule and the `File.directory?` guards never meet a pathless
+  entry; one namespace spans both, so a `rename` cascades the new name across
+  member lists and a `del` cascade-drops the slug, deleting any group it empties.
 * **Addition**: [read-views](capabilities/read-views.md) gains `graph
   --traffic`, and [agent-skill](capabilities/agent-skill.md)'s refine playbook
   gains it as a third structural read. The playbook's step 2 measured concepts

@@ -251,7 +251,7 @@ vocabulary from `tags`/`types` and re-ask in its own words, rather than
 hammering synonyms or reaching for `--fuzzy` before you have looked. Advisory read: **exit 0 even with zero matches**.
 JSON, plain-dir mode: `{ bundle, query, count, matches: [{ id, title, type,
 area, tags, matched, score, snippet }] }`. Registry mode — any leading @ref,
-`@all` among them — swaps the envelope: `{ bundles: [{ slug, dir }, …],
+`@all` or a `@group` among them (a group fans out to its member bundles) — swaps the envelope: `{ bundles: [{ slug, dir }, …],
 query, count, matches: [{ slug, id, … }] }`; a parser must branch on which form
 it called. The head maps each slug to its dir once, so a row resolves to
 `<dir>/<id>.md` without a second lookup and without repeating a path per row.
@@ -446,16 +446,20 @@ verb keys on. **Entry verbs** take a path: `okf registry set <dir>` adds it
 (slug from the basename, or `--as`, which errors on a collision; `--default`
 puts it first), and because the entry is keyed by path, `set` on an
 already-registered dir updates it in place — refreshing its title, and renaming
-it when `--as` is given. `okf registry del <dir|@slug>` removes one — by name, so an entry whose
-directory is already gone still deletes. Slug *or* dir, never both readings at
+it when `--as` is given. `okf registry del <dir|@slug>` removes a bundle *or* a group — by name, so an
+entry whose directory is already gone still deletes, and removing a bundle
+**cascade-drops** it from every group that named it (a group emptied that way is
+deleted). Slug *or* dir, never both readings at
 once: an argument with a `/` in it names a location and only a location, so
 `del ./notes` refuses when no entry points there rather than stripping to the
 slug `notes` and deleting a bundle somewhere else entirely.
 <!-- rule:okf-registry-del-path-or-slug -->
 **Slug verbs** take the name — bare, or as an `@slug`: `okf registry default <@slug>`
-chooses which bundle `/` opens **by moving that entry to the front**, and
-`okf registry rename <@slug> <new>` renames a slug (mount path and switcher
-name) — `<new>` is a name being minted, so it is never a ref. The registry is ordered and **the first entry still on disk is the
+chooses which bundle `/` opens **by moving that entry to the front** (a group is
+refused — the default is one bundle), and
+`okf registry rename <@slug> <new>` renames a bundle *or* group slug (mount path
+and switcher name), **cascading** the new name into every group's member list —
+`<new>` is a name being minted, so it is never a ref. The registry is ordered and **the first entry still on disk is the
 default** — that is the whole rule, so the first bundle you register is the
 default until you move another one, a rename keeps its position, and a `del`
 promotes whatever is next. A vanished directory is stepped over (the server
@@ -464,11 +468,25 @@ cannot open one, so starring it would name a bundle `/` never serves), and
 gives a directory that is not there. The file is hand-editable and reorders
 visibly, which is the point: there is no stored slug that can dangle.
 <!-- rule:okf-registry-default-position -->
+**Group verbs** name a *set* of bundles under one slug — a durable subset for the
+two verbs that take several bundles. `okf registry group <slug> <@member…>`
+creates a group, or adds members to one (a union); members are bundle *or* group
+slugs, so groups nest. A group shares the slug namespace with bundles (a slug
+names one *or* the other, never both), `all` stays reserved, and a member set that
+would make the group reach itself is refused. `okf registry ungroup <slug>
+<@member…>` removes members; emptying a group deletes it. A group resolves,
+recursively and path-deduped, to its bundle leaves — which **only `okf search`
+and `okf server` consume**: every single-bundle verb (`lint`, `index`, …) refuses
+a `@group` with exit 2, the same rule that refuses a second bundle. `@all` is
+unchanged — it still names every registered *bundle*, groups being named subsets
+of that.
 `okf registry list` (or a bare
 `okf registry`) stars the default and flags vanished dirs `(missing)` — the
-server skips those with a note; `--json` answers
+server skips those with a note — and lists any groups with their members and
+resolved leaf count; `--json` answers
 `{ registry: <file>, count, bundles: [{ slug, title, dir, mount, default,
-missing }] }`, naming the file it read so a `$OKF_HOME` mismatch is visible. The hub roster is a
+missing }], groups: [{ slug, members, resolved }] }`, naming the file it read so a
+`$OKF_HOME` mismatch is visible. The hub roster is a
 **boot-time snapshot**: restart `okf server` after registry changes. Behind a
 hub the page gains a **bundle switcher** (⌘/Ctrl-K, or the rail button with its
 bundle-count badge): the current bundle is pinned, the default chipped; ⏎
@@ -481,7 +499,10 @@ them all with the registry's first entry still on disk at `/` — the way to kee
 several bundles a keystroke apart without re-passing paths.
 `okf server @a @b` serves a registry subset, each mounted under its registered
 slug — but as with any dirs-given run, the *first argument* lands at `/`; the
-registry's own order applies only to the bundle-less run.
+registry's own order applies only to the bundle-less run. A `@group` argument
+fans out to its member bundles in the same way (`okf server @backend`), its first
+member landing at `/`; `okf search @group <term…>` merges the group's members
+into one ranking, exactly as naming them individually would.
 
 **Trust boundary:** the page renders each fetched markdown body through
 DOMPurify and escapes everything it inlines (every `<` in the graph data is
