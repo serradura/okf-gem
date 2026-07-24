@@ -15,6 +15,6 @@ Start here.
 # Areas
 
 * [The format](format/) - what OKF v0.1 is — the Markdown + YAML frontmatter the gem operates on.
-* [The model](model/) - the pure in-memory data structures: concept, bundle, graph.
+* [The model](model/) - the pure in-memory data structures: concept, bundle, graph, skeleton.
 * [Capabilities](capabilities/) - the seven things the gem does: validate, lint, search, serve, render, the library, the skill.
 * [Design constraints](design/) - the enforced boundaries that keep the gem light and honest.

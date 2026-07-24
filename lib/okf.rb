@@ -48,6 +48,7 @@ module OKF
   require "okf/concept"
   require "okf/bundle"
   require "okf/bundle/graph"
+  require "okf/bundle/skeleton"
   require "okf/bundle/search"
   # These two lines ARE the engine preference order. Each engine registers itself
   # at load, `Search.engines` is registration order, and the router walks it after

@@ -42,6 +42,10 @@ module OKF
         @bundle.graph(minimal: minimal, body: body)
       end
 
+      def skeleton
+        @bundle.skeleton
+      end
+
       def catalog
         @bundle.catalog
       end

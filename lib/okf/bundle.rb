@@ -95,6 +95,10 @@ module OKF
       Graph.build(self, minimal: minimal, body: body)
     end
 
+    def skeleton
+      Skeleton.build(self)
+    end
+
     # Rich per-concept metadata the catalog / files / stats consumers want but the
     # lean graph omits — the descriptive frontmatter fields plus in/out link degree
     # taken from the graph edges. Pure: derived from the concepts and their links,
