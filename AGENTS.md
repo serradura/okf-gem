@@ -18,6 +18,8 @@ The repository — one directory per gem, plus what is not a gem:
 
 ```
 okf/            the baseline gem; everything below lives inside it
+okf-mcp/        the MCP shell: the kernel's capabilities as MCP tools + prompts
+                (floor 2.7 — the `mcp` SDK's — and deps exactly `mcp` + `okf`)
 plugin/         the Claude Code plugin — generated skill copy, command, curation hook
 .claude-plugin/ the marketplace manifest (the repo doubles as the marketplace)
 .okf/           the project's own knowledge bundle

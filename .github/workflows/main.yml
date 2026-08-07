@@ -55,6 +55,35 @@ jobs:
       - name: Run the default task
         run: bundle exec rake
 
+  okf-mcp:
+    name: okf-mcp / Ruby ${{ matrix.ruby }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: okf-mcp
+    strategy:
+      fail-fast: false
+      matrix:
+        # 2.7 is the floor — the official `mcp` gem's own, inherited rather than
+        # chosen (see okf-mcp/README.md). Every floor here runs on ubuntu-latest.
+        ruby: [ "2.7", "3.0", "3.1", "3.2", "3.3", "3.4", "4.0" ]
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+          # Its own input, not the job default: `defaults.run` only applies to
+          # `run:` steps, and this action has to find the Gemfile itself to
+          # cache against.
+          working-directory: okf-mcp
+      - name: Run the default task
+        run: bundle exec rake
+
   # The Ruby that belongs to no gem — this repo's Rakefile and the Claude Code
   # plugin's curation hook — is linted by no gem's `rake rubocop`, so without
   # this job it is held to the 2.4 floor by comment only. One modern Ruby is

@@ -11,7 +11,7 @@
 # context to keep in sync for no gain.
 
 # Adding a gem to the repo is adding it here.
-GEMS = %w[okf].freeze
+GEMS = %w[okf okf-mcp].freeze
 
 ROOT = __dir__
 

@@ -1,0 +1,10 @@
+# The okf-mcp gem's own ignores, anchored to this directory (the same rule as
+# okf/.gitignore: they follow the gem wherever it sits in the repo).
+
+/.bundle/
+/coverage/
+/doc/
+/pkg/
+
+# The gem is tested against many Rubies; each resolves its own dependency set.
+Gemfile.lock
