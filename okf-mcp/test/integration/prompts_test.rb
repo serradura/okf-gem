@@ -17,7 +17,11 @@ class PromptsTest < MCPIntegrationCase
 
   PROMPTS_DIR = File.expand_path("../../lib/okf/mcp/prompts", __dir__)
 
-  TOOLS_TAUGHT = %w[list_bundles dirs index search read_concept].freeze
+  # Words the prompts set in backticks that are neither tools nor arguments —
+  # worked examples and typography (`ustomer` is the mid-word fragment the
+  # engine table teaches with). Anything else backticked must exist on the
+  # wire, so this list is what keeps a renamed tool from hiding as prose.
+  PROSE_TOKENS = %w[backticks customer_id dedup deduplication ustomer].freeze
 
   test "only the consuming prompts are offered" do
     server = mcp_server(fixture("knowledge"))
@@ -46,18 +50,25 @@ class PromptsTest < MCPIntegrationCase
   end
 
   # The rewrite's whole point: the text teaches this server's tools, not the
-  # CLI. Every tool it names must exist on the wire, and no backticked `okf …`
-  # invocation may survive — that spelling is what made the skill's playbooks
-  # dead weight to a host with no shell.
+  # CLI. No backticked `okf …` invocation may survive — that spelling is what
+  # made the skill's playbooks dead weight to a host with no shell — and
+  # *every* backticked word must be accounted for: a served tool, a declared
+  # argument, or the prose list above. The first cut checked five tools from
+  # a fixed list and never noticed the texts also teach `log`, `catalog` and
+  # `graph` — a rename there would have shipped a prompt pointing at a tool
+  # that answers method-not-found, suite green.
   test "the prompt text speaks in tool names, never CLI invocations" do
     server = mcp_server(fixture("knowledge"))
-    served = rpc(server, "tools/list").dig("result", "tools").map { |tool| tool["name"] }
+    tools = rpc(server, "tools/list").dig("result", "tools")
+    served = tools.map { |tool| tool["name"] }
+    arguments = tools.flat_map { |tool| (tool.dig("inputSchema", "properties") || {}).keys }.uniq
     EXPECTED.each do |name|
       text = rpc(server, "prompts/get", name: name).dig("result", "messages", 0, "content", "text")
       refute_match(/`okf /, text, "#{name} still instructs a CLI run")
-      named = TOOLS_TAUGHT.select { |tool| text.match?(/`#{tool}`/) }
-      refute_empty named, "#{name} teaches none of the tools"
-      named.each { |tool| assert_includes served, tool, "#{name} names a tool the server does not offer" }
+      tokens = text.scan(/`([a-z][a-z_]*)`/).flatten.uniq
+      refute_empty tokens & served, "#{name} teaches none of the tools"
+      stray = tokens - served - arguments - PROSE_TOKENS
+      assert_empty stray, "#{name} backticks #{stray.inspect} — not a served tool, a declared argument, or listed prose"
     end
   end
 

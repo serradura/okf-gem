@@ -27,6 +27,15 @@ class MemoryBackendTest < OKF::TestCase
     assert_match(/A different body/, second.bundle.concepts.first.body)
   end
 
+  # The warm-under-lock rule covers every memo a tool reads off the shared
+  # bundle. `Bundle#directories` joined that set when the dir refusal moved to
+  # it, and an unwarmed `||=` raced from the HTTP transport's threads.
+  test "folder warms the directories memo with the id maps, under the lock" do
+    folder = @backend.folder(@dir)
+    refute_nil folder.bundle.instance_variable_get(:@directories),
+      "check_dir! reads this memo from transport threads; build it under the residency lock"
+  end
+
   test "the corpus is held across index queries and dropped when a member changes" do
     pairs = [ [ "scratch", @dir ] ]
     first = @backend.search_pairs(pairs, [ "body" ], engine: "index")
@@ -114,6 +123,29 @@ class MemoryBackendTest < OKF::TestCase
       @backend.retain([ @dir ])
 
       assert_equal [ @dir ], cached_roots, "a parsed bundle outlived the registry entry that named it"
+    ensure
+      FileUtils.rm_rf(gone)
+    end
+  end
+
+  # The corpus cache pins the same parsed bundles the residency does — plus a
+  # prepared index over each — so the prune has to reach both. With @cache
+  # pruned and @corpora not, up to MAX_CORPORA corpora over dropped roots
+  # stayed resident until other *index* queries happened to evict them, which
+  # a scan-only workload never sends: the memory retain claims to release was
+  # still held after every repoint.
+  test "retain drops every corpus touching a root no longer served" do
+    gone = Dir.mktmpdir("okf-mcp-gone")
+    File.write(File.join(gone, "note.md"), "---\ntype: Note\ntitle: Gone\n---\n\nA body.\n")
+    begin
+      @backend.search_pairs([ [ "a", @dir ], [ "b", gone ] ], [ "body" ], engine: "index")
+      @backend.search_pairs([ [ "a", @dir ] ], [ "body" ], engine: "index")
+      assert_equal 2, @backend.instance_variable_get(:@corpora).size
+
+      @backend.retain([ @dir ])
+
+      keys = @backend.instance_variable_get(:@corpora).keys
+      assert_equal [ [ @dir ] ], keys, "a corpus outlived a root the registry no longer names"
     ensure
       FileUtils.rm_rf(gone)
     end

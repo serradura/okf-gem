@@ -22,7 +22,7 @@ class CLIPluginTest < CLIIntegrationCase
     FileUtils.rm_rf(@plugin_root)
     OKF::CLI.reset_plugins!
     # The plugin files define constants; drop them so each test starts clean.
-    %i[Ping Broken Shadow Malformed].each do |name|
+    %i[Ping Broken Shadow Malformed Vintage].each do |name|
       OKF::CLI.send(:remove_const, name) if OKF::CLI.const_defined?(name, false)
     end
   end
@@ -55,6 +55,45 @@ class CLIPluginTest < CLIIntegrationCase
       end
     end
   RUBY
+
+  # A verb written against 1.12.0's helpers, verbatim: filter_entries took
+  # (entries, options) and resolved the `root` alias with no directory set to
+  # consult. The base every plugin inherits is a compatibility promise, so the
+  # third parameter has to default rather than demand — an out-of-tree caller
+  # keeps exactly the behaviour it shipped against, no better and no worse.
+  VINTAGE = <<~RUBY
+    module OKF
+      class CLI
+        class Vintage < Command
+          def self.id
+            :vintage
+          end
+
+          def self.help_rows
+            [ [ "vintage", "a 1.12.0-era verb" ] ]
+          end
+
+          def call(_argv)
+            rows = filter_entries(
+              [ { id: "a", type: "Note", top_dir: "(root)", dir: ".", tags: [] } ],
+              { dir: "root" }
+            )
+            @out.puts rows.map { |row| row[:id] }.join(",")
+            0
+          end
+        end
+
+        register(Vintage)
+      end
+    end
+  RUBY
+
+  test "a plugin verb calling the 1.12.0 filter_entries arity still runs" do
+    plugin(VINTAGE)
+    result = okf("vintage")
+    assert_equal 0, result.status, result.err
+    assert_equal "a\n", result.out
+  end
 
   test "an installed extension answers a verb the base gem never heard of" do
     plugin(PING)

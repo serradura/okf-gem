@@ -92,6 +92,96 @@ class CLITest < MCPIntegrationCase
     end
   end
 
+  # The mirror case: past a successful boot, the likeliest errno is the host
+  # closing its pipes — a stdio session's normal end, Claude Desktop quitting
+  # after hours of serving. That errno reached the boot rescue, which printed
+  # the usage banner and exited 2: a shutdown misfiled as an operator mistake,
+  # for any supervisor keyed on the exit status.
+  test "a host disconnecting mid-serve is a normal end, not a usage error" do
+    err = StringIO.new
+    cli = OKF::MCP::CLI.new([ fixture("knowledge") ], out: err, stdout: StringIO.new)
+    cli.define_singleton_method(:serve_stdio) { |_server| raise Errno::EPIPE }
+
+    assert_equal 0, cli.run
+    refute_match(/usage: okf mcp/, err.string, "a host hanging up is not an operator mistake")
+  end
+
+  # The same hang-up, one moment earlier: the host died while boot was still
+  # printing. The rescue caught the announce's EPIPE — and then its own puts
+  # raised EPIPE again, uncaught: a backtrace and exit 1 for a normal end.
+  # Diagnostics are best-effort; a closed stderr loses the boot line, never
+  # the exit contract.
+  test "a host that closes the pipes during boot is a normal end, not a backtrace" do
+    err = StringIO.new
+    err.define_singleton_method(:puts) { |*| raise Errno::EPIPE }
+    cli = OKF::MCP::CLI.new([ fixture("knowledge") ], out: err, stdout: StringIO.new)
+    cli.define_singleton_method(:serve_stdio) { |_server| nil }
+
+    assert_equal 0, cli.run
+  end
+
+  # The carve-out is stdio's alone. On --http the boot line already went
+  # through best-effort prints, so a hang-up errno escaping the accept loop
+  # cannot mean "the session ended" — it is a runtime fault like any other,
+  # and reading it as a clean exit 0 would hide a dead shared server from
+  # every supervisor keyed on the status.
+  test "an --http hang-up errno mid-serve propagates, never a clean exit 0" do
+    err = StringIO.new
+    cli = OKF::MCP::CLI.new([ "--http", "--port", "0", fixture("knowledge") ], out: err, stdout: StringIO.new)
+    cli.define_singleton_method(:prepare_http) do |_server|
+      httpd = Object.new
+      httpd.define_singleton_method(:start) { raise Errno::ECONNRESET }
+      @httpd = httpd
+    end
+
+    assert_raises(Errno::ECONNRESET) { cli.run }
+  end
+
+  # The carve-out is exactly two errnos wide. Any other mid-serve errno is a
+  # runtime fault hours past a valid invocation: routing it through the boot
+  # rescue printed the usage banner and exited 2, telling a supervisor the
+  # operator's arguments were wrong. It propagates — a crash reads as one.
+  test "a runtime errno mid-serve is a crash to report, never a usage error" do
+    err = StringIO.new
+    cli = OKF::MCP::CLI.new([ fixture("knowledge") ], out: err, stdout: StringIO.new)
+    cli.define_singleton_method(:serve_stdio) { |_server| raise Errno::EIO }
+
+    assert_raises(Errno::EIO) { cli.run }
+    refute_match(/usage: okf mcp/, err.string, "a runtime fault read as an operator mistake")
+  end
+
+  # The flag is repeatable, and its whole job is to reach the HTTP boot: a
+  # reverse proxy's Host or a DNS name no local interface knows.
+  test "--allow-host is repeatable and reaches the HTTP boot" do
+    seen = nil
+    cli = OKF::MCP::CLI.new(
+      [ "--http", "--allow-host", "proxy.internal", "--allow-host", "edge.internal", "--port", "0", fixture("knowledge") ],
+      out: StringIO.new, stdout: StringIO.new
+    )
+    cli.define_singleton_method(:prepare_http) do |_server|
+      seen = @allow_hosts
+      httpd = Object.new
+      httpd.define_singleton_method(:start) { nil }
+      @httpd = httpd
+    end
+
+    assert_equal 0, cli.run
+    assert_equal %w[proxy.internal edge.internal], seen
+  end
+
+  # The one un-stubbed pass through serve_stdio: the SDK transport reads the
+  # standard streams, and a stdin already at EOF is the shortest complete
+  # session — boot, serve, normal end, exit 0.
+  test "a stdio session ends cleanly when stdin reaches EOF" do
+    was = $stdin
+    $stdin = StringIO.new("")
+    cli = OKF::MCP::CLI.new([ fixture("knowledge") ], out: StringIO.new, stdout: StringIO.new)
+
+    assert_equal 0, cli.run
+  ensure
+    $stdin = was
+  end
+
   private
 
   # The CLI in-process, as the kernel's suite drives its own: captured streams,

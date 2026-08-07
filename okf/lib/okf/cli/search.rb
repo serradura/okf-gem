@@ -226,7 +226,10 @@ module OKF
         end
         total = folders.reduce(0) { |sum, (_, folder)| sum + folder.bundle.concepts.size }
         bundles = folders.map { |slug, folder| [ slug, folder.bundle ] }
-        dirs = folders.flat_map { |_, folder| folder.directories }.uniq
+        # The served set's directories, only when a flag will consult them —
+        # the alias is resolved once across the whole run (see filter_ids),
+        # and an unfiltered search never pays the walk.
+        dirs = options[:dir] || options[:area] ? folders.flat_map { |_, folder| folder.directories }.uniq : nil
         keeps = {}
         folders.each do |slug, folder|
           keep = filter_ids(folder, options, dirs)

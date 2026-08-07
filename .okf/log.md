@@ -1,6 +1,45 @@
 # Update Log
 
+## 2026-08-07
+* **Correction**: a fourth review round held the previous round's fixes to
+  their own promises, in the [MCP server](capabilities/mcp-server.md) and its
+  CLI shell. The log tool's budget is enforced in bytes as announced (a
+  character count let a multibyte log through at up to 4x the cap), `returned`
+  is recounted from what survived the cut, and the scaffolded-title zero holds
+  wherever whitespace put the title. The `dir` refusal names an
+  unparseable-only directory for what it is — files the reader could not
+  parse, fix via validate — instead of calling it nonexistent. The residency
+  prune runs when the served set moves rather than on every request, the
+  `directories` memo is warmed under the residency lock, and the boot/serve
+  split is structural: diagnostics are best-effort, a lost stderr never
+  decides an exit status, and a mid-serve errno beyond the two hang-up ones
+  propagates as the crash it is. okf-mcp's dependency floor names the kernel
+  release that ships `Bundle#directories` (>= 1.13, the version this checkout
+  now carries), and the kernel's CHANGELOG stops claiming `filter_ids` kept
+  its 1.12.0 resolution — the fold there was the bug, not a contract.
+* **Update**: the [MCP server](capabilities/mcp-server.md) capability now
+  records two of that round's durable lessons where the next reader will look:
+  the exit contract is structural (boot under the usage rescue, serve past its
+  reach, diagnostics best-effort) as a third obligation of routing a protocol
+  server through a CLI dispatcher, and the kernel floor beside the Ruby floor —
+  the gemspec must name the okf release shipping every API the shell calls,
+  because the monorepo's path pin satisfies any floor and hides one that lies.
+
 ## 2026-08-06
+* **Correction**: a third review round found the directory-set rule
+  half-finished and the log bound leaky, and both fixes landed in the
+  [read views](capabilities/read-views.md) and the
+  [MCP server](capabilities/mcp-server.md). `Bundle#directories` now counts a
+  directory holding only a scoped `log.md` (the same bug as `hollow`'s, one
+  file kind over), and the MCP `dir` refusal consults that same list instead
+  of a private derivation that accepted directories `dirs` refuses. The log
+  tool's byte budget caps every answer — a history under a single `## `
+  heading came back whole behind `total: 1` — while a scaffolded title with no
+  entries reports zero. Also: a mid-serve host disconnect exits 0 instead of
+  misfiling as a usage error, the corpus cache is pruned with the residency,
+  `filter_entries` regained a 1.12.0-compatible default for plugin verbs, the
+  directory set is derived only when a flag will read it, and the root README
+  no longer documents an `okf upgrade` verb that does not exist.
 * **Decision**: the [MCP server](capabilities/mcp-server.md)'s prompt surface is
   trimmed to the consuming pair — `okf-search` and `okf-consume` — rewritten in
   the server's own tool vocabulary and shipped in okf-mcp rather than read from

@@ -234,6 +234,18 @@ module ByDir
       refute_includes rooted["matches"].map { |row| row["id"] }, "deeply/nested/path/concept"
     end
 
+    # The same pin as the listing verbs': search's keep-set resolves --dir
+    # through the bundle's own directories, the only set that can see hollow's
+    # index-only `root/`. Folding the alias here answers with the concept that
+    # lives at the bundle root — the wrong scope, exit 0, nothing said.
+    test "--dir root yields to a real `root` directory the catalog cannot see" do
+      scoped = json(okf("search", fixture("hollow"), "Charter", "--dir", "root", "--json"))
+      assert_empty scoped["matches"], "the alias won and searched the bundle root"
+
+      rooted = json(okf("search", fixture("hollow"), "Charter", "--dir", ".", "--json"))
+      assert_equal [ "charter" ], rooted["matches"].map { |row| row["id"] }
+    end
+
     test "--area still narrows, and warns on stderr while stdout stays clean JSON" do
       result = okf("search", fixture("conformant"), "orders", "--area", "tables", "--json")
 

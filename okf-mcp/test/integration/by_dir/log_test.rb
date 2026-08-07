@@ -111,6 +111,117 @@ module ByDir
         "`limit` could not reach this path at all"
     end
 
+    # The size bound has to hold on the structured path too. §7 fixes no
+    # heading level, so a whole history under one `## ` heading is conformant;
+    # it splits into exactly one entry and came back whole — the unbounded
+    # read surviving a second time, this time behind a `total: 1` that read
+    # as bounded.
+    test "a huge log under a single `## ` heading is cut by size, and `limit` scales the cap" do
+      dir = File.join(@out_dir, "monolithic")
+      FileUtils.cp_r(fixture("knowledge"), dir)
+      body = "One heading, endless history. " * 1_000
+      File.write(File.join(dir, "log.md"), "# Update Log
+
+## History
+
+#{body}")
+      server = mcp_server(dir)
+
+      root = call_tool!(server, "log", bundle: "monolithic")["logs"].first
+      assert_equal 1, root["total"]
+      assert_equal 1, root["returned"]
+      assert root["truncated"], "the whole file came back under a bound that claimed to hold"
+      assert_operator root["content"].length, :<, body.length
+
+      raised = call_tool!(server, "log", bundle: "monolithic", limit: 20)["logs"].first
+      refute raised["truncated"], "a raised limit covers the whole file"
+      assert_match(/endless history\. $/, raised["content"])
+    end
+
+    # A structured log with no entries yet — a scaffolded title and nothing
+    # else — holds zero entries and must say zero. Counting the bare title as
+    # one entry told an agent checking history before trusting knowledge that
+    # there is history where there is none; only content the split cannot
+    # divide is an indivisible entry, and a title is not content.
+    test "a log holding only its title reports zero entries" do
+      dir = File.join(@out_dir, "scaffolded")
+      FileUtils.cp_r(fixture("knowledge"), dir)
+      File.write(File.join(dir, "log.md"), "# Update Log
+
+")
+      server = mcp_server(dir)
+
+      root = call_tool!(server, "log", bundle: "scaffolded")["logs"].first
+      assert_equal 0, root["total"]
+      assert_equal 0, root["returned"]
+      assert_match(/# Update Log/, root["content"], "the title still names the scope")
+    end
+
+    # The budget's unit is the promise: it is announced as bytes, sized from a
+    # byte measurement, and exists to give an agent host a context-cost bound.
+    # Enforcing it with String#length counted characters, so a multibyte log
+    # sailed past the cap at up to 4x the announced bytes — silently, since
+    # `truncated` never fired either.
+    test "the budget is enforced in bytes, so a multibyte log cannot slip the cap" do
+      dir = File.join(@out_dir, "dashed")
+      FileUtils.cp_r(fixture("knowledge"), dir)
+      File.write(File.join(dir, "log.md"), "# Update Log\n\n## 2026-08-01\n\n#{"\u2014" * 4_000}\n")
+      server = mcp_server(dir)
+
+      root = call_tool!(server, "log", bundle: "dashed", limit: 1)["logs"].first
+      assert root["truncated"], "12,000 bytes of em-dashes passed a 4,500-byte budget unannounced"
+      assert_operator root["content"].bytesize, :<=, OKF::MCP::Server::LOG_BUDGET
+      assert root["content"].valid_encoding?, "the byte cut may not shear a character in half"
+    end
+
+    # `returned` is defined as "how many came back". Counting it before the
+    # byte cut claimed entries whose very headings the cut removed — an agent
+    # checking history counts an entry it never received, and paging keyed on
+    # returned == limit believes it already saw everything.
+    test "`returned` counts the entries that actually survived the byte cut" do
+      dir = File.join(@out_dir, "verbose")
+      FileUtils.cp_r(fixture("knowledge"), dir)
+      entries = (1..3).map { |n| "## 2026-08-0#{n}\n\n#{"entry #{n} prose. " * 500}\n" }.reverse.join("\n")
+      File.write(File.join(dir, "log.md"), "# Update Log\n\n#{entries}")
+      server = mcp_server(dir)
+
+      root = call_tool!(server, "log", bundle: "verbose", limit: 3)["logs"].first
+      assert root["truncated"]
+      assert_equal 3, root["total"]
+      assert_operator root["returned"], :<, 3, "the third entry was wholly cut and still counted as returned"
+      assert_equal root["content"].scan(/^## /).length, root["returned"],
+        "`returned` and the headings actually present must agree"
+    end
+
+    # The zero check anchored the title at byte 0, so a scaffolded log whose
+    # title sits after a blank line was counted as one entry — the same false
+    # history the check exists to refuse, one whitespace over.
+    test "a scaffolded title behind a leading blank line still counts zero" do
+      dir = File.join(@out_dir, "padded")
+      FileUtils.cp_r(fixture("knowledge"), dir)
+      File.write(File.join(dir, "log.md"), "\n# Update Log\n\n")
+      server = mcp_server(dir)
+
+      root = call_tool!(server, "log", bundle: "padded")["logs"].first
+      assert_equal 0, root["total"]
+      assert_equal 0, root["returned"]
+    end
+
+    # The zero-entry rows used to be hand-built literals that skipped the
+    # budget entirely; every row goes through the same sizing now, so even the
+    # pathological title-only monster is bounded.
+    test "even a title-only log is held to the budget" do
+      dir = File.join(@out_dir, "titled")
+      FileUtils.cp_r(fixture("knowledge"), dir)
+      File.write(File.join(dir, "log.md"), "# Update Log#{" padding" * 3_000}\n\n")
+      server = mcp_server(dir)
+
+      root = call_tool!(server, "log", bundle: "titled")["logs"].first
+      assert_equal 0, root["total"]
+      assert root["truncated"], "a 24,000-byte title line came back whole"
+      assert_operator root["content"].bytesize, :<=, OKF::MCP::Server::LOG_BUDGET * 3
+    end
+
     test "a just-appended entry shows without a reboot" do
       dir = File.join(@out_dir, "logged")
       FileUtils.cp_r(fixture("knowledge"), dir)

@@ -409,7 +409,6 @@ okf catalog | files | tags | types | stats  <dir|@slug>   # the browser views, o
 okf graph     <dir|@slug> [--hubs] [--traffic]   # the raw graph; --hubs ranks concepts, --traffic dirs
 okf server    [DIR|@slug…] [-p PORT] [--bind ADDR]   # the live graph: one bundle, or all of them
 okf render    <dir|@slug> [-o FILE]              # the same page as one static, self-contained file
-okf upgrade   <dir|@slug> --by ACTOR [--dry-run]  # migrate a v0.1 bundle to v0.2's spelling
 okf registry  init | list | set | del | default | rename | group | ungroup   # name & group your bundles; @slug works anywhere
 okf skill     <dest>                             # install the companion agent skill
 okf --version

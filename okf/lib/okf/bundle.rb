@@ -161,14 +161,15 @@ module OKF
     # from the concepts and the reserved index text, no disk. Shared by the
     # `okf index` view and the server's Index panel (/index).
     # Every directory this bundle has — the same set #directory_index enumerates
-    # (concepts or an index.md, plus every ancestor), without building the map.
-    # It is the answer to "does this bundle have a directory named X?", and the
-    # CLI needs exactly that to decide whether `--dir root` names a real
+    # (concepts, an index.md or a log.md, plus every ancestor), without building
+    # the map. It is the answer to "does this bundle have a directory named X?",
+    # and the CLI needs exactly that to decide whether `--dir root` names a real
     # directory or the bundle root. Reading it off #catalog instead is the same
     # question asked of a smaller set, which is how the two views came to
-    # disagree about one bundle.
+    # disagree about one bundle. Memoized: the model is immutable once read,
+    # and the resolvers above ask per invocation, not per bundle load.
     def directories
-      directory_set(concepts.map { |concept| File.dirname(concept.path) }.uniq)
+      @directories ||= directory_set(concepts.map { |concept| File.dirname(concept.path) }.uniq)
     end
 
     def directory_index
@@ -211,11 +212,14 @@ module OKF
       id.include?("/") ? id.split("/").first : "(root)"
     end
 
-    # Every directory to show: those holding concepts or an index.md, plus each of
-    # their ancestors up to the root, so the subdir tree stays connected even when
-    # an intermediate directory holds nothing directly. Sorted with "." first.
+    # Every directory to show: those holding concepts, an index.md or a log.md,
+    # plus each of their ancestors up to the root, so the subdir tree stays
+    # connected even when an intermediate directory holds nothing directly. A
+    # scoped log counts because `okf log` reads it — a directory whose only file
+    # is its history still exists, and leaving it out is how the `root` alias
+    # beat a real `root/` for the second file kind in a row. Sorted "." first.
     def directory_set(concept_dirs)
-      seed = concept_dirs + index_files.map { |path| File.dirname(path) }
+      seed = concept_dirs + (index_files + log_files).map { |path| File.dirname(path) }
       dirs = {}
       seed.each do |dir|
         current = dir

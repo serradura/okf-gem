@@ -33,7 +33,7 @@ module OKF
         folder = OKF::Bundle::Folder.load(dir)
         report_skipped(folder)
         entries = folder.catalog
-        selected = filter_entries(entries, options, folder.directories)
+        selected = filter_entries(entries, options, dir_scope(folder, options))
         return print_files_json(dir, selected, options) if options[:json]
 
         print_files(dir, selected, entries.size)

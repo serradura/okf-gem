@@ -4,7 +4,7 @@ title: MCP server (okf-mcp)
 description: The kernel's proven capabilities projected onto the Model Context Protocol — ten read-only tools, concepts as resources, and the two consuming prompts, for any MCP-capable agent host.
 resource: okf-mcp/lib/okf/mcp/server.rb
 tags: [mcp, serve, agent, registry, search]
-timestamp: 2026-08-06T12:00:00Z
+timestamp: 2026-08-07T12:00:00Z
 ---
 
 # Overview
@@ -91,8 +91,13 @@ the same mistake in different clothes — **something else was still a boot
 snapshot** — and two are what a *movable* served set costs a cache that was
 written for a fixed one. The residency held one parsed bundle per root and never
 evicted, which was bounded only by the set being fixed at boot; it is pruned to
-the served set on every request now, since an operator repointing entries
-otherwise retains every root the registry has ever named. And the on-disk
+the served set whenever the set *moves* now — not on every request, which took
+the residency and corpus locks and queued every unrelated call behind whatever
+index build another host was paying for — since an operator repointing entries
+otherwise retains every root the registry has ever named — and the prune
+reaches the corpus cache too, which pins the same parsed bundles plus a
+prepared index over each: its LRU evicts only on an index query, so a
+scan-only workload would have held a dropped root's corpus forever. And the on-disk
 fingerprint is taken once per root per request rather than per ask: freshness is
 a question *between* requests, and asking it three times inside one cost three
 full-tree walks under the residency lock (`search` on the index engine measured
@@ -136,13 +141,22 @@ general shape: **a bound that counts containers instead of contents reads as
 bounded and is not**, which is the same false-comfort class as a capability
 declared by default.
 
-That shape had two more instances, both found by review rather than by use.
+That shape kept producing instances, each found by review rather than by use.
 §7 fixes no heading level, so a log grouped under `###` is conformant and the
 `## ` split cannot see it: the file came back *whole* under `total: 0`, an
 unbounded read advertising itself as empty, and `limit` could not reach the
-path at all. It counts as the one indivisible entry it is now, cut by size with
-`truncated` saying so — inventing a boundary would be inventing a format, but
-declaring a bound is only honest. And `total` itself meant two things: the rows
+path at all. The first fix counted it as one indivisible entry cut by size —
+and left the same read alive one shape over, where a whole history under a
+single `## ` heading split into one "entry" and came back whole behind a
+`total: 1` that read as bounded. The byte budget `limit` scales now caps
+*every* answer, announced with `truncated` — inventing a boundary would be
+inventing a format, but declaring a bound is only honest. Both of the answer's
+units keep their word: the budget is enforced in **bytes** as announced (a
+character count let a multibyte log through at up to 4x the cap, silently),
+and `returned` is recounted from what *survived* the cut, never claiming an
+entry whose heading the cut removed. A scaffolded title with no entries yet
+reports the zero it holds instead of one entry of history that does not exist
+— wherever whitespace put the title. And `total` itself meant two things: the rows
 matched in `catalog`/`search`, the whole bundle's directory count in
 `dirs`/`index`. Each defensible alone; as a set it made the larger number read
 as rows withheld from a tool that takes no limit. One key, one question.
@@ -155,6 +169,16 @@ asked for the bundle root, was told zero, and reported that the bundle root
 holds nothing. Every tool taking a `dir` refuses one now, and across bundles the
 refusal is a fact about the searched *set*: a directory one of three bundles has
 still filters, because otherwise the ordinary cross-bundle ask would break.
+The set consulted is `Bundle#directories` — the same list the `dirs` rows are
+built from — because the refusal's own advice is "orient with dirs", and a
+first cut that derived it from the raw file list accepted directories `dirs`
+refuses to list (one holding only a file the reader skipped). One question,
+one source, on both sides of the refusal. The message carries the one nuance
+the source cannot: a directory standing on disk but holding only unparseable
+files is refused as exactly that — "holds only files the reader could not
+parse", pointing at `validate` — because "no directory" would be false about
+the filesystem and sends the caller off to re-spell a name that was correct
+when the fix is repairing the files.
 
 Kernel refusals become
 `isError` tool responses carrying the kernel's own sentences; the tool
@@ -173,7 +197,13 @@ runtime set is deliberately three. Neither fact argues for a separate
 0.1.0. The [extension seam](../design/extension-points.md) exists precisely so
 the dependency stays on the addon's side of the line: `okf-mcp/lib/okf/plugin.rb`
 registers the verb, the baseline names nothing, and a 2.4 machine simply cannot
-install the gem (`required_ruby_version` refuses). So the verb is free, and what
+install the gem (`required_ruby_version` refuses). The kernel floor is the same
+kind of promise and easier to break silently: the gemspec must name the okf
+release that ships every API the shell calls (`>= 1.13`, for
+`Bundle#directories`), because the monorepo's path pin satisfies any floor and
+hides one that lies — the declared minimum admitted a kernel the code raised
+NoMethodError against, and no test can notice without installing the old gem.
+So the verb is free, and what
 it buys is discoverability — the server appears in `okf help` under *installed
 extensions* on the machines that have it, rather than waiting to be known about.
 
@@ -186,7 +216,7 @@ config that spelled it. The generalizable half is the timing, not the deletion:
 window for having second thoughts closes at the first release, not at the first
 complaint.
 
-Two obligations come with routing a protocol server through a CLI dispatcher.
+Three obligations come with routing a protocol server through a CLI dispatcher.
 **Stdout stays pure**: the kernel's dispatch path writes plugin diagnostics and
 unknown-verb refusals to stderr, never stdout, and `MCP::CLI` now takes the
 human channel as a parameter instead of writing to `$stdout` — so the verb
@@ -195,6 +225,16 @@ spawned test asserts the first byte on stdout is a JSON-RPC frame. **The SDK
 loads inside `#call`**, not at the top of the plugin file, because discovery
 requires that file for `okf help` and for every unknown verb; a `require` at
 load time would charge every one of those runs for a server nobody asked for.
+**The exit contract is structural.** Boot and serve are separate phases in the
+verb itself: everything that can fail as an operator mistake — argv, the
+registry, the HTTP bind — happens under a rescue that answers exit 2 with one
+line, and nothing raised while serving can reach it. On stdio the two hang-up
+errnos are the session's normal end, exit 0; any other mid-serve errno
+propagates as the crash it is. Diagnostics are best-effort throughout, because
+a dead stderr must not decide a server's fate: before the split, the boot
+rescue's own print re-raised EPIPE as a backtrace for a normal hang-up, and a
+lost `--http` boot line read as a clean exit 0 for a server that never started
+accepting.
 
 # What the protocol offers that tools do not
 
