@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-08-07
 
 The first functional release: an MCP server over the okf kernel, judged by
 the kernel's own contracts. Nothing functional precedes it — `0.0.0` below is
@@ -191,9 +191,27 @@ rather than pretending to be changes somebody could have seen.
   entries whose very headings it removed, and the title's zero holds wherever
   whitespace put the title.
 
+### Fixed
+
+- **Only the root path speaks MCP; every path beside it answers 404.** The SDK
+  transport routes on method alone, so a bridge that handed it every path
+  answered the OAuth-discovery probes a host sends first (`GET /.well-known/*`,
+  `POST /register`) with a 405 and a 200-wrapped JSON-RPC parse error — a broken
+  sign-in service instead of an absent one, and the host refused the connector
+  on it. 404 is the answer a discovering client reads as "no auth here".
+
+### Security
+
+- **A symlinked `index.md` can no longer export an arbitrary file.** The kernel's
+  read guards (okf 1.13.0) protect every concept, but the root-index resource
+  (`okf://<slug>`) read `index.md` directly, outside them — so a bundle whose
+  `index.md` was a symlink out of the root served the target verbatim, and listed
+  the URI besides. That read is now realpath-checked against the root, and a
+  bundle with an escaping index is not listed at all.
+
 ## [0.0.0] - 2026-07-14
 
 The name reservation on RubyGems: an empty gem, no functionality.
 
-[Unreleased]: https://github.com/serradura/okf-gem/commits/main/okf-mcp
+[1.0.0]: https://github.com/serradura/okf-gem/releases/tag/okf-mcp/v1.0.0
 [0.0.0]: https://rubygems.org/gems/okf-mcp/versions/0.0.0

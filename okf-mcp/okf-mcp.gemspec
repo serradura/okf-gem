@@ -45,6 +45,9 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "mcp", "~> 1.0"
   # The kernel version that ships Search.prepare/with/across, registry groups
-  # and project-local discovery, `dirs`, and the slug grammar this shell rides.
-  spec.add_dependency "okf", ">= 1.12"
+  # and project-local discovery, `dirs`, `Bundle#directories` (the one source
+  # the dir refusal consults), and the slug grammar this shell rides. 1.12
+  # lacked #directories, so the old floor admitted a kernel this code raises
+  # NoMethodError against.
+  spec.add_dependency "okf", ">= 1.13"
 end
