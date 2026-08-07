@@ -1,0 +1,44 @@
+# frozen_string_literal: true
+
+require "bundler/gem_tasks"
+
+# The bare `v*` tag series belongs to the baseline gem; a sibling tags
+# `okf-mcp/vX.Y.Z` (AGENTS.md). Bundler's GemHelper defaults its tag prefix to
+# "", so without this line `rake release` here would push `v0.1.0` — which the
+# Docker workflow's `v*` trigger matches, rebuilding and republishing the *okf*
+# image (including `:latest`) from a release that ships something else. A glob
+# does not match across `/`, which is the whole reason for the prefix.
+Bundler::GemHelper.tag_prefix = "okf-mcp/"
+
+require "rake/testtask"
+
+Rake::TestTask.new(:test) do |t|
+  t.libs << "test" << "lib"
+  t.test_files = FileList["test/**/*_test.rb"]
+  t.warning = false
+end
+
+namespace :test do
+  # Integration alone, with its own coverage report — the honest figure, since
+  # it only counts what a host can reach through the protocol (the kernel's
+  # coverage-reading rule, transposed).
+  desc "Run only the integration suite, with an integration-only coverage report"
+  Rake::TestTask.new(:integration) do |t|
+    t.libs << "test" << "lib"
+    t.test_files = FileList["test/integration/**/*_test.rb"]
+    t.warning = false
+  end
+end
+
+task "test:integration" => :set_integration_coverage_dir
+
+task :set_integration_coverage_dir do
+  ENV["OKF_MCP_COVERAGE_DIR"] = "coverage/integration"
+  ENV["OKF_MCP_COVERAGE_NAME"] = "Integration Tests (alone)"
+end
+
+require "rubocop/rake_task"
+
+RuboCop::RakeTask.new
+
+task default: %i[test rubocop]

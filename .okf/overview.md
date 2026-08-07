@@ -41,6 +41,11 @@ Over such a bundle the gem gives you seven capabilities behind one
 | [Static render](capabilities/render.md)                  | Can I ship a serverless snapshot? | `render`         |
 | [Library API](capabilities/library-api.md)               | Can my Ruby program use it?       | (in-process)     |
 
+Beside the gem's seven, the first sibling surface: the
+[MCP server](capabilities/mcp-server.md) (`okf-mcp`), which projects the same
+kernel onto the Model Context Protocol so any MCP-capable agent host reads
+these bundles through ten read-only tools.
+
 Alongside those, a family of [read views](capabilities/read-views.md) —
 `index`, `catalog`, `files`, `types`, `tags`, `stats`, `graph` — print the bundle at a
 glance so an agent reads it without a browser.

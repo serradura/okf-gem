@@ -521,6 +521,7 @@ beside it.
 
 ```
 okf/              the okf gem: skill, CLI, library, graph      → okf/README.md
+okf-mcp/          the MCP server over the same kernel          → okf-mcp/README.md
 plugin/           the Claude Code plugin (this repo is its marketplace)
 .okf/             this project's own knowledge, as an OKF bundle
 Dockerfile        builds the published image from okf/

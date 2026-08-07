@@ -1,6 +1,35 @@
 # Update Log
 
 ## 2026-07-24
+* **Change**: the first sibling gem landed — **`okf-mcp`**, the
+  [MCP server](capabilities/mcp-server.md): the kernel's capabilities projected
+  onto the Model Context Protocol as ten read-only tools and the skill's four
+  playbooks as prompts. Identity delegates to the [registry](registry.md) (a
+  tool's `bundle` argument *is* a registry slug — one name across CLI, HTTP, MCP
+  and library), search federates through one shared corpus so BM25 scores stay
+  comparable, the engine doctrine is the CLI's verbatim, and every list output
+  carries a visible `total`. Two transports over one server definition: stdio
+  per host, `--http` (stateless JSON on the kernel's WEBrick) for a warm shared
+  process. Read-only by construction in this phase; the capture write-back
+  comes next, through the kernel's validating writer or not at all.
+* **Note**: a multi-agent review of that first cut found fifteen defects, and
+  the instructive one was a **containment hole the prose had already claimed
+  was closed**. `okf-mcp @handbook` serves one bundle; resolving the `@ref`
+  loads the kernel registry, and holding on to it left `search(bundles: "<a
+  group>")` a path back through it into bundles argv never named — while the
+  file's own header read "no tool opens an arbitrary path from a request". The
+  lesson is not that the comment was wrong but that it described an *intent*
+  the object did not enforce: the fix drops the registry reference rather than
+  adding a check, so the leak is unrepresentable instead of guarded. Two more
+  had the same signature — a rule written twice and drifted apart (`under_dir?`
+  in two files, disagreeing on `""` and `"/"`, so `catalog` called the bundle
+  root empty while `search` and `dirs` answered for it) — which is the
+  duplicate-rule failure this bundle already records under the hub's mount
+  logic, recurring in a new gem. The rest were honest bugs of the ordinary
+  kind: filters silently ignored, an empty argument blamed on the disk, an
+  unbounded cache, a body buffered past the cap meant to prevent it, and a
+  release task that would have tagged `v0.1.0` and republished the *okf*
+  Docker image from a sibling's release.
 * **Change**: the repository became a **monorepo**, and this bundle acquired a subject it did not have before — the repository itself, alongside the gem it has always described. (Only that: [the index](index.md) and [overview](overview.md) still read as the gem's, correctly, because the gem is still all there is to document. The reframing comes when a sibling does.) [The layout](design/monorepo-layout.md) is the new concept: one directory per gem named for the gem it ships (`okf/` is the baseline all-in-one; `okf-mcp/`, `okf-tui/`, `okf-sqlite3/` land beside it), so a directory, its release-tag prefix, its CI job and its `require` path are one word rather than four mappings. Everything that is not a gem stays at the root — `plugin/` and `.claude-plugin/` because `marketplace.json` publishes `./plugin`, this bundle because it covers the project, and the `Dockerfile` because its build context *must* be the root: the gemspec derives `spec.files` from `git ls-files`, which needs the `.git` only the root has. Every `resource:` and citation here moved down a level with the code.
 * **Note**: moving a gem down one level is mechanical; what is not is that **four mechanisms around it resolved paths from the repository root, and three of them failed without saying so**. `spec.files` needed nothing — `git ls-files` with `chdir:` returns paths relative to where it runs, so the gemspec sees its own tree and its reject list *shrank* from fourteen prefixes to six, the eight removed having been rejecting paths that are no longer under the gem. `.gitignore` broke where it was anchored — sixteen of its nineteen entries carry a leading `/`, and all sixteen stopped matching at once, so the first test run would have staged a coverage report; the unanchored `*.gem` and `Gemfile.lock` kept working, which is what made the breakage partial and easy to miss. SimpleCov failed in the direction that looks like success: its root defaults to the working directory, so the plugin's curation hook — a repo-level file this suite tests — fell out of the report and line coverage read **98.63% against 98.47%**, the percentage rising while the thing measured got smaller. Only `.dockerignore` fails loudly, and it is the one carrying a real invariant: whatever it drops from under the gem must also be in the gemspec's reject list, because `git ls-files` reads the *index* and an excluded path is still listed in `spec.files` — so `gem build` fails on a file that is not in the context. The generalizable half: **a path resolved from an implicit root is a dependency on where you are standing**, and the ones that degrade quietly are worse than the ones that crash.
 * **Note**: the gem must distribute `LICENSE.txt` and `NOTICE`, and `git ls-files` from the gem directory cannot see the root's copies. **A symlink builds a gem that either refuses to install or installs broken, depending on whose RubyGems does it.** `gem build` does not resolve the link — it writes a symlink into the package tar, warns (`LICENSE.txt is a symlink, which is not supported on all platforms`) and succeeds. RubyGems **>= 3.2** then refuses to extract one pointing outside the gem (`Gem::Package::SymlinkError`); RubyGems **< 3.2** has no guard, and measured on Ruby 2.7 / RubyGems 3.1.6 — inside this gem's supported range — `gem install` exits **0** and lays down a dangling `LICENSE.txt`. The older half is the worse one, against the intuition that an old installer is merely stricter or looser: there the gem installs cleanly and simply carries no licence. They are duplicated real files now, with `okf/test/unit/packaging_test.rb` asserting both that neither is a symlink and that each is byte-identical to the root's — the assertion being what makes a duplicate safe rather than merely conventional. Found by building the thing and installing it instead of reasoning about it, which is the same lesson the recall probes taught from the other end.
