@@ -146,7 +146,7 @@ module OKF
         engine.to_s == "index" || (fuzzy && OKF.blank?(engine))
       end
 
-      # One corpus per served set, keyed by its roots and pinned to the exact
+      # One corpus per searched set, keyed by its roots and pinned to the exact
       # folder objects it was built from. #folder returns a new object only
       # when a fingerprint moved, so identity comparison is the staleness check.
       #

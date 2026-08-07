@@ -18,8 +18,9 @@ gem install okf-mcp
 
 Ruby >= 2.7 — the official `mcp` gem's own floor, inherited rather than chosen.
 
-Installing the gem is the whole installation: it registers an `okf mcp` verb
-with the [`okf`](https://rubygems.org/gems/okf) CLI through the plugin seam, so
+Installing the gem is the whole installation: the
+[`okf`](https://rubygems.org/gems/okf) kernel arrives as a dependency, and the
+gem registers an `okf mcp` verb with its CLI through the plugin seam, so
 the server appears in `okf help` under *installed extensions*. There is no
 second binary — this gem ships no executable of its own.
 
@@ -28,7 +29,7 @@ second binary — this gem ships no executable of its own.
 ```bash
 okf mcp <bundle-dir> [<bundle-dir>…]   # serve exactly these directories
 okf mcp @handbook ./scratch            # registry refs and plain dirs mix
-okf mcp                                # no args: serve the registered bundles (okf registry)
+okf mcp                                # no args: serve the registered bundles (okf registry set <dir> adds one)
 okf mcp --http                         # one warm HTTP process instead of stdio-per-host
 ```
 
@@ -90,18 +91,18 @@ to pin the set instead.
 
 ## Tools
 
-Ten read-only tools, every list output bounded with a visible `total` — the
-number of rows the request matched, on every one of them:
+Ten read-only tools. Every list answer is bounded and names the full count it
+was cut from — the rows the request matched, before any `limit`:
 
 | Tool | What it answers |
 |---|---|
 | `list_bundles` | what exists: slug, title, root, concept count, type/tag rollups, the default, the groups, the backend |
 | `dirs` | the shape — one row per directory with direct and subtree counts; **the first move** |
 | `index` | the index map: authored index bodies, rollups, listings, one directory at a time (depth 1 by default) |
-| `search` | pointed questions: ANDed terms, scored rows carrying the fields they matched, across bundles through one shared index |
+| `search` | pointed questions: ANDed terms, scored rows carrying the fields they matched, across several bundles at once |
 | `read_concept` | one concept's file, verbatim and live from disk; ids are exact |
 | `catalog` | per-concept metadata with link degrees; filters, paging, field projection |
-| `log` | every `log.md`, root first, live — the newest 3 dated entries per file, `limit` for more |
+| `log` | every `log.md`, root first, live — the newest 3 dated entries per file, each answer held to a byte budget `limit` scales; a cut says `truncated` |
 | `validate` | the spec §9 conformance verdict |
 | `lint` | the curation-quality report; `group: "folder"` lists the unlinked files by folder |
 | `graph` | the knowledge graph in three bounded views: minimal, hubs, traffic — never with bodies |
@@ -135,13 +136,14 @@ fetch it. Both are read live from disk, and `bundle` and `id` complete, so the
 template is browsable rather than a shape you have to know.
 
 Concepts are not enumerated in `resources/list`: that would mean reading every
-bundle at boot, which is the eager work the residency layer exists to avoid, and
-would freeze a list the fingerprint check is meant to keep honest.
+bundle at boot — exactly the eager work this server avoids, since bundles are
+parsed on first use and re-read only when their files change — and it would
+freeze a list that live reading is meant to keep honest.
 
 ## Engines
 
-Search matches raw text by default — exact, no tokenizer, milliseconds over a
-resident bundle. `engine: "index"` opts into BM25+ ranking on a held corpus,
+Search matches raw text by default — exact, no tokenizer, milliseconds over an
+already-parsed bundle. `engine: "index"` opts into BM25+ ranking on a held corpus,
 the same engine and version the `okf server` page runs, so the two rank
 identically. `fuzzy` implies the index and its tokenizer; `regexp` stays on the
 raw-text scan; incompatible pairs are refused with the fix named.
@@ -150,7 +152,9 @@ Every result names the engine that **answered** it, because `fuzzy` picks one
 without being asked and no score tells you which ran. It matters when something
 is missing: under the index's tokenizer a shattered identifier and an absent
 fact look identical, so knowing you were on the index is what turns "not here"
-back into "try the scan".
+back into "try the scan". The doctrine runs the other way too — the scan is
+exact, so a typo or a stemmed form misses on it, and that miss is what
+`engine: "index"` and `fuzzy` are for.
 
 ## Beside a browser
 
