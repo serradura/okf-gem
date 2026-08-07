@@ -1,5 +1,32 @@
 # Update Log
 
+## 2026-07-29
+* **Sync**: caught the bundle up with the [MCP server](capabilities/mcp-server.md)'s
+  second round — the gem now reaches the [CLI](cli.md) as an `okf mcp` verb through
+  the [extension seam](design/extension-points.md) rather than a binary of its own,
+  which is the seam's first real instance and the argument that a sibling needs no
+  edit to the baseline. The concept records why the two questions came apart: the
+  gem must be separate (a 2.7 floor against the kernel's 2.4, five transitive
+  dependencies against a budget of three) but the *entry point* need not be, and
+  conflating them is what left the verb unbuilt. The `exe/okf-mcp` that briefly sat
+  beside it went before any release, on the rule that an entry point is a
+  compatibility promise from the moment it ships.
+* **Sync**: the same concept now covers what the protocol offers that tools do not
+  — concepts as **resources** (`okf://{bundle}/{id}`, the affordance that lets a
+  host attach a document without the model deciding to fetch it, with the
+  [registry's](registry.md) allowlist holding on a surface that takes a URI),
+  **completions** over bundle slugs and concept ids, and **structured output**
+  against declared schemas. Its prompts went from four to eight, every playbook the
+  [skill](capabilities/agent-skill.md) carries but `doctor`, on the finding that a
+  prompt is instructions for the host's tools rather than a capability the server
+  offers — so a read-only tool surface was never a reason to withhold the authoring
+  playbooks.
+* **Update**: recorded the honesty defect the round turned up — the handshake had
+  been inheriting the SDK's default capability set, announcing `resources` while
+  answering none and `logging` that nothing emitted through. The concept carries the
+  general shape beside the [containment](design/extension-points.md) lesson it
+  rhymes with: a default you did not choose is still a claim you made.
+
 ## 2026-07-24
 * **Change**: the first sibling gem landed — **`okf-mcp`**, the
   [MCP server](capabilities/mcp-server.md): the kernel's capabilities projected

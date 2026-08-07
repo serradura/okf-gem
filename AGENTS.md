@@ -525,13 +525,22 @@ match it. The label is what keeps the series queryable
 ### The title
 
 ```
-Release X.Y.Z — <summary>
+Release X.Y.Z — <summary>              # the baseline gem
+Release <gem> X.Y.Z — <summary>        # a sibling: Release okf-mcp 1.0.0 — …
 ```
 
 - **`Release X.Y.Z` verbatim** — the literal word, the bare version, no `v`, no
   branch prefix, and never parenthesized at the end. This holds even when the
   bump is not the point of the work; the release a version shipped in should be
   findable by scanning one column.
+- **A sibling names its gem, immediately after `Release`** — the same asymmetry
+  the tags already carry, and for the same reason: the baseline owns the bare
+  series (`vX.Y.Z`, `Release X.Y.Z`) and a sibling qualifies itself
+  (`okf-mcp/vX.Y.Z`, `Release okf-mcp X.Y.Z`). The gem goes in the title, not
+  in the summary — `gh pr list --label release` has to answer *which gem, which
+  version* by column, and a name buried after the em dash does not. Prefixing
+  the baseline too would have been tidier and would have renamed a public
+  series to buy nothing.
 - **A spaced em dash** — not a colon, not a hyphen. The summary is a phrase, not
   a subtitle.
 - **The summary is the CHANGELOG's headline** — the two or three things the new

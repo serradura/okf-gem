@@ -38,8 +38,9 @@ Gem::Specification.new do |spec|
         f.start_with?(*%w[bin/ Gemfile Rakefile test/ .rubocop.yml .gitignore])
     end
   end
-  spec.bindir = "exe"
-  spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
+  # No executable. This gem's entry point is the `okf mcp` verb it registers
+  # through the kernel's plugin seam (lib/okf/plugin.rb) — a second binary that
+  # only aliased it was one more name to install, document and keep working.
   spec.require_paths = [ "lib" ]
 
   spec.add_dependency "mcp", "~> 1.0"
