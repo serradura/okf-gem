@@ -1,10 +1,10 @@
 ---
 type: Capability
 title: MCP server (okf-mcp)
-description: The kernel's proven capabilities projected onto the Model Context Protocol — ten read-only tools, concepts as resources, and the skill's playbooks as prompts, for any MCP-capable agent host.
+description: The kernel's proven capabilities projected onto the Model Context Protocol — ten read-only tools, concepts as resources, and the two consuming prompts, for any MCP-capable agent host.
 resource: okf-mcp/lib/okf/mcp/server.rb
 tags: [mcp, serve, agent, registry, search]
-timestamp: 2026-07-29T18:00:00Z
+timestamp: 2026-08-06T12:00:00Z
 ---
 
 # Overview
@@ -160,9 +160,9 @@ Kernel refusals become
 `isError` tool responses carrying the kernel's own sentences; the tool
 descriptions carry the skill's retrieval doctrine (orient with `dirs`, descend
 with `index`, search for pointed questions, read only winners), because they
-are the only playbook a Desktop host ever sees. Eight prompts serve the
-[skill's](agent-skill.md) playbooks, read from the installed kernel's canonical
-tree so they version with it — every one but `doctor`, for the reason below.
+are the only playbook a Desktop host ever sees. Two prompts — the consuming
+pair — restate that doctrine in full, in tool vocabulary; why only two is the
+section below.
 
 # One entry point: the `okf mcp` verb
 
@@ -246,29 +246,38 @@ stale until it asks again. Declaring the capability is what would fix that, and
 it waits on something actually sending the notification — announcing it first
 would only invite a host to wait for one that never comes.
 
-# A prompt is instructions, not a capability
+# The prompts are the consuming pair, in tool vocabulary
 
-Four of the skill's nine playbooks shipped as prompts, and the dividing line
-looked like the read-only posture. It was not: what actually selected them was
-that their names resembled tools. The writing a playbook describes is done by
-the *host's* tools, exactly as it is when the skill is installed as a skill —
-and the line had already been crossed, since `maintain` says "update bodies and
-timestamp" and `curate` says "propose, then apply". Every playbook but `doctor`
-is now offered, in the [skill's](agent-skill.md) own `SKILL.md` Commands table
-order, so the two surfaces read alike. `doctor` stays out because reaching this
-server disproves its premise: it installs the CLI.
+The prompt surface took three cuts to find its principle. Four of the
+[skill's](agent-skill.md) nine playbooks shipped first, selected by nothing
+better than their names resembling tools. The second cut served all eight
+(everything but `doctor`, whose premise — install the CLI — anything reaching
+this server has disproved), on the argument that **a prompt is instructions,
+not a capability**: the writing a playbook describes is done by the host's own
+tools, so the read-only posture excluded nothing.
 
-What a prompt carries is its **steps**, not the craft behind them. Six of the
-eight link on into the skill's reference tree — `authoring.md`, the templates,
-the spec — and this server serves bundles, not the skill, so a host without
-file access cannot follow them; `okf-produce` leans hardest on that and is
-thinnest without it. Serving the tree would need a URI scheme of its own,
-because `okf://<slug>/<id>` would read `okf://skill/…` as a bundle slugged
-`skill`. That a *separate* scheme is available at any time and collides with
-nothing is what makes the decision genuinely deferrable — unlike the argument
-name above, waiting reserves nothing and costs nothing. The silence was not
-deferrable, so the README says it: the gap is stated at the first release
-rather than found by whoever pulls the prompt.
+That argument is true and was still the wrong test, because it never asked
+*whose* instructions they were. Every playbook speaks in `okf …` invocations,
+half dead-end a CLI-less host at "install the CLI first" (`menu`'s step 1
+literally ends "Everything below needs the CLI"), six link on into a reference
+tree this server does not serve — and five teach authoring, a mission every
+tool here refuses. To the host this surface exists for, they taught a
+vocabulary it cannot use toward work it cannot do. The right test is the
+mission: this server makes a client an expert **consumer** of bundles, so it
+serves the two consuming playbooks — `okf-search` and `okf-consume`, in
+`SKILL.md`'s own order — rewritten against the tools (`list_bundles`, `dirs`,
+`index`, `search`, `read_concept`, `log`, `graph`), with the engine doctrine
+and the anti-patterns carried over in the tools' argument spellings. A test
+pins the voice: every tool the texts name must exist on the wire, and no
+backticked CLI invocation survives.
+
+The rewrite has a real cost, accepted knowingly: the texts are okf-mcp's own
+(`lib/okf/mcp/prompts/`), no longer read from the installed kernel, so a
+doctrine change in the skill must be carried here by hand. What it bought is
+that the prompts work where they are served — and it dissolved the version-skew
+failure mode the old path carried, where a kernel that renamed a playbook left
+this server advertising a file that is gone. Authoring stays with the skill,
+installed where a filesystem and the CLI actually are.
 
 # Transports and posture
 

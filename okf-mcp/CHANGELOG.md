@@ -86,16 +86,18 @@ rather than pretending to be changes somebody could have seen.
   rather than a shape you have to know. An unserved bundle, an unknown argument
   and a missing context all complete to nothing — a completion cannot be used
   to probe what argv did not serve.
-- **Eight prompts** serving the okf skill's playbooks — `okf-menu`,
-  `okf-search`, `okf-produce`, `okf-migrate`, `okf-maintain`, `okf-refine`,
-  `okf-consume`, `okf-curate` — read live from the installed kernel's canonical
-  skill tree, in `SKILL.md`'s own order. Every playbook but `doctor`, which
-  installs the CLI and so has had its premise disproved by anything that can
-  reach this server. A playbook carries its steps and not the craft behind
-  them: several link on into the skill's reference tree, which this server does
-  not serve, so a host without file access cannot follow them — stated in the
-  README rather than left to be discovered, since serving that tree needs a
-  URI scheme of its own and is a later decision.
+- **Two prompts, the consuming pair**: `okf-search` — retrieval as progressive
+  disclosure (map, then search, then only the winning bodies, with the engine
+  doctrine per query shape) — and `okf-consume` — a bundle as working context
+  without reading it whole. Both are this gem's own text, written against the
+  tools rather than the CLI. An earlier cut served all eight of the skill's
+  playbooks verbatim from the installed kernel, on the argument that a prompt
+  is instructions rather than a capability; what that argument missed is
+  *whose* instructions they were. Every playbook speaks in `okf …` invocations
+  and half dead-end a CLI-less host at "install the CLI first", and five teach
+  authoring — a mission every tool here refuses. The consuming doctrine is
+  restated in tool vocabulary and shipped in this gem, which is also the cost
+  accepted: a doctrine change in the skill must be carried here by hand.
 - **Two transports over one server definition**: stdio (default) and `--http` —
   Streamable HTTP in stateless JSON mode on the WEBrick the kernel already
   ships. A non-loopback bind works (a wildcard `--bind 0.0.0.0` admits this
@@ -110,11 +112,7 @@ rather than pretending to be changes somebody could have seen.
   `okf mcp --http` on a port already serving, which is the likeliest mistake on
   the flag that exists so one warm process is shared — printed an eleven-frame
   backtrace and exited 1 while every other boot failure exited 2 with a sentence;
-  `SystemCallError` is rescued with the rest now. And a `prompts/get` for a
-  playbook the installed okf gem does not carry (the dependency floors without a
-  ceiling, and the eight names are fixed here) came back as a bare "Internal
-  error" with a filesystem path; it names the prompt and points at `okf skill
-  <dest>` instead, the way every tool failure already did.
+  `SystemCallError` is rescued with the rest now.
 - **The `okf-sqlite3` seam**: `Backend.detect` soft-requires the engine and
   duck types it; a missing gem, an unloadable native extension and an engine
   that will not construct all degrade to memory, silently except in the boot
