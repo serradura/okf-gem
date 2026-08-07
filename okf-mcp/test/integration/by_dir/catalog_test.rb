@@ -54,15 +54,56 @@ module ByDir
       data["concepts"].each { |row| assert_equal %w[id type], row.keys }
     end
 
-    # The bundle root has four spellings and they must all mean the same
+    # The bundle root has three spellings and they must all mean the same
     # thing — and the same thing the other tools mean by them.
-    test "\"/\", \".\" and \"root\" all name the bundle root" do
+    test "\"/\", \"\" and \".\" all name the bundle root" do
       server = mcp_server(fixture("notes"))
       direct = call_tool!(server, "catalog", bundle: "notes", dir: ".")["total"]
       assert_equal 2, direct
 
       assert_equal direct, call_tool!(server, "catalog", bundle: "notes", dir: "/")["total"]
-      assert_equal direct, call_tool!(server, "catalog", bundle: "notes", dir: "root")["total"]
+      assert_equal direct, call_tool!(server, "catalog", bundle: "notes", dir: "")["total"]
+    end
+
+    # "root" is *not* a fourth spelling. The CLI accepts it because a shell
+    # needs no quoting for it, which is the whole of its rationale there; a
+    # JSON argument has no such problem, and no `dir` description here ever
+    # advertised it. Folding it cost a bundle that has a real `root/`
+    # directory the ability to name it — silently, answering for the bundle
+    # root instead.
+    test "a directory literally named root is addressable" do
+      server = mcp_server(fixture("rooted"))
+
+      inside = call_tool!(server, "catalog", bundle: "rooted", dir: "root")
+      assert_equal 2, inside["total"]
+      assert_equal %w[root/handbook root/policy], inside["concepts"].map { |row| row["id"] }
+
+      at_root = call_tool!(server, "catalog", bundle: "rooted", dir: ".")
+      assert_equal [ "charter" ], at_root["concepts"].map { |row| row["id"] }
+    end
+
+    # `dirs` has always refused a directory the bundle does not have; catalog
+    # answered `total: 0` and exit 0 for the same value. An empty answer that
+    # reads like a real one is the failure this project refuses everywhere else,
+    # and it is worst here: `root` is the spelling the CLI and the skill both
+    # teach, so an agent asks catalog for the bundle root, is told zero, and
+    # reports that the bundle root is empty.
+    test "a dir that names no directory is a tool error, as it is for dirs" do
+      server = mcp_server(fixture("knowledge"))
+
+      %w[runbookz root].each do |missing|
+        result = call_tool(server, "catalog", bundle: "knowledge", dir: missing)
+        assert result.error?, "catalog answered for a directory that does not exist: #{missing}"
+        assert_match(/no directory #{Regexp.escape(missing.inspect)} in bundle "knowledge"/, result.text)
+      end
+    end
+
+    # The other half of the same rule: a directory that exists and holds no
+    # concepts directly is a real zero, and must not be refused.
+    test "a real directory with no concepts of its own answers zero, not an error" do
+      server = mcp_server(fixture("knowledge"))
+      data = call_tool!(server, "catalog", bundle: "knowledge", dir: ".")
+      assert_equal 0, data["total"], "knowledge keeps every concept in a subdirectory"
     end
 
     test "surfaces unparseable files rather than answering as if whole" do

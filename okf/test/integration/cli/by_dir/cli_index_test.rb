@@ -120,6 +120,18 @@ module ByDir
       refute_match(%r{^  tables/}, root.out) # `.` is a prefix of nothing
     end
 
+    # The alias yields to a directory that really carries the name — here the
+    # map has to descend into `root/` rather than answer for the bundle root,
+    # and the ancestor chain still places it.
+    test "--dir root names a real `root` directory where the bundle has one" do
+      data = json(okf("index", fixture("namesake"), "--dir", "root", "--no-ancestors", "--json"))
+      assert_equal %w[root root/deep], data["directories"].map { |row| row["dir"] }
+
+      chained = json(okf("index", fixture("namesake"), "--dir", "root", "--json"))
+      assert_equal %w[. root root/deep], chained["directories"].map { |row| row["dir"] }
+      assert_equal [ true, false, false ], chained["directories"].map { |row| row["ancestor"] }
+    end
+
     test "--dir is repeatable and case-insensitive, and two bases share one chain" do
       data = json(okf("index", fixture("conformant"), "--dir", "TABLES", "--dir", "datasets", "--json"))
 

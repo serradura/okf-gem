@@ -209,16 +209,27 @@ module OKF
       #
       # Filters stay per-bundle — they are per-folder questions — so they apply to
       # the merged rows by (slug, id) afterwards.
+      #
+      # The one thing that is *not* a per-folder question is what `--dir root`
+      # means. The alias yields to a directory that really carries the name, so
+      # resolving it inside this loop made one flag mean two things in one
+      # ranking: the `root/` subtree where a bundle has one, the bundle root
+      # where it does not, merged with nothing in the output saying so. The
+      # served set answers it once, and a bundle without the directory then
+      # matches nothing — which is what `--dir` already does everywhere for a
+      # directory a bundle lacks.
       def multi_search(pairs, terms, options)
-        bundles = []
-        keeps = {}
-        total = 0
-        pairs.each do |slug, dir|
+        folders = pairs.map do |slug, dir|
           folder = OKF::Bundle::Folder.load(dir)
           report_skipped(folder)
-          total += folder.bundle.concepts.size
-          bundles << [ slug, folder.bundle ]
-          keep = filter_ids(folder, options)
+          [ slug, folder ]
+        end
+        total = folders.reduce(0) { |sum, (_, folder)| sum + folder.bundle.concepts.size }
+        bundles = folders.map { |slug, folder| [ slug, folder.bundle ] }
+        dirs = folders.flat_map { |_, folder| folder.directories }.uniq
+        keeps = {}
+        folders.each do |slug, folder|
+          keep = filter_ids(folder, options, dirs)
           keeps[slug] = keep unless keep.nil?
         end
         rows = OKF::Bundle::Search.across(bundles, terms, fields: options[:in], regexp: options[:regexp],

@@ -275,7 +275,8 @@ enumeration drift a grep can't (you can't grep for a listing entry that is *miss
 
 `--dir PATH` narrows to a directory **and everything below it**, and is
 **repeatable** — `--dir model --dir format` shows both; `root` (or `.`) names the
-bundle root. A `--dir` also brings the **chain from the root down to it**, so a branch is
+bundle root, unless the bundle really has a `root/` directory, which owns the
+word. A `--dir` also brings the **chain from the root down to it**, so a branch is
 never shown adrift of the authored context that says what it is — the root
 `index.md`'s prose first among it. Those rows print with a leading `↑` and carry
 `ancestor: true`; `--no-ancestors` drops them. Ascent and descent are separate
@@ -392,7 +393,9 @@ The four list views narrow with the same filters the browser panels offer —
 itself (`tags` can't filter by tag). Matching is case-insensitive; `--type` and
 `--tag` are exact, `--dir` takes the named directory **and everything below it**
 (`--dir platform` reaches `platform/services/api`). A concept at the bundle root
-lives in `.`, which `--dir` also accepts as plain `root` (no shell quoting). A
+lives in `.`, which `--dir` also accepts as plain `root` (no shell quoting) —
+except in a bundle holding a real `root/` directory, where that directory takes
+the name and `.` is the only spelling of the bundle root. A
 filter that matches nothing is an empty view, not an error: `okf tags <dir> --dir
 billing --json` answers "which tags does the billing cluster use?",
 `okf catalog <dir> --tag auth` answers "what carries the auth tag?".

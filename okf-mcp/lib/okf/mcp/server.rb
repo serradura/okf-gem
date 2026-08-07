@@ -18,8 +18,14 @@ module OKF
     # decision, not a convenience.
     #
     # Every list output is bounded with a visible `total`; no silent
-    # truncation, ever. The descriptions carry the skill's doctrine, because
-    # they are the only playbook a Desktop host ever sees.
+    # truncation, ever. `total` means one thing on every tool: **how many rows
+    # the request matched**, before any `limit` cut them. dirs and index used to
+    # report the whole bundle's directory count instead, so a narrowing stayed
+    # visible — defensible alone, wrong as a set, and against the promise above
+    # it read as rows withheld by a tool that takes no limit at all.
+    #
+    # The descriptions carry the skill's doctrine, because they are the only
+    # playbook a Desktop host ever sees.
     module Server
       # Cap on the distinct type/tag values list_bundles rolls up per bundle;
       # the remainder is reported as an `other_types`/`other_tags` count so a
@@ -28,6 +34,30 @@ module OKF
 
       SEARCH_LIMIT = 20
       CATALOG_LIMIT = 200
+
+      # Date-grouped entries returned per log.md. A log is the one file in a
+      # bundle that only ever grows and never gets curated, so its size tracks
+      # the project's age rather than the question asked — this repo's own
+      # answered "what changed recently" with 119,863 bytes across fourteen
+      # dates, and `total` counting *files* made that read as bounded. Three is
+      # what "recently" means when the entries are date-grouped; `limit` asks
+      # for more.
+      LOG_LIMIT = 3
+
+      # A §7 log is "a flat list of date-grouped entries, newest first", so a
+      # `## ` heading at column 0 is the entry boundary. Split kept here rather
+      # than pushed into the kernel because bounding for a context window is
+      # this surface's problem alone: the graph page's Log panel wants the
+      # whole file and scrolls it. If a second consumer ever needs the entries
+      # — an `okf log` verb is the obvious one — the split moves to the kernel
+      # and both read it from there.
+      LOG_ENTRY = /^(?=## )/.freeze
+
+      # Characters returned per `limit` for a log the split above cannot divide
+      # (see #unstructured_log). Sized off the structured path rather than
+      # guessed: this repo's own three-entry answer is 13,491 bytes, so one
+      # indivisible "entry" is budgeted at roughly what one date group costs.
+      UNSTRUCTURED_LOG = 4_500
 
       # The catalog row, the projection vocabulary `fields` selects from.
       CATALOG_FIELDS = %w[id title type description tags timestamp status backlog_ref dir top_dir links_out links_in].freeze
@@ -42,17 +72,21 @@ module OKF
       # dishonesty the `readOnlyHint` annotations are careful to avoid, so the
       # hash below names exactly what is served and nothing else.
       #
-      # No `listChanged` on any of them and no `subscribe`: the tool, prompt
-      # and resource lists are fixed for a process's life, and nothing here
-      # sends a notification. Claiming otherwise would invite a host to wait
-      # for one.
+      # No `listChanged` on any of them and no `subscribe`: nothing here sends
+      # a notification, and claiming otherwise would invite a host to wait for
+      # one. The tool and prompt lists are genuinely fixed for a process's
+      # life; the *resource* list is not — it tracks the registry (see
+      # Definition), so a host that re-lists sees the current set, and one that
+      # caches the boot listing is stale until it asks again. Declaring
+      # `listChanged` is what would fix that, and it stays undeclared until
+      # something actually notifies.
       CAPABILITIES = { tools: {}, prompts: {}, resources: {}, completions: {} }.freeze
 
       INSTRUCTIONS = <<~TEXT
         Tools take a `bundle` argument: a slug from list_bundles — the same
         name `@slug` resolves at the okf CLI. The retrieval discipline: orient
         with dirs (the shape), descend with index (a directory's map), answer
-        pointed questions with search (omit `bundles` to search every bundle),
+        pointed questions with search (omit `bundle` to search every bundle),
         and read only the winning concepts with read_concept — never slurp a
         bundle whole. Check log for recent history. validate and lint report a
         bundle's health: you may flag what they find, and the okf-curate and
@@ -75,6 +109,66 @@ module OKF
         end
       end
 
+      # The SDK takes `resources:` as a fixed array at construction, and that is
+      # the wrong lifetime for this one: the registry re-reads itself whenever
+      # the file moves underneath it (Registry#entries), so a boot snapshot
+      # drifts out of step with the served set. A bundle registered afterwards
+      # was never advertised, and a removed one stayed advertised until a read
+      # of the very URI we published came back "unknown bundle" — and with no
+      # `listChanged` declared, a host had no way to be told either.
+      #
+      # `resources/list` is the only place the cost is owed, so it is the only
+      # place that recomputes: one `stat` per bundle, no bundle read, the same
+      # price Resources.list always paid. The public `resources=` setter is what
+      # does the mutation, so the SDK's URI index is rebuilt with it.
+      class Definition < ::MCP::Server
+        def initialize(registry:, context:, **options)
+          @registry = registry
+          @context = context
+          super(**options)
+        end
+
+        # One request is one unit of work. Both public entry points are wrapped
+        # and `handle_request` deliberately is not: the JSON-RPC layer treats
+        # the handler block as a *lookup* — `method = method_finder.call(name)`
+        # then `method.call(params)` — so `handle_request` has already returned
+        # by the time the tool body runs, and a wrapper there encloses nothing.
+        #
+        # Two things are owed per request rather than per tool:
+        #
+        # The **fingerprint memo**, because a tool asks the engine for the
+        # catalog and then reads the unparseable count off the same folder, and
+        # each ask re-walked the tree — a glob plus a stat per markdown file,
+        # inside the residency lock. Freshness is a question *between* requests;
+        # asking it three times within one buys nothing and costs three walks.
+        #
+        # The **residency prune**, because the served set is that cache's only
+        # honest bound and the registry re-read made the set movable. Anything
+        # the registry no longer names is dropped here, so a repointed entry
+        # stops retaining the bundle its slug used to mean.
+        def handle(request, session: nil)
+          in_request { super }
+        end
+
+        def handle_json(request, session: nil)
+          in_request { super }
+        end
+
+        private
+
+        def list_resources(request)
+          self.resources = Resources.list(@registry)
+          super
+        end
+
+        def in_request
+          @context.memory.during_request do
+            @context.memory.retain(@registry.entries.map(&:root))
+            yield
+          end
+        end
+      end
+
       class << self
         # `configuration:` is the seam the output-schema suite needs: it turns
         # on the SDK's result validation so a schema that has drifted from its
@@ -83,7 +177,9 @@ module OKF
         def build(registry, engine: Backend.detect, configuration: nil)
           memory = engine.is_a?(MemoryBackend) ? engine : MemoryBackend.new
           context = Context.new(registry, engine, memory)
-          server = ::MCP::Server.new(
+          server = Definition.new(
+            registry: registry,
+            context: context,
             name: "okf",
             title: "OKF knowledge bundles",
             version: VERSION,
@@ -92,7 +188,7 @@ module OKF
             configuration: configuration,
             tools: tools_for(context),
             prompts: prompts,
-            resources: Resources.list(registry),
+            resources: [],
             resource_templates: Resources.templates
           )
           # Replaces the SDK's URI matching wholesale, because an OKF id below
@@ -150,7 +246,23 @@ module OKF
           PROMPTS.map do |name, (playbook, description)|
             # `**` absorbs the server_context: the SDK's template passes.
             ::MCP::Prompt.define(name: name, description: "#{description} (the okf skill's #{playbook} playbook)") do |_args, **|
-              text = Server.playbook(playbook)
+              # Read from the *installed* kernel's skill tree, and the gemspec
+              # floors okf without a ceiling — so a later kernel that renames or
+              # drops a playbook leaves this list advertising a file that is
+              # gone. The tools send exactly this class of failure back as an
+              # actionable message (see #define_tool); without the same care
+              # here the errno escaped as a bare "Internal error" carrying a
+              # filesystem path, which names neither the prompt nor the fix.
+              text = begin
+                Server.playbook(playbook)
+              rescue SystemCallError, OKF::Error, LoadError
+                raise ::MCP::Server::RequestHandlerError.new(
+                  "the #{name} prompt needs the okf skill's #{playbook} playbook, which the installed okf " \
+                  "gem does not carry — upgrade okf, or read it from `okf skill <dest>`",
+                  nil, error_type: :invalid_params,
+                  error_code: ::JsonRpcHandler::ErrorCode::INVALID_PARAMS
+                )
+              end
               ::MCP::Prompt::Result.new(
                 description: description,
                 messages: [ ::MCP::Prompt::Message.new(role: "user", content: ::MCP::Content::Text.new(text)) ]
@@ -215,7 +327,7 @@ module OKF
             rows = scoped_rows(entries, dir, depth, bundle).map do |entry|
               { dir: entry[:dir], count: entry[:count], subtree: subtree[entry[:dir]], subdirs: entry[:subdirs] }
             end
-            respond_json(with_unparseable(folder, bundle: slug_of(context, bundle), total: entries.length, dirs: rows))
+            respond_json(with_unparseable(folder, bundle: slug_of(context, bundle), total: rows.length, dirs: rows))
           end
         end
 
@@ -247,7 +359,7 @@ module OKF
               row.delete(:listing) unless listing
               row
             end
-            respond_json(with_unparseable(folder, bundle: slug_of(context, bundle), total: entries.length, dirs: rows))
+            respond_json(with_unparseable(folder, bundle: slug_of(context, bundle), total: rows.length, dirs: rows))
           end
         end
 
@@ -257,7 +369,7 @@ module OKF
             description: "Find concepts: every term must match (AND) across title, id, tags, type, " \
                          "description, and body. Returns scored rows — each carrying its `bundle` and the " \
                          "fields it `matched`, so results stay citable — with ids for read_concept. Omit " \
-                         "`bundles` (or pass \"*\") to search every bundle at once through one shared " \
+                         "`bundle` (or pass \"*\") to search every bundle at once through one shared " \
                          "index, so scores stay comparable; a group slug fans out to its members. Terms " \
                          "match raw text by default (exact, no tokenizer); `engine: \"index\"` ranks by " \
                          "BM25+ and matches whole tokens or prefixes — the same ranking as the okf server " \
@@ -269,7 +381,11 @@ module OKF
                   type: "array", items: { type: "string" }, minItems: 1,
                   description: "One or more search terms; a concept must match all of them."
                 },
-                bundles: {
+                # Singular, like every other tool's, though this is the one
+                # that accepts a set: the type says it takes an array, and a
+                # name that differed only in its plural bought a signal
+                # nobody saw until the SDK had already refused the call.
+                bundle: {
                   type: %w[string array], items: { type: "string" }, minItems: 1,
                   description: "A bundle slug, an array of slugs, a group slug, or \"*\" for every bundle (the default)."
                 },
@@ -340,10 +456,14 @@ module OKF
           ) do |bundle:, type: nil, dir: nil, tag: nil, status: nil, fields: nil, limit: CATALOG_LIMIT, offset: 0|
             root = context.root!(bundle)
             projection = check_fields(fields)
+            # One folder, held: the `dir` check and the unparseable count both
+            # want it, and asking the residency layer twice walks the tree twice.
+            folder = context.memory.folder(root)
+            check_dir!(context, [ [ slug_of(context, bundle), root ] ], dir)
             rows = context.engine.catalog(root, { type: type, dir: dir, tag: tag, status: status })
             sliced = rows[offset, limit] || []
             sliced = sliced.map { |row| row.select { |key, _| projection.include?(key.to_s) } } if projection
-            respond_json(with_unparseable(context.memory.folder(root),
+            respond_json(with_unparseable(folder,
               bundle: slug_of(context, bundle), total: rows.length, concepts: sliced))
           end
         end
@@ -352,17 +472,24 @@ module OKF
           define_tool(
             name: "log",
             description: "Read a bundle's append-only history — every log.md, root scope first, content " \
-                         "live from disk. Check it to see what changed recently before trusting or " \
-                         "adding knowledge.",
+                         "live from disk. Returns the newest #{LOG_LIMIT} date-grouped entries per file; " \
+                         "each file's `total` is how many it holds and `returned` how many came back, so " \
+                         "`limit` can ask for more. A log whose groups are not `## ` headings cannot be " \
+                         "split, so it counts as one entry and is cut by size with `truncated: true` " \
+                         "saying so. Check it to see what changed recently before " \
+                         "trusting or adding knowledge.",
             input_schema: {
               properties: {
-                bundle: { type: "string", description: "A bundle slug from list_bundles." }
+                bundle: { type: "string", description: "A bundle slug from list_bundles." },
+                limit: { type: "integer", minimum: 1,
+                         description: "Entries to return per log file (default #{LOG_LIMIT}); each file's `total` is the count before the cut." }
               },
               required: [ "bundle" ]
             }
-          ) do |bundle:|
-            logs = context.folder(bundle).log_entries
-            respond_json(bundle: slug_of(context, bundle), total: logs.length, logs: logs)
+          ) do |bundle:, limit: LOG_LIMIT|
+            logs = context.folder(bundle).log_entries.map { |entry| bounded_log(entry, limit) }
+            respond_json(bundle: slug_of(context, bundle), total: logs.sum { |row| row[:total] },
+              files: logs.length, logs: logs)
           end
         end
 
@@ -448,13 +575,27 @@ module OKF
           engine = options[:engine]
           check_engine_asks(engine, fuzzy: fuzzy, regexp: regexp)
 
-          pairs, skipped = context.registry.resolve_search(options[:bundles])
+          pairs, skipped = context.registry.resolve_search(options[:bundle])
+          # A `dir` refusal is a fact about the searched *set*, not about each
+          # bundle in turn: `services` living in one of three bundles is the
+          # ordinary cross-bundle ask and must answer, while a `dir` no bundle
+          # has is a mistake the caller can fix. Refusing per bundle would break
+          # the first; answering `total: 0` for the second is the silent empty
+          # this tool set refuses.
+          check_dir!(context, pairs, options[:dir])
           rows = engine_rows(context, pairs, terms, fields, regexp, fuzzy, engine)
           rows = filter_rows(rows, options)
           limit = options[:limit] || SEARCH_LIMIT
 
           payload = {
             query: Array(terms),
+            # Which engine answered, resolved rather than echoed: `fuzzy`
+            # switches engines on its own, so the asked-for value is not the
+            # answer. A caller cannot infer it — the scan's integer count and
+            # the index's BM25 float both round to a number — and the
+            # difference decides whether a miss means "absent" or "the
+            # tokenizer shattered the identifier".
+            engine: fuzzy || engine.to_s == "index" ? "index" : "scan",
             # §9 best-effort, surfaced per bundle: a corpus built from a folder
             # that skipped unusable files must say so, or a term living only in
             # an unreadable file reads back as "this bundle does not mention it".
@@ -466,6 +607,24 @@ module OKF
           respond_json(payload)
         rescue RegexpError => e
           respond_error("invalid pattern: #{e.message}")
+        end
+
+        # "No concept matched" and "the directory you filtered by is not there"
+        # are different answers, and only one of them is the caller's to fix.
+        # `dirs` and `index` have always told them apart (see #scoped_rows);
+        # catalog and search answered `total: 0` to both, which is worst for the
+        # spelling the CLI and the skill teach — an agent asks for `root`, is
+        # told zero, and reports that the bundle root holds nothing.
+        #
+        # Blank is not a filter (see Filters), so it is not a mistake either.
+        def check_dir!(context, pairs, dir)
+          return if OKF.blank?(dir)
+
+          known = pairs.flat_map { |_, root| Filters.dirs_of(context.memory.folder(root).bundle.paths) }
+          return if Filters.known_dir?(known, dir)
+
+          named = pairs.length == 1 ? " in bundle #{pairs.first.first.inspect}" : ""
+          raise Error, "no directory #{dir.to_s.inspect}#{named} — orient with dirs"
         end
 
         # The two incompatible pairs, refused with the fix named rather than
@@ -702,6 +861,47 @@ module OKF
           context.registry.slugs.include?(slug) ? slug : bundle.to_s
         end
 
+        # One log file, cut to its newest +limit+ entries. The file's own
+        # heading — everything above the first `## ` — always survives, because
+        # it is what names the scope ("# Runbooks Log") and costs a line.
+        #
+        # A log with no `## ` headings at all is not §7-shaped, and there is
+        # nothing to count or cut: it comes back whole with total 0, which
+        # reads as "unstructured" rather than as an empty file. Truncating it
+        # on some other boundary would be inventing a format.
+        def bounded_log(entry, limit)
+          content = entry[:content].to_s
+          return { path: entry[:path], dir: entry[:dir], total: 0, returned: 0, content: "" } if OKF.blank?(content)
+
+          parts = content.split(LOG_ENTRY)
+          preamble = parts.first.to_s.start_with?("## ") ? "" : parts.shift.to_s
+          return unstructured_log(entry, preamble, limit) if parts.empty?
+
+          { path: entry[:path], dir: entry[:dir], total: parts.length,
+            returned: [ parts.length, limit ].min, content: preamble + parts.first(limit).join }
+        end
+
+        # A log the split cannot divide — §7 fixes no heading level, so `###`
+        # date groups are conformant and `LOG_ENTRY` cannot see them. It used to
+        # come back *whole* under `total: 0, returned: 0`: the one unbounded read
+        # on this surface, surviving the fix meant to close it and reporting
+        # itself as empty, which is the same false comfort as a `total` that
+        # counted files. `limit` could not reach it either.
+        #
+        # It is one entry, because that is what content with no boundary is, and
+        # it is cut by size because the format offers nothing else to cut on.
+        # That cut is announced rather than quietly applied — inventing a
+        # boundary would be inventing a format, but declaring a bound is only
+        # honest — and `limit` scales the budget, so a caller can still ask for
+        # the rest.
+        def unstructured_log(entry, content, limit)
+          budget = UNSTRUCTURED_LOG * [ limit, 1 ].max
+          row = { path: entry[:path], dir: entry[:dir], total: 1, returned: 1,
+                  content: content.length > budget ? content[0, budget] : content }
+          row[:truncated] = true if content.length > budget
+          row
+        end
+
         # §9 best-effort, surfaced: a payload built from a folder that skipped
         # unusable files says so, and validate names each file and why.
         def with_unparseable(folder, payload)
@@ -710,8 +910,8 @@ module OKF
           payload
         end
 
-        # The directory rows at most +depth+ levels below +dir+ (nil, "", ".",
-        # "/" or "root": the bundle root, which is the ancestor of everything).
+        # The directory rows at most +depth+ levels below +dir+ (nil, "", "."
+        # or "/": the bundle root, which is the ancestor of everything).
         # Comparison folds case, because every other dir filter in this file
         # does — `dirs(dir: "Services")` used to answer "no such directory" for
         # a name `catalog` resolved without complaint.

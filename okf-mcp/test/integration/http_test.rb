@@ -75,6 +75,46 @@ class HTTPTest < MCPIntegrationCase
     assert_includes hosts, local.ip_address if local
   end
 
+  # The Host allowlist defends against a *browser* being walked into this port
+  # by DNS rebinding. It is not access control — any non-browser client sets
+  # Host to whatever it likes — and there is no authentication behind it. So a
+  # non-loopback bind has to say out loud what it just did; the alternative is
+  # a boot line that reads like everything is fine.
+  test "a non-loopback bind says the read surface is now unauthenticated" do
+    out = StringIO.new
+    server = OKF::MCP::Server.build(
+      OKF::MCP::Registry.from_argv([ fixture("knowledge") ]), engine: OKF::MCP::MemoryBackend.new
+    )
+    httpd = nil
+    thread = nil
+    begin
+      httpd = OKF::MCP::HTTP.build(OKF::MCP::HTTP.app_for(server, bind: "0.0.0.0"), bind: "0.0.0.0", port: 0)
+      OKF::MCP::HTTP.send(:announce, httpd, bind: "0.0.0.0", out: out)
+      warning = out.string
+      assert_match(/listening on http:\/\/0\.0\.0\.0:\d+/, warning)
+      assert_match(/every served bundle/i, warning)
+      assert_match(/no authentication|unauthenticated/i, warning)
+    ensure
+      thread&.kill
+      httpd&.shutdown
+    end
+  end
+
+  test "a loopback bind stays quiet — it is the default posture, not a warning" do
+    out = StringIO.new
+    httpd = OKF::MCP::HTTP.build(
+      OKF::MCP::HTTP.app_for(
+        OKF::MCP::Server.build(OKF::MCP::Registry.from_argv([ fixture("knowledge") ]),
+          engine: OKF::MCP::MemoryBackend.new), bind: "127.0.0.1"
+      ), bind: "127.0.0.1", port: 0
+    )
+    OKF::MCP::HTTP.send(:announce, httpd, bind: "127.0.0.1", out: out)
+    assert_match(/listening on/, out.string)
+    refute_match(/unauthenticated/i, out.string)
+  ensure
+    httpd&.shutdown
+  end
+
   test "extra allowed hosts are admitted, for a name only a proxy knows" do
     hosts = OKF::MCP::HTTP.allowed_hosts_for("0.0.0.0", extra: [ "okf.internal" ])
     assert_includes hosts, "okf.internal"

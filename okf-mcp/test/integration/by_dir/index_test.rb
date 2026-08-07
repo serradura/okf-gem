@@ -9,6 +9,7 @@ module ByDir
       data = call_tool!(server, "index", bundle: "knowledge")
 
       assert_equal 4, data["total"]
+      assert_equal data["dirs"].length, data["total"], "total counts what the request matched"
       assert_equal %w[. decisions runbooks services], data["dirs"].map { |row| row["dir"] }.sort
 
       root = data["dirs"].find { |row| row["dir"] == "." }
@@ -31,10 +32,11 @@ module ByDir
       assert_equal [ "decisions/ledger" ], decisions["listing"].map { |item| item["id"] }
     end
 
-    test "dir descends one branch" do
+    test "dir descends one branch, and total counts what matched" do
       server = mcp_server(fixture("knowledge"))
       data = call_tool!(server, "index", bundle: "knowledge", dir: "services")
       assert_equal [ "services" ], data["dirs"].map { |row| row["dir"] }
+      assert_equal 1, data["total"], "total counted the whole bundle, reading as three rows withheld"
     end
 
     test "bodies false drops the bodies, listing false drops the listings" do

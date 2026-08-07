@@ -50,7 +50,14 @@ module OKF
         announce(registry, engine)
         @http ? serve_http(server) : serve_stdio(server)
         0
-      rescue Error, OKF::Error, OptionParser::ParseError => e
+      # `SystemCallError` belongs here for the same reason the tool wrapper
+      # rescues it: an errno is a fact about the operator's machine, not a bug,
+      # and it must read as one line rather than a backtrace. The bind is where
+      # it actually bites — `--http` exists so one warm process is shared, which
+      # makes "that port is already serving" the likeliest mistake on this path,
+      # and it came back as eleven frames and exit 1 while every other boot
+      # failure exited 2 with a sentence.
+      rescue Error, OKF::Error, OptionParser::ParseError, SystemCallError => e
         @out.puts("okf-mcp: #{e.message}")
         @out.puts(USAGE)
         2

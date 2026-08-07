@@ -72,6 +72,26 @@ class CLITest < MCPIntegrationCase
     assert_match(/registered as goner\) is not a directory/, result.err)
   end
 
+  # Every other boot failure above exits 2 with one readable line. A bind that
+  # fails did not: `Errno::EADDRINUSE` is a `SystemCallError`, which the rescue
+  # did not name, so the most likely `--http` mistake there is — the port is
+  # already serving, which is the whole point of a warm process — came back as
+  # an eleven-frame Ruby backtrace and exit 1.
+  test "a port already in use is a usage error, not a backtrace" do
+    require "socket"
+    taken = TCPServer.new("127.0.0.1", 0)
+    begin
+      result = run_cli("--http", "--port", taken.addr[1].to_s, fixture("knowledge"))
+
+      assert_equal 2, result.status
+      assert_match(/okf-mcp: .*(in use|EADDRINUSE)/i, result.err)
+      assert_match(/usage: okf mcp/, result.err)
+      refute_match(%r{lib/okf/mcp}, result.err, "a backtrace reached the operator")
+    ensure
+      taken.close
+    end
+  end
+
   private
 
   # The CLI in-process, as the kernel's suite drives its own: captured streams,

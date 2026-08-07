@@ -688,6 +688,26 @@ module AcrossBundles
       assert_empty result.out
     end
 
+    # -- one flag, one meaning
+
+    # `root` is an alias for the bundle root only where no directory carries the
+    # name, which makes it a fact about the *bundle* being asked. Resolved inside
+    # the per-bundle loop, one `--dir root` therefore meant the `root/` subtree
+    # in the bundle that has one and the bundle root in the bundle that does
+    # not — two filters merged into one ranking with nothing in the output
+    # saying so. The served set resolves it once now, so the flag means the
+    # directory here and @rooted simply has none.
+    test "`--dir root` means one thing across the whole invocation" do
+      with_registry("namesake", "rooted") do
+        data = json(okf("search", "@namesake", "@rooted", "concept", "--dir", "root", "--json"))
+
+        refute_includes data["matches"].map { |row| row["slug"] }, "rooted",
+          "@rooted has no `root/` directory, so the alias answered for its bundle root instead"
+        assert_equal %w[namesake], data["matches"].map { |row| row["slug"] }.uniq
+        assert_equal %w[root root/deep], data["matches"].map { |row| row["dir"] }.uniq.sort
+      end
+    end
+
     # -- best effort
 
     test "a malformed bundle among several is best-effort: noted on stderr, stdout stays parseable" do

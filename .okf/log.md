@@ -1,6 +1,60 @@
 # Update Log
 
+## 2026-07-30
+* **Correction**: a second, deeper review found the previous day's `root` fix
+  half-applied and eight more defects behind it; the [read views](capabilities/read-views.md)
+  and the [MCP server](capabilities/mcp-server.md) now carry what the round
+  settled. The alias was resolved against the *catalog* — directories holding
+  concepts — while `dirs` and `index` resolved it against the directory map, so
+  a `root/` carrying only an `index.md` stayed folded in one half of the CLI and
+  named in the other, in the same bundle on the same flag. One question, one
+  source (`Bundle#directories`, now public); and because the alias is a fact
+  about a bundle, a run naming several resolves it once across the served set
+  rather than per bundle inside the loop, which had let one `okf search @a @b
+  --dir root` mean two different filters in one merged ranking.
+* **Correction**: the same round closed the sibling's family of silent empties
+  and false comforts. A `dir` naming no directory was refused by `dirs` and
+  `index` and answered `total: 0` by `catalog` and `search` — worst for `root`,
+  the spelling the [CLI](cli.md) and the [skill](capabilities/agent-skill.md)
+  teach, where an agent asked for the bundle root and was told it holds nothing;
+  every tool refuses it now, and across bundles the refusal is a fact about the
+  searched set. `total` meant rows-matched on two tools and whole-bundle on two
+  others. A log grouped under `###` — conformant, since §7 fixes no level — came
+  back whole under `total: 0`, the one unbounded read surviving the change meant
+  to close it. A failed bind printed a backtrace where every other boot failure
+  printed a sentence, and a missing playbook reached the host as "Internal
+  error". And the movable served set the re-read introduced left the residency
+  cache unbounded and the fingerprint walked two or three times per request.
+
 ## 2026-07-29
+* **Correction**: the `root` fold the sibling's review turned up is the
+  [CLI](cli.md)'s too, and the [read views](capabilities/read-views.md) now record
+  the exception. `--dir root` and `--area root` are aliases for the bundle root —
+  worth a shell quote right up until a bundle actually holds a `root/` directory,
+  which the alias then made unaddressable. It yields to a real directory now,
+  resolved against the bundle's own dirs rather than the string alone. The
+  sibling dropped the alias outright because a JSON argument never had the shell
+  problem; the CLI keeps it, because it is a shipped spelling and the rationale
+  there is real. `dirs` carried the same fold into its `subtree` column, where a
+  row named `root` counted the bundle root's subtree — a number disagreeing with
+  what `--dir` on that row returns, which is the one thing it promises not to do.
+* **Correction**: a review of the [MCP server](capabilities/mcp-server.md) before
+  release found four defects, three of them the silent wrong answer this project
+  refuses everywhere else, and the concept now carries the two that are lessons
+  rather than slips. The identity map's re-read rule had left *two* boot snapshots
+  standing: the resource list, computed once and handed to the SDK as a fixed array,
+  so a bundle registered afterwards was never advertised and a removed one stayed
+  advertised until a read of the published URI came back "unknown bundle"; and the
+  fingerprint itself, taken *after* the boot read, so a write landing in between was
+  recorded as already-seen. Both are fixed — the list derives per `resources/list`,
+  and booting stamps nothing — and the concept states the rule underneath: a stamp
+  is a claim about a file you have already read, and may never be taken later than
+  the read it labels. The other two: `dir: "root"` folded onto the bundle root,
+  which cost a bundle with a real `root/` directory the ability to name it (the
+  [CLI](cli.md) accepts that spelling because a shell needs no quoting for it, a
+  rationale a JSON argument does not have); and the `okf-sqlite3` seam rescued only
+  `LoadError`, so an engine that loaded but would not *construct* took the server
+  down at boot — the one thing its fallback exists to prevent.
 * **Sync**: caught the bundle up with the [MCP server](capabilities/mcp-server.md)'s
   second round — the gem now reaches the [CLI](cli.md) as an `okf mcp` verb through
   the [extension seam](design/extension-points.md) rather than a binary of its own,
@@ -26,6 +80,49 @@
   answering none and `logging` that nothing emitted through. The concept carries the
   general shape beside the [containment](design/extension-points.md) lesson it
   rhymes with: a default you did not choose is still a claim you made.
+* **Change**: the pre-release ROI eval found the one unbounded read on the
+  [MCP surface](capabilities/mcp-server.md) and it is fixed: `log` returned every
+  `log.md` whole — 119,863 bytes of this bundle's own history — under a `total`
+  that was counting *files*. It now returns the newest three date-grouped entries
+  per file (§7's own structure) with each file's `total` and `returned`, and a
+  `limit` to ask for more; the same answer costs 13,491 bytes and a whole eval
+  session halved. The concept records the shape worth carrying: a bound that counts
+  containers instead of contents reads as bounded and is not — the same
+  false-comfort class as the capability set above. The split lives in the sibling
+  rather than the kernel because bounding for a context window is that surface's
+  problem alone: the [graph server](capabilities/graph-server.md)'s Log panel wants
+  the whole file and scrolls it.
+* **Change**: the same eval found the one asymmetry in the
+  [MCP surface](capabilities/mcp-server.md)'s argument names and it is renamed
+  before the release rather than after: `search` took `bundles` where the other
+  nine tools take `bundle`, and the plural's signal only ever arrived *after* a
+  failed call, since a host's unknown property is refused by the schema before
+  any okf sentence can be written. The concept records why an alias was refused —
+  the second spelling the `exe/okf-mcp` deletion had already ruled out — and that
+  the rename retired a guard instead of adding one, the test that stopped the
+  near-miss from silently widening a search to every bundle. Also narrowed the
+  [README](https://github.com/serradura/okf-gem/blob/main/okf-mcp/README.md)'s
+  host-config block to lead with the absolute binstub path, which the eval
+  measured as the actually-working form: a desktop app never runs the shell rc
+  that puts a version manager's Ruby on `PATH`.
+* **Update**: closed the last two the eval left open where closing them was
+  cheap, and recorded why the rest wait. `search` now names the **engine that
+  answered** — [structured output](capabilities/mcp-server.md) declared the
+  query, the bundles and the rows but not which engine ranked them, and `fuzzy`
+  selects the index without being asked, so a miss under its tokenizer read
+  exactly like a fact the bundle does not hold. And the prompts' reach is now
+  stated rather than discovered: six of the eight link into the
+  [skill's](capabilities/agent-skill.md) reference tree, which this server does
+  not serve. The concept records the test for whether a gap may wait — serving
+  that tree needs a URI scheme of its own, and a separate scheme reserves
+  nothing, so unlike an argument name it costs the same later as now.
+* **Sync**: caught the enumerations up with the sibling's real surface, which is
+  the drift no grep finds. The [overview](overview.md) and the
+  [capabilities](capabilities/) listing both still described `okf-mcp` as ten
+  read-only tools — true when it was written and incomplete since resources and
+  the eight prompts landed — so both now name tools, resources and prompts, and
+  the overview says what the surface is *for*: reading these bundles without a
+  terminal.
 
 ## 2026-07-24
 * **Change**: the first sibling gem landed — **`okf-mcp`**, the

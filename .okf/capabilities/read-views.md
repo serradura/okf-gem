@@ -56,7 +56,8 @@ concept views skip those structural files, so only `index` renders the
 (root first) with its authored index body, a type/tag rollup over the concepts
 living directly there, its child directories, and the concept listing. `--dir`
 narrows to a directory and its subtree and repeats (`root` names the bundle
-root) — bringing the chain up to the root with it, marked `↑`, since orientation
+root, unless one is really called that) — bringing the chain up to the root with
+it, marked `↑`, since orientation
 is the whole point of this view and a branch shown alone has lost it —
 `--depth N` bounds how far below the starting point that reaches, and
 `--no-body` drops the prose to a skeleton. The last two are what make the map
@@ -145,7 +146,28 @@ below it, so `--dir platform` reaches `platform/services/api` and `--dir .` (or
 `root`) means the root alone. A trailing slash is accepted and ignored, because
 the human views print one — `index` labels a row `platform/services/` — and a
 flag that refuses the label the tool just printed answers "nothing found" to a
-directory that is full. It replaces `--area`, which saw only a concept id's
+directory that is full.
+
+The `root` spelling has one exception, and it is the shape that showed why an
+alias is never free: a bundle holding a real `root/` directory. There the word
+names that directory, not the bundle root, because the alias only ever bought a
+shell quote and the directory would otherwise be unaddressable — answering for
+the root instead, exit 0, nothing said. The resolution is against the bundle's
+own directories rather than the string alone, which is also what the *stored*
+spellings must not go through: `dirs` folded each row's own dir through the
+same helper, so a row named `root` computed its `subtree` against the bundle
+root and disagreed with what `--dir` on that row returns.
+
+"The bundle's own directories" has to mean one list, and that is the lesson the
+first attempt missed. The concept views asked the **catalog**, which knows only
+directories that hold concepts, while `dirs` and `index` asked the directory
+map, which counts an `index.md` too — so a `root/` carrying nothing but its
+index stayed folded in `catalog` and named in `dirs`, in the same bundle, on the
+same flag. One question gets one source (`Bundle#directories`). The other half
+is *when*: the alias is a fact about a bundle, so a run naming several resolves
+it once across the served set — resolving inside the per-bundle loop let a
+single `--dir root` mean the subtree in one bundle and the root in the next,
+merged into one ranking with nothing saying so. It replaces `--area`, which saw only a concept id's
 first path segment — a word the [OKF format](../format/okf-format.md) never used —
 and which still works, warning on stderr, until a later release drops it.
 

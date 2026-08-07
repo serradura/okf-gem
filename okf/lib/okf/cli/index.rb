@@ -91,11 +91,11 @@ module OKF
       # deprecated flag that quietly widens is worse than one that is merely old.
       # Nothing passed keeps the whole map.
       def select_directories(entries, options)
-        areas = Array(options[:areas]).map { |area| fold_dir(area) }
+        all_dirs = entries.map { |entry| entry[:dir] }
+        areas = Array(options[:areas]).map { |area| fold_dir(area, all_dirs) }
         scoped = !options[:dirs].nil? || !options[:depth].nil?
         return [ entries, [] ] if areas.empty? && !scoped
 
-        all_dirs = entries.map { |entry| entry[:dir] }
         wanted = scoped ? select_dirs(all_dirs, options) : []
         chain = ancestor_dirs(options, all_dirs) - wanted
         selected = entries.select do |entry|

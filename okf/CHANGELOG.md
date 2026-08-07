@@ -29,6 +29,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A directory really named `root` is nameable again.** `--dir` and `--area`
+  accept `root` as a spelling of the bundle root, which is worth a shell quote
+  right up until a bundle actually has a `root/` directory — and then the alias
+  made it unaddressable, answering for the bundle root instead: the wrong
+  concepts, exit 0, nothing said. The alias now yields to a real directory,
+  since a convenience is worth less than a directory being reachable at all;
+  where no such directory exists nothing changes, which is every bundle that
+  has ever relied on the spelling. `okf dirs` carried the same fold into its
+  `subtree` column, where it computed the `root` row's subtree against the
+  bundle root — so the number on the row disagreed with what `--dir` on that
+  row returns, the one thing it promises never to do.
+
+  "Does this bundle have a `root` directory?" is now asked of the bundle
+  (`Bundle#directories`, new and public) rather than of whichever list a view
+  had to hand. The concept views were reading it off the *catalog*, which knows
+  only directories holding concepts, so a `root/` carrying nothing but an
+  `index.md` stayed folded in `catalog`/`files`/`tags`/`types`/`search` while
+  `dirs` and `index` named it correctly — two answers to one question about one
+  bundle. And a multi-bundle `okf search @a @b --dir root` resolved per bundle
+  inside the loop, so one flag meant the `root/` subtree in the bundle that has
+  one and the bundle root in the bundle that does not, merged into a single
+  ranking with nothing in the output saying so; the served set resolves it once.
 - **Coverage stopped measuring the plugin's curation hook** for one commit, and
   said so by going *up*: SimpleCov's root defaults to the working directory, so
   moving the gem down a level dropped ~100 tested lines out of the report and

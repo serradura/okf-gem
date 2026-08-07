@@ -79,7 +79,7 @@ module OKF
       def subtree_counts(entries)
         entries.each_with_object({}) do |entry, out|
           out[entry[:dir]] = entries.reduce(0) do |sum, other|
-            under_dir?(other[:dir], entry[:dir]) ? sum + other[:count] : sum
+            under_dir?(other[:dir], fold(entry[:dir])) ? sum + other[:count] : sum
           end
         end
       end

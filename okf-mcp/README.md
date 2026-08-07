@@ -38,27 +38,48 @@ stateless JSON mode for every agent at once. The boot line goes to stderr and
 names the backend, the served bundles, and the registry file the slugs came
 from.
 
-Binding beyond loopback keeps the SDK's DNS-rebinding protection on: a wildcard
-`--bind 0.0.0.0` admits this machine's own addresses and hostname, and
-`--allow-host HOST` (repeatable) adds a name only a proxy or DNS knows.
+`--bind` beyond loopback works — a wildcard `0.0.0.0` admits this machine's own
+addresses and hostname, and `--allow-host HOST` (repeatable) adds a name only a
+proxy or DNS knows — and it publishes your bundles. **There is no
+authentication.** Anything that can reach the port can read every served
+bundle, so the boot line says so.
+
+The Host allowlist those flags feed is a defence against **DNS rebinding**: a
+browser walked into this port by a page you never meant to give it to. It is
+not access control, and it cannot be — a client that is not a browser sets
+`Host` to whatever it likes. Treat a non-loopback bind the way you would treat
+serving your notes directory over HTTP, because that is what it is.
 
 Whatever argv names is the whole served set. A registry ref is resolved once, at
 boot; no tool argument can widen the set afterwards, so a group slug reaches
 bundles only when the registry itself is what is being served.
 
+With no arguments the registry *is* what is served, so it is followed rather
+than snapshotted: `okf registry set`, `rename` or `del` in another terminal
+shows up on the next tool call, without a restart. The file is re-read only
+when its fingerprint moves, so the cost is a `stat`. Bundle contents are never
+snapshotted either — bodies are read live, and a bundle is re-parsed whenever
+one of its files changes.
+
 ## Host configuration
+
+**Run `which okf` and paste the absolute path.** A desktop app is launched by
+the window manager, not by your shell, so it never runs the rc file that puts
+a version manager's Ruby on `PATH` — and if your Ruby came from mise, rbenv,
+asdf or chruby, a bare `"okf"` is unresolvable there. The binstub's shebang
+pins its own Ruby, so the absolute path needs nothing else set up.
 
 Claude Desktop (`claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
-    "okf": { "command": "okf", "args": ["mcp"] }
+    "okf": { "command": "/absolute/path/from/which/okf", "args": ["mcp"] }
   }
 }
 ```
 
-Claude Code:
+Claude Code inherits your shell, so the bare name is fine there:
 
 ```bash
 claude mcp add okf -- okf mcp
@@ -67,14 +88,10 @@ claude mcp add okf -- okf mcp
 Both serve whatever `okf registry` lists; add directories or `@slug`s to `args`
 to pin the set instead.
 
-If the host reports that it cannot spawn `okf`, it is resolving a different
-`PATH` than your shell — give it the absolute path to the binstub
-(`which okf`), whose shebang pins its own Ruby and so needs neither `PATH` nor
-a version manager's shim to be set up.
-
 ## Tools
 
-Ten read-only tools, every list output bounded with a visible `total`:
+Ten read-only tools, every list output bounded with a visible `total` — the
+number of rows the request matched, on every one of them:
 
 | Tool | What it answers |
 |---|---|
@@ -84,7 +101,7 @@ Ten read-only tools, every list output bounded with a visible `total`:
 | `search` | pointed questions: ANDed terms, scored rows carrying the fields they matched, across bundles through one shared index |
 | `read_concept` | one concept's file, verbatim and live from disk; ids are exact |
 | `catalog` | per-concept metadata with link degrees; filters, paging, field projection |
-| `log` | every `log.md`, root first, live |
+| `log` | every `log.md`, root first, live — the newest 3 dated entries per file, `limit` for more |
 | `validate` | the spec §9 conformance verdict |
 | `lint` | the curation-quality report; `group: "folder"` lists the unlinked files by folder |
 | `graph` | the knowledge graph in three bounded views: minimal, hubs, traffic — never with bodies |
@@ -109,6 +126,13 @@ own tools, exactly as it is when the skill is installed as a skill. The one
 playbook not offered is `doctor`, which installs the CLI; if this server is
 answering, it is already installed.
 
+**A playbook carries its steps, not the craft behind them.** Several link on
+into the skill's own reference tree — `authoring.md`, the concept and index
+templates, the spec — and this server does not serve those files, so a host
+without filesystem access cannot follow the links. `okf-produce` is the one
+that leans hardest on them. Where that matters, install the skill itself
+(`okf skill <dest>`) beside this server and the whole tree is on disk.
+
 ## Resources
 
 Every bundle with a root `index.md` is a resource at `okf://<slug>`, and every
@@ -128,6 +152,12 @@ resident bundle. `engine: "index"` opts into BM25+ ranking on a held corpus,
 the same engine and version the `okf server` page runs, so the two rank
 identically. `fuzzy` implies the index and its tokenizer; `regexp` stays on the
 raw-text scan; incompatible pairs are refused with the fix named.
+
+Every result names the engine that **answered** it, because `fuzzy` picks one
+without being asked and no score tells you which ran. It matters when something
+is missing: under the index's tokenizer a shattered identifier and an absent
+fact look identical, so knowing you were on the index is what turns "not here"
+back into "try the scan".
 
 ## Beside a browser
 
