@@ -56,6 +56,23 @@ class PromptsTest < MCPIntegrationCase
       "a write-capable tool would make the read-only posture a lie"
   end
 
+  # The gemspec floors okf with no ceiling and the eight names are hardcoded
+  # here, so a later kernel that renames or drops a playbook leaves this server
+  # advertising a prompt whose file is gone. The tools funnel exactly this
+  # through define_tool's rescue into an actionable message; the prompts path
+  # let the errno escape as a bare -32603 carrying a filesystem path.
+  test "a playbook the installed kernel no longer carries is an actionable refusal" do
+    server = mcp_server(fixture("knowledge"))
+    OKF::MCP::Server.stub(:playbook, ->(name) { raise Errno::ENOENT, "#{name}.md" }) do
+      response = rpc(server, "prompts/get", name: "okf-menu", arguments: {})
+
+      assert response["error"], "expected a refusal, got #{response.inspect}"
+      message = response.dig("error", "message").to_s
+      assert_match(/okf-menu/, message, "the refusal does not name the prompt that failed")
+      assert_match(/okf skill/, message, "…nor what to do about it")
+    end
+  end
+
   test "each prompt carries the description the skill's own table gives it" do
     server = mcp_server(fixture("knowledge"))
     prompts = rpc(server, "prompts/list").dig("result", "prompts").to_h { |p| [ p["name"], p["description"] ] }

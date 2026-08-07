@@ -24,12 +24,28 @@ module OKF
         value.to_s.downcase
       end
 
-      # A `dir` argument as the tools compare it: case-folded, trailing
-      # slashes gone, and every spelling of the bundle root — "", ".", "/",
-      # "root" — normalized to ".".
+      # A `dir` argument as the tools compare it: case-folded, trailing slashes
+      # gone, and both spellings of the bundle root — "." and "/" — normalized
+      # to ".".
+      #
+      # A *blank* argument never reaches here as a filter. Every concept filter
+      # short-circuits on `OKF.blank?` first, because a client that fills each
+      # declared optional property with "" is doing something routine and means
+      # "no filter" by it — so "" and an omitted `dir` are the same ask, and
+      # neither is a synonym for the root. In the tree scoping the two coincide
+      # anyway: `.` is the ancestor of every row, so a blank normalizes to "."
+      # and selects the whole tree.
+      #
+      # Deliberately **not** the CLI's `fold_dir`, which also folds the literal
+      # name "root". Its whole rationale there is that a shell needs no quoting
+      # for it; a JSON argument has no such problem, and no `dir` description on
+      # this surface ever advertised the spelling. Importing it cost a bundle
+      # with a real `root/` directory the ability to name it — `dir: "root"`
+      # answered for the bundle root instead, and `scoped_rows` skips its
+      # existence check for the root, so not even the refusal fired.
       def normalize_dir(value)
         folded = fold(value).sub(%r{/+\z}, "")
-        folded.empty? || folded == "." || folded == "root" ? "." : folded
+        folded.empty? || folded == "." ? "." : folded
       end
 
       # Concept filtering: `dir` names itself and everything beneath it.
@@ -50,6 +66,35 @@ module OKF
 
       def dir_depth(dir)
         dir == "." ? 0 : dir.split("/").length
+      end
+
+      # Every directory a bundle has, from its file list alone: the dirname of
+      # each markdown file plus every ancestor up to the root. Strings only — no
+      # parse, no disk — and it counts a directory carrying nothing but an
+      # `index.md`, which is what makes it the same set `dirs` reports. Reading
+      # the answer off the *catalog* instead would be the smaller question, and
+      # a directory that exists but holds no concept would read as absent.
+      def dirs_of(paths)
+        seen = {}
+        paths.each do |path|
+          current = ::File.dirname(path)
+          loop do
+            seen[current] = true
+            break if current == "."
+
+            current = ::File.dirname(current)
+          end
+        end
+        seen.keys
+      end
+
+      # Is +wanted+ a directory this set actually has? Folded, and blind to a
+      # trailing slash, so it accepts the spelling the views print back.
+      def known_dir?(dirs, wanted)
+        base = normalize_dir(wanted)
+        return true if base == "."
+
+        dirs.any? { |dir| fold(dir) == base }
       end
     end
   end

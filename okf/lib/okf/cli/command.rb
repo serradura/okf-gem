@@ -190,11 +190,22 @@ module OKF
         parser.on("--tag TAG", "only concepts carrying this tag") { |v| options[:tag] = v } if keys.include?(:tag)
       end
 
-      def filter_entries(entries, options)
+      # The argument is resolved once per view, not once per entry: the `root`
+      # alias below has to consult the bundle's own directories, and that is a
+      # question about the whole set rather than about the row in hand.
+      #
+      # +dirs+ is that set, and it is required rather than derived from +entries+
+      # — the catalog knows only directories that hold *concepts*, so a `root/`
+      # carrying an index.md and nothing else was invisible here while `dirs`
+      # and `index` (which read Bundle#directories) saw it. Two answers to one
+      # question about one bundle is how the alias survived its own fix.
+      def filter_entries(entries, options, dirs)
+        area = options[:area] && fold_area(options[:area], dirs)
+        base = options[:dir] && fold_dir(options[:dir], dirs)
         entries.select do |entry|
           (options[:type].nil? || fold(entry[:type]) == fold(options[:type])) &&
-            (options[:area].nil? || fold(entry[:top_dir]) == fold_area(options[:area])) &&
-            (options[:dir].nil? || under_dir?(entry[:dir], options[:dir])) &&
+            (area.nil? || fold(entry[:top_dir]) == area) &&
+            (base.nil? || under_dir?(entry[:dir], base)) &&
             (options[:tag].nil? || entry[:tags].any? { |tag| fold(tag) == fold(options[:tag]) })
         end
       end
@@ -203,9 +214,13 @@ module OKF
       # it. `--dir foo` reaches foo/bar, `--dir foo/bar` narrows, and `--dir .`
       # needs no special case at all — nothing starts with "./", so the root
       # selects only what lives directly in it.
-      def under_dir?(entry_dir, wanted)
+      #
+      # +path+ arrives already folded, through #fold_dir for a user's argument
+      # and #fold for a stored one. A stored dir is never an alias — that is the
+      # distinction the old signature could not make, and it is what had a row
+      # named `root` counting the bundle root's subtree instead of its own.
+      def under_dir?(entry_dir, path)
         entry = fold(entry_dir)
-        path = fold_dir(wanted)
         entry == path || entry.start_with?("#{path}/")
       end
 
@@ -213,16 +228,34 @@ module OKF
         value.to_s.downcase
       end
 
-      def fold_area(value)
+      def fold_area(value, known = nil)
         folded = trim_slash(fold(value))
-        folded == "root" ? "(root)" : folded
+        folded == "root" && !names_dir?(known, "root") ? "(root)" : folded
       end
 
       # `.` is the stored spelling of the root everywhere; `root` is the one a
       # shell needs no quoting for, and the only reason the two exist.
-      def fold_dir(value)
+      #
+      # A bundle that really has a `root/` directory owns the word, and +known+
+      # — the directories that bundle actually holds — is what decides. The
+      # alias is a convenience; being able to name a directory at all is not, so
+      # the convenience yields. Without this, `--dir root` answered for the
+      # bundle root in such a bundle: the wrong concepts, exit 0, nothing said.
+      def fold_dir(value, known = nil)
         folded = trim_slash(fold(value))
-        folded.empty? || folded == "root" ? "." : folded
+        return "." if folded.empty?
+
+        folded == "root" && !names_dir?(known, "root") ? "." : folded
+      end
+
+      # Does the bundle hold a directory by this name? An ancestor counts: a
+      # bundle whose only concept sits in `root/deep` still has a `root`, and
+      # `--dir root` has to reach it by the prefix rule above.
+      def names_dir?(known, name)
+        Array(known).any? do |dir|
+          folded = fold(dir)
+          folded == name || folded.start_with?("#{name}/")
+        end
       end
 
       # The human views print a directory with the slash that says it is one —
@@ -307,7 +340,7 @@ module OKF
 
         stored = known.each_with_object({}) { |dir, out| out[fold(dir)] = dir }
         Array(options[:dirs]).each_with_object([]) do |path, out|
-          base = fold_dir(path)
+          base = fold_dir(path, known)
           next unless stored.key?(base)
 
           current = dir_parent(base)
@@ -331,7 +364,7 @@ module OKF
       # they do not define one. The ancestor chain is unioned on top by the
       # caller, which is also what tells a row apart from context.
       def select_dirs(dirs, options)
-        bases = Array(options[:dirs]).map { |path| fold_dir(path) }
+        bases = Array(options[:dirs]).map { |path| fold_dir(path, dirs) }
         depth = options[:depth]&.to_i
         return dirs if bases.empty? && depth.nil?
         # No --dir means the whole bundle is the starting point, which is *not*
@@ -373,10 +406,17 @@ module OKF
 
       # The ids the filters select, resolved through the catalog metadata — or nil
       # when no filter is active, meaning keep everything.
-      def filter_ids(folder, options)
+      #
+      # +dirs+ overrides the folder's own directory set, which is what a
+      # multi-bundle run passes: the `root` alias is a fact about a bundle, so
+      # resolving it per folder inside a loop let one `--dir root` mean the
+      # `root/` subtree in one bundle and the bundle root in the next, merged
+      # into a single ranking with nothing saying so. One invocation, one
+      # meaning — see Search#multi_search.
+      def filter_ids(folder, options, dirs = nil)
         return nil if options[:type].nil? && options[:area].nil? && options[:dir].nil? && options[:tag].nil?
 
-        filter_entries(folder.catalog, options).map { |entry| entry[:id] }
+        filter_entries(folder.catalog, options, dirs || folder.directories).map { |entry| entry[:id] }
       end
 
       # §9 best-effort: the graph is built from concepts that parse. Surface any that

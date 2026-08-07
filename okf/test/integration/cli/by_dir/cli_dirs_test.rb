@@ -113,6 +113,31 @@ module ByDir
       assert_equal [ "." ], dirs_of(okf("dirs", fixture("edge-cases"), "--dir", "root", "--json"))
     end
 
+    # `root` is an alias for the bundle root only in a bundle that has no
+    # directory by that name. Where one exists it owns the word — otherwise the
+    # directory is unreachable from `--dir` entirely, and the flag answers about
+    # the root instead of saying so.
+    test "a directory really named `root` beats the root's alias" do
+      assert_equal %w[. root root/deep],
+        dirs_of(okf("dirs", fixture("namesake"), "--dir", "root", "--json")),
+        "the alias won, so the row asked for came back as the bundle root"
+      assert_equal %w[root root/deep],
+        dirs_of(okf("dirs", fixture("namesake"), "--dir", "root", "--no-ancestors", "--json"))
+    end
+
+    # subtree_counts folds every row's *stored* dir through the same helper, so
+    # the `root` row's own subtree was computed against the bundle root: the
+    # number on the row disagreed with what `--dir` on that row returns, which
+    # is the one thing it promises never to do.
+    test "a row named `root` counts its own subtree, not the bundle's" do
+      listed = json(okf("dirs", fixture("namesake"), "--json")).fetch("dirs")
+      rows = listed.each_with_object({}) { |row, out| out[row["dir"]] = row }
+
+      assert_equal 2, rows.fetch("root").fetch("count")
+      assert_equal 3, rows.fetch("root").fetch("subtree"), "root/deep's concept is below root/"
+      assert_equal 1, rows.fetch(".").fetch("subtree"), "the bundle root's subtree is still its own count"
+    end
+
     test "--dir is repeatable and folds case, and two bases share one chain" do
       assert_equal [ ".", "datasets", "tables" ],
         dirs_of(okf("dirs", fixture("conformant"), "--dir", "TABLES", "--dir", "datasets", "--json")),

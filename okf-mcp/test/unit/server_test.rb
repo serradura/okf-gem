@@ -42,4 +42,26 @@ class ServerTest < OKF::TestCase
     assert response.error?
     assert_match(/unknown bundle "nope" — known: knowledge/, response.content.first[:text])
   end
+
+  # The per-request work — the fingerprint memo and the residency prune — hangs
+  # off both public entry points. Neither transport calls `handle` (they go
+  # through `handle_json`), so no integration test reaches it; an embedding app
+  # that hands the server a parsed Hash does, and skipping the wrapper there
+  # would leave its residency unbounded.
+  test "the request seam wraps `handle`, not only `handle_json`" do
+    memory = OKF::MCP::MemoryBackend.new
+    wrapped = 0
+    memory.singleton_class.prepend(Module.new do
+      define_method(:during_request) { |&block| wrapped += 1; super(&block) }
+    end)
+    server = OKF::MCP::Server.build(@registry, engine: memory)
+
+    # Braced, so the hash is the positional request rather than keywords.
+    server.handle({ jsonrpc: "2.0", id: 1, method: "initialize",
+                    params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "0" } } })
+    assert_equal 1, wrapped
+
+    server.handle_json(JSON.generate(jsonrpc: "2.0", id: 2, method: "tools/list", params: {}))
+    assert_equal 2, wrapped
+  end
 end

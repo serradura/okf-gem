@@ -151,6 +151,42 @@ module ByDir
       assert_equal 2, json(okf("catalog", fixture("conformant"), "--dir", "TABLES", "--json")).fetch("count")
     end
 
+    # The one shape where the alias and a real directory collide, and the alias
+    # has to lose: a spelling that saves a shell quote is worth less than a
+    # directory being nameable at all. `--dir root` used to answer for the
+    # bundle root here — the wrong concepts, exit 0, nothing said.
+    test "a directory really named `root` beats the root's alias" do
+      inside = json(okf("catalog", fixture("namesake"), "--dir", "root", "--json"))
+      assert_equal %w[root/deep/note root/handbook root/policy], inside.fetch("concepts").map { |row| row["id"] }
+
+      # The alias is only what a real directory is *not*, so `.` still answers
+      # for the root and the two are no longer the same question.
+      dot = json(okf("catalog", fixture("namesake"), "--dir", ".", "--json"))
+      assert_equal [ "charter" ], dot.fetch("concepts").map { |row| row["id"] }
+      refute_equal dot, inside
+    end
+
+    # The two "does this bundle have a `root` directory?" answers have to agree.
+    # The concept views read the catalog, which knows only directories holding
+    # concepts; `dirs`/`index` read the directory map, which counts an index.md
+    # too. Asking the catalog left `--dir root` folded here — the alias won in
+    # the one view whose fixture could not see the directory.
+    test "a `root` directory holding only an index.md still beats the alias" do
+      data = json(okf("catalog", fixture("hollow"), "--dir", "root", "--json"))
+      assert_equal 0, data.fetch("count"), "the alias won and answered for the bundle root"
+      assert_empty data.fetch("concepts")
+
+      # …and the same bundle's `dirs` has always seen the directory, which is
+      # what made the disagreement invisible.
+      assert_includes json(okf("dirs", fixture("hollow"), "--json")).fetch("dirs").map { |row| row["dir"] }, "root"
+    end
+
+    test "--area root reaches a real `root` area, not the (root) one" do
+      data = json(okf("catalog", fixture("namesake"), "--area", "root", "--json"))
+      assert_equal %w[root/deep/note root/handbook root/policy], data.fetch("concepts").map { |row| row["id"] }
+      assert_equal %w[root root root], data.fetch("concepts").map { |row| row["top_dir"] }
+    end
+
     test "--dir composes with the other filters and with a projection" do
       data = json(okf("catalog", fixture("conformant"), "--dir", "tables", "--tag", "orders", "--fields", "id"))
       assert_equal [ { "id" => "tables/orders" } ], data.fetch("concepts")

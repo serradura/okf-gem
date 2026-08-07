@@ -20,11 +20,18 @@ module ByDir
       assert_equal 2, by_dir["services"]["subtree"]
     end
 
-    test "dir narrows to one branch" do
+    # `total` counts what the request matched, here and in every other tool.
+    # It used to stay at the whole bundle's directory count so the narrowing
+    # was visible — defensible alone, wrong as a set: catalog and search count
+    # theirs *after* filtering, so one key answered two questions, and the
+    # module's own promise ("every list output is bounded with a visible
+    # total") made the larger number read as rows withheld.
+    test "dir narrows to one branch, and total counts what matched" do
       server = mcp_server(fixture("knowledge"))
       data = call_tool!(server, "dirs", bundle: "knowledge", dir: "services")
       assert_equal [ "services" ], data["dirs"].map { |row| row["dir"] }
-      assert_equal 4, data["total"], "total stays the whole bundle so the narrowing is visible"
+      assert_equal 1, data["total"]
+      assert_equal data["dirs"].length, data["total"], "dirs never truncates, so the two always agree"
     end
 
     test "depth bounds how far below the start rows go" do
@@ -53,6 +60,24 @@ module ByDir
       server = mcp_server(fixture("knowledge"))
       data = call_tool!(server, "dirs", bundle: "knowledge", dir: "/")
       assert_includes data["dirs"].map { |row| row["dir"] }, "."
+    end
+
+    # The other half of catalog's "a directory literally named root is
+    # addressable": here the fold was doubly silent, because `scoped_rows`
+    # skips its existence check for the root, so neither the narrowing nor the
+    # refusal happened.
+    test "a directory literally named root narrows to itself" do
+      server = mcp_server(fixture("rooted"))
+      data = call_tool!(server, "dirs", bundle: "rooted", dir: "root")
+      assert_equal [ "root" ], data["dirs"].map { |row| row["dir"] }
+      assert_equal 2, data["dirs"].first["count"]
+    end
+
+    test "\"root\" in a bundle that has no such directory is refused, not folded" do
+      server = mcp_server(fixture("knowledge"))
+      result = call_tool(server, "dirs", bundle: "knowledge", dir: "root")
+      assert result.error?
+      assert_match(/no directory "root" in bundle "knowledge"/, result.text)
     end
 
     # An unrecognized argument must come back as something the model can read

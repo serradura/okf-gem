@@ -3,7 +3,7 @@ type: Overview
 title: okf-gem at a glance
 description: A light Ruby gem that reads, searches, validates, lints, and serves Open Knowledge Format v0.1 bundles.
 tags: [okf, gem, diagram]
-timestamp: 2026-07-20T12:00:00Z
+timestamp: 2026-07-29T18:00:00Z
 ---
 
 # Overview
@@ -44,7 +44,9 @@ Over such a bundle the gem gives you seven capabilities behind one
 Beside the gem's seven, the first sibling surface: the
 [MCP server](capabilities/mcp-server.md) (`okf-mcp`), which projects the same
 kernel onto the Model Context Protocol so any MCP-capable agent host reads
-these bundles through ten read-only tools.
+these bundles without a terminal — ten read-only tools, concepts as resources a
+host can attach on its own, and the [skill's](capabilities/agent-skill.md)
+playbooks as prompts.
 
 Alongside those, a family of [read views](capabilities/read-views.md) —
 `index`, `catalog`, `files`, `types`, `tags`, `stats`, `graph` — print the bundle at a

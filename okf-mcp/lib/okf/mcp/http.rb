@@ -34,10 +34,7 @@ module OKF
         app = app_for(server, bind: bind, allowed_hosts: allowed_hosts_for(bind, extra: allow_hosts))
         httpd = build(app, bind: bind, port: port)
         %w[INT TERM].each { |signal| trap(signal) { httpd.shutdown } }
-        # The listener's own port, not the asked-for one: with --port 0 the OS
-        # picks, and a boot line reporting 0 would name a port nothing answers.
-        bound = httpd.listeners.first.addr[1]
-        out.puts("okf-mcp listening on http://#{bind}:#{bound}")
+        announce(httpd, bind: bind, out: out)
         httpd.start
       end
 
@@ -65,6 +62,30 @@ module OKF
       #
       # +extra+ (the repeatable --allow-host) covers what cannot be derived: a
       # DNS name or a reverse proxy's Host, which no local interface knows.
+      # The boot line, plus what a non-loopback bind actually means.
+      #
+      # The Host allowlist below is a defence against **DNS rebinding** — a
+      # browser walked into this port by a page the reader never meant to give
+      # it to. It is not access control and must never be sold as one: a client
+      # that is not a browser sets `Host` to whatever it likes, and there is no
+      # authentication behind it. So binding anywhere but loopback publishes
+      # every served bundle to anything that can reach the port, and the boot
+      # line says so rather than reading like a URL somebody can safely share.
+      #
+      # Loopback stays quiet: it is the default and the posture the tool was
+      # built for, and a warning printed every time is a warning nobody reads.
+      def announce(httpd, bind:, out:)
+        # The listener's own port, not the asked-for one: with --port 0 the OS
+        # picks, and a boot line reporting 0 would name a port nothing answers.
+        bound = httpd.listeners.first.addr[1]
+        out.puts("okf-mcp listening on http://#{bind}:#{bound}")
+        return if LOOPBACK_HOSTS.include?(bind.to_s)
+
+        out.puts("okf-mcp: WARNING — #{bind} is every interface, not loopback. Every served bundle is")
+        out.puts("  readable by anything that can reach this port, with no authentication. The Host")
+        out.puts("  allowlist only stops browser DNS rebinding; it is not access control.")
+      end
+
       def allowed_hosts_for(bind, extra: [])
         extra = Array(extra).reject { |host| OKF.blank?(host) }
         return (extra.empty? ? nil : extra) if LOOPBACK_HOSTS.include?(bind)

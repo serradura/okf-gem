@@ -61,6 +61,39 @@ module OKF
         folder(root).catalog.select { |row| matches?(row, filters) }
       end
 
+      # Drop every parsed bundle the caller no longer serves. The residency was
+      # bounded only by the served set being fixed at boot, and the registry
+      # re-read ended that: an operator repointing entries (a checkout per
+      # branch, rotating CI worktrees, remove-then-add) left every root the
+      # registry had *ever* named keyed here, each holding a parsed bundle with
+      # its id maps memoized, until the box swapped and every connected host
+      # dropped at once. The sibling corpus cache has been capped since it was
+      # written; this one lost its bound without gaining one.
+      #
+      # An LRU would be the obvious cap and the wrong one: the natural bound is
+      # the served set, and a cap below it would thrash — re-parsing on every
+      # call for any operator who registered more bundles than the number
+      # guessed.
+      def retain(roots)
+        kept = {}
+        roots.each { |root| kept[root] = true }
+        @mutex.synchronize { @cache.delete_if { |root, _| !kept.key?(root) } }
+        nil
+      end
+
+      # One unit of work, for the fingerprint memo below. The freshness check
+      # belongs *between* requests: within one, a tool asks the engine for the
+      # catalog and then reads the unparseable count off the same folder, and
+      # each ask re-walked the whole tree — a glob plus a stat per markdown
+      # file, all of it inside the lock.
+      def during_request
+        previous = Thread.current.thread_variable_get(:okf_mcp_prints)
+        Thread.current.thread_variable_set(:okf_mcp_prints, {})
+        yield
+      ensure
+        Thread.current.thread_variable_set(:okf_mcp_prints, previous)
+      end
+
       # The disk handle behind read_concept, index and dirs — those stay on the
       # parsed bundle whichever engine answers search: bodies are read live from
       # disk (canonical), and the directory index needs the authored index.md
@@ -68,7 +101,7 @@ module OKF
       def folder(root)
         @mutex.synchronize do
           entry = @cache[root]
-          print = fingerprint(root)
+          print = print_for(root)
           unless entry && entry[:fingerprint] == print
             folder = Bundle::Folder.load(root)
             # The threaded HTTP transport can hit these lazy memos from two
@@ -83,6 +116,18 @@ module OKF
       end
 
       private
+
+      # The fingerprint, computed at most once per root per request. Outside a
+      # request (a library caller, a warm-up `refresh`) there is no memo and
+      # every call walks, which is the old behaviour and the safe default: a
+      # memo that outlived its request would be a stale answer, and staleness is
+      # the one thing this layer exists to prevent.
+      def print_for(root)
+        memo = Thread.current.thread_variable_get(:okf_mcp_prints)
+        return fingerprint(root) if memo.nil?
+
+        memo.key?(root) ? memo[root] : (memo[root] = fingerprint(root))
+      end
 
       # Does this query need the prepared index? A named "index" engine, or
       # fuzzy with no engine named (the kernel would route it to the index

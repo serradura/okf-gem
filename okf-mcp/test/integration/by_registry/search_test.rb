@@ -6,7 +6,7 @@ module ByRegistry
   class SearchTest < MCPIntegrationCase
     test "searches one registered bundle by slug" do
       with_registry("knowledge", "notes") do
-        data = call_tool!(mcp_server, "search", terms: [ "invoices" ], bundles: "knowledge")
+        data = call_tool!(mcp_server, "search", terms: [ "invoices" ], bundle: "knowledge")
         assert_equal [ { "slug" => "knowledge", "dir" => fixture("knowledge") } ], data["bundles"]
         assert(data["results"].all? { |row| row["bundle"] == "knowledge" })
       end
@@ -22,7 +22,7 @@ module ByRegistry
 
     test "an unknown slug is a tool error naming the known ones" do
       with_registry("knowledge") do
-        result = call_tool(mcp_server, "search", terms: [ "x" ], bundles: "nope")
+        result = call_tool(mcp_server, "search", terms: [ "x" ], bundle: "nope")
         assert result.error?
         assert_match(/unknown bundle "nope" — known: knowledge/, result.text)
       end

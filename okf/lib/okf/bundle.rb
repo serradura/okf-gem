@@ -160,6 +160,17 @@ module OKF
     # `id` must not move a concept out of the directory it lives in. Pure: derived
     # from the concepts and the reserved index text, no disk. Shared by the
     # `okf index` view and the server's Index panel (/index).
+    # Every directory this bundle has — the same set #directory_index enumerates
+    # (concepts or an index.md, plus every ancestor), without building the map.
+    # It is the answer to "does this bundle have a directory named X?", and the
+    # CLI needs exactly that to decide whether `--dir root` names a real
+    # directory or the bundle root. Reading it off #catalog instead is the same
+    # question asked of a smaller set, which is how the two views came to
+    # disagree about one bundle.
+    def directories
+      directory_set(concepts.map { |concept| File.dirname(concept.path) }.uniq)
+    end
+
     def directory_index
       by_dir = concepts.group_by { |concept| File.dirname(concept.path) }
       dirs = directory_set(by_dir.keys)

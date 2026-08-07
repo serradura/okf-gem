@@ -144,9 +144,44 @@ module OKF
         @kernel = kernel
         @source = source
         @notes = notes
+        @mutex = Mutex.new
+        # Deliberately *not* stamped here. A stamp is a claim about a file this
+        # instance has already read, and the boot read happened before this
+        # constructor ran — so a stat taken now would record a write that
+        # landed in between as already-seen: entries from before it, fingerprint
+        # from after, and #refresh! with nothing to do until some further write
+        # moves the fingerprint again. Resolving the path to stat it ahead of
+        # the read would mean reimplementing the kernel's discovery precedence
+        # here, so the first #refresh! re-reads instead — one parse, once per
+        # process, in exchange for never holding a fingerprint the entries do
+        # not match. #refresh! itself already stats before it reopens.
+        @stamp = nil
       end
 
-      attr_reader :entries, :source
+      attr_reader :source
+
+      # The served set, re-read when the registry file moves underneath it.
+      #
+      # This is the same rule the residency layer applies to bundle *contents*,
+      # applied to the identity map — one `stat`, and a parse only when the
+      # fingerprint has changed. It was a boot snapshot, which the kernel's own
+      # hub also is for what it mounts; three of the four ways that went stale
+      # were loud (an unknown slug names what it knows), but the fourth was
+      # not: an entry repointed at a new directory kept answering from the old
+      # one under the current slug, which is a silent wrong answer.
+      #
+      # Argv mode is untouched, and not by a flag: it never carried the kernel
+      # registry into the instance, so there is nothing here to re-read and no
+      # way for the served set to widen. Containment stays a property of the
+      # shape.
+      def entries
+        refresh!
+        @entries
+      end
+
+      # Every reader goes through #entries or #refresh! so a caller cannot
+      # accidentally answer from the stale copy; the `stat` is a couple of
+      # microseconds, so no request-scoped memo earns its complexity here.
 
       # Boot-time skips (a group member whose directory is gone) for the CLI to
       # print; tools never see them.
@@ -155,22 +190,25 @@ module OKF
       end
 
       def slugs
-        @entries.map(&:slug)
+        entries.map(&:slug)
       end
 
       # The kernel's rule: the first entry still on disk, else the first.
       def default_slug
-        chosen = @entries.find { |entry| File.directory?(entry.root) } || @entries.first
+        rows = entries
+        chosen = rows.find { |entry| File.directory?(entry.root) } || rows.first
         chosen&.slug
       end
 
       # The registered groups, for list_bundles — [] when the allowlist came
       # from argv, where groups fanned out to their leaves at boot.
       def groups
+        refresh!
         @kernel.nil? ? [] : @kernel.groups_listing
       end
 
       def group?(slug)
+        refresh!
         return false if @kernel.nil?
 
         !@kernel.group?(slug).nil?
@@ -181,7 +219,7 @@ module OKF
       # directory are each a hard, actionable error.
       def root!(bundle)
         slug = OKF::Registry.normalize(bundle)
-        entry = @entries.find { |candidate| candidate.slug == slug }
+        entry = entries.find { |candidate| candidate.slug == slug }
         if entry.nil?
           raise group_error(slug) if group?(slug)
 
@@ -201,7 +239,7 @@ module OKF
         # An *empty list* is an argument mistake, not a fact about the disk. It
         # used to fall through to the "missing on disk" branch below, sending
         # the reader off diagnosing a broken installation.
-        raise Error, "bundles: [] names no bundle — omit it (or pass \"*\") to search every bundle" if asked.is_a?(Array) && asked.empty?
+        raise Error, "bundle: [] names no bundle — omit it (or pass \"*\") to search every bundle" if asked.is_a?(Array) && asked.empty?
 
         names = Array(OKF.blank?(asked) ? "*" : asked)
         pairs = []
@@ -216,11 +254,63 @@ module OKF
 
       private
 
+      # Re-read the identity map when — and only when — the registry file's
+      # fingerprint has moved. A no-op in argv mode, where @kernel is nil by
+      # construction.
+      #
+      # Two failures are survived rather than propagated, because a server that
+      # already has a working set must not be taken down by a file it does not
+      # own: an unreadable file (deleted, or caught mid-write) and an
+      # unparseable one both keep the last good entries. Neither advances the
+      # stamp, so the next call retries and a fixed file is picked up on its
+      # own — latching the bad stamp instead would make a transient truncation
+      # permanent until restart.
+      #
+      # The three fields move together or not at all: `--http` serves on
+      # WEBrick's per-request threads, so without the lock a reader could see
+      # entries from the new parse against the kernel from the old one. The
+      # fast path takes the stat outside it — the whole point of the
+      # fingerprint is that the common call touches nothing shared.
+      #
+      # Note the order inside: stat, *then* reopen. A write landing between the
+      # two is read but stamped with the older fingerprint, so the next call
+      # re-reads — the safe direction. The reverse is the boot bug #initialize
+      # documents.
+      def refresh!
+        return if @kernel.nil?
+
+        stamp = registry_stamp
+        return if stamp.nil? || stamp == @stamp
+
+        @mutex.synchronize do
+          return if stamp == @stamp
+
+          kernel = @kernel.reopen
+          @entries = kernel.map { |entry| Entry.new(entry.slug, entry.path, entry.title) }
+          @kernel = kernel
+          @stamp = stamp
+        end
+      rescue OKF::Error, SystemCallError
+        nil
+      end
+
+      # mtime *and* size, the pair the residency layer already uses: a second
+      # write inside one filesystem timestamp tick moves the size when it does
+      # not move the clock.
+      def registry_stamp
+        return nil if @kernel.nil?
+
+        stat = ::File.stat(@kernel.path)
+        [ stat.mtime.to_f, stat.size ]
+      rescue SystemCallError
+        nil
+      end
+
       def resolve_search_name(name, pairs, skipped)
         return all_pairs(pairs, skipped) if name == "*"
 
         slug = OKF::Registry.normalize(name)
-        entry = @entries.find { |candidate| candidate.slug == slug }
+        entry = entries.find { |candidate| candidate.slug == slug }
         return add_pair(pairs, entry.slug, root!(slug)) if entry
 
         return group_pairs(slug, pairs, skipped) if group?(slug)
@@ -229,7 +319,7 @@ module OKF
       end
 
       def all_pairs(pairs, skipped)
-        @entries.each do |entry|
+        entries.each do |entry|
           if File.directory?(entry.root)
             add_pair(pairs, entry.slug, entry.root)
           else

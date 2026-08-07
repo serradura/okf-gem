@@ -14,11 +14,21 @@ module OKF
       ENGINE_METHODS = %i[refresh search catalog capabilities].freeze
 
       def self.detect
-        require "okf/sqlite3"
-        engine = OKF::Sqlite3::Backend.new
+        engine = build_engine
         suitable?(engine) ? engine : MemoryBackend.new
-      rescue LoadError
+      rescue LoadError, StandardError
         MemoryBackend.new
+      end
+
+      # Both ways the optional engine can fail are on this side of the seam, so
+      # the one rescue above covers both: the `require` (absent gem, native
+      # extension that will not load) and the construction (a connection it
+      # cannot open, a schema check, a constant renamed out from under us).
+      # Catching only LoadError left the second half fatal, which is exactly
+      # what "degrades instead of crashing the server" promises it is not.
+      def self.build_engine
+        require "okf/sqlite3"
+        OKF::Sqlite3::Backend.new
       end
 
       def self.suitable?(engine)

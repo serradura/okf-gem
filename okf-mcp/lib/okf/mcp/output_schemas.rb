@@ -56,20 +56,27 @@ module OKF
         "search" => {
           properties: {
             query: { type: "array", items: { type: "string" } },
+            # Resolved, not echoed — `fuzzy` picks the index without being
+            # asked — so it is always present and belongs in `required`.
+            engine: { type: "string", enum: %w[scan index] },
             bundles: ROWS,
             total: COUNT,
             results: ROWS,
             unparseable: UNPARSEABLE
           },
-          required: %w[query bundles total results]
+          required: %w[query engine bundles total results]
         },
         "catalog" => {
           properties: { bundle: SLUG, total: COUNT, concepts: ROWS, unparseable: UNPARSEABLE },
           required: %w[bundle total concepts]
         },
+        # `total` is entries across every log file and `files` how many files
+        # they came from — two different counts, both named, because one
+        # standing for the other is what let an unbounded 119 KB answer read
+        # as bounded.
         "log" => {
-          properties: { bundle: SLUG, total: COUNT, logs: ROWS },
-          required: %w[bundle total logs]
+          properties: { bundle: SLUG, total: COUNT, files: COUNT, logs: ROWS },
+          required: %w[bundle total files logs]
         },
         "validate" => {
           properties: {

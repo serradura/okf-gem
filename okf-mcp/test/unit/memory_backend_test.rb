@@ -97,6 +97,56 @@ class MemoryBackendTest < OKF::TestCase
     end
   end
 
+  # The corpus cache above has been bounded since it was written. This one was
+  # bounded only by the served set being fixed at boot — which the registry
+  # re-read ended: every root the registry has *ever* pointed at stayed keyed
+  # here, each holding a parsed bundle with its id maps memoized. A long-lived
+  # --http process whose operator repoints entries per branch grows until the
+  # box swaps, taking every connected host down at once.
+  test "roots the registry no longer serves are dropped from the residency" do
+    gone = Dir.mktmpdir("okf-mcp-gone")
+    File.write(File.join(gone, "note.md"), "---\ntype: Note\ntitle: Gone\n---\n\nA body.\n")
+    begin
+      @backend.folder(@dir)
+      @backend.folder(gone)
+      assert_equal 2, cached_roots.length
+
+      @backend.retain([ @dir ])
+
+      assert_equal [ @dir ], cached_roots, "a parsed bundle outlived the registry entry that named it"
+    ensure
+      FileUtils.rm_rf(gone)
+    end
+  end
+
+  test "retain keeps every served root, however many there are" do
+    @backend.folder(@dir)
+    @backend.retain([ @dir ])
+    assert_equal [ @dir ], cached_roots, "a served bundle was evicted, so the next call re-parses it"
+  end
+
+  # The fingerprint is a freshness check *between* requests. Recomputing it on
+  # every ask made one request walk the tree two or three times — a glob plus a
+  # stat per markdown file, all of it inside the global lock — because a tool
+  # asks the engine for the catalog and then reads the unparseable count off
+  # the same folder.
+  test "one request walks the tree once per root, however often it asks" do
+    walks = 0
+    counter = Module.new do
+      define_method(:fingerprint) { |root| walks += 1; super(root) }
+    end
+    @backend.singleton_class.prepend(counter)
+
+    @backend.during_request do
+      3.times { @backend.folder(@dir) }
+    end
+    assert_equal 1, walks
+
+    # …and the next request checks again, or the residency would go stale.
+    @backend.during_request { @backend.folder(@dir) }
+    assert_equal 2, walks
+  end
+
   test "a reordered bundle list reuses the held corpus rather than rebuilding" do
     other = Dir.mktmpdir("okf-mcp-other")
     File.write(File.join(other, "note.md"), "---\ntype: Note\ntitle: Other\n---\n\nAnother body.\n")
@@ -134,5 +184,9 @@ class MemoryBackendTest < OKF::TestCase
     path = File.join(@dir, "note.md")
     File.write(path, "---\ntype: Note\ntitle: One\n---\n\n#{body}\n")
     File.utime(mtime, mtime, path)
+  end
+
+  def cached_roots
+    @backend.instance_variable_get(:@cache).keys
   end
 end
