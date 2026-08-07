@@ -139,7 +139,9 @@ the two things no checker can compute — contradictions, and *semantic* stalene
 Publish a gem named `okf-*` carrying an `okf/plugin.rb` and installing it is the
 whole installation: your verb answers to `okf` and behaves like a built-in.
 Nothing an addon registers can displace one, and a broken addon is skipped rather
-than taking the CLI down.
+than taking the CLI down. [`okf-mcp`](https://rubygems.org/gems/okf-mcp) is the
+first one — install it and `okf mcp` serves your bundles over the Model Context
+Protocol, with nothing in this gem naming it.
 
 The graph page treats a bundle as untrusted content: inlined data is escaped and
 every concept body is sanitized before it reaches the DOM, so a script hidden in

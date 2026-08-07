@@ -5,6 +5,8 @@ require "json"
 require "mcp"
 
 require_relative "../mcp"
+require_relative "output_schemas"
+require_relative "resources"
 
 module OKF
   module MCP
@@ -33,6 +35,19 @@ module OKF
       GRAPH_VIEWS = %w[minimal hubs traffic].freeze
       LINT_GROUPS = %w[check folder].freeze
 
+      # Declared explicitly, because the SDK's default announces every
+      # capability it knows how to route — and this server used to inherit a
+      # `resources` declaration while `resources/list` answered `[]`, plus a
+      # `logging` one nothing ever emits through. That is the same class of
+      # dishonesty the `readOnlyHint` annotations are careful to avoid, so the
+      # hash below names exactly what is served and nothing else.
+      #
+      # No `listChanged` on any of them and no `subscribe`: the tool, prompt
+      # and resource lists are fixed for a process's life, and nothing here
+      # sends a notification. Claiming otherwise would invite a host to wait
+      # for one.
+      CAPABILITIES = { tools: {}, prompts: {}, resources: {}, completions: {} }.freeze
+
       INSTRUCTIONS = <<~TEXT
         Tools take a `bundle` argument: a slug from list_bundles — the same
         name `@slug` resolves at the okf CLI. The retrieval discipline: orient
@@ -40,9 +55,10 @@ module OKF
         pointed questions with search (omit `bundles` to search every bundle),
         and read only the winning concepts with read_concept — never slurp a
         bundle whole. Check log for recent history. validate and lint report a
-        bundle's health: you may flag what they find, but fixing it belongs to
-        the okf skill and CLI. Bodies are read live from disk, so results
-        always reflect the current files.
+        bundle's health: you may flag what they find, and the okf-curate and
+        okf-maintain prompts carry the procedures for fixing it — the tools
+        here never write. Bodies are read live from disk, so results always
+        reflect the current files.
       TEXT
 
       # Holds what every tool closes over: the bundle allowlist, the engine
@@ -60,17 +76,31 @@ module OKF
       end
 
       class << self
-        def build(registry, engine: Backend.detect)
+        # `configuration:` is the seam the output-schema suite needs: it turns
+        # on the SDK's result validation so a schema that has drifted from its
+        # payload fails a test. Left nil in production deliberately — a schema
+        # bug should not turn a working tool into a runtime error.
+        def build(registry, engine: Backend.detect, configuration: nil)
           memory = engine.is_a?(MemoryBackend) ? engine : MemoryBackend.new
           context = Context.new(registry, engine, memory)
-          ::MCP::Server.new(
+          server = ::MCP::Server.new(
             name: "okf",
             title: "OKF knowledge bundles",
             version: VERSION,
             instructions: INSTRUCTIONS,
+            capabilities: CAPABILITIES,
+            configuration: configuration,
             tools: tools_for(context),
-            prompts: prompts
+            prompts: prompts,
+            resources: Resources.list(registry),
+            resource_templates: Resources.templates
           )
+          # Replaces the SDK's URI matching wholesale, because an OKF id below
+          # the root carries slashes and the template matcher binds a variable
+          # to `[^/]+`. Resources owns the parsing; the template is signage.
+          server.resources_read_handler { |params| Resources.read(context, params[:uri]) }
+          server.completion_handler { |params| { completion: { values: Resources.complete(context, params) } } }
+          server
         end
 
         def tools_for(context)
@@ -92,13 +122,32 @@ module OKF
         # each prompt serves the corresponding playbook read from the installed
         # okf gem's canonical skill tree — never vendored, so the playbooks
         # version with the kernel automatically.
+        #
+        # Every playbook but `doctor` is offered, in SKILL.md's own Commands
+        # table order so the two surfaces read alike. `doctor` installs the CLI
+        # and finds a Ruby to run it on; reaching this server has already
+        # disproved its premise.
+        #
+        # The authoring playbooks are here despite every tool being read-only,
+        # because **a prompt is instructions, not a capability**: the writing is
+        # done by the host's own file tools, exactly as it is when the skill is
+        # installed as a skill. The first four shipped were the four whose names
+        # resembled tools, which is a resemblance rather than a reason — and the
+        # line was already crossed, since `maintain` says "update bodies and
+        # timestamp" and `curate` says "propose, then apply".
+        PROMPTS = {
+          "okf-menu" => [ "menu", "recommend the highest-value next move; never auto-run" ],
+          "okf-search" => [ "search", "find the concepts that answer a pointed question" ],
+          "okf-produce" => [ "produce", "create or extend a bundle" ],
+          "okf-migrate" => [ "migrate", "convert existing docs in place: frontmatter and reserved files, bodies verbatim" ],
+          "okf-maintain" => [ "maintain", "keep a bundle current as the work it documents changes" ],
+          "okf-refine" => [ "refine", "optimize the bundle's structure: evidence-driven, cohesion-first" ],
+          "okf-consume" => [ "consume", "answer questions from an OKF bundle without reading it whole" ],
+          "okf-curate" => [ "curate", "judge and improve a bundle's curation quality" ]
+        }.freeze
+
         def prompts
-          {
-            "okf-consume" => [ "consume", "answer questions from an OKF bundle without reading it whole" ],
-            "okf-search" => [ "search", "find the concepts that answer a pointed question" ],
-            "okf-maintain" => [ "maintain", "keep a bundle current as the work it documents changes" ],
-            "okf-curate" => [ "curate", "judge and improve a bundle's curation quality" ]
-          }.map do |name, (playbook, description)|
+          PROMPTS.map do |name, (playbook, description)|
             # `**` absorbs the server_context: the SDK's template passes.
             ::MCP::Prompt.define(name: name, description: "#{description} (the okf skill's #{playbook} playbook)") do |_args, **|
               text = Server.playbook(playbook)
@@ -585,6 +634,11 @@ module OKF
           ::MCP::Tool.define(
             name: name,
             description: description,
+            # Looked up rather than passed, so a tool cannot ship without its
+            # shape being a deliberate omission — read_concept is the one
+            # entry OutputSchemas does not carry, because markdown has no
+            # object shape to declare.
+            output_schema: OutputSchemas[name],
             # `additionalProperties: false` is the first line of the same
             # defence as the rescue below. Without it an unrecognized argument
             # reached `body.call(**arguments)` and raised ArgumentError, which
@@ -609,8 +663,15 @@ module OKF
           end
         end
 
+        # Both channels, always: the JSON text a client on an older protocol
+        # version reads, and the same object as structuredContent for one that
+        # can take it. Never one or the other — a host should not have to
+        # negotiate which of the two this server happens to use.
         def respond_json(payload)
-          ::MCP::Tool::Response.new([ { type: "text", text: JSON.generate(payload) } ])
+          ::MCP::Tool::Response.new(
+            [ { type: "text", text: JSON.generate(payload) } ],
+            structured_content: payload
+          )
         end
 
         def respond_error(message)

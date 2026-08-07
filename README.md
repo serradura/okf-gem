@@ -503,7 +503,9 @@ the two things no checker can compute — contradictions, and *semantic* stalene
 Publish a gem named `okf-*` carrying an `okf/plugin.rb` and installing it is the
 whole installation: your verb answers to `okf` and behaves like a built-in.
 Nothing an addon registers can displace one, and a broken addon is skipped rather
-than taking the CLI down. Contract and threat model:
+than taking the CLI down. `okf-mcp` is the first one: installing it adds `okf
+mcp` to `okf help`, and the MCP server needs no line of the baseline to know it
+exists. Contract and threat model:
 [extension points](.okf/design/extension-points.md).
 
 The graph page treats a bundle as untrusted content: inlined data is escaped, and

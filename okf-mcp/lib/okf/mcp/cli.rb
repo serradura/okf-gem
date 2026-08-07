@@ -12,19 +12,26 @@ module OKF
     # codes keep the kernel CLI's contract: 0 ok, 2 usage error. The boot line
     # goes to stderr because stdout is the stdio protocol channel.
     class CLI
-      USAGE = "usage: okf-mcp [options] [<bundle-dir>|@slug ...]   " \
+      USAGE = "usage: okf mcp [options] [<bundle-dir>|@slug ...]   " \
               "(no args: serve the bundles registered with `okf registry`)"
 
       DEFAULT_BIND = "127.0.0.1"
       DEFAULT_PORT = 9134
 
-      def self.run(argv, out: $stderr)
-        new(argv, out: out).run
+      # Two streams, because they carry different things. +out+ is the
+      # diagnostic channel — the boot line, the notes, the refusals — and
+      # defaults to stderr since stdout belongs to the stdio protocol. +stdout+
+      # is the human channel the two informational flags use, and is a
+      # parameter rather than a literal `$stdout` so the `okf mcp` verb can
+      # hand over the streams the kernel injected into it.
+      def self.run(argv, out: $stderr, stdout: $stdout)
+        new(argv, out: out, stdout: stdout).run
       end
 
-      def initialize(argv, out: $stderr)
+      def initialize(argv, out: $stderr, stdout: $stdout)
         @argv = argv
         @out = out
+        @stdout = stdout
         @http = false
         @bind = DEFAULT_BIND
         @port = DEFAULT_PORT
@@ -60,11 +67,11 @@ module OKF
           opts.on("--allow-host HOST", "admit this Host header (repeatable; for a DNS name",
             "or a reverse proxy no local interface knows about)") { |value| @allow_hosts << value }
           opts.on("-h", "--help", "print this help") do
-            $stdout.puts(opts)
+            @stdout.puts(opts)
             @done = true
           end
           opts.on("--version", "print the version") do
-            $stdout.puts(VERSION)
+            @stdout.puts(VERSION)
             @done = true
           end
         end

@@ -33,13 +33,13 @@ class HTTPTest < MCPIntegrationCase
     end
   end
 
-  test "the spawned exe serves --http, announces the real port, and dies cleanly on TERM" do
+  test "the spawned verb serves --http, announces the real port, and dies cleanly on TERM" do
     require "open3"
     require "timeout"
-    exe = File.expand_path("../../exe/okf-mcp", __dir__)
+    okf = Gem.bin_path("okf", "okf")
     Timeout.timeout(30) do
       Open3.popen3(RbConfig.ruby, "-rbundler/setup", "-I#{File.expand_path("../../lib", __dir__)}",
-        exe, "--http", "--port", "0", fixture("knowledge")) do |_stdin, _stdout, stderr, wait|
+        okf, "mcp", "--http", "--port", "0", fixture("knowledge")) do |_stdin, _stdout, stderr, wait|
         match = nil
         while (line = stderr.gets)
           break if (match = line.match(%r{listening on http://127\.0\.0\.1:(\d+)}))
@@ -82,11 +82,32 @@ class HTTPTest < MCPIntegrationCase
 
   # The SDK caps the body it will read precisely to avoid the allocation; the
   # bridge must not have already made it.
+  #
+  # Two endings are the same decision, and asserting only the first is what
+  # made this test fail 4 runs in 15. WEBrick drains an unread body only when
+  # both sides keep the connection alive (httpserver.rb: `req.fixup` is inside
+  # that guard), and a 413 does not — so the server answers on the header and
+  # closes while the client is still writing its 4 MiB. Whether the client
+  # gets to read the 413 or takes ECONNRESET mid-write is a race on the
+  # socket, not a difference in what the server did. Closing early is the
+  # better behaviour of the two, not a defect to design around: it declines to
+  # spend time reading a body it has already refused.
+  #
+  # What is *not* a race, and is what this really guards, is the line after:
+  # refusing must not wedge the server.
   test "an oversized body is refused without being buffered whole" do
     with_http_server do |port|
       oversized = OKF::MCP::HTTP::MAX_REQUEST_BYTES + 1
-      response = post(port, "x" * oversized)
-      assert_equal "413", response.code
+      refused = begin
+        post(port, "x" * oversized).code == "413"
+      rescue Errno::EPIPE, Errno::ECONNRESET
+        true
+      end
+      assert refused, "the oversized body was accepted"
+
+      response = post(port, { jsonrpc: "2.0", id: 1, method: "initialize",
+        params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "0" } } })
+      assert_equal "200", response.code, "the server did not survive refusing an oversized body"
     end
   end
 
