@@ -5,7 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.13.0] - 2026-08-07
+
+### Added
+
+- **`Bundle#directories`** — the bundle's own answer to "does this bundle have
+  directory X?", public because every surface now asks it (the CLI's concept
+  views, `okf-mcp`'s `dir` refusal) and the API this version's minor bump
+  exists for. Introduced by, and argued in, the `root` fix under Fixed below.
 
 ### Changed
 
@@ -42,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   row returns, the one thing it promises never to do.
 
   "Does this bundle have a `root` directory?" is now asked of the bundle
-  (`Bundle#directories`, new and public) rather than of whichever list a view
+  (`Bundle#directories`, under Added above) rather than of whichever list a view
   had to hand. The concept views were reading it off the *catalog*, which knows
   only directories holding concepts, so a `root/` carrying nothing but an
   `index.md` stayed folded in `catalog`/`files`/`tags`/`types`/`search` while
@@ -81,6 +88,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   moving the gem down a level dropped ~100 tested lines out of the report and
   line coverage read 98.63% against 98.47%. Its root is the repository now, with
   the report still written inside the gem.
+
+### Security
+
+- **A symlinked file in a bundle can no longer read past the bundle root.** The
+  traversal guard `Path.join_under!` was lexical — it expands the path string,
+  and `File.expand_path` does not resolve a symlink — so a link whose name sat
+  inside the root but whose target did not passed the check, and the read
+  followed it. Every read now realpath-resolves and re-checks against the real
+  root: `Path.under?` is the shared pure predicate, `Bundle::Reader` quarantines
+  an escaping file into the unparseable bucket (a planted symlink is one bad
+  file, not grounds to fail the whole bundle read, which would hand any writer of
+  a served directory a denial of service), and `Concept::File` guards its own
+  read. A symlink that stays inside the bundle still resolves as before. The gap
+  reached every reader; serving a bundle's contents to an agent — as `okf-mcp`
+  does — is what surfaced it.
 
 ## [1.12.0] - 2026-07-24
 
@@ -1300,6 +1322,8 @@ Initial release.
 
 - Runs on Ruby >= 2.4 with two runtime dependencies: rack and webrick.
 
+[1.13.0]: https://github.com/serradura/okf-gem/compare/v1.12.0...v1.13.0
+[1.12.0]: https://github.com/serradura/okf-gem/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/serradura/okf-gem/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/serradura/okf-gem/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/serradura/okf-gem/compare/v1.8.0...v1.9.0
