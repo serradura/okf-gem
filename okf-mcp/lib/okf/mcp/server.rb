@@ -12,7 +12,7 @@ module OKF
   module MCP
     # Builds the MCP::Server definition shared by every transport: ten
     # read-only tools mapped straight onto the kernel's library API, plus the
-    # skill's playbooks as prompts. The surface is deliberately minimal —
+    # two consuming prompts. The surface is deliberately minimal —
     # agents do better with few, well-described tools, and dirs + index +
     # search compose to most retrieval — so adding a tool here is a design
     # decision, not a convenience.
@@ -89,10 +89,9 @@ module OKF
         pointed questions with search (omit `bundle` to search every bundle),
         and read only the winning concepts with read_concept — never slurp a
         bundle whole. Check log for recent history. validate and lint report a
-        bundle's health: you may flag what they find, and the okf-curate and
-        okf-maintain prompts carry the procedures for fixing it — the tools
-        here never write. Bodies are read live from disk, so results always
-        reflect the current files.
+        bundle's health: you may flag what they find, but fixing it belongs to
+        the okf skill and CLI — the tools here never write. Bodies are read
+        live from disk, so results always reflect the current files.
       TEXT
 
       # Holds what every tool closes over: the bundle allowlist, the engine
@@ -214,68 +213,46 @@ module OKF
           ]
         end
 
-        # The skill's judgment layer, riding the same wire as the mechanics:
-        # each prompt serves the corresponding playbook read from the installed
-        # okf gem's canonical skill tree — never vendored, so the playbooks
-        # version with the kernel automatically.
+        # The consuming prompts, and only those — this gem's own text, written
+        # against the tools above rather than the CLI. The skill's playbooks
+        # were served here verbatim once, all eight, on the argument that a
+        # prompt is instructions rather than a capability; what that argument
+        # missed is *whose* instructions they were. Every playbook speaks in
+        # `okf …` invocations and half dead-end a CLI-less host at "install the
+        # CLI first", so to the host this surface exists for they taught a
+        # vocabulary it cannot use and a mission (authoring) its tools refuse.
+        # This server makes a client an expert consumer of bundles; producing,
+        # migrating, maintaining, refining and curating stay with the skill,
+        # which is installed where a filesystem and the CLI actually are.
         #
-        # Every playbook but `doctor` is offered, in SKILL.md's own Commands
-        # table order so the two surfaces read alike. `doctor` installs the CLI
-        # and finds a Ruby to run it on; reaching this server has already
-        # disproved its premise.
-        #
-        # The authoring playbooks are here despite every tool being read-only,
-        # because **a prompt is instructions, not a capability**: the writing is
-        # done by the host's own file tools, exactly as it is when the skill is
-        # installed as a skill. The first four shipped were the four whose names
-        # resembled tools, which is a resemblance rather than a reason — and the
-        # line was already crossed, since `maintain` says "update bodies and
-        # timestamp" and `curate` says "propose, then apply".
+        # Owning the text is the cost: these two restate the skill's retrieval
+        # doctrine in tool vocabulary, so a doctrine change there must be
+        # carried here by hand. The pair keeps SKILL.md's Commands-table order
+        # (search before consume).
         PROMPTS = {
-          "okf-menu" => [ "menu", "recommend the highest-value next move; never auto-run" ],
-          "okf-search" => [ "search", "find the concepts that answer a pointed question" ],
-          "okf-produce" => [ "produce", "create or extend a bundle" ],
-          "okf-migrate" => [ "migrate", "convert existing docs in place: frontmatter and reserved files, bodies verbatim" ],
-          "okf-maintain" => [ "maintain", "keep a bundle current as the work it documents changes" ],
-          "okf-refine" => [ "refine", "optimize the bundle's structure: evidence-driven, cohesion-first" ],
-          "okf-consume" => [ "consume", "answer questions from an OKF bundle without reading it whole" ],
-          "okf-curate" => [ "curate", "judge and improve a bundle's curation quality" ]
+          "okf-search" => [ "search", "find the concepts that answer a pointed question, without paying for the whole bundle" ],
+          "okf-consume" => [ "consume", "answer questions from an OKF bundle without reading it whole" ]
         }.freeze
 
         def prompts
-          PROMPTS.map do |name, (playbook, description)|
+          PROMPTS.map do |name, (file, description)|
             # `**` absorbs the server_context: the SDK's template passes.
-            ::MCP::Prompt.define(name: name, description: "#{description} (the okf skill's #{playbook} playbook)") do |_args, **|
-              # Read from the *installed* kernel's skill tree, and the gemspec
-              # floors okf without a ceiling — so a later kernel that renames or
-              # drops a playbook leaves this list advertising a file that is
-              # gone. The tools send exactly this class of failure back as an
-              # actionable message (see #define_tool); without the same care
-              # here the errno escaped as a bare "Internal error" carrying a
-              # filesystem path, which names neither the prompt nor the fix.
-              text = begin
-                Server.playbook(playbook)
-              rescue SystemCallError, OKF::Error, LoadError
-                raise ::MCP::Server::RequestHandlerError.new(
-                  "the #{name} prompt needs the okf skill's #{playbook} playbook, which the installed okf " \
-                  "gem does not carry — upgrade okf, or read it from `okf skill <dest>`",
-                  nil, error_type: :invalid_params,
-                  error_code: ::JsonRpcHandler::ErrorCode::INVALID_PARAMS
-                )
-              end
+            ::MCP::Prompt.define(name: name, description: description) do |_args, **|
               ::MCP::Prompt::Result.new(
                 description: description,
-                messages: [ ::MCP::Prompt::Message.new(role: "user", content: ::MCP::Content::Text.new(text)) ]
+                messages: [ ::MCP::Prompt::Message.new(role: "user", content: ::MCP::Content::Text.new(Server.prompt_text(file))) ]
               )
             end
           end
         end
 
-        # Read live from the installed kernel's skill tree (the single-copy
-        # rule): loaded on first use so booting the server never pays for it.
-        def playbook(name)
-          require "okf/skill"
-          ::File.read(::File.join(OKF::Skill::ASSETS, "playbooks", "#{name}.md"), encoding: "UTF-8")
+        # This gem's own prompts/ tree, read at get-time so booting never pays
+        # for it. No missing-file rescue like the tools carry: the old path
+        # read from the *installed kernel's* skill tree, where version skew
+        # could orphan a name, but a file shipped in this gem beside this file
+        # can only be absent when the package itself is broken.
+        def prompt_text(name)
+          ::File.read(::File.join(__dir__, "prompts", "#{name}.md"), encoding: "UTF-8")
         end
 
         private

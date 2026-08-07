@@ -113,25 +113,18 @@ shape to declare.
 
 ## Prompts
 
-Eight prompts serve the okf skill's playbooks — `okf-menu`, `okf-search`,
-`okf-produce`, `okf-migrate`, `okf-maintain`, `okf-refine`, `okf-consume`,
-`okf-curate` — read from the installed kernel so they version with it, and
-listed in the skill's own order so the two surfaces read alike. `okf-menu` is
-the front door: it orients on the signals and recommends a move rather than
-running one.
+Two prompts, the consuming pair: `okf-search` — retrieval as progressive
+disclosure (map, then search, then only the winning bodies), with the engine
+doctrine per query shape — and `okf-consume` — using a bundle as working
+context without reading it whole. Both are this gem's own text, written
+against the tools above rather than the CLI, so they work on a host with no
+shell and no filesystem.
 
-The authoring playbooks are here even though every tool is read-only, because a
-prompt is instructions rather than a capability — the writing is done by your
-own tools, exactly as it is when the skill is installed as a skill. The one
-playbook not offered is `doctor`, which installs the CLI; if this server is
-answering, it is already installed.
-
-**A playbook carries its steps, not the craft behind them.** Several link on
-into the skill's own reference tree — `authoring.md`, the concept and index
-templates, the spec — and this server does not serve those files, so a host
-without filesystem access cannot follow the links. `okf-produce` is the one
-that leans hardest on them. Where that matters, install the skill itself
-(`okf skill <dest>`) beside this server and the whole tree is on disk.
+The okf skill's playbooks are deliberately not served. They speak in `okf …`
+invocations, and the authoring ones — produce, migrate, maintain, refine,
+curate — carry a mission every tool here refuses: this server makes a client
+an expert *consumer* of bundles. Authoring stays with the skill
+(`okf skill <dest>`), installed where a filesystem and the CLI actually are.
 
 ## Resources
 

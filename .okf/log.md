@@ -1,5 +1,18 @@
 # Update Log
 
+## 2026-08-06
+* **Decision**: the [MCP server](capabilities/mcp-server.md)'s prompt surface is
+  trimmed to the consuming pair — `okf-search` and `okf-consume` — rewritten in
+  the server's own tool vocabulary and shipped in okf-mcp rather than read from
+  the installed kernel's skill tree. "A prompt is instructions, not a
+  capability" was true and still the wrong test, because it never asked whose
+  instructions they were: every playbook spoke in `okf …` invocations, half
+  dead-ended a CLI-less host at "install the CLI first", and five taught
+  authoring — a mission the read-only tools refuse. The mission is the test
+  now — the server makes a client an expert *consumer* of bundles — and the
+  cost is owned: a doctrine change in the skill must be carried into the
+  prompt texts by hand.
+
 ## 2026-07-30
 * **Correction**: a second, deeper review found the previous day's `root` fix
   half-applied and eight more defects behind it; the [read views](capabilities/read-views.md)
