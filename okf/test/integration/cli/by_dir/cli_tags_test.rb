@@ -169,6 +169,15 @@ module ByDir
         .fetch("tags").map { |row| row.fetch("tag") }
     end
 
+    # The same pin as files': the set the alias consults is the bundle's own
+    # directories, which is the only set that can see hollow's index-only
+    # `root/`. Deriving it from the concept rows folds the alias here.
+    test "--dir root yields to a real `root` directory the catalog cannot see" do
+      data = json(okf("tags", fixture("hollow"), "--dir", "root", "--json"))
+      assert_equal 0, data.fetch("count"), "the alias won and answered for the bundle root"
+      assert_empty data.fetch("tags")
+    end
+
     test "--dir composes with --by dir" do
       data = json(okf("tags", fixture("conformant"), "--dir", "datasets", "--by", "dir", "--json"))
 

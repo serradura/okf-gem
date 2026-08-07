@@ -98,6 +98,26 @@ module ByDir
       end
     end
 
+    # One source for "does this bundle have directory X?", on both sides of the
+    # refusal: catalog's check and the dirs view must agree, or the refusal's
+    # own advice — "orient with dirs" — points at a tool that contradicts it.
+    # A scoped-log directory is real (zero concepts, honestly); an
+    # unparseable-only one is still refused, but not with "no directory" — the
+    # directory is standing right there on disk, and calling it nonexistent
+    # sends the caller to re-spell a name that was correct. The refusal names
+    # what actually happened: the reader skipped every file it holds.
+    test "catalog and dirs agree about log-only and unparseable-only directories" do
+      server = mcp_server(fixture("journaled"))
+
+      archived = call_tool!(server, "catalog", bundle: "journaled", dir: "archive")
+      assert_equal 0, archived["total"], "a real directory with no concepts is a real zero"
+
+      result = call_tool(server, "catalog", bundle: "journaled", dir: "drafts")
+      assert result.error?, "catalog answered for a directory dirs refuses to list"
+      assert_match(/directory "drafts".*holds only files the reader could not parse/, result.text)
+      assert_match(/validate/, result.text, "the fix is repairing the files, and the message must point there")
+    end
+
     # The other half of the same rule: a directory that exists and holds no
     # concepts directly is a real zero, and must not be refused.
     test "a real directory with no concepts of its own answers zero, not an error" do

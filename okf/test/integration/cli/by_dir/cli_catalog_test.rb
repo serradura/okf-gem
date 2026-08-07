@@ -181,6 +181,18 @@ module ByDir
       assert_includes json(okf("dirs", fixture("hollow"), "--json")).fetch("dirs").map { |row| row["dir"] }, "root"
     end
 
+    # …and the directory map itself has to count every file kind that makes a
+    # directory real. `hollow` closed the index.md case; a `root/` holding only
+    # a log.md was still invisible to Bundle#directories, so the alias won
+    # again — the same silent wrong answer, one file kind over.
+    test "a `root` directory holding only a log.md still beats the alias" do
+      data = json(okf("catalog", fixture("journaled"), "--dir", "root", "--json"))
+      assert_equal 0, data.fetch("count"), "the alias won and answered for the bundle root"
+      assert_empty data.fetch("concepts")
+
+      assert_includes json(okf("dirs", fixture("journaled"), "--json")).fetch("dirs").map { |row| row["dir"] }, "root"
+    end
+
     test "--area root reaches a real `root` area, not the (root) one" do
       data = json(okf("catalog", fixture("namesake"), "--area", "root", "--json"))
       assert_equal %w[root/deep/note root/handbook root/policy], data.fetch("concepts").map { |row| row["id"] }

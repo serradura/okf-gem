@@ -58,6 +58,22 @@ class HTTPTest < MCPIntegrationCase
     end
   end
 
+  # The boot line is diagnostics, and diagnostics are best-effort: stderr
+  # belongs to whoever spawned the process, and a collector that died must not
+  # take a bound, healthy server down with it. An EPIPE out of the announce
+  # used to do exactly that — the CLI filed it as a clean exit 0 before the
+  # server ever accepted a request.
+  test "the boot line is best-effort: a dead stderr cannot raise out of announce" do
+    server = mcp_server(fixture("knowledge"))
+    err = StringIO.new
+    err.define_singleton_method(:puts) { |*| raise Errno::EPIPE }
+
+    httpd = OKF::MCP::HTTP.prepare(server, bind: "127.0.0.1", port: 0, out: err)
+    assert_operator httpd.listeners.first.addr[1], :>, 0, "the server survives its lost boot line"
+  ensure
+    httpd&.shutdown
+  end
+
   test "loopback keeps the SDK defaults; a named non-loopback bind allowlists itself" do
     assert_nil OKF::MCP::HTTP.allowed_hosts_for("127.0.0.1")
     assert_nil OKF::MCP::HTTP.allowed_hosts_for("localhost")

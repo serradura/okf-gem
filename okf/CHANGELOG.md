@@ -51,6 +51,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inside the loop, so one flag meant the `root/` subtree in the bundle that has
   one and the bundle root in the bundle that does not, merged into a single
   ranking with nothing in the output saying so; the served set resolves it once.
+
+  `Bundle#directories` counts every file kind that makes a directory real —
+  concepts, an `index.md`, and now a scoped `log.md`, which the first cut left
+  out: a `root/` holding only its history was invisible to the set, so the
+  alias won again for exactly the shape the fix was named after, one file kind
+  over. The same seed feeds `directory_index`, so `dirs`, `index` and `stats`
+  count a log-only directory too, and every surface answers "does this bundle
+  have directory X?" from one list.
+- **`filter_entries` regained its 1.12.0 arity.** The dirs-source fix above
+  added a required third parameter to a helper on `CLI::Command` — the base
+  every verb inherits, plugin gems' verbs included — so an out-of-tree verb
+  calling the released two-argument shape raised `ArgumentError` at runtime.
+  The parameter defaults now, and the default is 1.12.0's resolution — the
+  helper is handed rows, not the folder, so it has nothing to resolve a real
+  `root/` against, and the `root` alias folds exactly as it did; the plugin
+  suite drives a 1.12.0-era verb through the two-argument shape to pin it.
+  Its sibling `filter_ids` makes the opposite choice on purpose: it *is*
+  handed the folder, and its two-argument shape resolves through `dir_scope`,
+  because the unconditional fold there was the bug this entry fixes, not a
+  contract — an old caller gets the corrected answer rather than the familiar
+  wrong one. In-tree callers pass
+  the set through `dir_scope`, which also derives it only when a `--dir` or
+  `--area` flag will actually consult it — a plain listing no longer pays a
+  per-path ancestor walk for a set nothing reads (and `Bundle#directories` is
+  memoized, so the verbs that ask twice pay once).
 - **Coverage stopped measuring the plugin's curation hook** for one commit, and
   said so by going *up*: SimpleCov's root defaults to the working directory, so
   moving the gem down a level dropped ~100 tested lines out of the report and

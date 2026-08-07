@@ -194,12 +194,19 @@ module OKF
       # alias below has to consult the bundle's own directories, and that is a
       # question about the whole set rather than about the row in hand.
       #
-      # +dirs+ is that set, and it is required rather than derived from +entries+
-      # — the catalog knows only directories that hold *concepts*, so a `root/`
-      # carrying an index.md and nothing else was invisible here while `dirs`
-      # and `index` (which read Bundle#directories) saw it. Two answers to one
-      # question about one bundle is how the alias survived its own fix.
-      def filter_entries(entries, options, dirs)
+      # +dirs+ is that set, and every in-tree caller passes it (see #dir_scope)
+      # rather than deriving it from +entries+ — the catalog knows only
+      # directories that hold *concepts*, so a `root/` carrying an index.md and
+      # nothing else was invisible here while `dirs` and `index` (which read
+      # Bundle#directories) saw it. Two answers to one question about one
+      # bundle is how the alias survived its own fix.
+      #
+      # The default is a compatibility promise, not a shortcut: this base is
+      # what every plugin verb inherits, and 1.12.0 shipped the two-argument
+      # shape. An out-of-tree caller that never learned the third argument gets
+      # exactly the resolution it was written against — the alias folds with no
+      # directory set consulted — no better and no worse.
+      def filter_entries(entries, options, dirs = nil)
         area = options[:area] && fold_area(options[:area], dirs)
         base = options[:dir] && fold_dir(options[:dir], dirs)
         entries.select do |entry|
@@ -208,6 +215,14 @@ module OKF
             (base.nil? || under_dir?(entry[:dir], base)) &&
             (options[:tag].nil? || entry[:tags].any? { |tag| fold(tag) == fold(options[:tag]) })
         end
+      end
+
+      # The directory set only when a flag is going to consult it. Deriving it
+      # walks every path up to the root, and #filter_entries reads it solely to
+      # resolve the `root`/`--area` aliases — a plain listing, or a type/tag
+      # narrowing, never needs the walk.
+      def dir_scope(folder, options)
+        options[:dir] || options[:area] ? folder.directories : nil
       end
 
       # The one rule --dir is built on: a dir names itself and everything beneath
@@ -416,7 +431,7 @@ module OKF
       def filter_ids(folder, options, dirs = nil)
         return nil if options[:type].nil? && options[:area].nil? && options[:dir].nil? && options[:tag].nil?
 
-        filter_entries(folder.catalog, options, dirs || folder.directories).map { |entry| entry[:id] }
+        filter_entries(folder.catalog, options, dirs || dir_scope(folder, options)).map { |entry| entry[:id] }
       end
 
       # §9 best-effort: the graph is built from concepts that parse. Surface any that

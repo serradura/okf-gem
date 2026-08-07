@@ -190,5 +190,32 @@ module ByRegistry
     def resource_uris(server)
       rpc(server, "resources/list").dig("result", "resources").map { |row| row["uri"] }
     end
+
+    # The prune is part of following the registry — but taking the residency
+    # and corpus locks on every request queued an unrelated `list_bundles`
+    # behind whatever corpus build another host's index query was paying for.
+    # An unchanged set has nothing to prune, so it takes no locks at all; a
+    # moved set prunes on the next request, exactly as before.
+    test "the residency prune runs only when the served set moves" do
+      registry = OKF::Registry.load
+      registry.add(fixture("knowledge"))
+      server = mcp_server
+      memory = server.instance_variable_get(:@context).memory
+      pruned = []
+      original = memory.method(:retain)
+      memory.define_singleton_method(:retain) { |roots| pruned << roots.dup; original.call(roots) }
+
+      call_tool!(server, "list_bundles")
+      call_tool!(server, "list_bundles")
+      assert_equal 0, pruned.length, "an unchanged served set re-took the prune's locks on every request"
+
+      registry.add(fixture("notes"))
+      call_tool!(server, "list_bundles")
+      assert_equal 1, pruned.length, "a moved set must still prune"
+      assert_includes pruned.last, fixture("notes")
+
+      call_tool!(server, "list_bundles")
+      assert_equal 1, pruned.length, "the moved set, once pruned, is the new baseline"
+    end
   end
 end

@@ -61,7 +61,7 @@ module OKF
       # makes a tag's spread — local to one group, or cutting across several —
       # readable without cross-referencing the groups by hand.
       def tag_groups(tag_index, folder, options)
-        by_id = filter_entries(folder.catalog, options, folder.directories).map { |entry| [ entry[:id], entry ] }.to_h
+        by_id = filter_entries(folder.catalog, options, dir_scope(folder, options)).map { |entry| [ entry[:id], entry ] }.to_h
         groups = {}
         totals = Hash.new(0)
         tag_index.each do |tag, ids|

@@ -72,8 +72,11 @@ a prompt to write a real map rather than a defect.
 # `dirs` is the shape, `index` is the contents
 
 `dirs` answers the question `--dir` is pointed at: every directory the bundle
-has — those holding concepts, those carrying an `index.md`, and the empty
-intermediates that exist only to connect the tree — with two counts each.
+has — those holding concepts, those carrying an `index.md` or a scoped
+`log.md`, and the empty intermediates that exist only to connect the tree —
+with two counts each. A directory whose only file is its history is real (the
+log verbs read it); one holding only a file the reader skipped is not, and
+stays out of the map on every surface at once.
 
 `count` is **direct**, never cumulative: the column sums to the bundle's concept
 count, and a directory holding nothing but sub-directories reads `0` rather than
@@ -163,7 +166,10 @@ first attempt missed. The concept views asked the **catalog**, which knows only
 directories that hold concepts, while `dirs` and `index` asked the directory
 map, which counts an `index.md` too — so a `root/` carrying nothing but its
 index stayed folded in `catalog` and named in `dirs`, in the same bundle, on the
-same flag. One question gets one source (`Bundle#directories`). The other half
+same flag. One question gets one source (`Bundle#directories`) — and the list
+counts every file kind that makes a directory real, because the same bug came
+back one kind over: a `root/` holding only a scoped `log.md` was invisible to
+the set until the log joined the seed. The other half
 is *when*: the alias is a fact about a bundle, so a run naming several resolves
 it once across the served set — resolving inside the per-bundle loop let a
 single `--dir root` mean the subtree in one bundle and the root in the next,

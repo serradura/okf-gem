@@ -121,6 +121,16 @@ module ByDir
       assert_equal 3, rooted.fetch("count") # the root's own files, nothing beneath them
     end
 
+    # The dirs-source rule, pinned for this verb too: hollow's `root/` holds
+    # only an index.md, so only Bundle#directories can see it. A regression
+    # re-deriving the set from the entries folds the alias and answers the
+    # bundle root here — green everywhere except this test.
+    test "--dir root yields to a real `root` directory the catalog cannot see" do
+      data = json(okf("files", fixture("hollow"), "--dir", "root", "--json"))
+      assert_equal 0, data.fetch("count"), "the alias won and answered for the bundle root"
+      assert_empty data.fetch("files")
+    end
+
     test "--area still selects, and warns on stderr" do
       result = okf("files", fixture("conformant"), "--area", "tables", "--json")
 

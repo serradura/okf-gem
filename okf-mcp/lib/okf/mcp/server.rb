@@ -53,11 +53,14 @@ module OKF
       # and both read it from there.
       LOG_ENTRY = /^(?=## )/.freeze
 
-      # Characters returned per `limit` for a log the split above cannot divide
-      # (see #unstructured_log). Sized off the structured path rather than
-      # guessed: this repo's own three-entry answer is 13,491 bytes, so one
-      # indivisible "entry" is budgeted at roughly what one date group costs.
-      UNSTRUCTURED_LOG = 4_500
+      # Bytes per `limit` unit — the size cap every log answer is cut to,
+      # announced with `truncated: true` (see #sized_log). Sized off the
+      # measured shape rather than guessed: this repo's own three-entry answer
+      # is 13,491 bytes, so one entry is budgeted at roughly what one date
+      # group costs. The cap exists because counting entries alone bounds
+      # nothing when one entry carries the whole file — a log under a single
+      # `## ` heading, or under headings the split cannot see.
+      LOG_BUDGET = 4_500
 
       # The catalog row, the projection vocabulary `fields` selects from.
       CATALOG_FIELDS = %w[id title type description tags timestamp status backlog_ref dir top_dir links_out links_in].freeze
@@ -162,9 +165,25 @@ module OKF
 
         def in_request
           @context.memory.during_request do
-            @context.memory.retain(@registry.entries.map(&:root))
+            retain_served
             yield
           end
+        end
+
+        # The prune, only when the served set actually moved. `retain` takes
+        # the residency and corpus locks, and taking them on every request
+        # queued an unrelated `list_bundles` — or an initialize handshake —
+        # behind whatever corpus build another host's index query was holding
+        # them for. An unchanged set has nothing to prune, so it takes no
+        # locks at all. The compare is unsynchronized on purpose: two threads
+        # racing the same *change* both prune (retain is idempotent), and
+        # threads racing an unchanged set both skip.
+        def retain_served
+          roots = @registry.entries.map(&:root)
+          return if roots == @retained_roots
+
+          @context.memory.retain(roots)
+          @retained_roots = roots
         end
       end
 
@@ -451,10 +470,10 @@ module OKF
             description: "Read a bundle's append-only history — every log.md, root scope first, content " \
                          "live from disk. Returns the newest #{LOG_LIMIT} date-grouped entries per file; " \
                          "each file's `total` is how many it holds and `returned` how many came back, so " \
-                         "`limit` can ask for more. A log whose groups are not `## ` headings cannot be " \
-                         "split, so it counts as one entry and is cut by size with `truncated: true` " \
-                         "saying so. Check it to see what changed recently before " \
-                         "trusting or adding knowledge.",
+                         "`limit` can ask for more. Every answer is also held to a byte budget `limit` " \
+                         "scales, announced with `truncated: true` — a log whose groups `## ` cannot " \
+                         "split counts as the one indivisible entry it is. Check it to see what changed " \
+                         "recently before trusting or adding knowledge.",
             input_schema: {
               properties: {
                 bundle: { type: "string", description: "A bundle slug from list_bundles." },
@@ -597,11 +616,35 @@ module OKF
         def check_dir!(context, pairs, dir)
           return if OKF.blank?(dir)
 
-          known = pairs.flat_map { |_, root| Filters.dirs_of(context.memory.folder(root).bundle.paths) }
+          # Bundle#directories is the one source for "does this bundle have
+          # directory X?" — the same set the dirs/index rows are built from
+          # (see the kernel's directory_set), so this refusal and the tool its
+          # message points at can never disagree. Deriving the set here from
+          # the raw file list counted a directory holding only an unparseable
+          # file, which dirs has never listed.
+          folders = pairs.map { |_, root| context.memory.folder(root) }
+          known = folders.flat_map { |folder| folder.bundle.directories }
           return if Filters.known_dir?(known, dir)
 
           named = pairs.length == 1 ? " in bundle #{pairs.first.first.inspect}" : ""
+          if unparseable_under?(folders, dir)
+            raise Error, "directory #{dir.to_s.inspect}#{named} holds only files the reader could not parse — validate names each file and why"
+          end
+
           raise Error, "no directory #{dir.to_s.inspect}#{named} — orient with dirs"
+        end
+
+        # The refusal above must not call a directory nonexistent when it is
+        # standing on disk full of files the reader skipped: "no directory"
+        # sends the caller off to re-spell a name that was correct, when the
+        # fix is repairing the files. Only unparseable files can put a real
+        # directory outside Bundle#directories — a parseable file of any kind
+        # seeds the set — so they are the one case to name.
+        def unparseable_under?(folders, dir)
+          base = Filters.normalize_dir(dir)
+          folders.any? do |folder|
+            folder.bundle.unparseable.any? { |file| Filters.within?(::File.dirname(file.path), base) }
+          end
         end
 
         # The two incompatible pairs, refused with the fix named rather than
@@ -838,44 +881,64 @@ module OKF
           context.registry.slugs.include?(slug) ? slug : bundle.to_s
         end
 
-        # One log file, cut to its newest +limit+ entries. The file's own
-        # heading — everything above the first `## ` — always survives, because
-        # it is what names the scope ("# Runbooks Log") and costs a line.
+        # One log file, cut to its newest +limit+ entries — and, whatever the
+        # entry count says, to the byte budget `limit` buys (see #sized_log):
+        # a `total` that counts entries bounds nothing when one entry carries
+        # the whole file. The file's own heading — everything above the first
+        # `## ` — always survives, because it is what names the scope
+        # ("# Runbooks Log") and costs a line.
         #
-        # A log with no `## ` headings at all is not §7-shaped, and there is
-        # nothing to count or cut: it comes back whole with total 0, which
-        # reads as "unstructured" rather than as an empty file. Truncating it
-        # on some other boundary would be inventing a format.
+        # A log the split cannot divide is one indivisible entry, because that
+        # is what content with no boundary is — §7 fixes no heading level, so
+        # `###` date groups are conformant and `LOG_ENTRY` cannot see them.
+        # But a *bare title* is not content: a scaffolded "# Update Log" with
+        # no entries yet holds zero, and counting it as one told an agent
+        # checking history before trusting knowledge that there is history
+        # where there is none.
         def bounded_log(entry, limit)
           content = entry[:content].to_s
-          return { path: entry[:path], dir: entry[:dir], total: 0, returned: 0, content: "" } if OKF.blank?(content)
+          return sized_log(entry, "", 0, limit) if OKF.blank?(content)
 
           parts = content.split(LOG_ENTRY)
           preamble = parts.first.to_s.start_with?("## ") ? "" : parts.shift.to_s
-          return unstructured_log(entry, preamble, limit) if parts.empty?
+          if parts.empty?
+            bare = OKF.blank?(preamble.sub(/\A\s*# [^\n]*/, ""))
+            return sized_log(entry, preamble, bare ? 0 : 1, limit)
+          end
 
-          { path: entry[:path], dir: entry[:dir], total: parts.length,
-            returned: [ parts.length, limit ].min, content: preamble + parts.first(limit).join }
+          sized_log(entry, preamble + parts.first(limit).join, parts.length, limit)
         end
 
-        # A log the split cannot divide — §7 fixes no heading level, so `###`
-        # date groups are conformant and `LOG_ENTRY` cannot see them. It used to
-        # come back *whole* under `total: 0, returned: 0`: the one unbounded read
-        # on this surface, surviving the fix meant to close it and reporting
-        # itself as empty, which is the same false comfort as a `total` that
-        # counted files. `limit` could not reach it either.
-        #
-        # It is one entry, because that is what content with no boundary is, and
-        # it is cut by size because the format offers nothing else to cut on.
-        # That cut is announced rather than quietly applied — inventing a
+        # The row, held to the byte budget `limit` buys. The cut is by size
+        # because past the entry count the format offers nothing else to cut
+        # on, and it is announced rather than quietly applied — inventing a
         # boundary would be inventing a format, but declaring a bound is only
-        # honest — and `limit` scales the budget, so a caller can still ask for
-        # the rest.
-        def unstructured_log(entry, content, limit)
-          budget = UNSTRUCTURED_LOG * [ limit, 1 ].max
-          row = { path: entry[:path], dir: entry[:dir], total: 1, returned: 1,
-                  content: content.length > budget ? content[0, budget] : content }
-          row[:truncated] = true if content.length > budget
+        # honest. `limit` scales the budget, so a caller can always ask for
+        # the rest. Before this cap covered every path, a log under a single
+        # `## ` heading split into one "entry" and came back whole — the
+        # unbounded read surviving twice, the second time behind a `total: 1`
+        # that read as bounded.
+        #
+        # Two units the cut must not confuse. The budget is **bytes**
+        # (bytesize and byteslice, scrubbed so the slice cannot shear a
+        # character in half) because the promise is context cost, and counting
+        # characters let a multibyte log through at up to 4x the announced
+        # cap, `truncated` silent. And `returned` is recounted from what
+        # **survived** the cut: it means "how many came back", so an entry
+        # whose very heading the cut removed must not be claimed — a caller
+        # paging on returned == limit would believe it saw entries it never
+        # received. A log with no `## ` boundary is one indivisible entry, so
+        # a cut there returns the 1 it partially delivered.
+        def sized_log(entry, content, total, limit)
+          budget = LOG_BUDGET * [ limit, 1 ].max
+          row = { path: entry[:path], dir: entry[:dir], total: total,
+                  returned: [ total, limit ].min, content: content }
+          return row unless content.bytesize > budget
+
+          kept = content.byteslice(0, budget).scrub("")
+          row[:content] = kept
+          row[:returned] = content.match?(LOG_ENTRY) ? kept.scan(LOG_ENTRY).length : [ total, 1 ].min
+          row[:truncated] = true
           row
         end
 

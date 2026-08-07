@@ -57,9 +57,16 @@ rather than pretending to be changes somebody could have seen.
   parsed keeps the last good set and retries, so a server with a working set is
   never taken down by a file it does not own. Argv mode does not follow
   anything — it never carried the registry, so its set cannot widen.
-  Two consequences the re-read carries with it, both handled once per request
-  rather than in each tool: the residency is **pruned to the served set**, since
-  a movable set was the only thing left bounding a cache that never evicted; and
+  Two consequences the re-read carries with it, both handled at the request
+  seam rather than in each tool: the residency is **pruned to the served
+  set** whenever the set moves — the corpus cache with it, since it pins the
+  same parsed bundles plus a prepared index over each and its own LRU evicts
+  only on an index query, which a scan-only workload never sends — because a
+  movable set was the only thing left bounding a cache that never evicted.
+  Pruning on *every* request instead took the residency and corpus locks each
+  time, queuing an unrelated `list_bundles` — or an initialize handshake —
+  behind whatever corpus build another host's index query was holding them
+  for; an unchanged set has nothing to prune and takes no locks at all. And
   the fingerprint is **computed once per root per request**, because freshness is
   a question between requests and asking it three times inside one cost three
   full-tree walks under the residency lock (measured: `list_bundles`, `catalog`
@@ -112,7 +119,19 @@ rather than pretending to be changes somebody could have seen.
   `okf mcp --http` on a port already serving, which is the likeliest mistake on
   the flag that exists so one warm process is shared — printed an eleven-frame
   backtrace and exited 1 while every other boot failure exited 2 with a sentence;
-  `SystemCallError` is rescued with the rest now.
+  `SystemCallError` is rescued with the rest now — around *boot* only: past
+  it, the likeliest errno is the host closing its pipes, a stdio session's
+  normal end, and routing that through the boot rescue printed the usage
+  banner and exited 2, misfiling a shutdown as an operator mistake for any
+  supervisor keyed on the exit status. A stdio host hanging up mid-serve exits
+  0 — exactly the two hang-up errnos, on stdio alone; any other mid-serve
+  errno propagates as the crash it is rather than borrowing the usage
+  banner's exit 2. The split is structural — the HTTP bind happens in boot,
+  so EADDRINUSE stays a sentence and exit 2 — and diagnostics are best-effort
+  throughout: a closed stderr loses the boot line, never the outcome, where
+  it used to re-raise EPIPE out of the boot rescue's own print on stdio and
+  to file a lost `--http` boot line as a clean exit 0 for a server that never
+  started accepting.
 - **The `okf-sqlite3` seam**: `Backend.detect` soft-requires the engine and
   duck types it; a missing gem, an unloadable native extension and an engine
   that will not construct all degrade to memory, silently except in the boot
@@ -133,18 +152,36 @@ rather than pretending to be changes somebody could have seen.
   bundled skill both teach: an agent asked `catalog` for `root`, was told zero,
   and reported that the bundle root holds no concepts. Across bundles the
   refusal is a fact about the *searched set* — a directory one of three bundles
-  has still filters and does not refuse.
+  has still filters and does not refuse. The set consulted is
+  `Bundle#directories` — the same list the `dirs` rows are built from, so the
+  refusal and the tool its message points at ("orient with dirs") can never
+  disagree; a first cut derived it from the raw file list and accepted a
+  directory holding only a file the reader skipped, which `dirs` refuses to
+  list. The message carries the one nuance the source cannot: a directory
+  standing on disk but holding only unparseable files is refused as exactly
+  that — "holds only files the reader could not parse", pointing at validate
+  — because "no directory" would be false about the filesystem and sends the
+  caller off to re-spell a name that was correct.
 - **`total` means one thing on every tool**: how many rows the request matched,
   before any `limit`. `dirs` and `index` reported the whole bundle's directory
   count so a narrowing stayed visible — defensible alone, wrong as a set, and
   against this gem's own "no silent truncation" promise it read as rows withheld
   by a tool that takes no limit at all.
-- **A log with no `## ` headings is bounded instead of returned whole.** §7 fixes
-  no heading level, so `###` date groups are conformant and the entry split
-  cannot see them: the file came back entire under `total: 0, returned: 0` — the
-  one unbounded read on this surface surviving the change that was meant to close
-  it, and reporting itself as empty. It now counts as the one indivisible entry
-  it is, is cut by size with `truncated: true` saying so, and `limit` scales that
-  budget, which it previously could not reach at all.
+- **Every log answer is held to a byte budget `limit` scales.** §7 fixes no
+  heading level, so `###` date groups are conformant and the entry split
+  cannot see them: the file came back entire under `total: 0, returned: 0` —
+  the one unbounded read on this surface surviving the change that was meant
+  to close it, and reporting itself as empty. The first fix counted it as one
+  indivisible entry cut by size, and left the same read alive one shape over:
+  a whole history under a single `## ` heading split into one "entry" and came
+  back whole behind a `total: 1` that read as bounded. The budget caps every
+  answer now, announced with `truncated: true` — and a scaffolded title with
+  no entries yet reports the zero it holds, where counting it as one entry
+  told an agent there is history where there is none. Held to its word twice
+  over since: the budget is enforced in **bytes** as announced (a character
+  count let a multibyte log through at up to 4x the cap, `truncated` silent),
+  `returned` is recounted from what survived the cut rather than claiming
+  entries whose very headings it removed, and the title's zero holds wherever
+  whitespace put the title.
 
 [Unreleased]: https://github.com/serradura/okf-gem/commits/main/okf-mcp

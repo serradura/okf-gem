@@ -39,31 +39,67 @@ module OKF
         @done = false
       end
 
+      # Boot, then serve — structurally, because the two phases carry
+      # different exit contracts and the rescue below must never see a serving
+      # error. `SystemCallError` belongs in the boot rescue for the same
+      # reason the tool wrapper rescues it: an errno is a fact about the
+      # operator's machine, not a bug, and it must read as one line rather
+      # than a backtrace. The bind is where it actually bites — `--http`
+      # exists so one warm process is shared, which makes "that port is
+      # already serving" the likeliest mistake, and it came back as eleven
+      # frames and exit 1 while every other boot failure exited 2 with a
+      # sentence. The HTTP bind happens *here*, in boot (see #prepare_http),
+      # precisely so that stays true.
       def run
-        args = parser.parse(@argv)
-        return 0 if @done
+        server = nil
+        begin
+          args = parser.parse(@argv)
+          return 0 if @done
 
-        registry = args.empty? ? Registry.from_kernel : Registry.from_argv(args)
-        registry.boot_notes.each { |note| @out.puts("okf-mcp: #{note}") }
-        engine = Backend.detect
-        server = Server.build(registry, engine: engine)
-        announce(registry, engine)
-        @http ? serve_http(server) : serve_stdio(server)
-        0
-      # `SystemCallError` belongs here for the same reason the tool wrapper
-      # rescues it: an errno is a fact about the operator's machine, not a bug,
-      # and it must read as one line rather than a backtrace. The bind is where
-      # it actually bites — `--http` exists so one warm process is shared, which
-      # makes "that port is already serving" the likeliest mistake on this path,
-      # and it came back as eleven frames and exit 1 while every other boot
-      # failure exited 2 with a sentence.
-      rescue Error, OKF::Error, OptionParser::ParseError, SystemCallError => e
-        @out.puts("okf-mcp: #{e.message}")
-        @out.puts(USAGE)
-        2
+          registry = args.empty? ? Registry.from_kernel : Registry.from_argv(args)
+          registry.boot_notes.each { |note| say("okf-mcp: #{note}") }
+          engine = Backend.detect
+          server = Server.build(registry, engine: engine)
+          announce(registry, engine)
+          prepare_http(server) if @http
+        rescue Error, OKF::Error, OptionParser::ParseError, SystemCallError => e
+          say("okf-mcp: #{e.message}")
+          say(USAGE)
+          return 2
+        end
+
+        serve(server)
       end
 
       private
+
+      # Serving, past the boot rescue's reach. On stdio the likeliest errno is
+      # the host closing its pipes — the session's normal end, not a mistake —
+      # and nothing is printed: the streams belong to the host that just hung
+      # up. The carve-out is exactly those two errnos, and stdio's alone: on
+      # `--http` a hang-up errno cannot mean "the session ended" (boot output
+      # already went through #say), and any other mid-serve errno on either
+      # transport is a runtime fault hours past a valid invocation — it
+      # propagates as the crash it is, never the usage banner's exit 2.
+      def serve(server)
+        @http ? @httpd.start : serve_stdio(server)
+        0
+      rescue Errno::EPIPE, Errno::ECONNRESET
+        raise if @http
+
+        0
+      end
+
+      # Diagnostics are best-effort: @out belongs to whoever spawned the
+      # process, and a closed stderr must not decide the outcome — it did,
+      # twice: the boot rescue's own puts re-raised EPIPE as a backtrace for
+      # a normal hang-up, and the serve rescue filed a lost `--http` boot
+      # line as a clean exit 0 for a server that never started.
+      def say(line)
+        @out.puts(line)
+      rescue Errno::EPIPE, Errno::ECONNRESET
+        nil
+      end
 
       def parser
         OptionParser.new do |opts|
@@ -90,7 +126,7 @@ module OKF
       def announce(registry, engine)
         bundles = registry.entries.map { |entry| "#{entry.slug} (#{entry.root})" }.join(", ")
         source = registry.source ? " — registry: #{registry.source}" : ""
-        @out.puts("okf-mcp #{VERSION} — backend: #{engine.capabilities[:name]} — bundles: #{bundles}#{source}")
+        say("okf-mcp #{VERSION} — backend: #{engine.capabilities[:name]} — bundles: #{bundles}#{source}")
       end
 
       def serve_stdio(server)
@@ -99,9 +135,12 @@ module OKF
         transport.open
       end
 
-      def serve_http(server)
+      # The bind, the traps and the boot line — everything that can fail as a
+      # boot failure — so #run's rescue files an EADDRINUSE as the usage error
+      # it is, while whatever #serve raises later is manifestly not boot.
+      def prepare_http(server)
         require_relative "http"
-        HTTP.serve(server, bind: @bind, port: @port, allow_hosts: @allow_hosts, out: @out)
+        @httpd = HTTP.prepare(server, bind: @bind, port: @port, allow_hosts: @allow_hosts, out: @out)
       end
     end
   end

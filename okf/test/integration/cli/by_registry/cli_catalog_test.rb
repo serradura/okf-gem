@@ -32,6 +32,19 @@ module ByRegistry
       end
     end
 
+    # The alias consults the resolved bundle's own directories whichever
+    # identity named it: hollow's `root/` (an index.md, nothing else) is
+    # visible only to Bundle#directories, so `@hollow --dir root` must answer
+    # for that directory exactly as the path form does.
+    test "--dir root through a ref still yields to the bundle's real directory" do
+      with_registry("hollow") do
+        data = json(okf("catalog", "@hollow", "--dir", "root", "--json"))
+
+        assert_equal 0, data.fetch("count"), "the alias won and answered for the bundle root"
+        assert_empty data.fetch("concepts")
+      end
+    end
+
     test "--json carries both bundle (the directory) and slug (the registry name)" do
       with_registry("conformant") do
         data = json(okf("catalog", "@conformant", "--json"))

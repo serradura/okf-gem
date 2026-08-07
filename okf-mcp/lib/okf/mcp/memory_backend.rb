@@ -74,10 +74,18 @@ module OKF
       # the served set, and a cap below it would thrash — re-parsing on every
       # call for any operator who registered more bundles than the number
       # guessed.
+      #
+      # The corpus cache is pruned by the same rule, because it pins the same
+      # parsed bundles — plus a prepared index over each. Its LRU is not a
+      # substitute: eviction there happens only on an *index* query, which a
+      # scan-only workload never sends, so a corpus over a repointed root
+      # stayed resident indefinitely and the memory this prune claims to
+      # release was still held.
       def retain(roots)
         kept = {}
         roots.each { |root| kept[root] = true }
         @mutex.synchronize { @cache.delete_if { |root, _| !kept.key?(root) } }
+        @corpus_mutex.synchronize { @corpora.delete_if { |key, _| key.any? { |root| !kept.key?(root) } } }
         nil
       end
 
@@ -108,6 +116,7 @@ module OKF
             # threads at once; build them once here, under this lock.
             folder.bundle.concept_by_id(nil)
             folder.bundle.paths_by_id
+            folder.bundle.directories
             entry = { folder: folder, fingerprint: print }
             @cache[root] = entry
           end

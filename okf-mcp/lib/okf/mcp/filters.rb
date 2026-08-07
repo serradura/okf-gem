@@ -68,26 +68,6 @@ module OKF
         dir == "." ? 0 : dir.split("/").length
       end
 
-      # Every directory a bundle has, from its file list alone: the dirname of
-      # each markdown file plus every ancestor up to the root. Strings only — no
-      # parse, no disk — and it counts a directory carrying nothing but an
-      # `index.md`, which is what makes it the same set `dirs` reports. Reading
-      # the answer off the *catalog* instead would be the smaller question, and
-      # a directory that exists but holds no concept would read as absent.
-      def dirs_of(paths)
-        seen = {}
-        paths.each do |path|
-          current = ::File.dirname(path)
-          loop do
-            seen[current] = true
-            break if current == "."
-
-            current = ::File.dirname(current)
-          end
-        end
-        seen.keys
-      end
-
       # Is +wanted+ a directory this set actually has? Folded, and blind to a
       # trailing slash, so it accepts the spelling the views print back.
       def known_dir?(dirs, wanted)
