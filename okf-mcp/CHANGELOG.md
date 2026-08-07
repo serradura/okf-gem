@@ -1,10 +1,16 @@
 # Changelog
 
+All notable changes to this project are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [Unreleased]
 
-The first release: an MCP server over the okf kernel, judged by the kernel's
-own contracts. Nothing precedes it — a `0.1.0` section stood here for a version
-that was cut in this file and never published, and its entries have folded in
+The first functional release: an MCP server over the okf kernel, judged by
+the kernel's own contracts. Nothing functional precedes it — `0.0.0` below is
+the empty name reservation, and a `0.1.0` section stood here for a version
+that was cut in this file and never published, so its entries have folded in
 rather than pretending to be changes somebody could have seen.
 
 ### Added
@@ -46,9 +52,10 @@ rather than pretending to be changes somebody could have seen.
   it.
 - **The residency layer**: one parsed bundle per root, re-read only when the
   on-disk fingerprint (mtime *and* size) moves, so bodies are always live and
-  canonical. Index queries hold one shared corpus per served set — federated
-  BM25 scores are comparable by construction — built on first use, bounded by
-  an LRU of four, and dropped when any member changes. **The identity map
+  canonical. Index queries hold one shared corpus per *searched* set — the
+  bundles a query names, so federated BM25 scores are comparable by
+  construction — built on first use, bounded by an LRU of four, and dropped
+  when any member changes. **The identity map
   follows the same rule**: served by the registry, the set of bundles tracks
   the registry file rather than a boot snapshot, so a `set`/`rename`/`del` in
   another terminal lands on the next tool call — and the `resources/list` set
@@ -184,4 +191,9 @@ rather than pretending to be changes somebody could have seen.
   entries whose very headings it removed, and the title's zero holds wherever
   whitespace put the title.
 
+## [0.0.0] - 2026-07-14
+
+The name reservation on RubyGems: an empty gem, no functionality.
+
 [Unreleased]: https://github.com/serradura/okf-gem/commits/main/okf-mcp
+[0.0.0]: https://rubygems.org/gems/okf-mcp/versions/0.0.0

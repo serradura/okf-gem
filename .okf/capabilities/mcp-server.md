@@ -68,7 +68,7 @@ The [search](search.md) capability's lifecycle asymmetry, honored from the
 other side: a one-shot CLI gets the scan, a long-lived holder gets the
 prepared corpus. okf-mcp holds one parsed bundle per root, re-read only when
 the on-disk fingerprint moves — bodies are always live and canonical — and one
-shared `Search.prepare` corpus per served set for index queries, built on
+shared `Search.prepare` corpus per searched set for index queries, built on
 first use and **dropped when any member's fingerprint moves** (a held index
 outliving its set is a wrong answer, not a slow one — the hub's contract).
 

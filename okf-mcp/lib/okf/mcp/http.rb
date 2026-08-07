@@ -86,7 +86,7 @@ module OKF
         say(out, "okf-mcp listening on http://#{bind}:#{bound}")
         return if LOOPBACK_HOSTS.include?(bind.to_s)
 
-        say(out, "okf-mcp: WARNING — #{bind} is every interface, not loopback. Every served bundle is")
+        say(out, "okf-mcp: WARNING — #{bind} is not loopback. Every served bundle is")
         say(out, "  readable by anything that can reach this port, with no authentication. The Host")
         say(out, "  allowlist only stops browser DNS rebinding; it is not access control.")
       end
