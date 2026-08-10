@@ -122,4 +122,24 @@ class ContainmentProbeTest < MCPIntegrationCase
     after = call_tool!(server, "log", bundle: "logswap").to_json
     refute_match(/root:x:0:0/, after, "LEAK: live log read followed a symlink out of the root")
   end
+
+  # A concept that resolves at boot but is swapped for an escaping symlink before
+  # the read reaches handle.read must read exactly as an absent one: a not-found,
+  # never invalid_params, and never leaking the internal "escapes bundle root".
+  test "resources/read — an escaping concept reads as not-found, not a distinct error" do
+    outside = File.join(@out_dir, "secret.md")
+    File.write(outside, "---\ntype: Note\ntitle: S\n---\n\nroot:x:0:0 TOP SECRET\n")
+    dir = scratch_bundle("swapc")
+    File.write(File.join(dir, "note.md"), "---\ntype: Note\ntitle: Note\n---\n\nreal body\n")
+    server = mcp_server(dir)
+    assert_match(/real body/, call_tool(server, "read_concept", bundle: "swapc", id: "note").text)
+
+    File.delete(File.join(dir, "note.md"))
+    File.symlink(outside, File.join(dir, "note.md"))
+    response = rpc(server, "resources/read", uri: "okf://swapc/note")
+    payload = JSON.generate(response)
+    assert response["error"], "an escaping concept must be an error"
+    refute_match(/TOP SECRET/, payload, "LEAK: escaping concept served its target")
+    refute_match(/escapes bundle root/, payload, "the internal reason must not reach the client")
+  end
 end

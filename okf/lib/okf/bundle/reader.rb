@@ -40,7 +40,16 @@ module OKF
         unparseable = []
 
         paths = markdown_paths
-        real_root = File.realpath(@root) unless paths.empty?
+        # Resolved once for the whole loop, but never at the cost of the
+        # best-effort promise: if the root itself has become unreadable since
+        # the glob, this stays nil and each file's own SafeRead call raises
+        # inside the per-file rescue below — one bad bundle degrades to
+        # unparseable entries, it does not crash the read every verb shares.
+        real_root = begin
+          File.realpath(@root) unless paths.empty?
+        rescue SystemCallError
+          nil
+        end
 
         paths.each do |path|
           begin

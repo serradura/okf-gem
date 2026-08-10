@@ -121,6 +121,24 @@ class OKF::Bundle::ReaderTest < OKF::TestCase
     refute_includes bundle.unparseable.map(&:path), "alias.md"
   end
 
+  test "a root unreadable at realpath time degrades to unparseable, not a crash" do
+    root = File.expand_path(@tmpdir)
+    original = File.method(:realpath)
+    # The root becomes unresolvable after the glob; the read must still finish,
+    # quarantining every file rather than raising the whole bundle down.
+    stub = lambda do |path, *rest|
+      raise Errno::ENOENT, path if path == root
+
+      original.call(path, *rest)
+    end
+    File.stub(:realpath, stub) do
+      bundle = nil
+      assert_silent { bundle = OKF::Bundle::Reader.read(@tmpdir) }
+      assert_empty bundle.concepts
+      assert_equal bundle.paths.sort, bundle.unparseable.map(&:path).sort
+    end
+  end
+
   private
 
   def write(path, content)

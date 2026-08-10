@@ -33,8 +33,16 @@ module OKF
     # (no disk access), so it works on both lexical paths (File.expand_path) and
     # symlink-resolved ones (File.realpath) — the shell resolves, this decides.
     # Both arguments must already be absolute and normalized the same way.
+    #
+    # The prefix guards against a sibling passing as a child ("/foo" is not under
+    # "/food"), and reuses the root itself as the prefix when the root already
+    # ends in the separator — i.e. the filesystem root "/", whose children would
+    # otherwise be tested against "//" and every one rejected.
     def self.under?(root, path)
-      path == root || path.start_with?("#{root}#{File::SEPARATOR}")
+      return true if path == root
+
+      prefix = root.end_with?(File::SEPARATOR) ? root : "#{root}#{File::SEPARATOR}"
+      path.start_with?(prefix)
     end
   end
 end
