@@ -181,4 +181,27 @@ class ContainmentProbeTest < MCPIntegrationCase
     refute_match(/escapes bundle root/, result.text, "LEAK: read_concept leaked the internal reason")
     assert_match(/no concept .*ids are exact/, result.text, "escaping concept should read as absent")
   end
+
+  # Parity with resources/read for a file that becomes unreadable (not escaping):
+  # the fingerprint (mtime + size) is unchanged by a chmod, so no reload fires and
+  # the id stays cached — the read raises a SystemCallError that must read as an
+  # absent concept, never a raw errno.
+  test "read_concept — an unreadable concept reads as no-concept, not an errno" do
+    dir = scratch_bundle("unreadable")
+    note = File.join(dir, "note.md")
+    File.write(note, "---\ntype: Note\ntitle: Note\n---\n\nreal body\n")
+    server = mcp_server(dir)
+    assert_match(/real body/, call_tool(server, "read_concept", bundle: "unreadable", id: "note").text)
+
+    File.chmod(0, note)
+    begin
+      skip "running as root ignores the permission bits" if File.readable?(note)
+      result = call_tool(server, "read_concept", bundle: "unreadable", id: "note")
+      assert result.error?, "an unreadable concept must be a tool error"
+      assert_match(/no concept .*ids are exact/, result.text, "should read as absent, not an errno")
+      refute_match(/Permission denied|No such file/, result.text, "no errno should reach the client")
+    ensure
+      File.chmod(0o644, note)
+    end
+  end
 end
