@@ -149,14 +149,13 @@ module OKF
         end
 
         def concept_text(context, slug, id, uri)
-          handle = context.folder(slug).concept(id)
-          not_found(uri) unless handle
-
           # The file's own bytes, exactly as read_concept takes them, through the
-          # same guarded read: handle.read resolves the real path and refuses a
-          # symlink escaping the root, so no request string reaches the filesystem
-          # as a path and no swapped-in link leaks an outside file.
-          handle.read
+          # same guarded single read: concept_source resolves the real path and
+          # refuses a symlink escaping the root (Path::Error) — masked to
+          # not_found by #read, alongside a vanished file (SystemCallError) — so
+          # no request string reaches the filesystem as a path and no swapped-in
+          # link leaks an outside file. nil is the plain unknown-id not-found.
+          context.folder(slug).concept_source(id) || not_found(uri)
         end
 
         # Listed implies readable, so a bundle whose index.md is a symlink out of

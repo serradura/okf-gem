@@ -64,6 +64,30 @@ class OKF::Bundle::FolderTest < OKF::TestCase
     assert_nil OKF::Bundle::Folder.load(@tmpdir).concept("nope")
   end
 
+  test "concept_source(id) returns the file's raw bytes without parsing" do
+    source = OKF::Bundle::Folder.load(@tmpdir).concept_source("features/a")
+
+    assert_equal File.read(File.join(@tmpdir, "features", "a.md"), encoding: "UTF-8"), source
+  end
+
+  test "concept_source(id) returns nil for an unknown id" do
+    assert_nil OKF::Bundle::Folder.load(@tmpdir).concept_source("nope")
+  end
+
+  test "concept_source(id) refuses a concept symlinked out of the root" do
+    outside = File.join(Dir.mktmpdir("okf-outside"), "a.md")
+    File.write(outside, "---\ntype: Feature\ntitle: Escaped\ndescription: d\n---\n\nx\n")
+    folder = OKF::Bundle::Folder.load(@tmpdir)
+    # Repoint an already-loaded id at an outside target, then read live.
+    File.delete(File.join(@tmpdir, "features", "a.md"))
+    File.symlink(outside, File.join(@tmpdir, "features", "a.md"))
+    begin
+      assert_raises(OKF::Path::Error) { folder.concept_source("features/a") }
+    ensure
+      FileUtils.rm_rf(File.dirname(outside))
+    end
+  end
+
   test "name is the parent/dir pair used as the default title" do
     expected = "#{File.basename(File.dirname(@tmpdir))}/#{File.basename(@tmpdir)}"
 

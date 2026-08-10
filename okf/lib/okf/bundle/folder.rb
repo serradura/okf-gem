@@ -108,6 +108,17 @@ module OKF
         Concept::File.read(root: @root, path: path)
       end
 
+      # The raw markdown bytes for one concept id — read once through the same
+      # containment guard as #concept, but without the parse #concept pays for,
+      # so a caller that wants the file verbatim (never a re-serialized copy)
+      # does one read, not a read plus a discarded frontmatter parse. nil when no
+      # concept has that id; raises Path::Error if the file has become a symlink
+      # escaping the root, and the reader's own SystemCallError if it has gone.
+      def concept_source(id)
+        path = @bundle.paths_by_id[id] or return nil
+        Concept::File.new(root: @root, path: path).read
+      end
+
       # Materialize the in-memory bundle to disk (Writer validates §9 before
       # publishing, so a malformed bundle is never written).
       def save(overwrite: false)
