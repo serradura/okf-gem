@@ -37,4 +37,15 @@ class OKF::SafeReadTest < OKF::TestCase
     resolved = OKF::SafeRead.contained_path!(@root, File.join(@root, "alias.md"))
     assert_equal File.realpath(File.join(@root, "real.md")), resolved
   end
+
+  test "Path.under? admits children of the filesystem root" do
+    assert OKF::Path.under?("/", "/")
+    assert OKF::Path.under?("/", "/index.md")
+    assert OKF::Path.under?("/", "/a/b.md")
+  end
+
+  test "Path.under? still rejects a sibling that shares a prefix" do
+    refute OKF::Path.under?("/foo", "/food")
+    refute OKF::Path.under?("/foo", "/foobar/x")
+  end
 end

@@ -67,12 +67,18 @@ module OKF
           # Raises the kernel's own refusal for a bundle argv did not serve: a
           # URI is not a path, and the allowlist is the only door.
           root = context.root!(slug)
-          text = id ? concept_text(context, slug, id, uri) : root_index_text(root, uri)
+          text = id ? concept_text(context, slug, id, uri) : root_index_text(root)
           [ ::MCP::Resource::TextContents.new(uri: uri, mime_type: MIME, text: text).to_h ]
+        rescue OKF::Path::Error, SystemCallError
+          # A containment refusal reads exactly as an absent file, never as
+          # invalid_params: a concept symlinked out of the root must be
+          # indistinguishable from a missing one (Path::Error), the same not-found
+          # a vanished file gets (SystemCallError), and the internal "escapes
+          # bundle root" reason never reaches the client. Ordered ahead of the
+          # OKF::Error branch because Path::Error is one.
+          not_found(uri)
         rescue Error, OKF::Error => e
           invalid_params(e.message, uri)
-        rescue SystemCallError
-          not_found(uri)
         end
 
         # Argument completion for the template above — the half that makes a
@@ -135,10 +141,11 @@ module OKF
         # symlinked index.md whose target sits outside the root is refused here
         # rather than followed: the kernel's read guards protect every concept,
         # and this is the matching guard for the one file that bypasses them.
-        def root_index_text(root, uri)
+        def root_index_text(root)
+          # A missing index (SystemCallError) and an escaping one (Path::Error)
+          # both propagate to #read, which turns each into the same not-found —
+          # so this reads the guarded bytes and nothing more.
           OKF::SafeRead.read!(root, ::File.join(root, ROOT_INDEX))
-        rescue OKF::Path::Error
-          not_found(uri)
         end
 
         def concept_text(context, slug, id, uri)
