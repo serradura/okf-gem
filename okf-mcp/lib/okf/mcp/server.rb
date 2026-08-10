@@ -414,15 +414,17 @@ module OKF
               required: %w[bundle id]
             }
           ) do |bundle:, id:|
-            handle = context.folder(bundle).concept(id)
             # The file's own bytes, not concept.to_markdown: a re-serialized
-            # frontmatter is canonical-ish, and "-ish" is drift. handle.read is
-            # the guarded read — it resolves the real path and refuses a symlink
-            # escaping the root. A concept swapped for such a link after its id
-            # resolved reads exactly as an absent one: the same "no concept"
-            # answer, never the internal containment reason, matching
-            # resources/read. (A rescue on the tool's do-block would be 2.6+.)
+            # frontmatter is canonical-ish, and "-ish" is drift. The guarded read
+            # resolves the real path and refuses a symlink escaping the root, and
+            # it fires in *both* steps here — concept(id) reads through the
+            # folder to resolve the handle, and handle.read reads again for the
+            # raw bytes — so the whole pair is wrapped: a concept swapped for an
+            # escaping link (while its id is still cached) reads exactly as an
+            # absent one, never the internal reason, matching resources/read. (A
+            # rescue on the tool's do-block would be 2.6+, hence begin/end.)
             text = begin
+              handle = context.folder(bundle).concept(id)
               handle&.read
             rescue OKF::Path::Error
               nil

@@ -4,13 +4,14 @@ require_relative "mcp_integration_case"
 
 # Adversarial containment probes (review of PR #26). The security model: a
 # tool's `bundle` arg is a registry slug, `id` resolves through the bundle's
-# paths_by_id map, and Path.join_under! guards the root. These probes assert
-# that no request can surface file content from outside a served bundle root.
+# paths_by_id map, and every read is realpath-resolved and refused if its target
+# escapes the root (OKF::SafeRead). These probes assert that no request can
+# surface file content from outside a served bundle root — and they all pass.
 #
-# The lexical (id / URI) probes all hold. The SYMLINK probes below currently
-# FAIL — Path.join_under! is a lexical check (File.expand_path, not realpath),
-# so a symlink whose *name* is in-root but whose *target* is outside is
-# followed. Left in as the red repro for that finding.
+# Two families. The LEXICAL probes (id / URI traversal) are refused before any
+# read. The SYMLINK probes cover what a lexical check cannot see: a link whose
+# name is in-root but whose target is outside, including the case where the file
+# was a real concept at load time and is swapped for such a link afterwards.
 class ContainmentProbeTest < MCPIntegrationCase
   def with_secret
     secret = File.join(@out_dir, "SECRET.txt")
@@ -18,7 +19,7 @@ class ContainmentProbeTest < MCPIntegrationCase
     yield secret
   end
 
-  # ── lexical containment: these hold ──────────────────────────────────────
+  # ── lexical containment: refused before any read ─────────────────────────
 
   test "read_concept — traversal ids never escape the root" do
     with_secret do
@@ -75,11 +76,11 @@ class ContainmentProbeTest < MCPIntegrationCase
     assert_empty ids, "completion enumerated ids of an unserved bundle: #{ids.inspect}"
   end
 
-  # ── symlink containment: these FAIL — the finding ────────────────────────
+  # ── symlink containment: resolved and refused (incl. post-load swaps) ────
 
   # A symlinked concept file (valid frontmatter) whose target is outside the
-  # root. glob finds it, it parses as a concept, join_under! passes on the
-  # in-root name, and File.read follows the link.
+  # root: glob finds it and it would parse as a concept, but the read
+  # realpath-resolves the in-root name and refuses the outside target.
   test "read_concept — a symlink to an outside concept is not followed" do
     outside = File.join(@out_dir, "exfil.md")
     File.write(outside, "---\ntype: Note\ntitle: Exfil\n---\n\nroot:x:0:0 TOP SECRET body\n")
@@ -91,9 +92,9 @@ class ContainmentProbeTest < MCPIntegrationCase
     refute_match(/TOP SECRET/, result.text, "LEAK: read_concept followed a symlink out of the root")
   end
 
-  # The worst variant: a symlinked index.md is read with a raw File.read (no
-  # frontmatter needed), so ANY outside file is served verbatim, listed, and
-  # readable via okf://<slug>.
+  # The worst variant: index.md is read directly (no frontmatter needed), so a
+  # symlinked one could otherwise serve ANY outside file verbatim over
+  # okf://<slug>. The root-index read is realpath-guarded and, escaping, unlisted.
   test "resources/read — a symlinked root index does not export an arbitrary outside file" do
     outside = File.join(@out_dir, "passwd")
     File.write(outside, "root:x:0:0:arbitrary non-OKF file:/root:/bin/sh\n")
@@ -149,5 +150,35 @@ class ContainmentProbeTest < MCPIntegrationCase
     refute_match(/TOP SECRET/, tool.text, "LEAK: read_concept served the target")
     refute_match(/escapes bundle root/, tool.text, "read_concept leaked the internal reason")
     assert_match(/no concept .*ids are exact/, tool.text, "escaping concept should read as absent")
+  end
+
+  # The swap above moves the residency fingerprint, so the bundle reloads and the
+  # id drops out. The dangerous window is the *stable* fingerprint: a swap whose
+  # target keeps the original size and mtime leaves paths_by_id holding the id, so
+  # concept(id) itself performs the guarded read and raises — the read_concept
+  # masking must cover that call, not only the later handle.read.
+  test "read_concept — an escaping concept masks the reason even when the fingerprint is unchanged" do
+    dir = scratch_bundle("swapstable")
+    note = File.join(dir, "note.md")
+    File.write(note, "---\ntype: Note\ntitle: Note\n---\n\nreal body\n")
+    size = File.size(note)
+    mtime = File.mtime(note)
+    server = mcp_server(dir)
+    assert_match(/real body/, call_tool(server, "read_concept", bundle: "swapstable", id: "note").text)
+
+    # An outside target with identical size and mtime — File.stat follows the
+    # symlink, so the fingerprint (path + mtime + size) does not move and the
+    # bundle is never re-read.
+    outside = File.join(@out_dir, "secret.md")
+    File.write(outside, "root:x:0:0 TOP SECRET".ljust(size, "\n")[0, size])
+    File.utime(mtime, mtime, outside)
+    File.delete(note)
+    File.symlink(outside, note)
+
+    result = call_tool(server, "read_concept", bundle: "swapstable", id: "note")
+    assert result.error?, "an escaping concept must be a tool error"
+    refute_match(/TOP SECRET/, result.text, "LEAK: read_concept served the escaping target")
+    refute_match(/escapes bundle root/, result.text, "LEAK: read_concept leaked the internal reason")
+    assert_match(/no concept .*ids are exact/, result.text, "escaping concept should read as absent")
   end
 end
