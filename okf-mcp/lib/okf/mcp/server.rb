@@ -415,13 +415,20 @@ module OKF
             }
           ) do |bundle:, id:|
             handle = context.folder(bundle).concept(id)
-            if handle
-              # The file's own bytes, not concept.to_markdown: a re-serialized
-              # frontmatter is canonical-ish, and "-ish" is drift. handle.read is
-              # the guarded read — it resolves the real path and refuses a symlink
-              # escaping the root, so a file swapped for a link after the id
-              # resolved cannot leak an outside file's bytes.
-              ::MCP::Tool::Response.new([ { type: "text", text: handle.read } ])
+            # The file's own bytes, not concept.to_markdown: a re-serialized
+            # frontmatter is canonical-ish, and "-ish" is drift. handle.read is
+            # the guarded read — it resolves the real path and refuses a symlink
+            # escaping the root. A concept swapped for such a link after its id
+            # resolved reads exactly as an absent one: the same "no concept"
+            # answer, never the internal containment reason, matching
+            # resources/read. (A rescue on the tool's do-block would be 2.6+.)
+            text = begin
+              handle&.read
+            rescue OKF::Path::Error
+              nil
+            end
+            if text
+              ::MCP::Tool::Response.new([ { type: "text", text: text } ])
             else
               respond_error("no concept #{id.inspect} in bundle #{bundle.inspect} — ids are exact; find them with search or index")
             end
