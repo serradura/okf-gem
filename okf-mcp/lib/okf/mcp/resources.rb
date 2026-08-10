@@ -136,20 +136,20 @@ module OKF
         # rather than followed: the kernel's read guards protect every concept,
         # and this is the matching guard for the one file that bypasses them.
         def root_index_text(root, uri)
-          path = ::File.join(root, ROOT_INDEX)
-          not_found(uri) unless OKF::Path.under?(::File.realpath(root), ::File.realpath(path))
-
-          ::File.read(path, encoding: "UTF-8")
+          OKF::SafeRead.read!(root, ::File.join(root, ROOT_INDEX))
+        rescue OKF::Path::Error
+          not_found(uri)
         end
 
         def concept_text(context, slug, id, uri)
           handle = context.folder(slug).concept(id)
           not_found(uri) unless handle
 
-          # The file's own bytes, exactly as read_concept takes them: the id was
-          # resolved through the bundle's own map, and absolute_path guards the
-          # root, so no request string ever reaches the filesystem as a path.
-          ::File.read(handle.absolute_path, encoding: "UTF-8")
+          # The file's own bytes, exactly as read_concept takes them, through the
+          # same guarded read: handle.read resolves the real path and refuses a
+          # symlink escaping the root, so no request string reaches the filesystem
+          # as a path and no swapped-in link leaks an outside file.
+          handle.read
         end
 
         # Listed implies readable, so a bundle whose index.md is a symlink out of
@@ -157,8 +157,11 @@ module OKF
         # on read, applied one step earlier so the URI is never advertised.
         def root_index?(root)
           path = ::File.join(root, ROOT_INDEX)
-          ::File.file?(path) && OKF::Path.under?(::File.realpath(root), ::File.realpath(path))
-        rescue SystemCallError
+          return false unless ::File.file?(path)
+
+          OKF::SafeRead.contained_path!(root, path)
+          true
+        rescue OKF::Path::Error, SystemCallError
           false
         end
 

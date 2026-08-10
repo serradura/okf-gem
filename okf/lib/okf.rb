@@ -38,6 +38,7 @@ module OKF
 
   # ── kernel: cross-cutting primitives ──
   require "okf/path"
+  require "okf/safe_read"
 
   # ── Markdown: parse structure out of a markdown document (§4/§5/§8) ──
   require "okf/markdown/frontmatter"

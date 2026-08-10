@@ -45,11 +45,7 @@ module OKF
         paths.each do |path|
           begin
             absolute = Path.join_under!(@root, path)
-            unless Path.under?(real_root, File.realpath(absolute))
-              raise Path::Error, "symlink target escapes bundle root"
-            end
-
-            content = File.read(absolute, encoding: "UTF-8")
+            content = SafeRead.read!(@root, absolute, real_root: real_root)
             if Concept.reserved?(path)
               reserved << Entry.new(path: path, content: content)
             else

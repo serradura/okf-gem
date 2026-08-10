@@ -105,4 +105,21 @@ class ContainmentProbeTest < MCPIntegrationCase
     response = rpc(server, "resources/read", uri: "okf://linkidx")
     refute_match(/root:x:0:0/, JSON.generate(response), "LEAK: symlinked index.md served an arbitrary outside file")
   end
+
+  # The log tool re-reads log.md live on every call, off the boot-time path set —
+  # so a real log swapped for an escaping symlink after boot is the escape the
+  # bulk-load guard cannot see. The live read must refuse it too.
+  test "log — a log.md swapped for an escaping symlink after boot does not leak" do
+    outside = File.join(@out_dir, "passwd")
+    File.write(outside, "root:x:0:0:arbitrary outside file\n")
+    dir = scratch_bundle("logswap")
+    File.write(File.join(dir, "log.md"), "# Log\n\n## 2026-01-01\n\nboot entry\n")
+    server = mcp_server(dir)
+    assert_match(/boot entry/, call_tool!(server, "log", bundle: "logswap").to_json)
+
+    File.delete(File.join(dir, "log.md"))
+    File.symlink(outside, File.join(dir, "log.md"))
+    after = call_tool!(server, "log", bundle: "logswap").to_json
+    refute_match(/root:x:0:0/, after, "LEAK: live log read followed a symlink out of the root")
+  end
 end
