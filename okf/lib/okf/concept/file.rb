@@ -14,6 +14,13 @@ module OKF
     #
     # NOTE: this class is named File, which shadows Ruby's File inside the
     # OKF::Concept namespace — every filesystem call here uses ::File explicitly.
+    #
+    # absolute_path guards the *name* lexically (Path.join_under!), which is all a
+    # write needs — the file may not exist yet. A read has more to prove: the file
+    # is on disk now, so it may be a symlink whose name is inside the root but
+    # whose target is not, and File.expand_path does not resolve links. So #reload
+    # realpath-resolves before reading and refuses a target outside the root,
+    # closing the same escape Bundle::Reader closes on the bulk read.
     class File
       attr_reader :root, :path, :concept
 
@@ -53,11 +60,22 @@ module OKF
       end
 
       def reload
-        content = ::File.read(absolute_path, encoding: "UTF-8")
+        content = ::File.read(contained_read_path, encoding: "UTF-8")
         frontmatter, body = Markdown::Frontmatter.parse(content)
         @concept = Concept.new(path: @path, frontmatter: frontmatter, body: body)
         self
       end
+
+      # The on-disk path to read, refused if the resolved target escapes the root
+      # by symlink. Kept separate from #absolute_path because writes join a path
+      # that need not exist yet, while a read can and must resolve the real file.
+      def contained_read_path
+        target = absolute_path
+        raise Path::Error, "symlink target escapes bundle root" unless Path.under?(::File.realpath(@root), ::File.realpath(target))
+
+        target
+      end
+      private :contained_read_path
     end
   end
 end

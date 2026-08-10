@@ -24,11 +24,17 @@ module OKF
       relative = normalize_relative!(path)
       expanded_root = File.expand_path(root.to_s)
       expanded_path = File.expand_path(File.join(expanded_root, relative))
-      unless expanded_path == expanded_root || expanded_path.start_with?("#{expanded_root}#{File::SEPARATOR}")
-        raise Error, "path escapes bundle root"
-      end
+      raise Error, "path escapes bundle root" unless under?(expanded_root, expanded_path)
 
       expanded_path
+    end
+
+    # Is +path+ the root itself or a descendant of it? Pure string containment
+    # (no disk access), so it works on both lexical paths (File.expand_path) and
+    # symlink-resolved ones (File.realpath) — the shell resolves, this decides.
+    # Both arguments must already be absolute and normalized the same way.
+    def self.under?(root, path)
+      path == root || path.start_with?("#{root}#{File::SEPARATOR}")
     end
   end
 end

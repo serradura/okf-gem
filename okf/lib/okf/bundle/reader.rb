@@ -12,10 +12,17 @@ module OKF
     # cannot open at all — is retained as an unparseable entry (carrying the
     # ParseError message or the errno, so §9.1 can report it) rather than dropped
     # or raised. That tolerance is the whole §9 best-effort promise: one bad file
-    # never breaks the rest, and this is the read every verb shares. Every read
-    # goes through Path.join_under! so a symlinked or crafted path cannot escape
-    # the bundle root — that guard still raises, because a path leaving the root
-    # is not a bad file, it is a bundle lying about its shape.
+    # never breaks the rest, and this is the read every verb shares.
+    #
+    # Containment is enforced twice, because the two ways out of the root are
+    # different. A crafted *path* (`..`, an absolute string) is caught lexically
+    # by Path.join_under!. A *symlink* whose name sits inside the root but whose
+    # target does not cannot be seen lexically — File.expand_path does not
+    # resolve links — so each file is also realpath-resolved and its real
+    # location checked against the real root before a byte is read. An escaping
+    # file joins the unparseable bucket rather than raising: a planted symlink is
+    # one bad file, and letting it take down the whole bundle read would hand any
+    # writer of a served directory a denial of service. §9.1 then names it.
     class Reader
       def self.read(dir)
         new(dir).read
@@ -32,9 +39,17 @@ module OKF
         reserved = []
         unparseable = []
 
-        markdown_paths.each do |path|
+        paths = markdown_paths
+        real_root = File.realpath(@root) unless paths.empty?
+
+        paths.each do |path|
           begin
-            content = File.read(Path.join_under!(@root, path), encoding: "UTF-8")
+            absolute = Path.join_under!(@root, path)
+            unless Path.under?(real_root, File.realpath(absolute))
+              raise Path::Error, "symlink target escapes bundle root"
+            end
+
+            content = File.read(absolute, encoding: "UTF-8")
             if Concept.reserved?(path)
               reserved << Entry.new(path: path, content: content)
             else
@@ -43,18 +58,21 @@ module OKF
             end
           rescue Markdown::Frontmatter::ParseError => e
             unparseable << Entry.new(path: path, content: content, error: e.message)
-          rescue SystemCallError => e
-            # A file that cannot be opened is one unusable file, not a broken
-            # bundle. Letting the errno out of here breaks "one bad file never
-            # breaks the rest" for every verb at once — the read is the one path
-            # they all share — and it breaks it in the worst way: a backtrace,
-            # under an exit code that claims the bundle is non-conformant. So it
-            # joins the same bucket a bad frontmatter block does, and §9.1 reports
-            # it naming the file and the errno.
+          rescue Path::Error, SystemCallError => e
+            # A file we cannot safely read is one unusable file, not a broken
+            # bundle: an errno on open, or a path that leaves the root — lexically
+            # (`..`, an absolute string) or through a symlink whose target escapes
+            # it. Letting either out of here breaks "one bad file never breaks the
+            # rest" for every verb at once — the read is the one path they all
+            # share — and in the worst way: a backtrace under an exit code that
+            # claims non-conformance, or a served bundle taken down by one planted
+            # symlink. So it joins the same bucket a bad frontmatter block does,
+            # and §9.1 reports it naming the file and the reason.
             #
             # Its content is "" rather than nil: unknown, but every analyzer reads
-            # it as text, and empty is the honest shape of a file we never saw —
-            # no links to resolve, no encoding to be invalid, nothing claimed.
+            # it as text, and empty is the honest shape of a file we never read —
+            # no links to resolve, nothing claimed, and for a symlink escape, none
+            # of the target's bytes.
             unparseable << Entry.new(path: path, content: "", error: e.message)
           end
         end

@@ -67,7 +67,7 @@ module OKF
           # Raises the kernel's own refusal for a bundle argv did not serve: a
           # URI is not a path, and the allowlist is the only door.
           root = context.root!(slug)
-          text = id ? concept_text(context, slug, id, uri) : ::File.read(::File.join(root, ROOT_INDEX), encoding: "UTF-8")
+          text = id ? concept_text(context, slug, id, uri) : root_index_text(root, uri)
           [ ::MCP::Resource::TextContents.new(uri: uri, mime_type: MIME, text: text).to_h ]
         rescue Error, OKF::Error => e
           invalid_params(e.message, uri)
@@ -130,6 +130,18 @@ module OKF
           [ slug, OKF.blank?(id) ? nil : id ]
         end
 
+        # The root index, read directly — the one bundle file that does not come
+        # through paths_by_id, so it carries no containment on its own. A
+        # symlinked index.md whose target sits outside the root is refused here
+        # rather than followed: the kernel's read guards protect every concept,
+        # and this is the matching guard for the one file that bypasses them.
+        def root_index_text(root, uri)
+          path = ::File.join(root, ROOT_INDEX)
+          not_found(uri) unless OKF::Path.under?(::File.realpath(root), ::File.realpath(path))
+
+          ::File.read(path, encoding: "UTF-8")
+        end
+
         def concept_text(context, slug, id, uri)
           handle = context.folder(slug).concept(id)
           not_found(uri) unless handle
@@ -140,8 +152,12 @@ module OKF
           ::File.read(handle.absolute_path, encoding: "UTF-8")
         end
 
+        # Listed implies readable, so a bundle whose index.md is a symlink out of
+        # the root is not listed at all — the same escape #root_index_text refuses
+        # on read, applied one step earlier so the URI is never advertised.
         def root_index?(root)
-          ::File.file?(::File.join(root, ROOT_INDEX))
+          path = ::File.join(root, ROOT_INDEX)
+          ::File.file?(path) && OKF::Path.under?(::File.realpath(root), ::File.realpath(path))
         rescue SystemCallError
           false
         end
