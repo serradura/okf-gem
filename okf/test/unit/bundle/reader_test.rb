@@ -76,6 +76,51 @@ class OKF::Bundle::ReaderTest < OKF::TestCase
     assert_includes bundle.paths, "broken.md"
   end
 
+  test "a concept file symlinked out of the root is quarantined, not followed" do
+    outside_dir = Dir.mktmpdir("okf-outside")
+    begin
+      outside = File.join(outside_dir, "secret.md")
+      File.write(outside, "---\ntype: Note\ntitle: Secret\n---\n\nSECRET BODY\n")
+      File.symlink(outside, File.join(@tmpdir, "escape.md"))
+      bundle = OKF::Bundle::Reader.read(@tmpdir)
+
+      refute_includes bundle.concepts.map(&:id), "escape"
+      entry = bundle.unparseable.find { |e| e.path == "escape.md" }
+      assert entry, "an escaping symlink must be quarantined as unparseable"
+      assert_match(/escapes bundle root/, entry.error)
+      refute_includes bundle.unparseable.map { |e| e.content.to_s }.join, "SECRET BODY"
+    ensure
+      FileUtils.rm_rf(outside_dir)
+    end
+  end
+
+  test "a reserved file symlinked out of the root is quarantined, not read" do
+    outside_dir = Dir.mktmpdir("okf-outside")
+    begin
+      outside = File.join(outside_dir, "passwd")
+      File.write(outside, "root:x:0:0:arbitrary outside file\n")
+      File.delete(File.join(@tmpdir, "index.md"))
+      File.symlink(outside, File.join(@tmpdir, "index.md"))
+      bundle = OKF::Bundle::Reader.read(@tmpdir)
+
+      assert_empty bundle.index_files, "an escaping index.md must not be served as reserved content"
+      entry = bundle.unparseable.find { |e| e.path == "index.md" }
+      assert entry, "an escaping reserved file must be quarantined as unparseable"
+      refute_includes bundle.unparseable.map { |e| e.content.to_s }.join, "root:x:0:0"
+    ensure
+      FileUtils.rm_rf(outside_dir)
+    end
+  end
+
+  test "a symlink pointing inside the same bundle is followed as normal" do
+    write("real/orders.md", "---\ntype: Note\ntitle: Real\n---\n\nInside.\n")
+    File.symlink(File.join(@tmpdir, "real", "orders.md"), File.join(@tmpdir, "alias.md"))
+    bundle = OKF::Bundle::Reader.read(@tmpdir)
+
+    assert_includes bundle.concepts.map(&:id), "alias"
+    refute_includes bundle.unparseable.map(&:path), "alias.md"
+  end
+
   private
 
   def write(path, content)
