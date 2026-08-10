@@ -167,6 +167,27 @@ class HTTPTest < MCPIntegrationCase
     end
   end
 
+  # Claude Desktop probes the OAuth discovery paths before speaking MCP. The
+  # SDK transport routes on method alone, so a bridge that hands it every
+  # path answered GET /.well-known/* with 405 and POST /register with a
+  # 200-wrapped JSON-RPC parse error — a *broken* sign-in service instead of
+  # an absent one, and Desktop refused the connector on it. The endpoint is
+  # the root and nothing else; everything beside it is 404, the answer a
+  # discovering client reads as "no auth here".
+  test "paths beside the endpoint are 404 — OAuth discovery reads absence, not breakage" do
+    with_http_server do |port|
+      get = Net::HTTP.get_response(URI("http://127.0.0.1:#{port}/.well-known/oauth-protected-resource"))
+      assert_equal "404", get.code
+
+      register = post(port, { client_name: "claude" }, path: "/register")
+      assert_equal "404", register.code
+
+      response = post(port, { jsonrpc: "2.0", id: 1, method: "initialize",
+                              params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "0" } } })
+      assert_equal "200", response.code, "the root endpoint still serves MCP"
+    end
+  end
+
   # A chunked request carries no Content-Length, and WEBrick's #content_length
   # raises TypeError rather than returning nil for it — so the size guard has
   # to read the raw header or it takes every chunked POST down with a 500.
@@ -218,11 +239,11 @@ class HTTPTest < MCPIntegrationCase
 
   # A Hash payload is encoded; a String is sent as-is, which is how the
   # oversized-body test gets bytes past the JSON generator.
-  def post(port, payload, host: nil)
+  def post(port, payload, host: nil, path: "/")
     http = Net::HTTP.new("127.0.0.1", port)
     http.open_timeout = 10
     http.read_timeout = 10
-    request = Net::HTTP::Post.new("/", "Content-Type" => "application/json", "Accept" => "application/json, text/event-stream")
+    request = Net::HTTP::Post.new(path, "Content-Type" => "application/json", "Accept" => "application/json, text/event-stream")
     request["Host"] = host if host
     request.body = payload.is_a?(String) ? payload : JSON.generate(payload)
     http.request(request)

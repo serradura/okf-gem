@@ -133,6 +133,15 @@ module OKF
       end
 
       def handle(app, request, response)
+        # The MCP endpoint is the root and nothing else. The SDK transport
+        # routes on method alone, so handing it every path answered the OAuth
+        # discovery probes a connecting host sends first (GET /.well-known/*,
+        # POST /register — Claude Desktop does) with a 405 and a 200-wrapped
+        # JSON-RPC parse error: a *broken* sign-in service instead of an
+        # absent one, and the host refused the connector on it. 404 is the
+        # answer that reads as absence.
+        return not_found(response) unless request.path == "/"
+
         # The cap is enforced *here*, before the body is materialized. The SDK
         # transport has its own `max_request_bytes` and never reads more than
         # that off `rack.input` — but WEBrick's `request.body` has no limit, so
@@ -173,6 +182,12 @@ module OKF
           return nil if buffer.bytesize > MAX_REQUEST_BYTES
         end
         buffer
+      end
+
+      def not_found(response)
+        response.status = 404
+        response["Content-Type"] = "application/json"
+        response.body = JSON.generate(error: "not found: the MCP endpoint is /")
       end
 
       def oversized(response)
