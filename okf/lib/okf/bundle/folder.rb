@@ -135,8 +135,12 @@ module OKF
       end
 
       def log_content(path)
-        File.read(File.join(@root, path), encoding: "UTF-8")
-      rescue SystemCallError
+        # Live, but through the same containment as every other read: a log.md
+        # that was a real file at boot and is a symlink out of the root now falls
+        # back to the boot snapshot rather than serving the target — the same
+        # answer a vanished file gets, since an escape is a file we must not read.
+        SafeRead.read!(@root, File.join(@root, path))
+      rescue SystemCallError, Path::Error
         @bundle.reserved_content(path)
       end
     end

@@ -417,11 +417,11 @@ module OKF
             handle = context.folder(bundle).concept(id)
             if handle
               # The file's own bytes, not concept.to_markdown: a re-serialized
-              # frontmatter is canonical-ish, and "-ish" is drift. The id was
-              # resolved through the bundle's own map and absolute_path guards
-              # the root, so no request path ever reaches the filesystem.
-              text = ::File.read(handle.absolute_path, encoding: "UTF-8")
-              ::MCP::Tool::Response.new([ { type: "text", text: text } ])
+              # frontmatter is canonical-ish, and "-ish" is drift. handle.read is
+              # the guarded read — it resolves the real path and refuses a symlink
+              # escaping the root, so a file swapped for a link after the id
+              # resolved cannot leak an outside file's bytes.
+              ::MCP::Tool::Response.new([ { type: "text", text: handle.read } ])
             else
               respond_error("no concept #{id.inspect} in bundle #{bundle.inspect} — ids are exact; find them with search or index")
             end

@@ -18,9 +18,9 @@ module OKF
     # absolute_path guards the *name* lexically (Path.join_under!), which is all a
     # write needs — the file may not exist yet. A read has more to prove: the file
     # is on disk now, so it may be a symlink whose name is inside the root but
-    # whose target is not, and File.expand_path does not resolve links. So #reload
-    # realpath-resolves before reading and refuses a target outside the root,
-    # closing the same escape Bundle::Reader closes on the bulk read.
+    # whose target is not, and File.expand_path does not resolve links. So #read
+    # goes through SafeRead, which realpath-resolves and refuses a target outside
+    # the root, closing the same escape Bundle::Reader closes on the bulk read.
     class File
       attr_reader :root, :path, :concept
 
@@ -60,22 +60,19 @@ module OKF
       end
 
       def reload
-        content = ::File.read(contained_read_path, encoding: "UTF-8")
-        frontmatter, body = Markdown::Frontmatter.parse(content)
+        frontmatter, body = Markdown::Frontmatter.parse(read)
         @concept = Concept.new(path: @path, frontmatter: frontmatter, body: body)
         self
       end
 
-      # The on-disk path to read, refused if the resolved target escapes the root
-      # by symlink. Kept separate from #absolute_path because writes join a path
-      # that need not exist yet, while a read can and must resolve the real file.
-      def contained_read_path
-        target = absolute_path
-        raise Path::Error, "symlink target escapes bundle root" unless Path.under?(::File.realpath(@root), ::File.realpath(target))
-
-        target
+      # The file's own bytes, refused if the resolved target escapes the root by
+      # symlink. This is the guarded read a caller that wants the raw markdown
+      # (not a re-serialized `concept.to_markdown`) must use instead of reading
+      # #absolute_path itself — that path guards the *name* lexically, which a
+      # write needs but a read does not, since the file exists and may be a link.
+      def read
+        SafeRead.read!(@root, absolute_path)
       end
-      private :contained_read_path
     end
   end
 end
