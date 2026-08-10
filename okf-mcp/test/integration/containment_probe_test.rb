@@ -141,5 +141,13 @@ class ContainmentProbeTest < MCPIntegrationCase
     assert response["error"], "an escaping concept must be an error"
     refute_match(/TOP SECRET/, payload, "LEAK: escaping concept served its target")
     refute_match(/escapes bundle root/, payload, "the internal reason must not reach the client")
+
+    # The read_concept tool must mask it identically — an escaping swap reads as
+    # the same "no concept" answer an unknown id gets, never the containment reason.
+    tool = call_tool(server, "read_concept", bundle: "swapc", id: "note")
+    assert tool.error?, "an escaping concept must be a tool error"
+    refute_match(/TOP SECRET/, tool.text, "LEAK: read_concept served the target")
+    refute_match(/escapes bundle root/, tool.text, "read_concept leaked the internal reason")
+    assert_match(/no concept .*ids are exact/, tool.text, "escaping concept should read as absent")
   end
 end
