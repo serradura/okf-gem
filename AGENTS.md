@@ -477,6 +477,33 @@ The prose is the maintainer's, in the README's established voice. Match it rathe
 than flattening it into neutral documentation register; the same attribution rule
 as commits applies (see [Git](#git)).
 
+## The `.okf` bundle and its log
+
+This repo carries its own OKF bundle in `.okf/`, and maintaining it is part of
+finishing a change, not a separate chore — a durable lesson a change taught goes
+in the concept it is about, stated as a principle, in the same commit as the code
+(the concept is the home; the reader finds it there, not by reading history).
+
+`.okf/log.md` is held to one rule that outranks the reflex to write down what
+happened: **it records durable knowledge and shipped behavior, not the process
+that produced them.** A bug fixed in a release is a log entry; the review rounds
+that found it are not. A capability that shipped is an entry; the iterations it
+took to stabilize an unreleased branch are not. When a change taught a lesson,
+the lesson lives in the concept, and the log entry *points* at the concept — it
+does not re-narrate the rounds. The test is what a reader six months out needs:
+*what changed and why it matters*, never *how many passes it took to get there*.
+
+The failure this closes has a shape worth recognizing, because the log invites
+it: the newest entries sit at the top where every reader lands, so a branch
+stabilized by iteration accretes a diary of "review round N found M defects"
+exactly where a durable summary should be. okf-mcp's first release was that —
+five date-groups of round-by-round narrative — and was collapsed to one entry on
+this rule, losing nothing, because the lessons were already in
+`capabilities/mcp-server.md` where they belong. A sibling under development, or a
+hardening pass like the symlink-containment work, earns one entry naming the
+outcome and the concept that carries the rule; the process that got there is not
+the bundle's to keep.
+
 ## Pull requests
 
 Every PR is a written argument for its own diff, and they share one skeleton.
