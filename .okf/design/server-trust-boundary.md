@@ -1,10 +1,10 @@
 ---
 type: Constraint
 title: The server trust boundary
-description: The page sanitizes each concept body before rendering and escapes inlined data, so both XSS paths into the page are closed — served live or rendered static.
+description: The trust boundary for serving a bundle you may not fully trust — both XSS paths into the page are closed, the registry write routes carry their own locks, and every read is realpath-contained so a symlinked file cannot escape the bundle root.
 resource: okf/lib/okf/render/graph/template.html.erb
-tags: [security, server, xss]
-timestamp: 2026-07-18T17:00:00Z
+tags: [security, server, xss, containment]
+timestamp: 2026-08-10T12:00:00Z
 ---
 
 # Overview
@@ -76,6 +76,41 @@ plus a per-boot token. Sanitizing has nothing to say about a well-formed request
 that should not have been honoured, which is why that gate is described where it
 lives instead of being folded in here.
 
+# A third boundary: a file may not be where its name says
+
+Everything above trusts that a file inside the bundle *is* inside the bundle. A
+symlink breaks that: its name sits under the root, but its target need not, and
+`File.expand_path` — the lexical guard every read used — resolves the name, not
+the link. So a bundle carrying `services/billing.md → /etc/passwd`, or an
+`index.md` symlinked outside the root, had its target read and served: verbatim
+over the [graph server](../capabilities/graph-server.md) and `okf render`, and —
+the reason it finally mattered — over [okf-mcp](../capabilities/mcp-server.md)'s
+`--http`, to any host that could reach the port. Two code comments and a test
+name asserted a containment that was never enforced; none tested it.
+
+The guard is the target's real path now, not its name. Every read a bundle
+serves — the Reader's bulk load, the single-concept handle, the live `log.md`
+re-read, and the MCP concept and index reads — goes through one shell primitive
+(`OKF::SafeRead`) that resolves `File.realpath`, refuses a result outside the
+real root (`Path.under?` is the pure decision, the I/O stays in the shell), and
+reads from the *resolved* path so a swap cannot slip between the check and the
+open. An escaping file is quarantined like any unreadable one, so one planted
+link cannot take a whole bundle down, and an escaping or vanished concept reads
+as a plain not-found rather than an error naming the target.
+<!-- rule:okf-realpath-contains-reads -->
+
+The durable half is the rule the old comments claimed and did not hold: **a
+lexical path check guards the name; a symlink escapes by its target, and only
+`realpath` sees where a name actually leads.** The boundary is drawn where it
+can be, not oversold past it — the same discipline the
+[extension seam](extension-points.md) applies to its prefix: a hardlink shares
+its target's inode and keeps an in-root path that `realpath` cannot distinguish,
+and neither a hardlink nor a symlink survives a `git clone`, a copy or a tarball.
+So the portable, adversarial bundle is a symlink's to plant and `realpath`'s to
+close; the hardlink case is a local, non-portable one, named rather than claimed
+covered, because the obvious guard (reject `st_nlink > 1`) would break a bundle
+on a deduplicating filesystem.
+
 # What sanitizing does not cover
 
 DOMPurify removes the code, not the content. The page still fetches and shows the
@@ -92,3 +127,4 @@ the ordinary care you would give any document from a source you do not know.
 
 [1] [README.md — Server trust boundary](https://github.com/serradura/okf-gem/blob/main/README.md) — the two-defense summary.
 [2] [okf/lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph/template.html.erb) — the inlined `EMBED` and the `DOMPurify.sanitize(marked.parse(...))` render; `json_for_script` (its `<`-escape) is the method in the sibling `render/graph.rb`.
+[3] [okf/lib/okf/safe_read.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/safe_read.rb) — the one realpath-containment primitive every bundle read passes through; `Path.under?` in `okf/lib/okf/path.rb` is the pure decision it feeds.
