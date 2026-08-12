@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- The demo Open Graph card URL the graph template points at moved to
+  `og-demo-v5.png` (the site's card-art version bump); the old URL keeps
+  serving the current art, so nothing breaks in between.
+
 ## [1.13.0] - 2026-08-07
 
 ### Added
