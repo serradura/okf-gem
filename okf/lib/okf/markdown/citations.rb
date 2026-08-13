@@ -10,6 +10,11 @@ module OKF
       # A markdown ATX heading line: 1–6 `#`, whitespace, then the heading text.
       HEADING = /\A(\#{1,6})\s+(.*?)\s*\z/.freeze
       CITATIONS = /\ACitations\z/i.freeze
+      # A list item (or lone line) that is only a URL — the v0.1 spelling the
+      # v0.2 SPEC's own Appendix A uses — and the same item written as an
+      # autolink. Both are citations with no text to lift into a title.
+      URL_ITEM = %r{\A(?:[-*+]\s+)?([a-z][a-z0-9+.-]*://\S+)\z}i.freeze
+      AUTOLINK_ITEM = /\A(?:[-*+]\s+)?<([a-z][a-z0-9+.-]*:[^>\s]+)>\z/i.freeze
 
       module_function
 
@@ -43,6 +48,31 @@ module OKF
       # Citation link targets within the `# Citations` section (empty when absent).
       def targets(body)
         Links.extract(section(body).to_s)
+      end
+
+      # The citation entries as { text:, target: } pairs, in document order —
+      # what Concept#sources lifts into { "title", "resource" } mappings, where
+      # #targets gives only the URL. Three item forms (§13.1): labelled links
+      # carry their text; bare-URL and autolink items have none; a
+      # reference-style citation still yields its target through Links.extract.
+      def entries(body)
+        text = section(body).to_s
+        found = []
+        Links.each_prose_line(text) do |line|
+          item = line.strip
+          match = AUTOLINK_ITEM.match(item) || URL_ITEM.match(item)
+          if match
+            found << { text: "", target: match[1] }
+            next
+          end
+
+          line.scan(Links::INLINE_LINK) do |label, target|
+            found << { text: label.to_s.strip, target: target }
+          end
+        end
+        covered = found.map { |entry| entry[:target] }
+        extra = Links.extract(text).reject { |target| covered.include?(target) }
+        found + extra.map { |target| { text: "", target: target } }
       end
     end
   end

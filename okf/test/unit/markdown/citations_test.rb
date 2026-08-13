@@ -66,4 +66,52 @@ class OKF::Markdown::CitationsTest < OKF::TestCase
   test "targets is empty when there is no Citations section" do
     assert_empty OKF::Markdown::Citations.targets("just a body with a [link](/a.md)\n")
   end
+  # ── entries: the three §13.1 item forms a v0.1 list may use ──
+
+  test "entries lifts labelled links with their text" do
+    body = "# Citations\n\n[1] [The paper](https://ex.com/paper)\n"
+
+    assert_equal [ { text: "The paper", target: "https://ex.com/paper" } ], OKF::Markdown::Citations.entries(body)
+  end
+
+  test "entries reads the SPEC's own bare-URL list form verbatim" do
+    body = <<~MD
+      # Citations
+      - https://wiki.acme/finance/fpa-handbook
+      - https://wiki.acme/finance/revenue-recognition
+      - https://wiki.acme/finance/cost-allocation
+    MD
+
+    assert_equal [
+      { text: "", target: "https://wiki.acme/finance/fpa-handbook" },
+      { text: "", target: "https://wiki.acme/finance/revenue-recognition" },
+      { text: "", target: "https://wiki.acme/finance/cost-allocation" }
+    ], OKF::Markdown::Citations.entries(body)
+  end
+
+  test "entries reads autolink items" do
+    body = "# Citations\n\n- <https://ex.com/a>\n\nprose that is not a citation stays out\n"
+
+    assert_equal [ { text: "", target: "https://ex.com/a" } ], OKF::Markdown::Citations.entries(body)
+  end
+
+  test "entries carries reference-style citation targets with no text" do
+    body = "# Citations\n\n[1][ref]\n\n[ref]: https://ex.com/r\n"
+
+    assert_equal [ { text: "", target: "https://ex.com/r" } ], OKF::Markdown::Citations.entries(body)
+  end
+
+  test "entries mixes the three forms in document order" do
+    body = "# Citations\n\n- [The paper](https://ex.com/paper)\n- https://ex.com/bare\n- <https://ex.com/auto>\n"
+
+    assert_equal [
+      { text: "The paper", target: "https://ex.com/paper" },
+      { text: "", target: "https://ex.com/bare" },
+      { text: "", target: "https://ex.com/auto" }
+    ], OKF::Markdown::Citations.entries(body)
+  end
+
+  test "entries is empty without a Citations section" do
+    assert_empty OKF::Markdown::Citations.entries("see [x](https://e.com)\n- https://ex.com/bare\n")
+  end
 end

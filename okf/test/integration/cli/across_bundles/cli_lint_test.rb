@@ -102,5 +102,11 @@ module AcrossBundles
       assert_match(/unexpected argument '#{Regexp.escape(fixture("minimal"))}'/, result.err)
       assert_empty result.out
     end
+    test "the new flags do not soften the one-bundle boundary" do
+      result = okf("lint", fixture("conformant"), fixture("minimal"), "--fail-on", "info", "--today", "2026-01-01")
+
+      assert_equal 2, result.status
+      assert_match(/unexpected argument/, result.err)
+    end
   end
 end

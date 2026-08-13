@@ -3,7 +3,7 @@ type: Reference
 title: Status
 description: The record of truth every flow converges on.
 tags: [state-machine]
-timestamp: 2026-07-01T09:00:00Z
+generated: { by: human:maintainer, at: 2026-07-01T09:00:00Z }
 ---
 
 # Status

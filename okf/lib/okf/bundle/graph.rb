@@ -51,10 +51,19 @@ module OKF
       # Edges resolve by *path* — a markdown link is a file path — then map that path
       # to the concept living there and use its id, so a frontmatter `id` that differs
       # from the path still lands the edge on the right node.
+      # Body links and sources[].resource entries feed the same resolver: §5.1
+      # says a `resource` naming another concept is a derivation edge that
+      # "already exists in the bundle graph", and this is what makes that true —
+      # it is also what keeps a migrated bundle's graph equal to its v0.1 twin's,
+      # since a `# Citations` in-bundle link stops being a body link the moment
+      # it is lifted into frontmatter. URLs and scope descriptors resolve to
+      # nothing; an unresolvable path is broken_source's to report.
       def self.edges_for(concepts, id_by_path, root)
         seen = Set.new
         concepts.each_with_object([]) do |concept, edges|
-          Markdown::Links.extract(concept.body).each do |raw|
+          targets = Markdown::Links.extract(concept.body) +
+                    concept.sources.map { |source| source["resource"] }.compact
+          targets.each do |raw|
             resolved = Markdown::Links.resolve(raw, from: concept.path, bundle: root)
             next if resolved.nil?
 

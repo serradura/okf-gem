@@ -14,12 +14,22 @@ module OKF
       # blanked before scanning — the inline analogue of FENCE.
       CODE_SPAN = /(`+).*?\1/.freeze
       # Inline link [text](target) or [text](target "title"); (?<!!) skips images.
-      INLINE_LINK = /(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/.freeze
+      # group 1 = the link text, group 2 = the target: extract() wants only the
+      # target, Citations.entries carries the text into a source's `title` —
+      # one grammar, one regex.
+      INLINE_LINK = /(?<!!)\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/.freeze
       # Reference-style use: full [text][label] or collapsed [label][]; (?<!!) skips
       # images. group 1 = text/label, group 2 = the explicit label (empty if collapsed).
       REFERENCE_LINK = /(?<!!)\[([^\]]*)\]\[([^\]]*)\]/.freeze
       # Reference definition: [label]: target  (optionally followed by a "title").
-      DEFINITION = /\A[ \t]{0,3}\[([^\]]+)\]:[ \t]*(\S+)/.freeze
+      # A label may not begin with `^`: that is a footnote definition (§5.1
+      # per-claim attribution), which would otherwise read as a reference
+      # definition nothing ever uses.
+      DEFINITION = /\A[ \t]{0,3}\[([^\^\]][^\]]*)\]:[ \t]*(\S+)/.freeze
+      # In-prose footnote reference [^label] — §5.1 joins it on a sources[].id.
+      FOOTNOTE_REFERENCE = /\[\^([^\]\s]+)\]/.freeze
+      # A footnote definition line ([^label]: prose) — never a reference.
+      FOOTNOTE_DEFINITION = /\A[ \t]{0,3}\[\^([^\]\s]+)\]:/.freeze
       SCHEME = %r{\A[a-z][a-z0-9+.-]*://}.freeze
 
       module_function
@@ -33,7 +43,7 @@ module OKF
         definitions = reference_definitions(text)
         found = []
         each_prose_line(text) do |line|
-          found.concat(line.scan(INLINE_LINK).flatten)
+          line.scan(INLINE_LINK) { |_text, target| found << target }
           line.scan(REFERENCE_LINK).each do |label, explicit|
             key = (explicit.empty? ? label : explicit).strip.downcase
             target = definitions[key]
@@ -53,6 +63,20 @@ module OKF
           definitions[match[1].strip.downcase] = match[2] if match
         end
         definitions
+      end
+
+      # The distinct footnote labels referenced in prose (§5.1), in document
+      # order. A definition line is not a reference: a source cited only by its
+      # own definition line is still uncited, and labels are deduplicated so one
+      # unmatched label yields one finding, not one per use.
+      def footnote_references(text)
+        labels = []
+        each_prose_line(text) do |line|
+          next if FOOTNOTE_DEFINITION.match?(line)
+
+          line.scan(FOOTNOTE_REFERENCE) { |captures| labels << captures.first }
+        end
+        labels.uniq
       end
 
       # Yield each line outside a fenced code block, with inline code spans blanked.

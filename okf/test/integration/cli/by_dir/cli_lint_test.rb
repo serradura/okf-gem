@@ -69,8 +69,8 @@ module ByDir
     test "provenance findings fire on the provenance fixture" do
       result = okf("lint", fixture("provenance"))
 
-      assert_match(%r{uncited\.md: body has external link}, result.out)
-      assert_match(%r{badcite\.md: citation target `/nope\.md`}, result.out)
+      assert_match(%r{uncited\.md: body has external link\(s\) but no sources}, result.out)
+      assert_match(%r{badcite\.md: source target `/nope\.md` does not exist}, result.out)
     end
 
     test "the whole hygiene category fires on the hygiene fixture" do
@@ -170,6 +170,105 @@ module ByDir
       assert_equal 2, okf("lint", fixture("unhealthy"), "--only", "bogus").status
       assert_equal 2, okf("lint", fixture("conformant"), "--stale-after", "soon").status
       assert_equal 2, okf("lint", File.join(BUNDLES, "does-not-exist")).status
+    end
+    # ── the v0.2 checks (WI-3) ───────────────────────────────────────────────
+
+    test "the uncurated v0.2 bundle renders the Attestation and Migration categories, exit 0" do
+      result = okf("lint", fixture("v0_2-uncurated"))
+
+      assert_equal 0, result.status
+      assert_match(/Attestation/, result.out)
+      assert_match(/Migration/, result.out)
+      assert_match(/Provenance/, result.out)
+      assert_match(/incomplete-computation\.md: Attested Computation with no computation/, result.out)
+      assert_match(/both-computation\.md: Attested Computation provides its computation twice/, result.out)
+      assert_match(/unattributed\.md: footnote `\[\^missing-source\]` has no matching sources\[\]\.id/, result.out)
+      assert_match(/unused-source\.md: source `uncited-source` is never cited/, result.out)
+      assert_match(/no-generated-by\.md: generated records no by/, result.out)
+      assert_match(/unprefixed\.md: verified\.by `owner` matches none of §7's forms/, result.out)
+    end
+
+    test "expired fires on the stale_after day itself and not the day before (--today)" do
+      on_the_day = okf("lint", fixture("v0_2-uncurated"), "--today", "2000-01-01", "--only", "expired")
+      day_before = okf("lint", fixture("v0_2-uncurated"), "--today", "1999-12-31", "--only", "expired")
+
+      assert_match(/expired\.md: expired on 2000-01-01 \(stale_after\)/, on_the_day.out)
+      refute_match(/expired on/, day_before.out)
+      assert_equal 0, on_the_day.status, "expired is info; it reports, it does not gate"
+    end
+
+    test "the CLI supplies a clock by default, so expired reports without --today" do
+      # The fixture's stale_after is 2000-01-01 — far past on any wall clock, so
+      # this asserts the default-clock path without depending on today's date.
+      result = okf("lint", fixture("v0_2-uncurated"))
+
+      assert_match(/expired\.md: expired on 2000-01-01/, result.out)
+    end
+
+    test "an unparseable stale_after yields the validate warning and never an expired finding" do
+      result = okf("lint", fixture("v0_2-malformed"), "--today", "2099-01-01", "--json")
+
+      assert_empty json(result)["findings"].select { |f| f["check"] == "expired" },
+        "malformed must never read as expired"
+    end
+
+    test "the twins' v0.1 half emits exactly the two Migration findings, as info" do
+      report = json(okf("lint", fixture("twins/v0_1"), "--json"))
+
+      checks = report["findings"].map { |f| f["check"] }.sort
+      assert_equal %w[legacy_citations legacy_timestamp], checks
+      assert(report["findings"].all? { |f| f["severity"] == "info" })
+      timestamps = report["findings"].find { |f| f["check"] == "legacy_timestamp" }
+      assert_nil timestamps["path"], "one finding per bundle; the members live in the metric"
+      assert_equal [ "tables/customers.md", "tables/orders.md" ], timestamps["metric"]["concepts"]
+    end
+
+    test "a fully migrated bundle emits zero Migration findings" do
+      report = json(okf("lint", fixture("twins/v0_2"), "--json"))
+
+      assert_empty report["findings"].select { |f| f["check"].start_with?("legacy_") }
+    end
+
+    test "--fail-on info gates what --fail-on warn deliberately does not" do
+      # twins/v0_1's only findings are expired-free info (the two Migration
+      # rows), so warn stays green and info goes red — gateability without a
+      # severity promotion.
+      assert_equal 0, okf("lint", fixture("twins/v0_1"), "--fail-on", "warn").status
+      assert_equal 1, okf("lint", fixture("twins/v0_1"), "--fail-on", "info").status
+      assert_equal 0, okf("lint", fixture("twins/v0_1")).status
+    end
+
+    test "a migration campaign is --only the two legacy checks with --fail-on info" do
+      campaign = %w[--only legacy_timestamp,legacy_citations --fail-on info]
+
+      assert_equal 1, okf("lint", fixture("twins/v0_1"), *campaign).status
+      assert_equal 0, okf("lint", fixture("twins/v0_2"), *campaign).status
+    end
+
+    test "lint confesses the checks it could not run, in both formats" do
+      report = json(okf("lint", fixture("conformant"), "--json"))
+      assert_equal [ "stale" ], report["stats"]["skipped_checks"],
+        "the CLI supplies a clock, so only the cutoff-gated check skips"
+
+      human = okf("lint", fixture("conformant"))
+      assert_match(/skipped: stale/, human.out)
+
+      with_cutoff = json(okf("lint", fixture("conformant"), "--stale-after", "90d", "--json"))
+      assert_empty with_cutoff["stats"]["skipped_checks"]
+    end
+
+    test "the report prints the bundle's trust and status posture" do
+      result = okf("lint", fixture("v0_2"))
+
+      assert_match(/trust: unverified \d+, machine-confirmed \d+, human-reviewed \d+/, result.out)
+      assert_match(/status: /, result.out)
+    end
+
+    test "--today rejects a value that is not a date (exit 2)" do
+      result = okf("lint", fixture("conformant"), "--today", "soon")
+
+      assert_equal 2, result.status
+      assert_match(/invalid --today `soon`/, result.err)
     end
   end
 end

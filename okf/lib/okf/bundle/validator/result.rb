@@ -22,8 +22,11 @@ module OKF
           errors << { path: path, message: message }
         end
 
-        def add_warning(path, message)
-          warnings << { path: path, message: message }
+        # `check:` (a stable id) and `source:` (:spec | :convention) make a
+        # warning machine-readable; errors keep their exact two-key shape —
+        # consumers already read it, so new keys land on warnings only.
+        def add_warning(path, message, check: nil, source: nil)
+          warnings << { path: path, message: message, check: check, source: source }
         end
 
         def count(kind)
