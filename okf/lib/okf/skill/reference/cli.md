@@ -65,7 +65,7 @@ or `okf index @` work from any directory, no path recall needed.
 
 **Exit codes:** `0` success · `1` non-conformant bundle (or a `lint --fail-on`
 threshold crossed) · `2` usage error. `graph`, `server`, and `render` are best-effort
-(§9): a file the reader cannot use — frontmatter that will not parse, or a file it
+(§11): a file the reader cannot use — frontmatter that will not parse, or a file it
 cannot open at all — is skipped and noted on stderr, never fatal. The note counts;
 `validate` names each file and why.
 
@@ -74,43 +74,79 @@ cannot open at all — is skipped and noted on stderr, never fatal. The note cou
 or a mix — and it is a usage error (exit 2), never a silent answer about the first.
 To ask the same question of several bundles, ask `search`, or ask each in turn.
 
-## validate — the hard gate (§9)
+## validate — the hard gate (§11)
 
-Implements the spec's §9 conformance definition exactly:
+Implements the spec's §11 conformance definition exactly:
 
-- **§9.1** every non-reserved file has a parseable YAML frontmatter block;
-- **§9.2** every such block has a non-empty `type`;
-- **§9.3** any `index.md`/`log.md` present follows §6/§7 (a nested `index.md` has
-  no frontmatter, a root `index.md` carries only `okf_version`, `log.md` date
-  headings are ISO `YYYY-MM-DD`).
+- **§11 cond. 1** every non-reserved file has a parseable YAML frontmatter block;
+- **§11 cond. 2** every such block has a non-empty `type`;
+- **§11 cond. 3** any `index.md`/`log.md` present follows §8/§9 (a nested
+  `index.md` has no frontmatter, a root `index.md` carries only `okf_version`,
+  `log.md` date headings are ISO `YYYY-MM-DD`).
 
 `ERROR`s are the three conditions above; the bundle is non-conformant until every
 one is fixed. `warn`s are soft — missing recommended fields, non-list tags, an
-unparseable timestamp, and **broken cross-links, which §5.3 explicitly tolerates**.
-Fix warnings when cheap; never block on them. Use `--json` in CI.
+unparseable timestamp, **broken cross-links, which §6.1 explicitly tolerates**,
+the shape of every §5/§10 family (`generated` not a mapping, a non-integer
+`usage_count`, a `stale_after` that is not `YYYY-MM-DD`, a missing `runtime` on
+an Attested Computation, …), and an `okf_version` the gem does not know (read
+best-effort under §12; an absent one never warns). Absence of an optional family
+is never a fault — a pure v0.1 bundle validates with zero warnings.
+
+In `--json`, every warning carries `check` (a stable id) and `source` — `spec`
+when the SPEC's own words state the rule, `convention` for a shape this gem asks
+for beyond them (`verified[].by` presence, integer `usage_count`, a per-entry
+`usage_window` mapping, `parameters[].name`, `executor`/`attester` `resource`).
+Gate on `source` when you want only the spec-normative set; errors keep their
+two-key `{ path, message }` shape. Fix warnings when cheap; never block on them.
+Use `--json` in CI.
 
 ## lint — curation quality (advisory)
 
 Asks the complementary question to `validate`: not "is this legal OKF?" but "is
-this well-curated, navigable, trustworthy?" — precisely over the things §9 forbids
-`validate` from rejecting. It has its own report, never emits conformance errors,
-and **exits `0` even with findings** unless you pass `--fail-on warn`.
+this well-curated, navigable, trustworthy?" — precisely over the things §11
+forbids `validate` from rejecting. It has its own report, never emits
+conformance errors, and **exits `0` even with findings** unless you pass
+`--fail-on warn` (exit 1 on any `warn` finding) or `--fail-on info` (exit 1 on
+any finding at all).
 
-Six conceptual categories, each backed by individual checks (names in parens):
+**Severity is API.** Every check has a pinned level — `warn` or `info` — and
+machine consumers gate on it, so the levels below are stable, not advisory. A
+finding you want to gate on that is `info` gets `--fail-on info` (usually with
+`--only`), never a hope that its severity changes.
 
-- **reachability** — orphans, concepts not in any index, disconnected islands,
-  and unlinked (degree-0) files
-  (`orphan`, `not_in_index`, `disconnected_component`, `unlinked`)
-- **backlog** — demand-ranked missing concepts (linked-to but absent), broken index entries
-  (`missing_concept`, `broken_index_entry`)
-- **completeness** — stubs, missing `title` / `description` / `timestamp`
-  (`stub`, `missing_title`, `missing_description`, `missing_timestamp`)
-- **freshness** — concepts older than a cutoff (`stale`) — **only computed when you
-  pass `--stale-after`; a plain `okf lint` never reports staleness at all**
-- **provenance** — uncited external claims, broken citations, spec §8
-  (`uncited_external`, `broken_citation`)
-- **hygiene** — duplicate titles, unused/undefined reference links, self-links
-  (`duplicate_title`, `unused_reference_def`, `undefined_reference`, `self_link`)
+Eight categories, each backed by individual checks (severity in brackets):
+
+- **Reachability** — `orphan` [warn], `not_in_index` [warn],
+  `disconnected_component` [info], `unlinked` [info]
+- **Backlog** — `missing_concept` [info], `broken_index_entry` [warn]
+- **Completeness** — `stub` [info], `missing_title` [info],
+  `missing_description` [info], `missing_generated` [info] (quiet on either
+  spelling — a legacy `timestamp` still counts as a recorded change)
+- **Freshness** — `expired` [info] (§5.5: past the concept's own declared
+  `stale_after`, on the day itself), `stale` [warn] (older than the
+  reader-supplied `--stale-after` cutoff, keyed on `generated_at`)
+- **Provenance** — `uncited_external` [info] (external body links and no
+  sources, in either spelling), `broken_source` [warn] (an in-bundle `.md`
+  source target that names no concept; URLs, scope descriptors and non-`.md`
+  assets are exempt by construction), `unattributed_claim` [warn] (a footnote
+  no `sources[].id` answers — it *misattributes* a claim, which is why it
+  outranks its join-twin), `unused_source` [info] (a keyed source no footnote
+  cites — slack, not a defect), `missing_generated_by` [info],
+  `unprefixed_actor` [info] (a `verified[].by` outside §7's three forms reads
+  as machine-confirmed; info so it informs, never blocks)
+- **Attestation** — `incomplete_computation` [warn] (an Attested Computation
+  providing its computation neither way, or both ways — §10.3 says a
+  `computation:` path is used *instead of* the body fence)
+- **Migration** — `legacy_timestamp` [info], `legacy_citations` [info]: one
+  finding per bundle naming the files still in a retired v0.1 spelling, with
+  the rewrite instructions in the message. Info on purpose — §13 says a v0.1
+  bundle is consumable forever, so `--fail-on warn` must not turn red on one.
+  A migration campaign gates explicitly:
+  `okf lint <dir> --only legacy_timestamp,legacy_citations --fail-on info`,
+  exit 1 until clean.
+- **Hygiene** — `duplicate_title` [info], `unused_reference_def` [info],
+  `undefined_reference` [warn], `self_link` [info]
 
 `--only` / `--except` filter by the **individual check names above**, not the
 category labels — `okf lint <dir> --only orphan,stub` works; `--only reachability`
@@ -118,6 +154,26 @@ is an error. Two knobs tune specific checks: `--min-body N` sets the `stub` body
 threshold in characters (default 50), and `--stale-after DUR` sets the `stale`
 cutoff — a duration like `90d` or `12w`, or an ISO date like `2026-01-01` (a bare
 number is rejected).
+
+**Two different clocks, one unlucky name.** The `--stale-after` *flag* and the
+`stale_after:` *frontmatter field* are different mechanisms that happen to share
+a spelling. The flag is the **reader's** age cutoff: "flag anything not touched
+since DUR", keyed on `generated_at`, feeding the `stale` check. The field is the
+**author's** declared expiry: "do not trust this past DATE", feeding the
+`expired` check. Never read one as the other, and never show them adjacent
+without the distinction.
+
+**The clock is explicit.** `expired` compares against a day the CLI supplies —
+today by default, or `--today YYYY-MM-DD` for a reproducible report (CI wants
+this). The pure library runs no clock check unless handed `today:`, and every
+clock-gated check that was selected but could not run is *named* in
+`stats.skipped_checks` (the human report prints one `skipped:` line) — a gate
+that is sometimes absent and does not confess converts "unchecked" into
+"checked and fine".
+
+The report's stats carry the bundle's posture too: `trust` (the §5.3 tier
+distribution, in the hyphenated wire spelling) and `status` (effective-status
+frequency).
 
 `lint --json` is the structured substrate you consume to reason about the two
 things lint deliberately does **not** compute — contradictions and *semantic*
@@ -150,8 +206,10 @@ as Ruby regular expressions with `--regexp`/`-e` (an invalid pattern is a usage
 error, exit 2). `--fuzzy` forgives typos; pairing it with `-e` is a usage error,
 since a pattern is matched literally rather than by edit distance.
 `--in a,b` restricts the searched fields (title, id, tags, type, description,
-body); the shared `--type/--dir/--tag` filters narrow the candidates *first*,
-so a search scoped by what `index` taught you stays surgical.
+sources, body — `sources` is each entry's title and resource joined, so a
+migrated bundle keeps the recall its `# Citations` body text used to give it);
+the shared `--type/--dir/--tag/--status/--trust` filters narrow the candidates
+*first*, so a search scoped by what `index` taught you stays surgical.
 
 **The default is exact, so an exact query means what it looks like.** A phrase in
 one argument (`"dedup key"`), a dotted version (`7.2.0`), an underscored
@@ -261,7 +319,7 @@ same-id concepts from different bundles become indistinguishable. The retrieval 
 map first, finder second, bodies last — is the
 [search playbook](../playbooks/search.md).
 
-## index — the progressive-disclosure map (§6)
+## index — the progressive-disclosure map (§8)
 
 The "orient before you read" view, and the read verb that sees the layer the
 concept views can't: `index.md` files are reserved/structural, so
@@ -300,7 +358,7 @@ and `--except body,listing` on top of either is the lean JSON skeleton. Full
 `--no-body` drops the prose to a
 skeleton (headers, rollups, child pointers). For a directory that has concepts but
 **no `index.md`**, the listing is **synthesized** from the concepts' descriptions
-and tagged `(no index.md)` — §6 explicitly permits synthesizing a map on the fly.
+and tagged `(no index.md)` — §8 explicitly permits synthesizing a map on the fly.
 
 It is a **read view**: advisory, always exit 0. A synthesized directory is a
 *signal* (a map worth writing), never a defect — `index` emits no lint findings and
@@ -357,11 +415,22 @@ verbs reproduce them on the CLI so an agent can read a bundle without a browser.
 All are advisory reads (exit 0) sharing one data source (per-concept metadata plus
 in/out link degree). Add `--json` to any for a machine substrate.
 
-- **`catalog`** — every concept with its metadata (type, status, tags, timestamp,
-  in/out link degree, description), grouped by top-level dir (`dir` on every row
-  carries the full path, `top_dir` the first segment). The "what's here, in
-  detail" view. JSON: `{ bundle, count, concepts: [{ id, title, type, description,
-  tags, timestamp, status, backlog_ref, dir, top_dir, links_out, links_in }] }`.
+- **`catalog`** — every concept with its metadata (type, status, trust, tags,
+  provenance, in/out link degree, description), grouped by top-level dir (`dir`
+  on every row carries the full path, `top_dir` the first segment). The "what's
+  here, in detail" view. JSON: `{ bundle, count, concepts: [{ id, title, type,
+  description, tags, generated_at, generated_by, generated, trust, status,
+  stale_after, sources, backlog_ref, dir, top_dir, links_out, links_in }] }`.
+  Four of those deserve a sentence: `generated` is the raw boolean ("does the
+  document *declare* a generated mapping"), which is what tells hand-written
+  apart from v0.1-with-timestamp — `generated_at` alone conflates them, because
+  §13.1 lifts a legacy `timestamp` into it. `trust` is the derived §5.3 tier as
+  a hyphenated literal (`unverified` | `machine-confirmed` | `human-reviewed`) —
+  compare against exactly those. `status` is the *declared* value, `null` when
+  absent (the row never fabricates frontmatter; the `--status` filter is what
+  applies the §5.4 default). `sources` is a count. Temporal fields render
+  ISO 8601 (`stale_after` as `YYYY-MM-DD`). The `timestamp` column is retired —
+  `--fields timestamp` is a usage error naming the valid fields.
 - **`files`** — the folder tree: each concept's filename + title, grouped by
   directory. The "how it's organised" view. JSON: `{ bundle, count, files: [{ path,
   id, dir, type, title, description }] }`.
@@ -389,8 +458,14 @@ in/out link degree). Add `--json` to any for a machine substrate.
   can address.
 
 The four list views narrow with the same filters the browser panels offer —
-`--type TYPE`, `--dir PATH`, `--tag TAG`; each takes the ones orthogonal to
-itself (`tags` can't filter by tag). Matching is case-insensitive; `--type` and
+`--type TYPE`, `--dir PATH`, `--tag TAG`, `--status STATUS`, `--trust TIER`
+(`search` takes them too); each takes the ones orthogonal to itself (`tags`
+can't filter by tag). `--status` matches the *effective* status (absent reads
+`stable`, §5.4) and `--trust` the derived tier, either spelling
+(`machine-confirmed` or `machine_confirmed`) — on a v0.1 bundle
+`--status stable` and `--trust unverified` match everything, which is §13.1
+reading, not an error, and an unknown value matches nothing at exit 0.
+Matching is case-insensitive; `--type` and
 `--tag` are exact, `--dir` takes the named directory **and everything below it**
 (`--dir platform` reaches `platform/services/api`). A concept at the bundle root
 lives in `.`, which `--dir` also accepts as plain `root` (no shell quoting) —
@@ -429,7 +504,7 @@ select — depth 1 is the flat view, and a flat bundle is offered no control. Th
 UI too: the Files view carries **Files | Indexes** tabs — the Indexes tab
 lists the log first (the chronological index), then every `index.md` — and
 folder nodes in file-tree mode and directory boxes in cluster mode open a
-directory's §6 map in the inspector (authored, or synthesized when none
+directory's §8 map in the inspector (authored, or synthesized when none
 exists). Links to an `index.md`, `log.md`, or bare directory navigate instead
 of dead-ending, and the log is fetched fresh on every read, so a
 just-appended entry shows without a restart. `?view=index` jumps straight to
@@ -552,7 +627,7 @@ Prints the node/edge graph. `--json` emits a machine-readable dump — the
 `id`/`type`/`title`/`description`/`tags` **and, by default, every `body`** — the
 part that dominates the bytes on a real bundle) plus `edges` — you can pipe into
 other analysis. A concept with a missing *or blank* `type` indexes under
-`Untyped`: §9.2 rejects both identically, so both land in one bucket. To *plan* a traversal, structure is all you need: `--no-body`
+`Untyped`: §11 condition 2 rejects both identically, so both land in one bucket. To *plan* a traversal, structure is all you need: `--no-body`
 drops each node's body, and `--minimal` ships only `id`/`title` plus the type/tag
 indexes — the lean shape the `server` page boots from. Reach for the full dump
 only when the task truly consumes every body; for one question, the
