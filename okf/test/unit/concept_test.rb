@@ -237,6 +237,16 @@ class OKF::ConceptTest < OKF::TestCase
     assert_equal "shipped", build("status" => "shipped").declared_status
   end
 
+  test "a YAML-boolean status reads as the string it serializes to, on every surface" do
+    # Psych reads `status: no` as false. OKF.blank?(false) is true, so the old
+    # accessor answered "stable" while the row's &.to_s printed "false" — one
+    # concept, two answers, and --status stable quietly excluded it.
+    concept = build("status" => false)
+
+    assert_equal "false", concept.status
+    assert_equal false, concept.declared_status
+  end
+
   test "stale_on? is true on the stale_after day itself, never the day before (§5.5)" do
     concept = build("stale_after" => "2026-09-23")
 

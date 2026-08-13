@@ -113,7 +113,7 @@ class OKF::Bundle::LinterTest < OKF::TestCase
 
   test "missing_generated is quiet on either spelling — a legacy timestamp still counts" do
     write("legacy.md", fm(title: "L", timestamp: "2026-01-01") + "a body long enough to skip the stub check\n")
-    write("modern.md", "---\ntype: Note\ntitle: M\ndescription: D\ngenerated: { by: human:x }\n---\n\na body long enough to skip the stub check\n")
+    write("modern.md", "---\ntype: Note\ntitle: M\ndescription: D\ngenerated:\n  by: human:x\n---\n\na body long enough to skip the stub check\n")
 
     assert_empty paths(:missing_generated)
   end
@@ -281,7 +281,7 @@ class OKF::Bundle::LinterTest < OKF::TestCase
   test "stale reads generated_at, so the v0.1 timestamp fallback still feeds it" do
     write("legacy.md", fm(title: "L", timestamp: "2000-01-01") + "a body long enough to skip the stub check\n")
     write("modern.md",
-      "---\ntype: Note\ntitle: M\ndescription: d\ngenerated: { by: human:x, at: 2000-01-01 }\n---\n\na body long enough to skip the stub check\n")
+      "---\ntype: Note\ntitle: M\ndescription: d\ngenerated:\n  by: human:x\n  at: 2000-01-01\n---\n\na body long enough to skip the stub check\n")
 
     assert_equal %w[legacy.md modern.md], paths(:stale, stale_before: Time.iso8601("2015-01-01T00:00:00Z"))
   end
@@ -433,7 +433,7 @@ class OKF::Bundle::LinterTest < OKF::TestCase
   test "the Migration findings are one per bundle, info, with the members in the metric" do
     write("a.md", fm(title: "A", timestamp: "2026-01-01") + "a body long enough to skip the stub check\n")
     write("b.md", fm(title: "B") + "prose\n\n# Citations\n\n[1] [x](https://e.com/x)\n")
-    write("c.md", "---\ntype: Note\ntitle: C\ndescription: d\ngenerated: { by: human:x, at: 2026-01-01 }\n---\n\na body long enough to skip the stub check\n")
+    write("c.md", "---\ntype: Note\ntitle: C\ndescription: d\ngenerated:\n  by: human:x\n  at: 2026-01-01\n---\n\na body long enough to skip the stub check\n")
 
     timestamps = checks(:legacy_timestamp)
     citations = checks(:legacy_citations)
@@ -449,7 +449,7 @@ class OKF::Bundle::LinterTest < OKF::TestCase
   end
 
   test "a fully migrated bundle emits zero Migration findings" do
-    write("c.md", "---\ntype: Note\ntitle: C\ndescription: d\ngenerated: { by: human:x, at: 2026-01-01 }\n---\n\na body long enough to skip the stub check\n")
+    write("c.md", "---\ntype: Note\ntitle: C\ndescription: d\ngenerated:\n  by: human:x\n  at: 2026-01-01\n---\n\na body long enough to skip the stub check\n")
 
     assert_empty checks(:legacy_timestamp)
     assert_empty checks(:legacy_citations)
@@ -459,12 +459,28 @@ class OKF::Bundle::LinterTest < OKF::TestCase
 
   test "stats carry the trust distribution in wire spelling and the effective-status frequency" do
     write("u.md", fm(title: "U") + "a body long enough to skip the stub check\n")
-    write("m.md", "---\ntype: Note\ntitle: M\ndescription: d\nverified: { by: process:x }\n---\n\na body long enough to skip the stub check\n")
-    write("h.md", "---\ntype: Note\ntitle: H\ndescription: d\nstatus: draft\nverified: { by: human:x }\n---\n\na body long enough to skip the stub check\n")
+    write("m.md", "---\ntype: Note\ntitle: M\ndescription: d\nverified:\n  by: process:x\n---\n\na body long enough to skip the stub check\n")
+    write("h.md", "---\ntype: Note\ntitle: H\ndescription: d\nstatus: draft\nverified:\n  by: human:x\n---\n\na body long enough to skip the stub check\n")
 
     stats = report.stats
     assert_equal({ "unverified" => 1, "machine-confirmed" => 1, "human-reviewed" => 1 }, stats[:trust])
     assert_equal({ "stable" => 2, "draft" => 1 }, stats[:status])
+  end
+
+  test "a prose-only v0.1 Citations section still silences uncited_external" do
+    write("prose.md", fm(title: "P") + "see [x](https://e.com/x)\n\n# Citations\n\nSee the Q3 finance report.\n")
+
+    assert_empty paths(:uncited_external),
+      "the concept recorded provenance — just not as links — and firing would fault every such v0.1 file"
+  end
+
+  test "today: coerces a Time or an ISO string and refuses anything else by name" do
+    write("dated.md", "---\ntype: Note\ntitle: D\ndescription: d\nstale_after: 2026-09-23\n---\n\na body long enough to skip the stub check\n")
+
+    assert_equal %w[dated.md], paths(:expired, today: "2026-09-23")
+    assert_equal %w[dated.md], paths(:expired, today: Time.utc(2026, 9, 23, 12))
+    error = assert_raises(ArgumentError) { report(today: :tomorrow) }
+    assert_match(/today: must be a Date/, error.message)
   end
 
   private

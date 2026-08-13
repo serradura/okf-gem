@@ -19,8 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking: lint check ids renamed** — `missing_timestamp` is
   `missing_generated`, `broken_citation` is `broken_source` — so `--only` /
   `--except` lists naming the old ids exit 2. `uncited_external` is redefined
-  over `#sources` (a v0.1 `# Citations` still silences it; so does a migrated
-  `sources:` block).
+  over `#sources` (a v0.1 `# Citations` still silences it — a prose-only
+  section included; so does a migrated `sources:` block). The `stale`
+  finding's JSON metric renames `timestamp:` to `generated_at:` (and its
+  message says "last updated <generated_at>") — a consumer reading
+  `finding.metric.timestamp` gets `null` and must move with it.
 - **Breaking: the `timestamp` catalog column is removed** — `--fields
   timestamp` exits 2 loudly, naming the valid fields. The `concepts` row gains
   `generated_at`, `generated_by`, `generated` (the raw declared-key boolean

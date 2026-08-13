@@ -11,7 +11,9 @@ executor:
   receipt: [<field>, <field>]
 attester:
   resource: <path to the deterministic check, e.g. references/attesters/check.py>
-generated: { by: <actor per §7>, at: <ISO 8601> }
+generated:
+  by: <actor per §7>
+  at: <ISO 8601>
 sources:
   - id: <stable-key>
     title: <the definition this computation implements>

@@ -331,6 +331,15 @@ class OKF::Bundle::ValidatorTest < OKF::TestCase
     assert_empty result.warnings
   end
 
+  test "a YAML-boolean status earns the vocabulary warning like any other stray value" do
+    write("boolish.md", "---\ntype: Note\ntitle: B\ndescription: d\nstatus: no\n---\n\nx\n")
+
+    result = OKF::Bundle::Validator.call(document)
+
+    assert result.valid?
+    assert_includes result.warnings.map { |w| w[:message] }, "status should be one of draft, stable, deprecated"
+  end
+
   private
 
   def document

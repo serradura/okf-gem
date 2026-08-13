@@ -88,8 +88,11 @@ class OKF::Server::AppTest < OKF::TestCase
       description: d
       status: draft
       stale_after: 2026-09-23
-      generated: { by: human:x, at: 2026-06-20T22:53:05Z }
-      verified: { by: process:nightly }
+      generated:
+        by: human:x
+        at: 2026-06-20T22:53:05Z
+      verified:
+        by: process:nightly
       ---
 
       body

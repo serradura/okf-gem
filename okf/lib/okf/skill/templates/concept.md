@@ -4,7 +4,9 @@ title: <Human-readable display name>
 description: <Single sentence summarizing the concept.>
 resource: <Canonical URI of the underlying asset — omit for abstract concepts>
 tags: [<tag>, <tag>]
-generated: { by: <actor per §7 — human:<id>, process:<id>, or <producer>/<version>>, at: <ISO 8601, e.g. 2026-06-14T10:00:00Z> }
+generated:
+  by: <actor per §7 — human:<id>, process:<id>, or <producer>/<version>>
+  at: <ISO 8601, e.g. 2026-06-14T10:00:00Z>
 sources:
   - id: <stable-key-the-body-cites>
     title: <source title>

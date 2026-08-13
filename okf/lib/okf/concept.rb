@@ -175,18 +175,10 @@ module OKF
     # absent: `sources: [prod-db, warehouse]` has always been a legal free-form
     # key (§4.1), and it must not silently mask a document's real provenance.
     def sources
-      native = frontmatter["sources"]
-      if native.is_a?(Array)
-        entries = native.grep(Hash)
-        return entries.map { |entry| Markdown::Frontmatter.stringify_keys(entry) } unless entries.empty?
-      end
-
-      Markdown::Citations.entries(body).map do |entry|
-        source = {}
-        source["title"] = entry[:text] unless OKF.blank?(entry[:text])
-        source["resource"] = entry[:target]
-        source
-      end
+      # Memoized like the bundle's graph and for the same reason: the model is
+      # immutable once built, several lint checks and the row builder each ask,
+      # and the v0.1 fallback re-parses the body on every call.
+      @sources ||= compute_sources
     end
 
     # §5.1. Written once as a sibling of `sources`, framing every `usage_count`
@@ -200,9 +192,13 @@ module OKF
 
     # The effective status, defaulted per §5.4. #declared_status keeps the raw
     # value for the surfaces that must not fabricate frontmatter a concept
-    # never declared.
+    # never declared. Defaulted off the same serialization the row prints —
+    # not OKF.blank? — because Psych reads `status: no` as false, blank? folds
+    # false into "absent", and the row's `&.to_s` prints "false": one concept,
+    # two answers. Serializing first keeps every surface on the same string.
     def status
-      OKF.blank?(declared_status) ? DEFAULT_STATUS : declared_status.to_s.strip
+      text = declared_status.nil? ? "" : declared_status.to_s.strip
+      text.empty? ? DEFAULT_STATUS : text
     end
 
     def declared_status
@@ -311,6 +307,21 @@ module OKF
     end
 
     private
+
+    def compute_sources
+      native = frontmatter["sources"]
+      if native.is_a?(Array)
+        entries = native.grep(Hash)
+        return entries.map { |entry| Markdown::Frontmatter.stringify_keys(entry) } unless entries.empty?
+      end
+
+      Markdown::Citations.entries(body).map do |entry|
+        source = {}
+        source["title"] = entry[:text] unless OKF.blank?(entry[:text])
+        source["resource"] = entry[:target]
+        source
+      end
+    end
 
     # A frontmatter value that must be a mapping, with its keys stringified — or
     # nil when it is anything else. The validator warns about the "anything

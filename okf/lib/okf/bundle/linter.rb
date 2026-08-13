@@ -72,7 +72,7 @@ module OKF
         @bundle = bundle
         @min_body = min_body
         @stale_before = stale_before
-        @today = today
+        @today = coerce_today(today)
         @only = only
         @except = except
         @report = Report.new
@@ -103,6 +103,22 @@ module OKF
         checks &= Array(@only).map(&:to_sym) if @only
         checks -= Array(@except).map(&:to_sym) if @except
         checks
+      end
+
+      # The documented contract is a Date, but the comment above *invites*
+      # library callers to pass one — so a Time or an ISO string coerces
+      # instead of detonating inside Concept#stale_on? halfway through a run,
+      # and anything else fails fast, here, with the contract named.
+      def coerce_today(value)
+        case value
+        when nil then nil
+        when DateTime, Time then value.to_date
+        when Date then value
+        when String then Date.iso8601(value)
+        else raise ArgumentError, "today: must be a Date (got #{value.class})"
+        end
+      rescue ArgumentError
+        raise ArgumentError, "today: must be a Date or a YYYY-MM-DD string (got #{value.inspect})"
       end
 
       # Every finding lands through here, so a check's severity has exactly one
@@ -279,11 +295,14 @@ module OKF
 
       # Asks `#sources` — the one place lint deliberately reads through the
       # fallback-carrying accessor — so a v0.1 `# Citations` silences it and a
-      # migrated `sources` block silences it too. One question, no version branch.
+      # migrated `sources` block silences it too. The section check beside it
+      # is not redundant: a prose-only `# Citations` ("See the Q3 report")
+      # yields no lifted mappings, and firing on it would fault a v0.1 concept
+      # that did record provenance — just not as links.
       def check_uncited_external
         @concepts.each do |concept|
           externals = Markdown::Links.extract(concept.body).count { |raw| external?(raw) }
-          next if externals.zero? || concept.sources.any?
+          next if externals.zero? || concept.sources.any? || concept.legacy_citations?
 
           add(:uncited_external, "#{concept.id}.md",
             "body has external link(s) but no sources",

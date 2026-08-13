@@ -92,10 +92,28 @@ class OKF::Markdown::CitationsTest < OKF::TestCase
     assert_equal [ { text: "", target: "https://ex.com/a" } ], OKF::Markdown::Citations.entries(body)
   end
 
-  test "entries carries reference-style citation targets with no text" do
+  test "entries resolves reference-style citations in place — text kept, document order kept" do
+    body = <<~MD
+      # Citations
+
+      - [Quarterly report][r1]
+      - [Raw data](https://ex.com/raw)
+
+      [r1]: https://ex.com/q3
+    MD
+
+    entries = OKF::Markdown::Citations.entries(body)
+
+    assert_equal [ "https://ex.com/q3", "https://ex.com/raw" ], entries.map { |e| e[:target] },
+      "the appended-second-pass shape broke document order"
+    assert_equal [ "Quarterly report", "Raw data" ], entries.map { |e| e[:text] },
+      "a reference-style citation keeps its text"
+  end
+
+  test "entries keeps a numeric reference label as text rather than nothing" do
     body = "# Citations\n\n[1][ref]\n\n[ref]: https://ex.com/r\n"
 
-    assert_equal [ { text: "", target: "https://ex.com/r" } ], OKF::Markdown::Citations.entries(body)
+    assert_equal [ { text: "1", target: "https://ex.com/r" } ], OKF::Markdown::Citations.entries(body)
   end
 
   test "entries mixes the three forms in document order" do

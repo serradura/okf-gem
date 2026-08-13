@@ -52,6 +52,7 @@ module OKF
       # reference-style citation still yields its target through Links.extract.
       def entries(body)
         text = section(body).to_s
+        definitions = Links.reference_definitions(text)
         found = []
         Links.each_prose_line(text) do |line|
           item = line.strip
@@ -64,10 +65,16 @@ module OKF
           line.scan(Links::INLINE_LINK) do |label, target|
             found << { text: label.to_s.strip, target: target }
           end
+          # Reference-style items resolve in place, so the list keeps document
+          # order and a `[Quarterly report][r1]` citation keeps its text — an
+          # appended second pass lost both, and a migration lifting sources off
+          # this output would have dropped the title for good.
+          line.scan(Links::REFERENCE_LINK) do |label, explicit|
+            target = definitions[(explicit.empty? ? label : explicit).strip.downcase]
+            found << { text: label.to_s.strip, target: target } if target
+          end
         end
-        covered = found.map { |entry| entry[:target] }
-        extra = Links.extract(text).reject { |target| covered.include?(target) }
-        found + extra.map { |target| { text: "", target: target } }
+        found
       end
     end
   end

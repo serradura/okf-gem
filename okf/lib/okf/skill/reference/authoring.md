@@ -129,6 +129,10 @@ actors only ⇒ machine-confirmed; any `human:` verifier ⇒ human-reviewed. Nev
 write a tier or a credibility score into frontmatter — it would be subjective,
 unportable, and stale the moment the next verification lands. And never invent
 provenance: a concept whose history you do not know is honestly unverified.
+Prefer **block style** for these mappings (`generated:` with indented
+`by:`/`at:`): the flow spelling (`{ by: human:x, at: …T10:00:00Z }`) is legal
+YAML, but the colons inside its values trip older libyaml parsers, and block
+style is the spelling every parser accepts.
 
 ### Lifecycle: `status` and `stale_after` (§5.4/§5.5) <!-- rule:okf-lifecycle -->
 `status` is one of `draft | stable | deprecated`; absent means `stable`, so

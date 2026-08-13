@@ -2,7 +2,9 @@
 type: Métrica
 title: Métricas — receita
 description: Receita mensal, com proveniência em títulos não ASCII.
-generated: { by: human:mantenedor, at: 2026-06-01T09:00:00Z }
+generated:
+  by: human:mantenedor
+  at: 2026-06-01T09:00:00Z
 sources:
   - id: política-de-receita
     title: Política de reconhecimento — receita

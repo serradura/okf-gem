@@ -63,7 +63,7 @@ module ByDir
 
     test "no fixture keeps the old spelling except the ones whose purpose is the legacy path" do
       offenders = Dir.glob(File.join(BUNDLES, "**", "*.md")).select do |path|
-        content = File.read(path)
+        content = read_utf8(path)
         content.match?(/^timestamp:/) || content.include?("# Citations")
       end.map { |path| path.sub("#{BUNDLES}/", "") }
 

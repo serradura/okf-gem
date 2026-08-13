@@ -12,14 +12,14 @@ class OKF::SkillSpecReferencesTest < OKF::TestCase
   SKILL_ROOT = File.expand_path("../../lib/okf/skill", __dir__)
 
   test "every §n(.n) cited by the skill names a heading the vendored SPEC actually has" do
-    spec = File.read(File.join(SKILL_ROOT, "reference", "SPEC.md"))
+    spec = File.read(File.join(SKILL_ROOT, "reference", "SPEC.md"), encoding: "UTF-8")
     headings = spec.scan(/^\#{2,3}\s+(\d+(?:\.\d+)?)[.\s]/).flatten.to_set
 
     offenders = []
     Dir.glob(File.join(SKILL_ROOT, "**", "*.md")).each do |path|
       next if File.basename(path) == "SPEC.md"
 
-      File.read(path).scan(/§(\d+(?:\.\d+)?)/) do |(section)|
+      File.read(path, encoding: "UTF-8").scan(/§(\d+(?:\.\d+)?)/) do |(section)|
         offenders << "#{path.sub("#{SKILL_ROOT}/", "")}: §#{section}" unless headings.include?(section)
       end
     end
@@ -28,11 +28,11 @@ class OKF::SkillSpecReferencesTest < OKF::TestCase
   end
 
   test "the vendored SPEC is v0.2 and no skill file still declares 0.1" do
-    spec = File.read(File.join(SKILL_ROOT, "reference", "SPEC.md"))
+    spec = File.read(File.join(SKILL_ROOT, "reference", "SPEC.md"), encoding: "UTF-8")
     assert_includes spec, "**Version 0.2**"
 
     stale = Dir.glob(File.join(SKILL_ROOT, "**", "*.md")).select do |path|
-      File.read(path).include?(%(okf_version: "0.1"))
+      File.read(path, encoding: "UTF-8").include?(%(okf_version: "0.1"))
     end
     assert_empty stale.map { |path| path.sub("#{SKILL_ROOT}/", "") }
   end
@@ -41,7 +41,7 @@ class OKF::SkillSpecReferencesTest < OKF::TestCase
     writers = Dir.glob(File.join(SKILL_ROOT, "**", "*.md")).select do |path|
       next false if File.basename(path) == "SPEC.md"
 
-      File.read(path).match?(/^timestamp:/)
+      File.read(path, encoding: "UTF-8").match?(/^timestamp:/)
     end
     assert_empty writers.map { |path| path.sub("#{SKILL_ROOT}/", "") },
       "the skill may explain the legacy fallback but never writes the retired spelling"
