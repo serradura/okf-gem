@@ -4,7 +4,12 @@ title: OKF::Bundle::Graph
 description: The in-memory knowledge graph — concepts as nodes, cross-links as directed edges, with type and tag indexes.
 resource: okf/lib/okf/bundle/graph.rb
 tags: [graph, pure]
-timestamp: 2026-07-23T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-23T12:00:00Z
+sources:
+  - title: okf/lib/okf/bundle/graph.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/graph.rb
 ---
 
 # Overview
@@ -33,7 +38,7 @@ every concept:
 
 - `type_index` — `{ type => [id, …] }`, so even a minimal client can colour nodes
   by [`type`](concept.md). A concept whose type is missing *or blank* indexes
-  under `Untyped`: §9.2 rejects the two identically (the
+  under `Untyped`: §11 condition 2 rejects the two identically (the
   [validator](../capabilities/validator.md) asks `OKF.blank?`, not `empty?`), so
   sorting them into different buckets would give `type: "  "` a row of its own,
   labelled with spaces;
@@ -52,7 +57,3 @@ cut it survives. It is the reduction [`graph --traffic`](../capabilities/read-vi
 reads for cohesion and the [graph page](../capabilities/graph-server.md) lays a
 large bundle out on — built from this graph's own nodes and edges, and just as
 pure.
-
-# Citations
-
-[1] [okf/lib/okf/bundle/graph.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/graph.rb) — graph construction and the type/tag indexes.

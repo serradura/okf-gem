@@ -4,7 +4,7 @@ module OKF
   module Markdown
     # Markdown cross-link extraction and resolution — the single source of truth for
     # "which concepts does this body point at". Shared by OKF::Bundle::Graph (to build edges)
-    # and OKF::Bundle::Validator (to warn on broken cross-links, §5.3), so both agree on what
+    # and OKF::Bundle::Validator (to warn on broken cross-links, §6.1), so both agree on what
     # counts as a link and where it resolves.
     module Links
       FENCE = /\A(```|~~~)/.freeze

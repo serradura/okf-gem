@@ -1,5 +1,21 @@
 # Update Log
 
+## 2026-08-13
+* **OKF v0.2 is the target**: the gem reads, validates, lints, serves and
+  teaches the [published v0.2](format/okf-0-2.md) — one reading rule on
+  [Concept](model/concept.md) carrying §13.1's two fallbacks inline (no version
+  hierarchy), shape warnings for every §5/§10 family on the
+  [validator](capabilities/validator.md) (machine-readable, `check:`/`source:`),
+  eight [linter](capabilities/linter.md) categories with pinned severities, an
+  explicit clock, and the two Migration findings that tell a v0.1 bundle what
+  to change without ever failing it. The surfaces speak it too:
+  [trust/status columns and filters](capabilities/read-views.md) on the CLI,
+  [source text in search](capabilities/search.md) where the body used to hold
+  it, and the trust line as the [graph page](capabilities/graph-server.md)'s
+  third channel. This bundle migrated in the same change — `generated` replaces
+  `timestamp`, [`sources`](format/citations.md) replace the `# Citations`
+  sections — and the lessons live in the concepts each is about.
+
 ## 2026-08-07
 * **Release**: **okf-mcp 1.0.0** shipped — the [MCP server](capabilities/mcp-server.md),
   a fourth surface beside the [CLI](cli.md), the

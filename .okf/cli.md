@@ -4,7 +4,14 @@ title: The okf command-line front end
 description: The only layer that parses argv, prints, writes files, and decides exit codes.
 resource: okf/lib/okf/cli.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-24T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-24T12:00:00Z
+sources:
+  - title: okf/lib/okf/cli.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli.rb
+  - title: okf/lib/okf/cli/command.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/command.rb
 ---
 
 # Overview
@@ -165,7 +172,7 @@ call it.
 
 # Best-effort reads
 
-`graph`, `server`, `render`, and the read views are best-effort under §9: a file
+`graph`, `server`, `render`, and the read views are best-effort under §11: a file
 the reader cannot use is kept in `bundle.unparseable`, skipped, and *noted on
 stderr* (so JSON on stdout stays clean) rather than aborting the whole command.
 One bad file never breaks the rest. Run [validate](capabilities/validator.md) for
@@ -178,14 +185,9 @@ will not **open** at all. The second was the gap — an unreadable file threw it
 errno out of the reader, and since the read is the one path every verb shares, a
 single locked file took the whole bundle down through all of them, as a backtrace
 under an exit code that claims *non-conformant*. It is one unusable file. It
-reports as one, under §9.1, naming the file and the errno.
+reports as one, under §11 condition 1, naming the file and the errno.
 <!-- rule:okf-read-best-effort -->
 
 The boundary: `Path.join_under!` still raises. A path leaving the bundle root is
 not a bad file — it is a bundle lying about its shape, and best-effort is
 tolerance for damage, never for a claim.
-
-# Citations
-
-[1] [okf/lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli.rb) — the registry, the dispatcher, and the map.
-[2] [okf/lib/okf/cli/command.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/command.rb) — the base every verb inherits: refs, shared flags, the JSON emitters, the printers.

@@ -1,25 +1,32 @@
 ---
 type: Overview
 title: okf-gem at a glance
-description: A light Ruby gem that reads, searches, validates, lints, and serves Open Knowledge Format v0.1 bundles.
+description: A light Ruby gem that reads, searches, validates, lints, and serves Open Knowledge Format v0.2 bundles.
 tags: [okf, gem, diagram]
-timestamp: 2026-07-29T18:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-29T18:00:00Z
+sources:
+  - title: README.md
+    resource: https://github.com/serradura/okf-gem/blob/main/README.md
+  - title: AGENTS.md
+    resource: https://github.com/serradura/okf-gem/blob/main/AGENTS.md
 ---
 
 # Overview
 
-**okf-gem** — `okf` on RubyGems — operates on [OKF v0.1](format/okf-format.md)
+**okf-gem** — `okf` on RubyGems — operates on [OKF v0.2](format/okf-format.md)
 bundles: directories of Markdown files with YAML frontmatter that humans and
 agents both read from one source. It does not define new knowledge storage; it
 gives you leverage over knowledge that already lives as Markdown.
 
 ```mermaid
 flowchart LR
-  skill["companion<br/>agent skill"] -. authors/curate .-> bundle[("OKF v0.1 bundle<br/>Markdown + YAML")]
+  skill["companion<br/>agent skill"] -. authors/curate .-> bundle[("OKF v0.2 bundle<br/>Markdown + YAML")]
   bundle --> model["pure model<br/>Concept · Bundle · Graph"]
   skill -. execute .-> cli
   subgraph cli ["okf CLI"]
-    validate["validate — legal? §9"]
+    validate["validate — legal? §11"]
     lint["lint — well-curated?"]
     search["search — which concept?"]
     server["server — explore"]
@@ -34,7 +41,7 @@ Over such a bundle the gem gives you seven capabilities behind one
 | Capability                                               | What it answers                   | Verb             |
 | -------------------------------------------------------- | --------------------------------- | ---------------- |
 | [Companion agent skill](capabilities/agent-skill.md)     | Can an agent author it?           | `skill`          |
-| [Conformance validator](capabilities/validator.md)       | Is this a legal OKF bundle? (§9)  | `validate`       |
+| [Conformance validator](capabilities/validator.md)       | Is this a legal OKF bundle? (§11)  | `validate`       |
 | [Curation linter](capabilities/linter.md)                | Is it navigable, complete, fresh? | `lint` / `loose` |
 | [Ranked text search](capabilities/search.md)             | Which concept covers X?           | `search`         |
 | [Interactive graph server](capabilities/graph-server.md) | Can I explore it visually?        | `server`         |
@@ -74,8 +81,3 @@ a [Ruby 2.4 floor](design/ruby-floor.md), exactly
 [core/shell split](design/core-shell-split.md) that keeps all logic pure and
 testable without disk. Everything else — no ActiveSupport, no build step, no
 JavaScript toolchain — follows from those.
-
-# Citations
-
-[1] [README.md](https://github.com/serradura/okf-gem/blob/main/README.md) — the gem's own overview.
-[2] [AGENTS.md](https://github.com/serradura/okf-gem/blob/main/AGENTS.md) — the maintainer guide.

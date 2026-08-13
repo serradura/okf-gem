@@ -2,7 +2,7 @@
 
 module OKF
   module Markdown
-    # Parses the conventional `# Citations` section of a concept body (spec §8): the
+    # Parses the retired `# Citations` section of a v0.1 concept body (§13.1): the
     # block of external sources listed at the bottom of a document. Pure and
     # fence-aware, mirroring Links; it reuses Links.extract to pull the citation link
     # targets so citations and cross-links agree on what counts as a link.

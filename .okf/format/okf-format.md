@@ -1,10 +1,15 @@
 ---
 type: Format
-title: Open Knowledge Format v0.1
+title: Open Knowledge Format v0.2
 description: Portable knowledge as a directory of Markdown files with YAML frontmatter that humans and agents both read.
 resource: okf/lib/okf/skill/reference/SPEC.md
 tags: [okf, conformance]
-timestamp: 2026-07-17T16:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-17T16:00:00Z
+sources:
+  - title: SPEC.md
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md
 ---
 
 # Overview
@@ -24,20 +29,16 @@ Two filenames are reserved and are never concepts:
 | `index.md` | a directory listing for progressive disclosure | carries **no** frontmatter — except the bundle-root `index.md`, which may carry *only* `okf_version` |
 | `log.md` | a dated change history, newest first | date headings are ISO `YYYY-MM-DD` |
 
-# §9 conformance is narrow and tolerant
+# §11 conformance is narrow and tolerant
 
 The spec makes only three conditions **hard**, and the
 [validator](../capabilities/validator.md) fails a bundle on any of them:
 
-1. **§9.1** — every non-reserved `.md` file has a parseable frontmatter block;
-2. **§9.2** — every such block has a **non-empty `type`**;
-3. **§9.3** — every reserved file present is well-formed.
+1. **§11 cond. 1** — every non-reserved `.md` file has a parseable frontmatter block;
+2. **§11 cond. 2** — every such block has a **non-empty `type`**;
+3. **§11 cond. 3** — every reserved file present is well-formed.
 
 Everything else is soft guidance a consumer MUST tolerate: missing optional
 fields, unknown [`type`](../model/concept.md) values, and **broken cross-links**.
 Judging those is the [linter](../capabilities/linter.md)'s job, held separate on
 purpose.
-
-# Citations
-
-[1] [SPEC.md](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md) — the OKF v0.1 specification, authored by Google Cloud Platform, redistributed under Apache 2.0.

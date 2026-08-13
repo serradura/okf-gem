@@ -4,7 +4,14 @@ title: Cross-links (spec §5)
 description: Plain Markdown links between concepts that become the knowledge graph's directed edges.
 resource: okf/lib/okf/markdown/links.rb
 tags: [graph, diagram]
-timestamp: 2026-07-17T16:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-17T16:00:00Z
+sources:
+  - title: okf/lib/okf/markdown/links.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/markdown/links.rb
+  - title: SPEC.md §5
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md
 ---
 
 # Overview
@@ -38,15 +45,10 @@ understand a Markdown link, which is the point of the [dual audience](../overvie
   links survive file moves.
 - **External links** — `http(s)://`, `mailto:` — are surfaced separately and are
   *not* graph edges.
-- A link to a concept that does not exist yet is **not an error** (§5.3): it is
+- A link to a concept that does not exist yet is **not an error** (§6.1): it is
   not-yet-written knowledge, which consumers MUST tolerate and the
   [linter](../capabilities/linter.md) surfaces as backlog demand.
 
 The [graph server](../capabilities/graph-server.md) draws these edges; a
 degree-0 concept (no links in or out) is a *loose* file the
 [read views](../capabilities/read-views.md) flag.
-
-# Citations
-
-[1] [okf/lib/okf/markdown/links.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/markdown/links.rb) — link extraction.
-[2] [SPEC.md §5](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md) — cross-links and tolerance of broken targets.

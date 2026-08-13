@@ -4,7 +4,12 @@ title: OKF::Bundle
 description: The pure in-memory collection of concepts that validate, lint, and graph run over.
 resource: okf/lib/okf/bundle.rb
 tags: [pure]
-timestamp: 2026-07-17T16:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-17T16:00:00Z
+sources:
+  - title: okf/lib/okf/bundle.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle.rb
 ---
 
 # Overview
@@ -23,7 +28,7 @@ would not parse, and files that would not open, since a locked file is one file'
 problem and not the bundle's. That is what
 lets [graph](graph.md), the [server](../capabilities/graph-server.md), and the
 [read views](../capabilities/read-views.md) render everything that *is* valid
-while the [CLI](../cli.md) notes the skips on stderr — §9's best-effort posture,
+while the [CLI](../cli.md) notes the skips on stderr — §11's best-effort posture,
 made structural.
 
 # Build it from data, not only from files
@@ -34,7 +39,3 @@ lint, and graph for free. This is the surface the
 [library API](../capabilities/library-api.md) exposes to, say, a Rails store that
 already holds knowledge as rows. It also feeds the shared `#catalog`, the data
 behind every read view.
-
-# Citations
-
-[1] [okf/lib/okf/bundle.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle.rb) — the in-memory collection and its `#validate` / `#lint` / `#graph` entry points.

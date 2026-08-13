@@ -5,9 +5,9 @@ module OKF
     # Checks an OKF::Bundle against the OKF conformance rules (§11), which has
     # three conditions — all hard errors:
     #
-    #   §11.1  every non-reserved file has a parseable YAML frontmatter block;
-    #   §11.2  every such block has a non-empty `type`;
-    #   §11.3  every index.md/log.md present follows the §8/§9 structure — a nested
+    #   §11 c1  every non-reserved file has a parseable YAML frontmatter block;
+    #   §11 c2  every such block has a non-empty `type`;
+    #   §11 c3  every index.md/log.md present follows the §8/§9 structure — a nested
     #          index.md has no frontmatter, a root index.md carries only okf_version,
     #          and log.md date headings are ISO `YYYY-MM-DD`.
     #

@@ -2,7 +2,7 @@
 
 module OKF
   class CLI
-    # The progressive-disclosure map (spec §6): every directory that holds concepts
+    # The progressive-disclosure map (spec §8): every directory that holds concepts
     # or carries an index.md, with its authored index body, a type/tag rollup, its
     # child directories, and — for a directory with no index.md — the listing
     # synthesized from the concepts there. The "orient before you read" view. `--dir`

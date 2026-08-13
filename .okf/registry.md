@@ -4,7 +4,12 @@ title: The bundle registry
 description: An ordered list of bundle references persisted as JSON — global under $OKF_HOME, or project-local via `okf registry init` and discovered from the working directory — the kernel behind a bare `okf server`.
 resource: okf/lib/okf/registry.rb
 tags: [cli, shell, registry]
-timestamp: 2026-07-24T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-24T12:00:00Z
+sources:
+  - title: okf/lib/okf/registry.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/registry.rb
 ---
 
 # Overview
@@ -258,7 +263,3 @@ written before this existed heals itself the first time it changes.
 [CLI](cli.md), which requires it at the moment a registry verb or a bare `server`
 runs — the same on-demand rule the [library API](capabilities/library-api.md)
 keeps for the command-line machinery.
-
-# Citations
-
-[1] [okf/lib/okf/registry.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/registry.rb) — the entries, the slug rules, the first-is-default rule, and the atomic write.

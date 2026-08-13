@@ -4,7 +4,14 @@ title: The graph page is proven in a real browser
 description: A string assertion over rendered HTML cannot see a collapsed canvas or a folded breakpoint, so the page is driven in Chromium — in both render modes, with any thrown error failing the run.
 resource: okf/test/browser
 tags: [testing, render, server, architecture]
-timestamp: 2026-07-22T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-22T12:00:00Z
+sources:
+  - title: okf/test/browser/README.md
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/browser/README.md
+  - title: okf/test/browser/COVERAGE.md
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/browser/COVERAGE.md
 ---
 
 # Overview
@@ -202,8 +209,3 @@ it holds only because the race is in the **setup**: a real mouse gesture aimed a
 live geometry on a canvas whose camera is still animating. On a settled canvas the
 identical gesture succeeded 8/8, so the retry re-runs the aim, not the proof —
 and two failures running is a regression, not this.
-
-# Citations
-
-[1] [okf/test/browser/README.md](https://github.com/serradura/okf-gem/blob/main/okf/test/browser/README.md) — the two projects, the fixture, the console watch, the assertion mistakes the first run shook out.
-[2] [okf/test/browser/COVERAGE.md](https://github.com/serradura/okf-gem/blob/main/okf/test/browser/COVERAGE.md) — the history-derived catalog and the ranked gap list.

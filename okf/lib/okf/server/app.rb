@@ -31,10 +31,10 @@ module OKF
     #                       links_*} ] } (JSON)
     #   GET /tags           the tag index  { tag  => [id, …] } (JSON)
     #   GET /types          the type index { type => [id, …] } (JSON)
-    #   GET /index          the §6 progressive-disclosure map for the Index panel:
+    #   GET /index          the §8 progressive-disclosure map for the Index panel:
     #                       { directories: [ …okf-index rows… ] } (JSON, from the
     #                       boot snapshot — authored maps are structure)
-    #   GET /log            the §7 history for the Log panel: { logs: [ {path,
+    #   GET /log            the §9 history for the Log panel: { logs: [ {path,
     #                       dir, content} ] } (JSON; content read live from disk,
     #                       like a body — the log is the file that changes most)
     #   GET /search?q=…     ranked concepts in this bundle, for the ⌘K palette:
@@ -150,14 +150,14 @@ module OKF
         { concepts: @folder.catalog }
       end
 
-      # The §6 map the Index panel renders — the same rows `okf index` prints,
+      # The §8 map the Index panel renders — the same rows `okf index` prints,
       # built by the pure OKF::Bundle#directory_index over the boot snapshot
       # (authored index bodies are structure, read at load like the graph).
       def directory_index
         { directories: @folder.directory_index }
       end
 
-      # The §7 history the Log panel renders: every log.md with its content, root
+      # The §9 history the Log panel renders: every log.md with its content, root
       # scope first, read live from disk. Built by OKF::Bundle::Folder#log_entries,
       # shared with `okf render`'s bake so the served and baked logs cannot drift.
       def logs

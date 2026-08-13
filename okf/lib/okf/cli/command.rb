@@ -467,7 +467,7 @@ module OKF
         filter_entries(folder.catalog, options, dirs || dir_scope(folder, options)).map { |entry| entry[:id] }
       end
 
-      # §9 best-effort: the graph is built from concepts that parse. Surface any that
+      # §11 best-effort: the graph is built from concepts that parse. Surface any that
       # the reader could not parse (to stderr, so JSON on stdout stays clean) rather
       # than dropping them silently.
       def report_skipped(folder)

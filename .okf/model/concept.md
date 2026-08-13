@@ -4,7 +4,12 @@ title: OKF::Concept
 description: The pure in-memory model of a single OKF file — frontmatter, body, and a stable id.
 resource: okf/lib/okf/concept.rb
 tags: [pure]
-timestamp: 2026-07-17T16:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-17T16:00:00Z
+sources:
+  - title: okf/lib/okf/concept.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/concept.rb
 ---
 
 # Overview
@@ -29,18 +34,30 @@ source — so a concept can keep its id across a move.
 The concept parses its body on demand into the structural facts the rest of the
 gem consumes:
 
-- `#type`, `#title`, `#description`, `#resource`, `#tags`, `#timestamp` — typed
-  reads over the frontmatter;
+- `#type`, `#title`, `#description`, `#resource`, `#tags` — typed reads over
+  the frontmatter;
+- the §5 families, each carrying §13.1's fallbacks inline: `#generated` /
+  `#generated_at` / `#generated_by` (a legacy `timestamp` lifts into `at`,
+  per-key, with no actor ever invented), `#sources` (the native list, or the
+  legacy [`# Citations`](../format/citations.md) body list whenever the native
+  value yields zero mappings), `#verified` (a bare mapping reads as a
+  one-element list; degenerate shapes fold to unverified), `#trust_tier` /
+  `#trust` (derived per §5.3, never stored), `#status`/`#declared_status`
+  (absent reads stable), `#stale_after_date`/`#stale_on?(today)` (§5.5 — stale
+  on the day itself; the clock is always an argument, never read);
+- the §10 contract of an Attested Computation: `#runtime`, `#parameters`,
+  `#computation`, `#executor`, `#attester`, `#attested_computation?`;
+- `#usage_window` — validated for shape, deliberately consumed by nothing: no
+  gem surface computes over usage counts, so an effective-window resolver
+  would be speculative;
+- `#declared_generated?`, `#legacy_timestamp?`, `#legacy_citations?` — raw-key
+  detection for lint and the surfaces; detection never influences reading;
 - `#links` — every raw [cross-link](../format/cross-links.md) target in the body, in order; the bundle-relative ones become graph edges;
 - `#external_links` — the subset of those that are URLs or `mailto:` (not edges);
-- `#citations` — the [`# Citations`](../format/citations.md) entries;
-- `#to_markdown` — the inverse of the frontmatter parser;
+- `#to_markdown` — the inverse of the frontmatter parser (`#citations` is gone,
+  subsumed by `#sources`);
 - `#lint` — the concept-scoped [lint](../capabilities/linter.md) checks in isolation.
 
 A concept never decides conformance alone; a [bundle](bundle.md) does, because
 some checks (duplicate titles, missing link targets) are only meaningful across
 the set.
-
-# Citations
-
-[1] [okf/lib/okf/concept.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/concept.rb) — the pure concept model.

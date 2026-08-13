@@ -16,7 +16,7 @@ module OKF
 
   # Blank in the frontmatter sense: nil, false, an empty/whitespace-only string,
   # or an empty collection. Numbers and other scalars are never blank. The one
-  # domain-wide predicate behind "non-empty type" (§9.2) and the recommended-field
+  # domain-wide predicate behind "non-empty type" (§11 cond. 2) and the recommended-field
   # warnings, kept here so the gem needs no ActiveSupport.
   def self.blank?(value)
     return true if value.nil? || value == false
@@ -40,7 +40,7 @@ module OKF
   require "okf/path"
   require "okf/safe_read"
 
-  # ── Markdown: parse structure out of a markdown document (§4/§5/§8) ──
+  # ── Markdown: parse structure out of a markdown document (§4/§6/§5.1) ──
   require "okf/markdown/frontmatter"
   require "okf/markdown/links"
   require "okf/markdown/citations"

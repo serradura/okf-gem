@@ -288,7 +288,7 @@ module OKF
 
     # ── analysis (pure; the same primitives the graph/linter use) ──
 
-    # Raw markdown cross-link targets in the body, in document order (spec §6).
+    # Raw markdown cross-link targets in the body, in document order (spec §6.1).
     def links
       Markdown::Links.extract(body)
     end

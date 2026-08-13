@@ -4,7 +4,16 @@ title: Bundles list (the hub's /b/ page)
 description: The hub's /b/ page — every bundle it knows about with its size, health and default marker — and the four POST routes that change the registry, which the graph page's Bundles panel drives.
 resource: okf/lib/okf/server/hub.rb
 tags: [server, registry, hub, ui]
-timestamp: 2026-07-21T16:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-21T16:00:00Z
+sources:
+  - title: okf/lib/okf/server/hub.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/hub.rb
+  - title: okf/lib/okf/cli/server.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/server.rb
+  - title: okf/lib/okf/registry.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/registry.rb
 ---
 
 # Why it exists
@@ -122,9 +131,3 @@ were forms: it caught an HTML `pattern` attribute whose character class was vali
 as a Ruby regexp and invalid under the `v` flag a browser compiles it with, so
 every keystroke in the rename field threw a `SyntaxError` no integration
 assertion could see.
-
-# Citations
-
-[1] [okf/lib/okf/server/hub.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/hub.rb) — the /b/ page, the four POST routes, the four gates, and the rebuild-after-write.
-[2] [okf/lib/okf/cli/server.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/server.rb) — `--read-only` and the loopback rule that decides whether the hub is writable.
-[3] [okf/lib/okf/registry.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/registry.rb) — the CRUD the page drives, and the messages its refusals carry.

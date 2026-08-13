@@ -153,14 +153,14 @@ module OKF
       end.sort_by { |row| [ -row[:inbound], row[:id] ] }
     end
 
-    # The progressive-disclosure map (spec §6): one entry per directory that holds
+    # The progressive-disclosure map (spec §8): one entry per directory that holds
     # concepts or carries an index.md, sorted with the root (".") first. Each entry
     # gives the authored index body (frontmatter stripped) when an index.md is
     # present, a type/tag rollup over the concepts that live *directly* in the
     # directory, its immediate child directories, and the concept listing an
     # index.md there would enumerate. A directory with concepts but no index.md has
     # `present: false` and still carries the listing, so a consumer can synthesize
-    # the map on the fly (§6 permits exactly that). Grouped by the concept's file
+    # the map on the fly (§8 permits exactly that). Grouped by the concept's file
     # path — index files are physical directory listings, so a custom frontmatter
     # `id` must not move a concept out of the directory it lives in. Pure: derived
     # from the concepts and the reserved index text, no disk. Shared by the

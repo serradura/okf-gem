@@ -4,7 +4,14 @@ title: OKF::Bundle::Skeleton
 description: The graph reduced to what a reader can hold — directories, the weighted arcs between them, and each link with the cut it survives.
 resource: okf/lib/okf/bundle/skeleton.rb
 tags: [graph, pure]
-timestamp: 2026-07-23T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-23T12:00:00Z
+sources:
+  - title: okf/lib/okf/bundle/skeleton.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/skeleton.rb
+  - title: okf/lib/okf/cli/graph.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/graph.rb
 ---
 
 # Overview
@@ -67,8 +74,3 @@ quiet half of a bundle the way a global "drop the weakest edges" rule does. It i
 edge's weight against its endpoint's total, and every link here weighs exactly 1,
 which makes every proportion identical and the filter a coin toss. Weighted-graph
 tools do not transfer to an unweighted graph just because both are graphs.
-
-# Citations
-
-[1] [okf/lib/okf/bundle/skeleton.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/skeleton.rb) — the reduction: `dirs`, `arcs`, the fitted `#suggested_cut`, and the `keep_at` sparsifier.
-[2] [okf/lib/okf/cli/graph.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/graph.rb) — `graph --traffic`, which prints the directory reduction with cohesion.

@@ -105,7 +105,7 @@ require "okf"
 
 folder = OKF::Bundle::Folder.load("docs")
 folder.concepts                  # => [OKF::Concept]
-folder.validate                  # => §9 conformance result
+folder.validate                  # => §11 conformance result
 folder.lint                      # => curation report
 folder.graph                     # => nodes, edges, indexes
 
@@ -122,13 +122,15 @@ writer, and the lower-level pieces.
 ## validate and lint are two different questions
 
 `validate` asks *"is this legal OKF?"* and implements the spec's
-[§9](lib/okf/skill/reference/SPEC.md#9-conformance) exactly — which means it is *forbidden* to
+[§11](lib/okf/skill/reference/SPEC.md#11-conformance) exactly — which means it is *forbidden* to
 reject a bundle for a broken link or a missing optional field.
 
 `lint` asks the complementary question, *"is this well-curated, navigable,
 trustworthy?"*, over exactly those tolerated things: reachability, backlog,
-completeness, freshness, provenance, hygiene. It is advisory and exits `0` even
-with findings unless you pass `--fail-on warn`.
+completeness, freshness, provenance, attestation, migration, hygiene. It is
+advisory and exits `0` even with findings unless you pass `--fail-on warn` or
+`--fail-on info` — the latter is how a migration campaign gates on the two
+findings that name a bundle's leftover v0.1 spellings.
 
 Keeping them apart is what lets you gate CI on conformance without gating it on
 taste. `lint --json` is also the structured input an agent reads to reason about

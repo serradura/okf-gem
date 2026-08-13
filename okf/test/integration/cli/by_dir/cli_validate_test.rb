@@ -218,6 +218,17 @@ module ByDir
       assert_equal "spec", by_check.fetch("sources_shape").first["source"]
     end
 
+    test "the report names the spec version the gem targets, not the one it can also read" do
+      # One declaration — OKF::SPEC_VERSION — behind both the header and the
+      # help row, so the version a bundle is judged against cannot be stated
+      # two ways. The gem still *reads* v0.1 (§13.1); this is what it
+      # validates for.
+      assert_equal "0.2", OKF::SPEC_VERSION
+
+      assert_match(/^OKF v0\.2 conformance — /, okf("validate", fixture("conformant")).out)
+      assert_match(/check OKF v0\.2 conformance/, okf("--help").out)
+    end
+
     private
 
     # Warning messages from a bundle, grouped by the file they were reported

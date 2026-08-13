@@ -3,7 +3,12 @@ type: Capability
 title: Read views (index, dirs, catalog, files, types, tags, stats, loose, graph)
 description: The server's browser panels reproduced on the CLI, plus the index map, so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-24T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-24T12:00:00Z
+sources:
+  - title: cli.md — read views
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/cli.md
 ---
 
 # Overview
@@ -211,7 +216,3 @@ orphan) but is **not a graph edge**, so a listed file can still float here. A
 loose file may be perfectly fine — a terminal leaf like a backlog item is loose
 by design — so `loose` surfaces the set for a human or agent to judge and always
 exits `0`.
-
-# Citations
-
-[1] [cli.md — read views](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/cli.md) — the views and their flags.

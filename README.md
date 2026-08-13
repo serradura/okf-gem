@@ -14,7 +14,7 @@
   <a href="https://github.com/serradura/okf-gem/actions/workflows/main.yml"><img src="https://github.com/serradura/okf-gem/actions/workflows/main.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/serradura/okf-gem"><img src="https://img.shields.io/badge/ruby-%3E%3D%202.4-black" alt="Ruby >= 2.4"></a>
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
-  <a href="okf/lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.1-6E56CF" alt="OKF v0.1"></a>
+  <a href="okf/lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.2-6E56CF" alt="OKF v0.2"></a>
   <a href="#claude-code-plugin"><img src="https://img.shields.io/badge/Claude%20Code-plugin-D97757" alt="Claude Code plugin"></a>
 </p>
 
@@ -98,7 +98,9 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph served over HTTP, and a mountable Rack app.
 resource: okf/lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-11T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-11T12:00:00Z
 ---
 
 # Overview
@@ -108,6 +110,21 @@ timestamp: 2026-07-11T12:00:00Z
 
 That bundle is this gem's own documentation. Clone the repo and run
 `okf server .okf` to browse it as an interactive graph.
+
+### Trust, provenance, and lifecycle — OKF v0.2
+
+Knowledge written continuously by agents raises questions a static corpus never
+had to answer: who wrote this, who checked it, is it still current? OKF v0.2
+makes them frontmatter — `generated` (who produced the content, and when),
+`verified` (who confirmed it, deriving the trust tier every surface shows:
+unverified · machine-confirmed · human-reviewed), `sources` with per-claim
+footnote attribution, `status`, and `stale_after` — and this gem reads all of
+it: as [catalog columns and `--status`/`--trust` filters](https://okfgem.com/docs/),
+as the [graph page](#the-graph)'s third visual channel, and as
+[lint](https://okfgem.com/docs/cli/lint/)'s provenance, attestation and
+migration findings. Every family is optional, and a v0.1 bundle keeps reading
+forever — two `lint` findings tell you exactly what a migration would change,
+and never fail you for not having done it.
 
 ## Try it in four steps
 
@@ -420,9 +437,9 @@ threshold crossed), `2` usage error. Every flag is in `okf <verb> --help` and in
 
 ```bash
 $ okf validate docs
-OKF v0.1 conformance — docs
+OKF v0.2 conformance — docs
   concepts: 37   index.md: 10   log.md: 1
-  ! warn  features/link-suggestions.md: cross-link target not found: `/graph-view.md` (tolerated under §5.3)
+  ! warn  features/link-suggestions.md: cross-link target not found: `/graph-view.md` (tolerated under §6.1)
   …
   ✓ conformant (33 warning(s))
 
@@ -485,14 +502,16 @@ the pure layer, the writer, and the lower-level pieces.
 
 `validate` (the [conformance validator](https://okfgem.com/docs/cli/validate/)) asks
 _"is this legal OKF?"_ and implements the spec's
-[§9](okf/lib/okf/skill/reference/SPEC.md#9-conformance) exactly — which means it is
+[§11](okf/lib/okf/skill/reference/SPEC.md#11-conformance) exactly — which means it is
 *forbidden* to reject a bundle for a broken link or a missing optional field.
 
 `lint` (the [curation linter](https://okfgem.com/docs/cli/lint/)) asks the
 complementary question, _"is this well-curated, navigable, trustworthy?"_, over
 exactly those tolerated things: reachability, backlog, completeness, freshness,
-provenance, hygiene. It is advisory and exits `0` even with findings unless you
-pass `--fail-on warn`.
+provenance, attestation, migration, hygiene. It is advisory and exits `0` even
+with findings unless you pass `--fail-on warn` (or `--fail-on info`, which is
+how a [migration campaign](https://okfgem.com/docs/) gates on the two findings
+that name a bundle's leftover v0.1 spellings).
 
 Keeping them apart is what lets you gate CI on conformance without gating it on
 taste. `lint --json` is also the structured input an agent reads to reason about

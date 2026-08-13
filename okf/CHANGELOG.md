@@ -9,9 +9,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The gem targets OKF v0.2** and keeps reading v0.1 under §13.1's two
+  sanctioned fallbacks: a legacy `timestamp` reads as `generated.at` (per-key,
+  so a half-migrated `generated: { by: … }` beside a `timestamp` keeps its
+  date, and no actor is ever invented), and a body `# Citations` list reads as
+  `sources` whenever the native key yields zero mappings. One `OKF::Concept`
+  class, no version hierarchy; a pure v0.1 bundle still validates with zero
+  warnings.
+- **Breaking: lint check ids renamed** — `missing_timestamp` is
+  `missing_generated`, `broken_citation` is `broken_source` — so `--only` /
+  `--except` lists naming the old ids exit 2. `uncited_external` is redefined
+  over `#sources` (a v0.1 `# Citations` still silences it; so does a migrated
+  `sources:` block).
+- **Breaking: the `timestamp` catalog column is removed** — `--fields
+  timestamp` exits 2 loudly, naming the valid fields. The `concepts` row gains
+  `generated_at`, `generated_by`, `generated` (the raw declared-key boolean
+  that tells hand-written apart from v0.1-with-timestamp), `trust` (the
+  hyphenated wire literals `unverified` | `machine-confirmed` |
+  `human-reviewed`), `stale_after`, and a `sources` count. `status` stays the
+  raw declared value, `null` when absent. Temporal values render ISO 8601.
+- **Breaking: `Concept#citations` is removed**, subsumed by `Concept#sources`.
+- **The staleness boundary is `today >= stale_after`** — a concept is stale
+  **on** the day itself, per §5.5. A consumer replacing its own `<`-based
+  check shifts by one day and should know it.
+- `GET /node/meta` returns JSON (`{ description, trust: { tier, generated_by,
+  generated_at, status, stale_after } }`, null-stripped) instead of an escaped
+  HTML fragment; the graph page composes the trust line client-side for served
+  and baked pages alike, and computes expiry against the viewer's own clock.
 - The demo Open Graph card URL the graph template points at moved to
   `og-demo-v5.png` (the site's card-art version bump); the old URL keeps
   serving the current art, so nothing breaks in between.
+
+### Added
+
+- **The §5/§10 families across every surface.** The validator warns on their
+  shapes (raw keys only, warnings only — §11's three hard conditions are
+  untouched) and its warnings become machine-readable: each carries `check:`
+  (a stable id) and `source:` (`spec` | `convention`), with errors keeping
+  their exact two-key shape. A root `index.md`'s `okf_version` is actually
+  read now — an unknown version warns under §12 and the bundle is consumed
+  anyway; unquoted `okf_version: 0.2` (a Psych Float) is accepted.
+- **Eight lint categories with pinned severities** (`Linter::SEVERITIES`, a
+  tested constant): Freshness gains `expired` (info, clock-gated — the CLI
+  passes today, `--today YYYY-MM-DD` pins it for reproducible CI reports, and
+  the pure library runs no clock check unless handed `today:`, confessing via
+  `stats[:skipped_checks]`); Provenance gains `broken_source`,
+  `unattributed_claim` (warn), `unused_source`, `missing_generated_by`, and
+  `unprefixed_actor` (info — a `verified[].by` outside §7's three forms reads
+  as machine-confirmed); Attestation gains `incomplete_computation` (warn, on
+  neither-or-both computation shapes); Migration's `legacy_timestamp` and
+  `legacy_citations` (info) name what a v0.1 bundle would change without ever
+  failing it. Reports gain `trust` and `status` distributions.
+- **`--fail-on info`** joins `never | warn` — gateability without a severity
+  promotion; a migration campaign is
+  `okf lint <dir> --only legacy_timestamp,legacy_citations --fail-on info`.
+- **`--status` and `--trust` filters** on catalog, files, search, tags and
+  types — `--status` matches the effective value (absent reads `stable`),
+  `--trust` folds either tier spelling.
+- **Sources are searchable text** in both Ruby engines (weight 1 — the weight
+  the body text carried in v0.1) and snippet-eligible, so a migrated bundle
+  keeps its recall and a source-only hit keeps a snippet; the static page
+  bakes and indexes the same source text.
+- **Trust as the graph page's third channel**: tier chips, status badges
+  (declared non-default only), a generated line, a client-clock stale marker,
+  and status/trust filter groups counted off the catalog.
+- The skill teaches v0.2: the vendored SPEC is the published v0.2, a new
+  attested-computation template carries §10.3's MUST NOT, and the migrate
+  playbook walks the v0.1→v0.2 rewrite.
 
 ## [1.13.0] - 2026-08-07
 

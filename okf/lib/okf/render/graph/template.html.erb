@@ -1196,7 +1196,7 @@
      view switching                full-text search
      catalog                       files
      tags                          stats
-     theme / fullscreen            §6 map payload · §7 log payload
+     theme / fullscreen            §8 map payload · §9 log payload
      command palette               the search bridge
      concept preview (touch)       mobile drawer + sheet
      keyboard                      deep links · first visit
@@ -1552,7 +1552,7 @@ interceptMdLinks(sideBody,()=>shownId,select,r=>r.kind==='index'?showDir(r.dir):
 interceptMdLinks(document.getElementById('fp-body'),()=>fileSel,id=>openFile(id),
  r=>openReserved(r.kind,r.kind==='index'?ixPathOf(r.dir):r.path));
 /* Clicking a folder node (tree mode) or an area box (cluster mode) opens that
-   directory's §6 index entry in the inspector: the authored map when one
+   directory's §8 index entry in the inspector: the authored map when one
    exists, the synthesized listing when not. */
 function showDir(dir){getIndex().then(dirs=>{const d=dirs.find(x=>x.dir===dir);if(!d)return;
  const opened=openPanel();sideBody.scrollTop=0;
@@ -2002,7 +2002,7 @@ function setTree(on){if(on===treeMode)return;if(on&&clustered)setClustered(false
   runLayout(layoutSel.value);}}
 btnTree.onclick=()=>setTree(!treeMode);
 /* ── the authored layer, drawn ──
-   The §6 map used to be visible only inside file-tree mode, where a folder node
+   The §8 map used to be visible only inside file-tree mode, where a folder node
    stood in for a directory's index.md. It is a layer of its own now: switch it
    on under any layout and each `index.md` becomes a node, edged to the concepts
    it maps and to the child maps beneath it. Cluster and tree mode still work —
@@ -2686,13 +2686,13 @@ const fsOn=()=>document.fullscreenElement===appEl;
 btnFull.onclick=()=>{if(fsOn())document.exitFullscreen();else if(appEl.requestFullscreen)appEl.requestFullscreen();};
 document.addEventListener('fullscreenchange',()=>btnFull.setAttribute('aria-pressed',String(fsOn())));
 
-/* ── the §6 map payload — feeds folder clicks, the Indexes tab, and previews ── */
+/* ── the §8 map payload — feeds folder clicks, the Indexes tab, and previews ── */
 let INDEX=null;
 function getIndex(){return INDEX||(INDEX=EMBED?Promise.resolve(EMBED.index):fetch(INDEX_ENDPOINT).then(r=>r.json()).then(d=>d.directories));}
 function listingHtml(items){if(!items||!items.length)return '<p class="empty" style="margin:10px 0 0">No concepts directly here.</p>';
  return '<ul class="ix-listing">'+items.map(it=>`<li><a data-go="${esc(it.id)}">${esc(it.title||it.id)}</a>${it.description?` <span class="d">— ${esc(it.description)}</span>`:''}</li>`).join('')+'</ul>';}
 
-/* ── log payload (the §7 history) — read by the Files view's log entries ── */
+/* ── log payload (the §9 history) — read by the Files view's log entries ── */
 let LOGS=null;
 function getLogs(){return LOGS||(LOGS=EMBED?Promise.resolve(EMBED.logs):fetch(LOG_ENDPOINT).then(r=>r.json()).then(d=>d.logs));}
 

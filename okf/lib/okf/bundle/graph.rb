@@ -20,7 +20,7 @@ module OKF
       attr_reader :nodes, :edges, :type_index, :tag_index
 
       def self.build(bundle, minimal: false, body: true)
-        # Best-effort (§9): a malformed concept never reaches here — the reader keeps
+        # Best-effort (§11): a malformed concept never reaches here — the reader keeps
         # it in bundle.unparseable — so the rest of the bundle still renders. Inspect
         # bundle.unparseable to detect skips.
         concepts = bundle.concepts
@@ -95,7 +95,7 @@ module OKF
         concept.tags.is_a?(Array) ? concept.tags : []
       end
 
-      # Blank, not just nil: §9.2 makes a whitespace-only `type` as non-conformant
+      # Blank, not just nil: §11 condition 2 makes a whitespace-only `type` as non-conformant
       # as a missing one (the validator says so with the same OKF.blank?), so the
       # index must not sort them into different buckets. Otherwise `type: "  "`
       # earns its own row, labelled with spaces, next to Untyped.

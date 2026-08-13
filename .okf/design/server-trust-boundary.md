@@ -4,7 +4,16 @@ title: The server trust boundary
 description: The trust boundary for serving a bundle you may not fully trust — both XSS paths into the page are closed, the registry write routes carry their own locks, and every read is realpath-contained so a symlinked file cannot escape the bundle root.
 resource: okf/lib/okf/render/graph/template.html.erb
 tags: [security, server, xss, containment]
-timestamp: 2026-08-10T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-08-10T12:00:00Z
+sources:
+  - title: README.md — Server trust boundary
+    resource: https://github.com/serradura/okf-gem/blob/main/README.md
+  - title: okf/lib/okf/render/graph/template.html.erb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph/template.html.erb
+  - title: okf/lib/okf/safe_read.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/safe_read.rb
 ---
 
 # Overview
@@ -122,9 +131,3 @@ is trust extended to the CDN as much as to the bundle; MiniSearch alone is pinne
 to an exact version (`7.2.0`), because it has to *agree* with the Ruby port rather
 than merely work. So the rule is no longer _only serve bundles you trust_ — it is
 the ordinary care you would give any document from a source you do not know.
-
-# Citations
-
-[1] [README.md — Server trust boundary](https://github.com/serradura/okf-gem/blob/main/README.md) — the two-defense summary.
-[2] [okf/lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph/template.html.erb) — the inlined `EMBED` and the `DOMPurify.sanitize(marked.parse(...))` render; `json_for_script` (its `<`-escape) is the method in the sibling `render/graph.rb`.
-[3] [okf/lib/okf/safe_read.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/safe_read.rb) — the one realpath-containment primitive every bundle read passes through; `Path.under?` in `okf/lib/okf/path.rb` is the pure decision it feeds.

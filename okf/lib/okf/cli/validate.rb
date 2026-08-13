@@ -2,7 +2,7 @@
 
 module OKF
   class CLI
-    # The §9 conformance judge: is this legal OKF? Binary and tolerant — it is
+    # The §11 conformance judge: is this legal OKF? Binary and tolerant — it is
     # forbidden from failing a bundle over a broken link or a missing optional
     # field, which is lint's job. Exit 1 when non-conformant.
     class Validate < Command
@@ -16,7 +16,7 @@ module OKF
 
       def self.help_rows
         [
-          [ "validate  <dir|@slug> [--json]", "check OKF v0.1 conformance" ]
+          [ "validate  <dir|@slug> [--json]", "check OKF v#{OKF::SPEC_VERSION} conformance" ]
         ]
       end
 
@@ -38,7 +38,7 @@ module OKF
 
       def print_validation(dir, result)
         counts = result.counts
-        @out.puts "OKF v0.1 conformance — #{bundle_label(dir)}"
+        @out.puts "OKF v#{OKF::SPEC_VERSION} conformance — #{bundle_label(dir)}"
         @out.puts "  concepts: #{counts[:concepts]}   index.md: #{counts[:indexes]}   log.md: #{counts[:logs]}"
         result.errors.each { |e| @out.puts "  #{paint("✗ ERROR", 31)}  #{e[:path]}: #{e[:message]}" }
         result.warnings.each { |w| @out.puts "  #{paint("! warn", 33)}  #{w[:path]}: #{w[:message]}" }

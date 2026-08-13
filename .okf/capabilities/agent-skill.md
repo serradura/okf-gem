@@ -4,7 +4,16 @@ title: Companion agent skill (skill)
 description: A SKILL.md plus references and templates, shipped inside the gem, that teaches an agent to author OKF.
 resource: okf/lib/okf/skill.rb
 tags: [agent, install]
-timestamp: 2026-07-22T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-22T12:00:00Z
+sources:
+  - title: okf/lib/okf/skill.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill.rb
+  - title: okf/lib/okf/skill/SKILL.md
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/SKILL.md
+  - title: okf/test/plugin/sync_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/plugin/sync_test.rb
 ---
 
 # Overview
@@ -85,9 +94,3 @@ where the drift test guards them, instead of in a second copy the test never
 sees. The plugin also carries a PostToolUse hook that runs `okf validate` +
 `okf lint` after every edit inside a bundle and hands the relevant findings
 back as context. Nothing under `plugin/` ships in the gem.
-
-# Citations
-
-[1] [okf/lib/okf/skill.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill.rb) — the installer.
-[2] [okf/lib/okf/skill/SKILL.md](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/SKILL.md) — the skill itself.
-[3] [okf/test/plugin/sync_test.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/plugin/sync_test.rb) — the drift check on the plugin's generated copy.

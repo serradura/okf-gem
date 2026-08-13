@@ -4,7 +4,14 @@ title: Static render (render)
 description: One self-contained HTML file with the whole graph baked in — the same page `okf server` serves, written to disk so it hosts where nothing runs (`okf render`).
 resource: okf/lib/okf/render/graph.rb
 tags: [server, graph]
-timestamp: 2026-07-23T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-23T12:00:00Z
+sources:
+  - title: okf/lib/okf/cli/render.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/render.rb
+  - title: okf/lib/okf/render/graph.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph.rb
 ---
 
 # Overview
@@ -55,10 +62,5 @@ graph and pulls bodies on demand — so the server stays the choice for a bundle
 large to ship whole, and the static file carries no compression of its own
 (whatever host serves it compresses instead). That weight buys something back:
 because every body is already in the page, the static file's
-[full-text search](graph-server.md) reaches **bodies** offline, where the live
-server — bodies still lazy — can only index their metadata.
-
-# Citations
-
-[1] [okf/lib/okf/cli/render.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/render.rb) — the `render` verb: stdout vs `-o FILE`, `--layout`/`--map`/`-t`/`-l`, and the exit-2 on an unwritable path.
-[2] [okf/lib/okf/render/graph.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph.rb) — `OKF::Render::Graph.static` and `.payload`, which bake the bundle into the template's `EMBED` payload.
+[full-text search](graph-server.md) reaches **bodies and source text** offline,
+where the live server — bodies still lazy — can only index their metadata.

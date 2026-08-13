@@ -3,7 +3,7 @@
 module OKF
   class Bundle
     class Validator
-      # The outcome of a §9 conformance check (see OKF::Bundle::Validator): hard `errors`,
+      # The outcome of a §11 conformance check (see OKF::Bundle::Validator): hard `errors`,
       # soft `warnings`, and file `counts`. Conformant iff there are no errors.
       class Result
         attr_reader :errors, :warnings, :counts

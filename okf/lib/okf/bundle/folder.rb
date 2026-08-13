@@ -119,7 +119,7 @@ module OKF
         Concept::File.new(root: @root, path: path).read
       end
 
-      # Materialize the in-memory bundle to disk (Writer validates §9 before
+      # Materialize the in-memory bundle to disk (Writer validates §11 before
       # publishing, so a malformed bundle is never written).
       def save(overwrite: false)
         Writer.call(

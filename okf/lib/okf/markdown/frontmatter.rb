@@ -2,7 +2,7 @@
 
 module OKF
   # Primitives for parsing structure out of a markdown document — the format layer
-  # (§4 frontmatter, §5 links, §8 citations) shared by Concept, Bundle, and the
+  # (§4 frontmatter, §6 links, §5.1 sources) shared by Concept, Bundle, and the
   # analyzers. Pure string-in/string-out; no disk, no domain knowledge.
   module Markdown
     module Frontmatter

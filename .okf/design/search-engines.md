@@ -4,7 +4,16 @@ title: Search engines are adapters, and the facade owns the row
 description: One facade over N retrieval engines — the scan by default, the index when a query needs it or names it — with a shared conformance suite standing in for the oracle rule that multiple engines made impossible.
 resource: okf/lib/okf/bundle/search.rb
 tags: [architecture, search, extensibility, testing]
-timestamp: 2026-07-24T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-24T12:00:00Z
+sources:
+  - title: okf/lib/okf/bundle/search.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb
+  - title: okf/test/unit/bundle/search/engine_conformance.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/unit/bundle/search/engine_conformance.rb
+  - title: okf/test/unit/bundle/search/accepted_losses_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/unit/bundle/search/accepted_losses_test.rb
 ---
 
 # Overview
@@ -143,9 +152,3 @@ This follows the same discipline as the [core/shell split](core-shell-split.md):
 a boundary is only real when a test fails on crossing it, and it is checked the
 same way [integration first](integration-first.md) checks the CLI — against what
 a caller actually gets, not what an internal returns.
-
-# Citations
-
-[1] [okf/lib/okf/bundle/search.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb) — the facade: registry, router, row, snippet, sort.
-[2] [okf/test/unit/bundle/search/engine_conformance.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/unit/bundle/search/engine_conformance.rb) — the contract every engine satisfies.
-[3] [okf/test/unit/bundle/search/accepted_losses_test.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/unit/bundle/search/accepted_losses_test.rb) — the precision the index gives up, pinned from both sides.

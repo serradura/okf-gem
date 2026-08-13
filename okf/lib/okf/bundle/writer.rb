@@ -3,7 +3,7 @@
 module OKF
   class Bundle
     # Atomically writes a bundle to disk: renders concepts to a temp directory,
-    # validates it for §9 conformance (so a malformed bundle is never published),
+    # validates it for §11 conformance (so a malformed bundle is never published),
     # then promotes it into place under a lock. The disk-writing counterpart to
     # Reader.
     class Writer
