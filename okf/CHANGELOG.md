@@ -28,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hyphenated wire literals `unverified` | `machine-confirmed` |
   `human-reviewed`), `stale_after`, and a `sources` count. `status` stays the
   raw declared value, `null` when absent. Temporal values render ISO 8601.
-- **Breaking: `Concept#citations` is removed**, subsumed by `Concept#sources`.
+- **Breaking: `Concept#citations` and `Markdown::Citations.targets` are
+  removed**, both subsumed by `Concept#sources` / `Citations.entries`.
 - **The staleness boundary is `today >= stale_after`** — a concept is stale
   **on** the day itself, per §5.5. A consumer replacing its own `<`-based
   check shifts by one day and should know it.

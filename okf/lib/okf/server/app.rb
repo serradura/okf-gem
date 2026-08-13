@@ -256,10 +256,6 @@ module OKF
       def not_found
         self.class.not_found
       end
-
-      def html_escape(str)
-        Rack::Utils.escape_html(str.to_s)
-      end
     end
   end
 end

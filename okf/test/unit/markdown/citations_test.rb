@@ -57,14 +57,11 @@ class OKF::Markdown::CitationsTest < OKF::TestCase
     assert_nil OKF::Markdown::Citations.section(body)
   end
 
-  test "targets extract the citation link targets via Links" do
+  test "entries carries in-bundle citation targets alongside external ones" do
     body = "# Citations\n\n[1] [Source](https://example.com/a)\n[2] [Ref](/tables/x.md)\n"
 
-    assert_equal [ "https://example.com/a", "/tables/x.md" ], OKF::Markdown::Citations.targets(body)
-  end
-
-  test "targets is empty when there is no Citations section" do
-    assert_empty OKF::Markdown::Citations.targets("just a body with a [link](/a.md)\n")
+    assert_equal [ "https://example.com/a", "/tables/x.md" ],
+      OKF::Markdown::Citations.entries(body).map { |entry| entry[:target] }
   end
   # ── entries: the three §13.1 item forms a v0.1 list may use ──
 

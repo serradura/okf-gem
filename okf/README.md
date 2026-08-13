@@ -67,7 +67,7 @@ okf validate  <dir|@slug>                        # is this legal OKF?
 okf lint      <dir|@slug> [--fail-on warn]       # is it navigable, complete, fresh?
 okf loose     <dir|@slug>                        # concepts with no links in or out
 okf search    <dir|@slug…|@all> <term…>          # ranked retrieval; @all spans every bundle
-okf index     <dir|@slug> [--dir D] [--depth N]  # the §6 map: index bodies, rollups, listings
+okf index     <dir|@slug> [--dir D] [--depth N]  # the §8 map: index bodies, rollups, listings
 okf dirs      <dir|@slug> [--dir D] [--depth N]  # the shape: every directory and what it holds
 okf catalog | files | tags | types | stats  <dir|@slug>   # the browser views, on the CLI
 okf graph     <dir|@slug> [--hubs] [--traffic]   # the raw graph; --hubs ranks concepts, --traffic dirs

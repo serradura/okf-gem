@@ -45,14 +45,9 @@ module OKF
         lines.join unless level.nil?
       end
 
-      # Citation link targets within the `# Citations` section (empty when absent).
-      def targets(body)
-        Links.extract(section(body).to_s)
-      end
-
       # The citation entries as { text:, target: } pairs, in document order —
-      # what Concept#sources lifts into { "title", "resource" } mappings, where
-      # #targets gives only the URL. Three item forms (§13.1): labelled links
+      # what Concept#sources lifts into { "title", "resource" } mappings. Three
+      # item forms (§13.1): labelled links
       # carry their text; bare-URL and autolink items have none; a
       # reference-style citation still yields its target through Links.extract.
       def entries(body)
