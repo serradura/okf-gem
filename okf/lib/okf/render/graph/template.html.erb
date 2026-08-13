@@ -246,7 +246,27 @@
   background:var(--line-2);border:1px solid var(--line);border-radius:7px;padding:3px 9px}
  .badge .dot{width:8px;height:8px;border-radius:50%}
  .status{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:5px;color:var(--muted);background:var(--line-2)}
+ /* §5.4's three, plus `shipped` — which this project used before the spec named
+    a vocabulary, and which stays styled because §4.1 lets a producer use any
+    value and requires a consumer to tolerate it. `stable` gets no rule because
+    it is never rendered: an absent status defaults to it, so badging it would
+    put a meaningless chip on every concept of every bundle. */
+ .status.draft{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
+ .status.deprecated{color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 12%,transparent)}
  .status.shipped{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+ /* §5.3's trust tiers — the third visual channel, after type colour and status.
+    Deliberately quieter than status: how much to believe a concept is a question
+    a reader asks *of* the card, where a deprecation is the card shouting. */
+ .tier{font-size:10.5px;font-weight:600;letter-spacing:.02em;padding:2px 7px;border-radius:5px;
+  color:var(--muted);background:var(--line-2);border:1px solid var(--line)}
+ .tier.machine-confirmed{color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:transparent}
+ .tier.human-reviewed{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent);border-color:transparent}
+ /* Past the expiry its own author declared (§5.5), judged against the viewer's
+    clock. Warn-coloured wherever it appears — a card's meta row, the trust line. */
+ .stale{color:var(--warn)}
+ /* The inspector's trust line: the chips under a concept's description. */
+ .meta-trust{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+ .meta-trust .gen{font-size:11.5px;color:var(--faint)}
  .tag{background:var(--line-2);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--muted)}
 
  /* ── graph view ── */
@@ -1034,6 +1054,12 @@
       <div class="fgroup"><h4>Types</h4><div class="fchips" id="cat-ftypes"></div></div>
       <div class="fgroup"><h4>Dirs</h4><div class="fchips" id="cat-fdirs"></div></div>
       <div class="fgroup"><h4>Tags</h4><div class="fchips" id="cat-ftags"></div></div>
+      <!-- §5.3/§5.4. Counted off the catalog rather than a fixed vocabulary,
+           and hidden entirely when the bundle says nothing about either — a
+           v0.1 bundle's whole trust posture is not worth a row of chips
+           reading "unverified 9". -->
+      <div class="fgroup" id="cat-fstatus-group" hidden><h4>Status</h4><div class="fchips" id="cat-fstatus"></div></div>
+      <div class="fgroup" id="cat-ftrust-group" hidden><h4>Trust</h4><div class="fchips" id="cat-ftrust"></div></div>
      </div>
     </aside>
    </section>
@@ -1224,18 +1250,22 @@ const SEARCH_ENDPOINT=<%= search_endpoint_json %>;
    cannot use — and the panel reads that null to explain itself. */
 const MANAGE_ROOT=<%= manage_root_json %>, MANAGE_TOKEN=<%= manage_token_json %>;
 /* null when served live (`okf server`) — the getters below fetch the endpoints
-   above. `okf render` injects a payload {catalog,index,logs,bodies}, and every
-   getter resolves from it instead (the /node/meta fragment derived from the
-   catalog), so one file needs no server and the endpoint consts above go inert. */
+   above. `okf render` injects a payload {catalog,index,logs,bodies,sources}, and every
+   getter resolves from it instead (the /node/meta trust line composed from the
+   catalog row), so one file needs no server and the endpoint consts above go inert. */
 const EMBED=<%= embed_json %>;
 /* Full-text search state (MiniSearch, lazy — built on first search). One ranked
    index behind the search box for the graph, catalog and files views. It indexes
-   title/id/type/tags/description in every mode, plus each concept body wherever
-   the page already holds it: `okf render` bakes every body in, so a static file
-   searches bodies offline; the live server keeps bodies lazy, so its index stays
-   metadata-only until a backend body index arrives. Same 7.2.0 build and config
-   as the Ruby port, so a Ruby-built index and this one rank identically. */
-const FT_FIELDS=['title','id','type','tags','description'].concat(EMBED?['body']:[]);
+   title/id/type/tags/description in every mode, plus each concept body and its
+   source text wherever the page already holds them: `okf render` bakes both in,
+   so a static file searches them offline; the live server keeps bodies lazy and
+   carries only a source *count* on a catalog row, so its index stays
+   metadata-only until a backend body index arrives. The asymmetry is
+   pre-existing and deliberate — spending body-sized bytes on every /catalog
+   fetch to serve one view is the trade the payload already refuses for `body`
+   (see .okf/capabilities/search.md). Same 7.2.0 build and config as the Ruby
+   port, so a Ruby-built index and this one rank identically. */
+const FT_FIELDS=['title','id','type','tags','description'].concat(EMBED?['body','sources']:[]);
 let _MiniSearch=null,ftIndex=null,ftBuilding=null;
 const descOf={};
 const MIN=<%= OKF::Render::Graph::MIN_SIZE %>, MAX=<%= OKF::Render::Graph::MAX_SIZE %>;
@@ -1541,19 +1571,63 @@ function showDir(dir){getIndex().then(dirs=>{const d=dirs.find(x=>x.dir===dir);i
 function showLog(path){LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.path===path);if(!l)return;
  const opened=openPanel();sideBody.scrollTop=0;
  shownId=path.replace(/\.md$/,'');
- sideBody.innerHTML=`<span class="type">update log · §7</span><h2 class="title">${esc(path)}</h2><div class="body" id="dir-body"></div>`;
+ sideBody.innerHTML=`<span class="type">update log · §9</span><h2 class="title">${esc(path)}</h2><div class="body" id="dir-body"></div>`;
  renderMarkdown(document.getElementById('dir-body'),l.content||'');
  if(opened)requestAnimationFrame(()=>cy.resize());});}
+/* ── §5 trust: one composition, both modes ──
+   The catalog row carries generated_at/generated_by, the raw `generated`
+   boolean, the derived `trust` tier (hyphenated, the wire spelling), the
+   declared `status` and `stale_after` — so every view can say how much to
+   believe a concept. Three rules, shared by the cards and the trust line:
+
+   · status  — only a NON-default one. §5.4 defaults an absent status to
+               `stable`, so badging that would chip every concept everywhere.
+   · trust   — suppressed when unverified AND `generated` is undeclared: on a
+               well-curated v0.1 bundle every concept has a lifted timestamp,
+               so keying off generated_at would label every card "unverified".
+               The raw boolean is the one predicate that gets this right.
+   · expired — computed HERE, against the viewer's own today. A baked verdict
+               is wrong from the next midnight and a static render lives for
+               months; the page compares dates the way the CLI does. */
+const TODAY=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const isExpired=sa=>!!sa&&/^\d{4}-\d{2}-\d{2}$/.test(sa)&&TODAY()>=sa;
+const statusChip=c=>(c.status&&c.status!=='stable')?`<span class="status ${esc(c.status)}">${esc(c.status)}</span>`:'';
+const trustChip=c=>(c.trust&&!(c.trust==='unverified'&&!c.generated))?`<span class="tier ${esc(c.trust)}">${esc(c.trust)}</span>`:'';
+/* No `by` means v0.1 lifted this from a `timestamp`, which recorded no actor.
+   Printing one would be the false provenance claim §5 exists to prevent. */
+const genChip=c=>c.generated_at?`<span class="mini">⌂ ${esc(c.generated_at)}${c.generated_by?' by '+esc(c.generated_by):''}</span>`:'';
 /* Two per-concept reads shared by the inspector and the files preview: the raw
-   markdown body (rendered client-side) and the description fragment. Live they
-   hit /node and /node/meta; under EMBED the body resolves from the baked payload
-   and the meta fragment is derived from the baked catalog — escaped here the same
-   way /node/meta escapes it — so the description lives in exactly one place.
-   Never memoized in server mode, so on-disk edits keep reflecting. */
-const EMBED_DESC=EMBED?Object.fromEntries((EMBED.catalog||[]).map(c=>[c.id,c.description||''])):null;
-const metaFragment=d=>(d==null||String(d).trim()==='')?'<span class="empty">no description</span>':esc(d);
+   markdown body (rendered client-side) and the meta object {description,trust}.
+   Live they hit /node and /node/meta (JSON); under EMBED both resolve from the
+   baked payload — the trust fields read off the same catalog row the cards use,
+   so the two modes compose one line from one ruleset. Never memoized in server
+   mode, so on-disk edits keep reflecting. */
+const EMBED_ROW=EMBED?Object.fromEntries((EMBED.catalog||[]).map(c=>[c.id,c])):null;
+const rowTrust=c=>{if(!c)return null;const t={};
+ if(c.trust&&!(c.trust==='unverified'&&!c.generated))t.tier=c.trust;
+ if(c.generated_by)t.generated_by=c.generated_by;
+ if(c.generated_at)t.generated_at=c.generated_at;
+ if(c.status)t.status=c.status;
+ if(c.stale_after)t.stale_after=c.stale_after;
+ return Object.keys(t).length?t:null;};
+const metaFromRow=c=>{const m={description:(c&&c.description)||''};const t=rowTrust(c);if(t)m.trust=t;return m;};
+/* The one place meta reaches the DOM. Every producer-supplied string lands via
+   textContent — never innerHTML — so no render path opens outside the
+   sanitizer the bodies already pass through. */
+function renderMeta(el,meta){el.textContent='';
+ const desc=String((meta&&meta.description)||'').trim();
+ if(desc)el.appendChild(document.createTextNode(desc));
+ else{const e=document.createElement('span');e.className='empty';e.textContent='no description';el.appendChild(e);}
+ const t=meta&&meta.trust;if(!t)return;
+ const line=document.createElement('span');line.className='meta-trust';
+ const chip=(cls,text)=>{const s=document.createElement('span');s.className=cls;s.textContent=text;line.appendChild(s);};
+ if(t.tier)chip('tier '+t.tier,t.tier);
+ if(t.generated_at)chip('gen',t.generated_at+(t.generated_by?' by '+t.generated_by:''));
+ if(t.status&&t.status!=='stable')chip('status '+t.status,t.status);
+ if(isExpired(t.stale_after))chip('stale','expired '+t.stale_after);
+ if(line.childNodes.length)el.appendChild(line);}
 function getNodeBody(id){return EMBED?Promise.resolve(EMBED.bodies[id]||''):fetch(NODE_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
-function getNodeMeta(id){return EMBED?Promise.resolve(metaFragment(EMBED_DESC[id])):fetch(META_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
+function getNodeMeta(id){return EMBED?Promise.resolve(metaFromRow(EMBED_ROW[id])):fetch(META_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.json():{});}
 function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Untyped';const c=color[ty]||'#64748b';
  shownId=id;const opened=openPanel();sideBody.scrollTop=0;
  sideBody.innerHTML=`<button type="button" class="type facet" data-focus-type="${esc(ty)}" title="Show only ${esc(ty)} in the graph"><span class="dot" style="background:${c}"></span>${esc(ty)}</button>
@@ -1571,7 +1645,7 @@ function show(id){const n=byId[id];if(!n)return false;const ty=typeOf[id]||'Unty
  sideBody.querySelectorAll('[data-focus-tag]').forEach(b=>b.onclick=()=>{
   const t=b.getAttribute('data-focus-tag');tagFocused(t)?clearGraphFilter():focusGraphTag(t);});
  syncFacets();
- getNodeMeta(id).then(h=>{const d=document.getElementById('desc');if(d){d.innerHTML=h||'<span class="empty">no description</span>';d.classList.remove('loading');}}).catch(()=>{});
+ getNodeMeta(id).then(m=>{const d=document.getElementById('desc');if(d){renderMeta(d,m);d.classList.remove('loading');}}).catch(()=>{});
  const bodyEl=sideBody.querySelector('#body');
  getNodeBody(id).then(md=>{if(bodyEl.isConnected)renderMarkdown(bodyEl,md);}).catch(()=>{});
  return opened;}
@@ -2209,8 +2283,8 @@ document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>{
 function loadMiniSearch(){return _MiniSearch||(_MiniSearch=loadScript('https://cdn.jsdelivr.net/npm/minisearch@7.2.0/dist/umd/index.js').then(()=>window.MiniSearch));}
 function buildFtIndex(){return ftIndex?Promise.resolve(ftIndex):(ftBuilding||(ftBuilding=Promise.all([loadMiniSearch(),getCatalog()]).then(([MiniSearch,list])=>{
  const idx=new MiniSearch({idField:'id',fields:FT_FIELDS,storeFields:['id'],
-  extractField:(doc,f)=>f==='tags'?(doc.tags||[]).join(' '):f==='body'?((EMBED&&EMBED.bodies[doc.id])||''):(doc[f]==null?'':String(doc[f])),
-  searchOptions:{prefix:true,fuzzy:0.2,combineWith:'AND',boost:{title:5,id:4,tags:3,type:2,description:2,body:1}}});
+  extractField:(doc,f)=>f==='tags'?(doc.tags||[]).join(' '):f==='body'?((EMBED&&EMBED.bodies[doc.id])||''):f==='sources'?((EMBED&&EMBED.sources[doc.id])||''):(doc[f]==null?'':String(doc[f])),
+  searchOptions:{prefix:true,fuzzy:0.2,combineWith:'AND',boost:{title:5,id:4,tags:3,type:2,description:2,sources:1,body:1}}});
  idx.addAll(list);ftIndex=idx;
  if((view==='graph'||view==='catalog'||view==='files')&&(q[view]||'').trim())applySearch();
  return idx;}).catch(()=>{ftBuilding=null;return null;})));}
@@ -2242,11 +2316,27 @@ let CATALOG=null;
    otherwise) and fills descOf on the way, so even the pre-index substring
    fallback can match a graph node by its leaf description. */
 function getCatalog(){return CATALOG||(CATALOG=(EMBED?Promise.resolve(EMBED.catalog):fetch(CATALOG_ENDPOINT).then(r=>r.json()).then(d=>d.concepts)).then(list=>{list.forEach(c=>{descOf[c.id]=c.description||'';});return list;}));}
-const catActiveTypes=new Set(), catActiveDirs=new Set(), catActiveTags=new Set();
+const catActiveTypes=new Set(), catActiveDirs=new Set(), catActiveTags=new Set(),
+ catActiveStatus=new Set(), catActiveTrust=new Set();
+/* The two §5 facets, counted off the catalog — it is the only payload that
+   knows them, so they cannot be built at boot like types and tags. Status
+   counts the EFFECTIVE value (absent reads stable, the same rule --status
+   narrows by); trust counts the derived tier. A facet with nothing to say
+   stays hidden: the status group needs at least one DECLARED status, and the
+   trust group at least one verified concept — otherwise every v0.1 bundle
+   would wear a row of chips saying only "unverified". */
+let catStatusCounts={}, catTrustCounts={}, catShowStatus=false, catShowTrust=false;
+function catFacets(list){catStatusCounts={};catTrustCounts={};
+ list.forEach(c=>{const s=c.status||'stable';catStatusCounts[s]=(catStatusCounts[s]||0)+1;
+  if(c.trust)catTrustCounts[c.trust]=(catTrustCounts[c.trust]||0)+1;});
+ catShowStatus=list.some(c=>c.status);
+ catShowTrust=Object.keys(catTrustCounts).some(t=>t!=='unverified');}
+const facetByCount=counts=>Object.keys(counts).sort((a,b)=>counts[b]-counts[a]||a.localeCompare(b));
+const facetItems=counts=>facetByCount(counts).map(v=>({v:v,n:counts[v]}));
 const catByCount=types.slice().sort((a,b)=>(TYPES[b]||[]).length-(TYPES[a]||[]).length);
 const catChip=t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} <span class="c">${(TYPES[t]||[]).length}</span></span>`;
 function syncCatChips(){document.querySelectorAll('#cat-types .chip').forEach(c=>c.classList.toggle('on',catActiveTypes.has(c.getAttribute('data-t'))));
- const n=catActiveTypes.size+catActiveDirs.size+catActiveTags.size;
+ const n=catActiveTypes.size+catActiveDirs.size+catActiveTags.size+catActiveStatus.size+catActiveTrust.size;
  const b=document.getElementById('cat-filters-btn');b.classList.toggle('on-filter',n>0);b.querySelector('.fbadge').textContent=n;}
 function catToggle(t){toggleSet(catActiveTypes,t);renderCatFilters();renderCatalog();}
 function wireCatChips(el){el.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>catToggle(ch.getAttribute('data-t')));}
@@ -2258,6 +2348,11 @@ function renderCatFilters(){const qq=(document.getElementById('cat-filter-search
  chipRow(document.getElementById('cat-ftypes'),typeItems(catByCount.filter(match)),'data-t',t=>catActiveTypes.has(t),t=>{toggleSet(catActiveTypes,t);after();});
  chipRow(document.getElementById('cat-fdirs'),dirItems(graphDirs.filter(dirMatch(qq))),'data-dir',d=>catActiveDirs.has(d),d=>{toggleSet(catActiveDirs,d);after();});
  chipRow(document.getElementById('cat-ftags'),tagItems(qq?tagsByCount.filter(match):tagsByCount.slice(0,40)),'data-tag',t=>catActiveTags.has(t),t=>{toggleSet(catActiveTags,t);after();});
+ const sItems=facetItems(catStatusCounts).filter(o=>match(o.v)), tItems=facetItems(catTrustCounts).filter(o=>match(o.v));
+ document.getElementById('cat-fstatus-group').hidden=!(catShowStatus&&sItems.length);
+ document.getElementById('cat-ftrust-group').hidden=!(catShowTrust&&tItems.length);
+ chipRow(document.getElementById('cat-fstatus'),sItems,'data-status',s=>catActiveStatus.has(s),s=>{toggleSet(catActiveStatus,s);after();});
+ chipRow(document.getElementById('cat-ftrust'),tItems,'data-trust',t=>catActiveTrust.has(t),t=>{toggleSet(catActiveTrust,t);after();});
  syncCatChips();}
 function initCatalog(){inited.catalog=true;
  // Only the five most common types get inline chips; everything else — types,
@@ -2268,13 +2363,18 @@ function initCatalog(){inited.catalog=true;
  const cf=document.getElementById('cat-filters');
  document.getElementById('cat-filters-btn').onclick=()=>cf.classList.toggle('open');
  document.getElementById('cat-filters-close').onclick=()=>cf.classList.remove('open');
- document.getElementById('cat-filters-reset').onclick=()=>{catActiveTypes.clear();catActiveDirs.clear();catActiveTags.clear();renderCatFilters();renderCatalog();};
+ document.getElementById('cat-filters-reset').onclick=()=>{catActiveTypes.clear();catActiveDirs.clear();catActiveTags.clear();
+  catActiveStatus.clear();catActiveTrust.clear();renderCatFilters();renderCatalog();};
  document.getElementById('cat-filter-search').oninput=renderCatFilters;
- getCatalog().then(renderCatalog);}
+ // The §5 facets only exist once the catalog is in, so the panel renders
+ // twice: the chips boot knows immediately, then the two that had to wait.
+ getCatalog().then(list=>{catFacets(list);renderCatFilters();renderCatalog();});}
 function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.catalog||'').toLowerCase();const ids=ftMatch(q.catalog);
  const rows=list.filter(c=>{if(catActiveTypes.size&&!catActiveTypes.has(c.type))return false;
   if(catActiveDirs.size&&![...catActiveDirs].some(d=>underDir(dirOf(c.id),d)))return false;
   if(catActiveTags.size&&!c.tags.some(t=>catActiveTags.has(t)))return false;
+  if(catActiveStatus.size&&!catActiveStatus.has(c.status||'stable'))return false;
+  if(catActiveTrust.size&&!catActiveTrust.has(c.trust))return false;
   if(ids)return ids.has(c.id);
   if(s){const hay=(c.title+' '+c.description+' '+c.type+' '+c.tags.join(' ')+' '+c.id).toLowerCase();if(!hay.includes(s))return false;}return true;});
  document.getElementById('cat-cnt').textContent=rows.length+' of '+list.length+' concepts';
@@ -2284,14 +2384,16 @@ function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.
  const g=document.getElementById('cat-grid');
  if(!rows.length){g.innerHTML='<div class="none">No concepts match — try clearing the filters.</div>';return;}
  g.innerHTML=rows.map(c=>{const cc=color[c.type]||'#64748b';
-  const st=c.status?`<span class="status ${c.status==='shipped'?'shipped':''}">${esc(c.status)}</span>`:'';
+  const st=statusChip(c);
+  const tr=trustChip(c);
   const tags=c.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
-  const ts=c.timestamp?`<span class="mini">⌂ ${esc(c.timestamp)}</span>`:'';
+  const ts=genChip(c);
+  const sa=isExpired(c.stale_after)?`<span class="mini stale">⚠ expired ${esc(c.stale_after)}</span>`:'';
   const lk=(c.links_out+c.links_in)?`<span class="mini links">↳ ${c.links_out+c.links_in} links</span>`:'';
   return `<article class="card" tabindex="0" data-id="${esc(c.id)}">
-   <div class="r1"><span class="badge"><span class="dot" style="background:${cc}"></span>${esc(c.type)}</span>${st}<span class="area">${esc(c.dir)}/</span></div>
+   <div class="r1"><span class="badge"><span class="dot" style="background:${cc}"></span>${esc(c.type)}</span>${st}${tr}<span class="area">${esc(c.dir)}/</span></div>
    <h3>${esc(c.title)}</h3><p class="cd">${esc(c.description)||'<span class="empty">No description.</span>'}</p>
-   <div class="cm">${tags}${ts}${lk}</div></article>`;}).join('');
+   <div class="cm">${tags}${ts}${sa}${lk}</div></article>`;}).join('');
  g.querySelectorAll('.card').forEach(el=>{const id=el.dataset.id;el.onclick=()=>goToGraph(id);
   el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();goToGraph(id);}};});});}
 
@@ -2502,11 +2604,11 @@ function openReserved(kind,path){fileSel=path;
  const body=document.getElementById('fp-body');body.innerHTML='<p class="loading">loading…</p>';
  const done=txt=>{const wrap=document.createElement('div');wrap.className='body';renderMarkdown(wrap,txt);body.innerHTML='';body.appendChild(wrap);};
  if(kind==='index')getIndex().then(dirs=>{const d=dirs.find(x=>x.dir===dirOfPath(path));
-  type.textContent=d&&d.synthesized?'directory index · synthesized':'directory index · §6';
+  type.textContent=d&&d.synthesized?'directory index · synthesized':'directory index · §8';
   if(d&&d.synthesized){body.innerHTML='<div class="body">'+listingHtml(d.listing)+'</div>';
    body.querySelectorAll('[data-go]').forEach(x=>x.onclick=()=>openFile(x.getAttribute('data-go')));}
   else done((d&&d.body)||'');});
- else{type.textContent='update log · §7';
+ else{type.textContent='update log · §9';
   LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.path===path);done((l&&l.content)||'');});}}
 
 /* ── tags ── */
@@ -3215,8 +3317,8 @@ function bridgeReport(v,shown,total){if(bridge)bridge.report(v,shown,total);}
    '<p class="pv-meta">'+out+' link'+(out===1?'':'s')+' out · '+inn+' in</p>';
   bodyIn.innerHTML=relList('Links to',outL[id]||[])+relList('Linked from',inL[id]||[])+'<div class="body" id="pv-md"></div>';
   bodyIn.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
-  getNodeMeta(id).then(h=>{const d=document.getElementById('pv-desc');
-   if(d&&shown===id){d.innerHTML=h||'<span class="empty">no description</span>';d.classList.remove('loading');}}).catch(()=>{});
+  getNodeMeta(id).then(m=>{const d=document.getElementById('pv-desc');
+   if(d&&shown===id){renderMeta(d,m);d.classList.remove('loading');}}).catch(()=>{});
   if(snap!=='peek')loadBody();
   return true;}
  /* lazy: the body is markdown nobody can see at peek, and on a phone peek is the
@@ -3245,7 +3347,7 @@ function bridgeReport(v,shown,total){if(bridge)bridge.report(v,shown,total);}
   bodyIn.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
   raise();}).catch(function(){});}
  function fillLog(path){LOGS=null;getLogs().then(function(logs){const l=logs.find(x=>x.path===path);if(!l)return;
-  renderMarkdown(fillHead('update log · §7',path,'the §7 history'),l.content||'');
+  renderMarkdown(fillHead('update log · §9',path,'the §9 history'),l.content||'');
   raise();}).catch(function(){});}
 
  /* ---- the camera -------------------------------------------------------- */

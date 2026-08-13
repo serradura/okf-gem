@@ -1,5 +1,5 @@
 import { hostilePage, HOSTILE_PORT } from "../paths.js";
-import { test as base, expect, bootGraph } from "../helpers.js";
+import { test as base, expect, bootGraph, clickNode } from "../helpers.js";
 
 // The two XSS defenses AGENTS.md calls load-bearing, asserted for the first
 // time. Until this file existed, the only checks were that the string
@@ -120,5 +120,19 @@ test.describe("inlined data escaping", () => {
     // through a text path and not an HTML one.
     await expect(hostile.locator("#side-body .title")).toContainText("</script>");
     expect(await firedFlags(hostile, FLAGS)).toEqual([]);
+  });
+
+  test("the trust line lands producer strings as text, never markup", async ({ hostile }) => {
+    // generated.by and verified[].by are producer strings reaching a panel the
+    // sanitizer never sees — they land via textContent, so hostile markup
+    // renders as visible text and no element, handler, or flag comes to life.
+    await clickNode(hostile, "attributes");
+
+    const line = hostile.locator("#side .meta-trust");
+    await expect(line).toBeVisible();
+    await expect(line.locator(".gen")).toContainText("<img src=x");
+    expect(await line.locator("img, b").count()).toBe(0);
+    const flags = await hostile.evaluate(() => [ Boolean(window.__xssTrustGen), Boolean(window.__xssTrustBy) ]);
+    expect(flags).toEqual([ false, false ]);
   });
 });

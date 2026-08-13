@@ -33,7 +33,7 @@ module ByDir
     test "search covers every field the browser page's search reads, plus body" do
       # The server page's catalog haystack is title+description+type+tags+id; the
       # CLI must never search less than the browser (parity), and adds body.
-      assert_equal %w[title id tags type description body], OKF::Bundle::Search::FIELDS
+      assert_equal %w[title id tags type description sources body], OKF::Bundle::Search::FIELDS
     end
 
     test "search --pretty implies --json and indents it" do
@@ -188,7 +188,7 @@ module ByDir
 
       bogus = okf("search", fixture("conformant"), "orders", "--in", "bogus")
       assert_equal 2, bogus.status
-      assert_match(/unknown field\(s\): bogus \(searchable: title, id, tags, type, description, body\)/, bogus.err)
+      assert_match(/unknown field\(s\): bogus \(searchable: title, id, tags, type, description, sources, body\)/, bogus.err)
     end
 
     test "search matches whole tokens, not substrings — a mid-word fragment finds nothing" do
@@ -338,6 +338,69 @@ module ByDir
         invoice upserts instead of double-charging.
       MD
       dir
+    end
+    test "--status and --trust narrow the matches, in both formats" do
+      human = okf("search", fixture("v0_2"), "orders", "--trust", "human-reviewed")
+      assert_equal 0, human.status
+      assert_match(/tables\/orders/, human.out)
+      refute_match(/legacy-orders/, human.out)
+
+      machine = json(okf("search", fixture("v0_2"), "customer", "--status", "draft", "--json"))
+      assert_equal [ "tables/customers" ], machine.fetch("matches").map { |row| row["id"] }
+    end
+
+    test "trust is the catalog's column, not a match's — --fields trust exits 2" do
+      result = okf("search", fixture("v0_2"), "orders", "--fields", "trust")
+
+      assert_equal 2, result.status
+      assert_match(/unknown field/, result.err)
+    end
+    # ── sources joined the corpus (a regression fix, not a feature) ─────────
+    #
+    # In v0.1 the citation text lived in the body and was searchable at weight 1.
+    # After a bundle migrates it lives in frontmatter, so a migrated bundle would
+    # silently lose recall unless `sources` is indexed — the same words, the same
+    # weight, wherever the spelling put them.
+
+    test "a term that appears only in a source title is findable, in both engines" do
+      scan = json(okf("search", fixture("v0_2"), "brief", "--json"))["matches"]
+      index = json(okf("search", fixture("v0_2"), "brief", "--engine", "index", "--json"))["matches"]
+
+      assert_equal %w[metrics/orders-daily], scan.map { |row| row["id"] }
+      assert_equal scan.map { |row| row["id"] }.sort, index.map { |row| row["id"] }.sort,
+        "the engines agree on the match set, modulo ranking order"
+      assert_includes scan.first["matched"], "sources"
+    end
+
+    test "the hit snippets from the source text, in both engines" do
+      scan = json(okf("search", fixture("v0_2"), "brief", "--json"))["matches"].first
+      index = json(okf("search", fixture("v0_2"), "brief", "--engine", "index", "--json"))["matches"].first
+
+      refute_empty scan["snippet"]
+      assert_match(/operations dashboard brief/i, scan["snippet"])
+      refute_empty index["snippet"]
+      assert_match(/operations dashboard brief/i, index["snippet"])
+    end
+
+    test "sources rank at the weight the body gave them in v0.1" do
+      row = json(okf("search", fixture("v0_2"), "brief", "--json"))["matches"].first
+
+      assert_equal weight_sum(row["matched"]), row["score"]
+      assert_equal 1, OKF::Bundle::Search::WEIGHTS["sources"],
+        "any other weight would rerank a bundle purely for having migrated"
+    end
+
+    test "both spellings find the same citation text, and the snippet moves with it" do
+      # The twins carry the same provenance — one as a `# Citations` body list,
+      # one as frontmatter. The match must not be lost to migration, and the
+      # snippet moves from body text to source text rather than vanishing.
+      old = json(okf("search", fixture("twins/v0_1"), "runbook", "--json"))["matches"]
+      migrated = json(okf("search", fixture("twins/v0_2"), "runbook", "--json"))["matches"]
+
+      assert_equal %w[tables/orders], old.map { |row| row["id"] }
+      assert_equal old.map { |row| row["id"] }, migrated.map { |row| row["id"] }
+      refute_empty migrated.first["snippet"], "the snippet is a move, not a loss"
+      assert_match(/ingestion runbook/i, migrated.first["snippet"])
     end
   end
 end

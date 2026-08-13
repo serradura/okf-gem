@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { gemRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, HUB_PORT,
+import { gemRoot, bundleDir, staticPage, PORT, hostileDir, HOSTILE_PORT, v02Dir, V02_PORT, HUB_PORT,
   panelHome, PANEL_PORT, RO_PORT, treeDir, TREE_PORT, manytagsDir, MANYTAGS_PORT,
   deeppathDir, DEEPPATH_PORT, biggraphDir, BIGGRAPH_PORT, densegraphDir, DENSEGRAPH_PORT } from "./paths.js";
 
@@ -96,6 +96,7 @@ export default defineConfig({
   webServer: [
     serve(bundleDir, PORT),
     serve(hostileDir, HOSTILE_PORT),
+    serve(v02Dir, V02_PORT),
     serve(treeDir, TREE_PORT),
     serve(manytagsDir, MANYTAGS_PORT),
     serve(deeppathDir, DEEPPATH_PORT),

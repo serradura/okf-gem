@@ -37,6 +37,16 @@ export const hostileDir = path.join(here, "fixtures", "hostile");
 export const hostilePage = path.join(here, ".tmp", "hostile.html");
 export const HOSTILE_PORT = PORT + 1;
 
+// The v0.2 bundle: every §5 family the page can render, which the main fixture
+// cannot carry because it is written in v0.1 and every count assertion in
+// boot.spec.js and filters.spec.js is written against its nine concepts. It gets
+// its own server and static page for the same reason `hostile` does — the trust
+// chips, the trust line and the two §5 filter groups are a different thing to
+// read, and they only exist where a bundle declares them.
+export const v02Dir = path.join(here, "fixtures", "v02");
+export const v02Page = path.join(here, ".tmp", "v02.html");
+export const V02_PORT = PORT + 11;
+
 // The hub serves the bundle and hostile fixtures together (two dirs → hub mode),
 // so /b/bundle/ carries a sibling and the palette's bundle switcher exists.
 // Reached by URL directly, so it needs no Playwright project of its own.

@@ -159,6 +159,13 @@ module OKF
       :machine_confirmed
     end
 
+    # The wire spelling of #trust_tier — the hyphenated string every surface
+    # prints (rows, lint's trust stat, the page), pinned so a consumer comparing
+    # against a literal knows which form arrives.
+    def trust
+      trust_tier.to_s.tr("_", "-")
+    end
+
     # ── §5.1 provenance: sources, with §13.1's Citations fallback ──
 
     # The materials this concept derives from, as a list of mappings each

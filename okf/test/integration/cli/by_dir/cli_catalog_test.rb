@@ -36,7 +36,9 @@ module ByDir
       assert_equal 3, data.fetch("count")
       assert_equal 3, data.fetch("concepts").size
       keys = data.fetch("concepts").first.keys.sort
-      assert_equal %w[backlog_ref description dir id links_in links_out status tags timestamp title top_dir type], keys
+      assert_equal %w[backlog_ref description dir generated generated_at generated_by id links_in links_out
+                      sources stale_after status tags title top_dir trust type],
+        keys
       assert_equal "datasets/sales", data.fetch("concepts").first.fetch("id")
       assert_equal %w[sales orders], data.fetch("concepts").last.fetch("tags")
     end
@@ -74,12 +76,19 @@ module ByDir
     end
 
     test "--except drops the named properties (and implies --json)" do
-      data = json(okf("catalog", fixture("conformant"), "--except", "tags,timestamp"))
+      data = json(okf("catalog", fixture("conformant"), "--except", "tags,generated_at"))
       row = data.fetch("concepts").first
 
       refute row.key?("tags")
-      refute row.key?("timestamp")
+      refute row.key?("generated_at")
       assert_equal "datasets/sales", row.fetch("id")
+    end
+
+    test "the retired timestamp field is a loud usage error, not a silent empty column" do
+      result = okf("catalog", fixture("conformant"), "--fields", "timestamp")
+
+      assert_equal 2, result.status
+      assert_match(/unknown field/, result.err)
     end
 
     test "field names match case-insensitively" do
@@ -278,6 +287,100 @@ module ByDir
       assert_match(/invalid option: --nope/, bad_flag.err)
 
       assert_equal 2, okf("catalog").status
+    end
+    # ── the v0.2 columns and filters (WI-4) ──────────────────────────────────
+
+    test "the trust column carries the three wire literals verbatim" do
+      rows = json(okf("catalog", fixture("v0_2"), "--json")).fetch("concepts")
+      trust_of = ->(id) { rows.find { |row| row["id"] == id }.fetch("trust") }
+
+      assert_equal "human-reviewed", trust_of.call("tables/orders")
+      assert_equal "machine-confirmed", trust_of.call("tables/customers")
+      assert_equal "unverified", trust_of.call("metrics/revenue")
+    end
+
+    test "a v0.1 concept with only a timestamp reads generated:false with a non-null generated_at" do
+      # The boolean distinguishing hand-written-no-provenance from
+      # v0.1-with-timestamp is the point of the column.
+      rows = json(okf("catalog", fixture("twins/v0_1"), "--json")).fetch("concepts")
+      row = rows.find { |entry| entry["id"] == "tables/orders" }
+
+      assert_equal false, row.fetch("generated")
+      assert_equal "2026-05-28", row.fetch("generated_at")
+      assert_nil row.fetch("generated_by")
+    end
+
+    test "a declared generated reads generated:true with its actor" do
+      rows = json(okf("catalog", fixture("v0_2"), "--json")).fetch("concepts")
+      row = rows.find { |entry| entry["id"] == "tables/orders" }
+
+      assert_equal true, row.fetch("generated")
+      assert_equal "human:maintainer", row.fetch("generated_by")
+      assert_equal 2, row.fetch("sources")
+    end
+
+    test "temporal values render ISO 8601 — a Psych Time and a Psych Date alike" do
+      rows = json(okf("catalog", fixture("v0_2"), "--json")).fetch("concepts")
+      orders = rows.find { |entry| entry["id"] == "tables/orders" }
+      legacy = rows.find { |entry| entry["id"] == "tables/legacy-orders" }
+
+      assert_equal "2026-05-28T09:15:00Z", orders.fetch("generated_at"),
+        "an unquoted at: is a Psych Time whose default to_s is not ISO 8601"
+      assert_equal "2099-12-31", legacy.fetch("stale_after"),
+        "an unquoted stale_after: is a Psych Date and renders YYYY-MM-DD"
+    end
+
+    test "status stays the raw declared value, and --status matches the effective one" do
+      rows = json(okf("catalog", fixture("twins/v0_2"), "--json")).fetch("concepts")
+      assert(rows.all? { |row| row.fetch("status").nil? },
+        "no twin declares a status; defaulting the row would fabricate frontmatter")
+
+      matched = json(okf("catalog", fixture("twins/v0_2"), "--status", "stable", "--json"))
+      assert_equal rows.size, matched.fetch("count"), "absent reads as stable for the filter (§5.4)"
+    end
+
+    test "--status and --trust narrow the catalog, in both formats" do
+      drafts = json(okf("catalog", fixture("v0_2"), "--status", "draft", "--json"))
+      assert_equal [ "tables/customers" ], drafts.fetch("concepts").map { |row| row["id"] }
+
+      human = okf("catalog", fixture("v0_2"), "--trust", "human-reviewed")
+      assert_match(/1 of 5 concepts/, human.out)
+      assert_match(/Orders/, human.out)
+      refute_match(/Customers/, human.out)
+    end
+
+    test "--trust accepts either spelling; the row always answers hyphenated" do
+      hyphen = json(okf("catalog", fixture("v0_2"), "--trust", "machine-confirmed", "--json"))
+      underscore = json(okf("catalog", fixture("v0_2"), "--trust", "machine_confirmed", "--json"))
+
+      assert_equal hyphen.fetch("concepts"), underscore.fetch("concepts")
+      assert_equal [ "machine-confirmed" ], hyphen.fetch("concepts").map { |row| row["trust"] }.uniq
+    end
+
+    test "the filters compose with each other, a --tag, and a projection" do
+      projected = json(okf("catalog", fixture("v0_2"), "--trust", "human-reviewed", "--fields", "id,trust"))
+      assert_equal [ { "id" => "tables/orders", "trust" => "human-reviewed" } ], projected.fetch("concepts")
+
+      composed = json(okf("catalog", fixture("v0_2"), "--status", "stable", "--tag", "revenue", "--json"))
+      assert_equal [ "metrics/revenue" ], composed.fetch("concepts").map { |row| row["id"] }
+    end
+
+    test "--status bogus and --trust bogus match nothing and stay exit 0" do
+      status = okf("catalog", fixture("v0_2"), "--status", "bogus", "--json")
+      trust = okf("catalog", fixture("v0_2"), "--trust", "bogus", "--json")
+
+      assert_equal 0, status.status
+      assert_equal 0, trust.status
+      assert_equal 0, JSON.parse(status.out).fetch("count")
+      assert_equal 0, JSON.parse(trust.out).fetch("count")
+    end
+
+    test "a v0.1 bundle answers both flags: everything stable, everything unverified" do
+      rows = json(okf("catalog", fixture("twins/v0_1"), "--json")).fetch("concepts")
+
+      assert_equal rows.size, json(okf("catalog", fixture("twins/v0_1"), "--status", "stable", "--json")).fetch("count")
+      assert_equal rows.size, json(okf("catalog", fixture("twins/v0_1"), "--trust", "unverified", "--json")).fetch("count")
+      assert_equal 0, json(okf("catalog", fixture("twins/v0_1"), "--trust", "human-reviewed", "--json")).fetch("count")
     end
   end
 end

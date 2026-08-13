@@ -67,15 +67,52 @@ class OKF::Server::AppTest < OKF::TestCase
     assert_equal "Pinned body.", last_response.body.strip
   end
 
-  test "GET /node/meta returns the description, escaping HTML" do
+  test "GET /node/meta returns JSON — the description raw, for the client's textContent" do
     get "/node/meta", id: "tables/orders"
     assert_equal 200, last_response.status
-    assert_match %r{text/html}, last_response.content_type
-    assert_includes last_response.body, "the orders table"
+    assert_match %r{application/json}, last_response.content_type
+    assert_equal "the orders table", JSON.parse(last_response.body).fetch("description")
 
+    # No server-side escaping: the page lands every producer string via
+    # textContent, so the JSON carries what the document said and nothing is
+    # composed into HTML outside the client's one implementation.
     get "/node/meta", id: "pinned"
-    assert_includes last_response.body, "&lt;b&gt;"
-    refute_includes last_response.body, "<b>bold</b>"
+    assert_equal "a <b>bold</b> claim", JSON.parse(last_response.body).fetch("description")
+  end
+
+  test "GET /node/meta carries a null-stripped trust object, absent when a concept declares no §5 family" do
+    write("trusted.md", <<~MD)
+      ---
+      type: Note
+      title: T
+      description: d
+      status: draft
+      stale_after: 2026-09-23
+      generated: { by: human:x, at: 2026-06-20T22:53:05Z }
+      verified: { by: process:nightly }
+      ---
+
+      body
+    MD
+    write("legacy.md", "---\ntype: Note\ntitle: L\ndescription: d\ntimestamp: 2026-01-01\n---\n\nbody\n")
+    @app = OKF::Server::App.new(OKF::Bundle::Folder.load(@tmpdir), title: "Demo")
+
+    get "/node/meta", id: "trusted"
+    trust = JSON.parse(last_response.body).fetch("trust")
+    assert_equal(
+      { "tier" => "machine-confirmed", "generated_by" => "human:x", "generated_at" => "2026-06-20T22:53:05Z",
+        "status" => "draft", "stale_after" => "2026-09-23" }, trust
+    )
+    refute trust.key?("expired"), "expiry is the client's to compute — a baked verdict is wrong from the next midnight"
+
+    get "/node/meta", id: "legacy"
+    lifted = JSON.parse(last_response.body).fetch("trust")
+    assert_equal({ "generated_at" => "2026-01-01" }, lifted,
+      "a lifted timestamp keeps its date; no tier is asserted for a concept nobody generated or verified")
+
+    get "/node/meta", id: "tables/orders"
+    refute JSON.parse(last_response.body).key?("trust"),
+      "a concept with no §5 family answers with its description only"
   end
 
   test "GET /tags and /types return the inverted indexes as JSON" do

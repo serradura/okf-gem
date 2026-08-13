@@ -99,14 +99,23 @@ module OKF
         "tags" => 3,
         "type" => 2,
         "description" => 2,
+        # A regression fix rather than a feature: in v0.1 a citation's text
+        # lived in the body and was searchable at weight 1. After a bundle
+        # migrates it lives in frontmatter, so without this a migrated bundle
+        # silently loses recall — same words, same weight, wherever the
+        # spelling put them.
+        "sources" => 1,
         "body" => 1
       }.freeze
 
       FIELDS = WEIGHTS.keys.freeze
 
       # Fields whose match is only meaningful with surrounding context. The other
-      # fields already appear whole on the result row.
-      SNIPPET_FIELDS = %w[description body].freeze
+      # fields already appear whole on the result row. `sources` is here because
+      # indexed-but-un-snippeted would degrade a consumer's evidence line to a
+      # bare id list: after migration the snippet moves from body text to source
+      # text, it does not vanish.
+      SNIPPET_FIELDS = %w[description body sources].freeze
 
       # Characters of context kept on each side of the first matched term.
       SNIPPET_RADIUS = 44
@@ -195,6 +204,9 @@ module OKF
           "type" => concept.type.to_s,
           "description" => concept.description.to_s,
           "tags" => Array(concept.tags).join(" "),
+          # Titles and resources together: a source is findable by what it is
+          # called and by where it lives, which is how the body list read.
+          "sources" => concept.sources.flat_map { |source| [ source["title"], source["resource"] ] }.compact.join(" "),
           "body" => concept.body
         }
       end

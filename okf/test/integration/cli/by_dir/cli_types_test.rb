@@ -158,5 +158,14 @@ module ByDir
       assert_equal [ "good" ], json(result).fetch("types").find { |row| row.fetch("type") == "Note" }.fetch("concepts")
       refute_match(/note:/, result.out)
     end
+    test "--status and --trust narrow the type counts, in both formats" do
+      human = okf("types", fixture("v0_2"), "--status", "draft")
+      assert_equal 0, human.status
+      assert_match(/BigQuery Table/, human.out)
+      refute_match(/Attested Computation/, human.out)
+
+      machine = json(okf("types", fixture("v0_2"), "--trust", "unverified", "--json"))
+      assert_equal [ "Attested Computation", "BigQuery Table" ], machine.fetch("types").map { |row| row["type"] }.sort
+    end
   end
 end

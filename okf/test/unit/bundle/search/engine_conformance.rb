@@ -31,7 +31,32 @@ module EngineConformance
     engine = base.engine_under_test
 
     base.class_eval do
-      # ── the shape of an answer ────────────────────────────────────────────
+      # ── sources are searchable text (§13.1's recall parity) ──────────────
+
+      test "a term appearing only in a source title matches, with a snippet showing it" do
+        doc = OKF::Concept.new(path: "a.md",
+          frontmatter: { "type" => "Note", "title" => "Plain",
+                         "sources" => [ { "id" => "rb", "title" => "The ingestion runbook",
+                                          "resource" => "https://e.com/runbooks/ingestion" } ] },
+          body: "a body that never says the word")
+        rows = search(bundle(doc), [ "runbook" ])
+
+        assert_equal [ "a" ], rows.map { |row| row[:id] }
+        assert_includes rows.first[:matched], "sources"
+        refute_empty rows.first[:snippet], "indexed but un-snippeted degrades a consumer's evidence line"
+        assert_match(/ingestion runbook/i, rows.first[:snippet])
+      end
+
+      test "a source resource is searchable too, not only its title" do
+        doc = OKF::Concept.new(path: "a.md",
+          frontmatter: { "type" => "Note", "title" => "Plain",
+                         "sources" => [ { "resource" => "https://e.com/policies/customer-data" } ] },
+          body: "nothing relevant here")
+
+        assert_equal [ "a" ], search(bundle(doc), [ "policies" ]).map { |row| row[:id] }
+      end
+
+      # ── the shape of an answer ────────────────────────────────────
 
       test "a row is the facade's hash, in the facade's key order" do
         rows = search(bundle(concept("a", title: "Dedup key", body: "chosen for retries")), [ "dedup" ])

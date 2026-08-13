@@ -119,8 +119,13 @@ module OKF
           type: concept.type.to_s,
           description: concept.description.to_s,
           tags: Array(concept.tags).map(&:to_s),
-          timestamp: concept.timestamp&.to_s,
-          status: concept.frontmatter["status"]&.to_s,
+          generated_at: iso8601(concept.generated_at),
+          generated_by: concept.generated_by&.to_s,
+          generated: concept.declared_generated?,
+          trust: concept.trust,
+          status: concept.declared_status&.to_s,
+          stale_after: iso8601(concept.stale_after),
+          sources: concept.sources.length,
           backlog_ref: concept.frontmatter["backlog_ref"]&.to_s,
           dir: OKF.dir_of(id),
           top_dir: top_dir_of(id),
@@ -204,6 +209,19 @@ module OKF
     end
 
     private
+
+    # A catalog row's temporal fields, as ISO 8601 — the format they were written
+    # in and the only one a consumer can parse back. YAML hands over a Date or a
+    # Time for an unquoted value, and `Time#to_s` would publish
+    # "2026-05-28 09:15:00 UTC", which is neither what the document said (§5.2
+    # says ISO 8601) nor something a reader can round-trip; a Date renders
+    # YYYY-MM-DD. A String passes through untouched: it is whatever the producer
+    # wrote, and the validator has already warned if that does not parse.
+    def iso8601(value)
+      return nil if value.nil?
+
+      value.respond_to?(:iso8601) ? value.iso8601 : value.to_s
+    end
 
     # A concept's top-level dir, derived from its id — the first path segment, the
     # same derivation the catalog exposes, so every grouped view labels the bundle

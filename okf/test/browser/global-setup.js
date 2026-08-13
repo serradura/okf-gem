@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { gemRoot, bundleDir, staticPage, hostileDir, hostilePage, panelHome, panelDir, treeDir, treePage, manytagsDir, manytagsPage, deeppathDir, deeppathPage, biggraphDir, biggraphPage, densegraphDir, densegraphPage, bundleMapPage } from "./paths.js";
+import { gemRoot, bundleDir, staticPage, hostileDir, hostilePage, v02Dir, v02Page, panelHome, panelDir, treeDir, treePage, manytagsDir, manytagsPage, deeppathDir, deeppathPage, biggraphDir, biggraphPage, densegraphDir, densegraphPage, bundleMapPage } from "./paths.js";
 
 // Bake the static page the `static` project loads over file://. Rendering it
 // here rather than committing it keeps the suite honest: every run tests the
@@ -10,6 +10,7 @@ export default function globalSetup() {
   fs.mkdirSync(path.dirname(staticPage), { recursive: true });
   render(bundleDir, staticPage, "Checkout Platform");
   render(hostileDir, hostilePage, "Hostile Bundle");
+  render(v02Dir, v02Page, "Trust Fixture");
   render(treeDir, treePage, "Tree Fixture");
   render(manytagsDir, manytagsPage, "Many Tags");
   render(deeppathDir, deeppathPage, "Deep Path");

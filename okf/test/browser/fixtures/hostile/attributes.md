@@ -4,6 +4,8 @@ title: 'Attributes </script><script>window.__xssTitle = true;</script>'
 description: 'Quotes " and ''apostrophes'' and <angle> brackets & an ampersand.'
 tags: ['evil"onmouseover="window.__xssTag = true', xss]
 timestamp: 2026-06-11T00:00:00Z
+generated: { by: '<img src=x onerror="window.__xssTrustGen = true">', at: 2026-06-11T00:00:00Z }
+verified: { by: 'human:<b onmouseover="window.__xssTrustBy = true">rev</b>' }
 ---
 
 This concept attacks the *other* path. Its title, description and tags are

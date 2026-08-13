@@ -516,7 +516,7 @@ module OKF
       # one of those is true.
       def trust_distribution
         counts = { "unverified" => 0, "machine-confirmed" => 0, "human-reviewed" => 0 }
-        @concepts.each { |concept| counts[concept.trust_tier.to_s.tr("_", "-")] += 1 }
+        @concepts.each { |concept| counts[concept.trust] += 1 }
         counts
       end
 

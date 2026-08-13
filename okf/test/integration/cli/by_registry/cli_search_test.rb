@@ -169,7 +169,7 @@ module ByRegistry
 
         bogus = okf("search", "@conformant", "orders", "--in", "bogus")
         assert_equal 2, bogus.status
-        assert_match(/error: unknown field\(s\): bogus \(searchable: title, id, tags, type, description, body\)/, bogus.err)
+        assert_match(/error: unknown field\(s\): bogus \(searchable: title, id, tags, type, description, sources, body\)/, bogus.err)
       end
     end
 

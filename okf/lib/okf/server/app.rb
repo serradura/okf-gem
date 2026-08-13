@@ -18,10 +18,17 @@ module OKF
     #
     #   GET /               the interactive graph page (text/html)
     #   GET /node?id=…      the concept's raw markdown body (text/markdown)
-    #   GET /node/meta?id=… its description, as an escaped HTML fragment
+    #   GET /node/meta?id=… its description and null-stripped §5 trust fields —
+    #                       { description, trust: { tier, generated_by,
+    #                       generated_at, status, stale_after } } (JSON). The
+    #                       page composes the trust line client-side, once, for
+    #                       served and baked pages alike; expiry is the client's
+    #                       to compute, against the viewer's own today.
     #   GET /catalog        rich per-concept metadata for the catalog/files/stats
     #                       views: { concepts: [ {id, title, type, description,
-    #                       tags, timestamp, status, top_dir, dir, links_*} ] } (JSON)
+    #                       tags, generated_at, generated_by, generated, trust,
+    #                       status, stale_after, sources, top_dir, dir,
+    #                       links_*} ] } (JSON)
     #   GET /tags           the tag index  { tag  => [id, …] } (JSON)
     #   GET /types          the type index { type => [id, …] } (JSON)
     #   GET /index          the §6 progressive-disclosure map for the Index panel:
@@ -181,11 +188,19 @@ module OKF
         respond("text/markdown; charset=utf-8", concept.body)
       end
 
+      # JSON, not a fragment: a server-composed HTML line would be a second
+      # render path reaching innerHTML outside DOMPurify — the exact hole the
+      # self-contained-page rule names — and would need a byte-identical JS twin
+      # for the baked page anyway. The client owns the one composition, and
+      # every string here lands via textContent there.
       def node_meta(id)
         concept = concept_for(id)
         return not_found if concept.nil?
 
-        respond("text/html; charset=utf-8", description_fragment(concept))
+        payload = { "description" => concept.description.to_s }
+        trust = trust_fields(concept)
+        payload["trust"] = trust unless trust.empty?
+        respond_json(payload)
       end
 
       # Resolve an id to its concept, read live from disk. The id is only ever a key
@@ -200,11 +215,27 @@ module OKF
         nil
       end
 
-      def description_fragment(concept)
-        description = concept.description.to_s
-        return %(<span class="empty">no description</span>) if description.strip.empty?
+      # Null-stripped, and absent as a whole when a concept says nothing about
+      # its own provenance — a v0.1 concept that adopted no §5 family gets the
+      # panel it always had. The tier is skipped for unverified-and-undeclared,
+      # mirroring the card chip: an untouched v0.1 bundle must not read
+      # "unverified" on every panel. No expiry verdict is baked (the client
+      # compares dates with the viewer's today), and no actor is invented for a
+      # lifted timestamp.
+      def trust_fields(concept)
+        fields = {}
+        fields["tier"] = concept.trust unless concept.trust_tier == :unverified && !concept.declared_generated?
+        fields["generated_by"] = concept.generated_by
+        fields["generated_at"] = iso(concept.generated_at)
+        fields["status"] = concept.declared_status
+        fields["stale_after"] = iso(concept.stale_after)
+        fields.reject { |_, value| OKF.blank?(value) }
+      end
 
-        html_escape(description)
+      # The same ISO rule the catalog row keeps: Psych hands over a Time or Date
+      # for an unquoted value, and its default to_s is not what §5.2 defines.
+      def iso(value)
+        value.respond_to?(:iso8601) ? value.iso8601 : value
       end
 
       def respond(content_type, body)
