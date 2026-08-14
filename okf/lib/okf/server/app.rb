@@ -217,14 +217,15 @@ module OKF
 
       # Null-stripped, and absent as a whole when a concept says nothing about
       # its own provenance — a v0.1 concept that adopted no §5 family gets the
-      # panel it always had. The tier is skipped for unverified-and-undeclared,
-      # mirroring the card chip: an untouched v0.1 bundle must not read
+      # panel it always had. The tier is skipped for unverified-and-undeclared
+      # through Concept#shows_trust?, the one predicate the card chip and the
+      # page's facets read too: an untouched v0.1 bundle must not read
       # "unverified" on every panel. No expiry verdict is baked (the client
       # compares dates with the viewer's today), and no actor is invented for a
       # lifted timestamp.
       def trust_fields(concept)
         fields = {}
-        fields["tier"] = concept.trust unless concept.trust_tier == :unverified && !concept.declared_generated?
+        fields["tier"] = concept.trust if concept.shows_trust?
         fields["generated_by"] = concept.generated_by
         fields["generated_at"] = iso(concept.generated_at)
         # The row's serialization, not the raw Psych value: `status: no` reads

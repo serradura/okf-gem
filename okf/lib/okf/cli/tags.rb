@@ -50,52 +50,15 @@ module OKF
         report_skipped(folder)
         graph = folder.graph(minimal: true)
         titles = graph.nodes.map { |node| [ node[:id], node[:title] ] }.to_h
-        groups = tag_groups(graph.tag_index, folder, options)
+        groups = folder.tag_groups(by: options[:by],
+          entries: filter_entries(folder.catalog, options, dir_scope(folder, options)))
         options[:json] ? print_grouped_tags_json(dir, options[:by], groups) : print_grouped_tags(dir, options[:by], groups, titles)
         0
       end
 
-      # [ [ group, rows ], … ] — groups sorted by name, rows shaped like index_rows'
-      # plus each tag's total across the narrowed set. A tag carried in several
-      # groups appears in each, counted per group; count/total per row is what
-      # makes a tag's spread — local to one group, or cutting across several —
-      # readable without cross-referencing the groups by hand.
-      def tag_groups(tag_index, folder, options)
-        by_id = filter_entries(folder.catalog, options, dir_scope(folder, options)).map { |entry| [ entry[:id], entry ] }.to_h
-        groups = {}
-        totals = Hash.new(0)
-        tag_index.each do |tag, ids|
-          ids.each do |id|
-            entry = by_id[id]
-            next if entry.nil?
-
-            key = group_key(entry, options[:by])
-            ((groups[key] ||= {})[tag] ||= []) << id
-            totals[tag] += 1
-          end
-        end
-        groups.map do |key, tags|
-          rows = tags.map { |tag, ids| { tag: tag, count: ids.length, total: totals[tag], concepts: ids } }
-                     .sort_by { |row| [ -row[:count], row[:tag] ] }
-          [ key, rows ]
-        end.sort_by(&:first)
-      end
-
-      # A catalog entry's type for display — "Untyped" when blank, matching the graph.
-      def entry_type(entry)
-        OKF.blank?(entry[:type]) ? "Untyped" : entry[:type]
-      end
-
-      # The group a concept falls in, in its *stored* spelling — `.` for the root
-      # under --by dir, never "(root)". The human label is applied at print time,
-      # so the JSON and the table cannot disagree about which one is the data.
-      def group_key(entry, dim)
-        case dim
-        when :type then entry_type(entry)
-        when :dir then entry[:dir]
-        else entry[:top_dir]
-        end
-      end
+      # The grouping itself is Bundle#tag_groups — one home, shared with the
+      # MCP shell; this layer keeps only what is the CLI's own, the filter
+      # narrowing passed through `entries:`.
 
       # `.` prints "(root)" bare; every other dir carries the trailing slash that
       # says it is one. The deprecated --by area already stores "(root)" itself.

@@ -92,6 +92,23 @@ class CLITest < MCPIntegrationCase
     end
   end
 
+  # The same shape one ring out: an out-of-range port or an unresolvable bind
+  # raises from the socket layer (SocketError — Socket::ResolutionError on
+  # newer Rubies subclasses it), which the boot rescue did not name, so the
+  # operator got a backtrace for a typo.
+  test "an out-of-range --port or unresolvable --bind is a usage error, not a backtrace" do
+    bad_port = run_cli("--http", "--port", "99999", fixture("knowledge"))
+
+    assert_equal 2, bad_port.status
+    assert_match(/usage: okf mcp/, bad_port.err)
+    refute_match(%r{lib/okf/mcp}, bad_port.err, "a backtrace reached the operator")
+
+    bad_bind = run_cli("--http", "--bind", "no.such.host.invalid.", fixture("knowledge"))
+
+    assert_equal 2, bad_bind.status
+    refute_match(%r{lib/okf/mcp}, bad_bind.err, "a backtrace reached the operator")
+  end
+
   # The mirror case: past a successful boot, the likeliest errno is the host
   # closing its pipes — a stdio session's normal end, Claude Desktop quitting
   # after hours of serving. That errno reached the boot rescue, which printed

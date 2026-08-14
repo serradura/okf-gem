@@ -179,5 +179,25 @@ module ByDir
 
       assert_equal OKF::MCP::Server::CATALOG_FIELDS.sort, row.keys.map(&:to_s).sort
     end
+
+    test "except drops the named keys — the inverse projection fields already had" do
+      server = mcp_server(fixture("knowledge"))
+      row = call_tool!(server, "catalog", bundle: "knowledge", except: %w[description tags])["concepts"].first
+
+      refute row.key?("description")
+      refute row.key?("tags")
+      assert row.key?("id")
+    end
+
+    test "fields and except are mutually exclusive, and except checks the vocabulary too" do
+      server = mcp_server(fixture("knowledge"))
+      both = call_tool(server, "catalog", bundle: "knowledge", fields: %w[id], except: %w[tags])
+      typo = call_tool(server, "catalog", bundle: "knowledge", except: %w[timestamp])
+
+      assert both.error?
+      assert_match(/mutually exclusive/, both.text)
+      assert typo.error?
+      assert_match(/unknown field/, typo.text)
+    end
   end
 end

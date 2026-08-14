@@ -15,7 +15,7 @@ class CapabilitiesTest < MCPIntegrationCase
     assert_equal({ "tools" => {}, "prompts" => {}, "resources" => {}, "completions" => {} }, declared_capabilities)
   end
 
-  # The wire-level half of the "ten read-only tools" promise. Hosts gate
+  # The wire-level half of the "fourteen read-only tools" promise. Hosts gate
   # auto-approval on `readOnlyHint`, so one tool shipped without it demotes
   # the whole server to write-suspect in read-only contexts — and the
   # assertion that pinned this lived in a prompts test that was deleted with
@@ -23,7 +23,7 @@ class CapabilitiesTest < MCPIntegrationCase
   test "every tool on the wire declares itself read-only" do
     server = mcp_server(fixture("knowledge"))
     tools = rpc(server, "tools/list").dig("result", "tools")
-    assert_equal 10, tools.length
+    assert_equal 14, tools.length
     tools.each do |tool|
       assert_equal true, tool.dig("annotations", "readOnlyHint"), "#{tool["name"]} does not declare readOnlyHint"
       assert_equal false, tool.dig("annotations", "destructiveHint"), "#{tool["name"]} does not disclaim destruction"

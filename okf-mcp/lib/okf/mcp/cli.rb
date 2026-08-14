@@ -62,7 +62,7 @@ module OKF
           server = Server.build(registry, engine: engine)
           announce(registry, engine)
           prepare_http(server) if @http
-        rescue Error, OKF::Error, OptionParser::ParseError, SystemCallError => e
+        rescue Error, OKF::Error, OptionParser::ParseError, SystemCallError, SocketError => e
           say("okf-mcp: #{e.message}")
           say(USAGE)
           return 2

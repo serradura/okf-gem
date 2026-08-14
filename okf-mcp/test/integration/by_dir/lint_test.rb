@@ -118,5 +118,33 @@ module ByDir
       assert data["healthy"], "expired is info; it reports, it does not gate"
       assert_empty data["stats"]["skipped_checks"], "the clock arrived, so nothing was silently skipped"
     end
+
+    test "today pins the clock, so an expired report is reproducible" do
+      server = mcp_server(fixture("expiring"))
+      before = call_tool!(server, "lint", bundle: "expiring", only: [ "expired" ], today: "1999-12-31")
+      on_day = call_tool!(server, "lint", bundle: "expiring", only: [ "expired" ], today: "2000-01-01")
+
+      assert_equal [], before["findings"], "the day before the declared expiry, nothing has expired"
+      assert_equal "expired", on_day["findings"].first["check"],
+        "§5.5 is inclusive: the stale_after day itself expires"
+    end
+
+    test "today takes the calendar-day grammar only — a reinterpretable spelling is refused" do
+      server = mcp_server(fixture("expiring"))
+      [ "20000101", "2000-W01-1", "2000-01-01T09:00:00Z", "2000-02-30" ].each do |bad|
+        result = call_tool(server, "lint", bundle: "expiring", today: bad)
+
+        assert result.error?, "#{bad} must be refused, not reinterpreted"
+        assert_match(/YYYY-MM-DD/, result.text)
+      end
+    end
+
+    test "group folder refuses today with the other check options" do
+      result = call_tool(mcp_server(fixture("expiring")), "lint",
+        bundle: "expiring", group: "folder", today: "2000-01-01")
+
+      assert result.error?
+      assert_match(/takes no today/, result.text)
+    end
   end
 end

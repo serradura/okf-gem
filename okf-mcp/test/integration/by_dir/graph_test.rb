@@ -54,5 +54,24 @@ module ByDir
       assert result.error?
       assert_match(/`\/view` is not one of: \["minimal", "hubs", "traffic"\]/, result.text)
     end
+
+    test "traffic takes a cut override; the fitted cut stays the default" do
+      server = mcp_server(fixture("journaled"))
+      fitted = call_tool!(server, "graph", bundle: "journaled", view: "traffic")
+      low = call_tool!(server, "graph", bundle: "journaled", view: "traffic", cut: 1)
+
+      assert_equal 1, low["cut"]
+      assert_operator low["arcs"].length, :>=, fitted["arcs"].length,
+        "weight 1 draws every arc the fitted cut may have dropped"
+      assert_equal fitted["total_arcs"], low["total_arcs"], "the cut decides what is drawn, never what exists"
+    end
+
+    test "cut outside traffic is refused — half-honored arguments are the silent-wrong-answer shape" do
+      server = mcp_server(fixture("journaled"))
+      result = call_tool(server, "graph", bundle: "journaled", cut: 2)
+
+      assert result.error?
+      assert_match(/cut/, result.text)
+    end
   end
 end

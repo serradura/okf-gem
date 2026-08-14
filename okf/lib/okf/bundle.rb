@@ -66,6 +66,28 @@ module OKF
       entry ? entry.content.to_s : ""
     end
 
+    # The spec version the root index.md declares (§12), as the producer wrote
+    # it, or nil when it declares none — which §12 explicitly permits, so nil is
+    # an answer rather than a fault, and a consumer that must name a version
+    # should say "conformant" rather than guess one.
+    #
+    # Stringified and stripped for the reason the validator compares that way:
+    # an unquoted `okf_version: 0.2` is a Psych Float, and a consumer switching
+    # on it must not be handed 0.2 the number. Public because a version stated
+    # on screen is otherwise a literal — which is how a reader gets told "v0.1"
+    # about a bundle that declares 0.2. Unparseable frontmatter is the
+    # validator's error to report, not this reader's to raise.
+    def okf_version
+      content = reserved_content("index.md")
+      return nil unless content.match?(/\A---[ \t]*\n/)
+
+      frontmatter, = Markdown::Frontmatter.parse(content)
+      declared = frontmatter["okf_version"]
+      OKF.blank?(declared) ? nil : declared.to_s.strip
+    rescue Markdown::Frontmatter::ParseError
+      nil
+    end
+
     # ── id ↔ path (the single source of "which concept an id names") ──
     # A concept's id may be a frontmatter `id`, so it is not derivable from the path
     # alone. These maps let the shell resolve an id back to its file (the server's
@@ -151,6 +173,63 @@ module OKF
         by_top_dir = sources.sort_by { |top_dir, count| [ -count, top_dir ] }.to_h
         { id: id, top_dir: top_dir_of(id), inbound: by_top_dir.values.reduce(0, :+), by_top_dir: by_top_dir }
       end.sort_by { |row| [ -row[:inbound], row[:id] ] }
+    end
+
+    # Bundle-level rollups — concepts, dirs, types, links, tags, with the
+    # by_type/by_dir/by_top_dir distributions. One home, shared by `okf stats`
+    # and the MCP stats tool, because the by_dir subtlety already diverged once
+    # when hand-copied: it reads Bundle#directory_index (the map `--dir` is
+    # answered against), so a directory holding nothing directly appears at 0
+    # rather than disappearing, and `dirs` equals `by_dir.size`.
+    # Note the recorded split: by_dir is the disk, by_top_dir rolls up the id.
+    def stats
+      minimal = graph(minimal: true)
+      entries = catalog
+      by_type = minimal.type_index.transform_values(&:size).sort_by { |_, size| -size }.to_h
+      by_top_dir = entries.group_by { |entry| entry[:top_dir] }.transform_values(&:size).sort_by { |_, size| -size }.to_h
+      by_dir = directory_index.map { |entry| [ entry[:dir], entry[:count] ] }
+                              .sort_by { |dir, count| [ -count, dir ] }.to_h
+      {
+        concepts: entries.size,
+        dirs: by_dir.size,
+        top_dirs: by_top_dir.size,
+        types: by_type.size,
+        cross_links: minimal.edges.size,
+        tags: minimal.tag_index.size,
+        by_type: by_type,
+        by_dir: by_dir,
+        by_top_dir: by_top_dir
+      }
+    end
+
+    # The tag index re-cut per concept dimension — the vocabulary-curation
+    # view: [ [ group-key, rows ], … ] with each row carrying `count` (within
+    # the group) beside `total` (across the set), so a tag local to one group
+    # and one cutting across several read differently without cross-referencing
+    # by hand. `by:` is :type (blank folds to "Untyped", matching the graph),
+    # :dir (the stored spelling — `.` for the root), or anything else for the
+    # deprecated first-segment cut. `entries:` narrows the concepts counted —
+    # the CLI passes its filtered catalog; default is everything.
+    def tag_groups(by:, entries: nil)
+      entries ||= catalog
+      by_id = entries.map { |entry| [ entry[:id], entry ] }.to_h
+      groups = {}
+      totals = Hash.new(0)
+      graph(minimal: true).tag_index.each do |tag, ids|
+        ids.each do |id|
+          entry = by_id[id]
+          next if entry.nil?
+
+          key = tag_group_key(entry, by)
+          ((groups[key] ||= {})[tag] ||= []) << id
+          totals[tag] += 1
+        end
+      end
+      groups.map do |key, tags|
+        rows = tags.map { |tag, ids| { tag: tag, count: ids.length, total: totals[tag], concepts: ids } }
+                   .sort_by { |row| [ -row[:count], row[:tag] ] }
+        [ key, rows ]
+      end.sort_by(&:first)
     end
 
     # The progressive-disclosure map (spec §8): one entry per directory that holds
@@ -242,6 +321,17 @@ module OKF
         end
       end
       dirs.keys.sort_by { |dir| dir == "." ? "" : dir }
+    end
+
+    # The group a concept falls in, in its *stored* spelling — `.` for the
+    # root under :dir, never "(root)": the human label is applied at print
+    # time, so the JSON and a table cannot disagree about which is the data.
+    def tag_group_key(entry, dim)
+      case dim
+      when :type then OKF.blank?(entry[:type]) ? "Untyped" : entry[:type]
+      when :dir then entry[:dir]
+      else entry[:top_dir]
+      end
     end
 
     # { value => count }, ordered by count descending then value.

@@ -90,6 +90,32 @@ module OKF
       value.to_s.downcase.tr("_", "-")
     end
 
+    # Whether a surface should *claim* a tier — the display half of §5.3, and
+    # deliberately not the same question as "what is the tier".
+    #
+    # §5.3 derives `unverified` for every concept that declares no verification,
+    # which is every concept of every v0.1 bundle. Displaying that unconditionally
+    # would paint a provenance verdict onto documents that never made one — the
+    # false claim the trust system exists to prevent — so the tier is computed for
+    # filtering and withheld from display. A concept that declared `generated` has
+    # opted into §5, and its `unverified` is a real answer worth showing; one that
+    # declared nothing is silent, and so is every surface reading this.
+    #
+    # Takes the two wire values so one rule serves both shapes: a Concept asks
+    # through #shows_trust?, a catalog row through Bundle::RowFilter.shows_trust?.
+    # Shared rather than re-spelled because the gate, the counts and the narrowing
+    # have to agree — a gate disagreeing with the counts beside it reads
+    # "unverified 3" over two chipped cards.
+    def self.shows_trust?(tier, declared_generated)
+      folded = fold_tier(tier)
+      # A blank tier is nothing to claim. #trust never returns one, so this is
+      # the client-side twin's `!!(c.trust && …)` guard kept in step rather than
+      # a case the Ruby can reach on its own — and the two are asserted equal.
+      return false if folded.empty?
+
+      !(folded == "unverified" && !declared_generated)
+    end
+
     # Whether a bundle-relative path names a reserved file rather than a concept.
     # `::File` is explicit: OKF::Concept::File (the on-disk handle) shadows Ruby's
     # File inside this namespace.
@@ -216,6 +242,12 @@ module OKF
     # against a literal knows which form arrives.
     def trust
       trust_tier.to_s.tr("_", "-")
+    end
+
+    # Whether this concept's tier is one a surface should show — see
+    # .shows_trust? for why the display question is separate from the derivation.
+    def shows_trust?
+      Concept.shows_trust?(trust, declared_generated?)
     end
 
     # ── §5.1 provenance: sources, with §13.1's Citations fallback ──

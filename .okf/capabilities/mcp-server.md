@@ -1,12 +1,12 @@
 ---
 type: Capability
 title: MCP server (okf-mcp)
-description: The kernel's proven capabilities projected onto the Model Context Protocol — ten read-only tools, concepts as resources, and the two consuming prompts, for any MCP-capable agent host.
+description: The kernel's proven capabilities projected onto the Model Context Protocol — fourteen read-only tools, concepts as resources, and the two consuming prompts, for any MCP-capable agent host.
 resource: okf-mcp/lib/okf/mcp/server.rb
 tags: [mcp, serve, agent, registry, search]
 generated:
   by: human:maintainer
-  at: 2026-08-13T12:00:00Z
+  at: 2026-08-14T12:00:00Z
 ---
 
 # Overview
@@ -21,6 +21,33 @@ is reimplemented — every tool is a library call, and logic a tool needs that
 the kernel lacks lands in the kernel first, where the other three surfaces get
 it too.
 
+The `status`/`trust` filters keep one rule across surfaces by *where they
+narrow*: on `catalog` they run through the kernel's `Bundle::RowFilter` like
+every row filter, but on `search` they resolve **through the catalog** — a
+search row carries what the engine matched on, and the §5 families are not
+among it, so handing them to the row filter would read as absent and match
+nothing. The tool instead asks the catalog which ids qualify, per bundle, and
+keeps the rows that survive: the same predicate underneath, so a `trust` that
+narrows `catalog` narrows `search` identically. The first cut was the
+two-line fix — add the keys to the filter — and it shipped the worse failure:
+a schema that accepts the argument and an answer that silently matches
+nothing.
+
+The `tags`/`types`/`stats` trio closes the read-view gap the parity audit
+priced, on the kernel-first path: `Bundle#tag_groups` and `Bundle#stats`
+were extracted from the CLI verbs so the counting rules have one home, and
+both shells consume them. `files` is deliberately not a tool — `index`'s
+per-directory listing and `catalog`'s projection already carry its whole
+answer, and it would have been the first tool whose answer two others hold
+whole; tool-list weight is a cost a host pays on every conversation.
+
+The `references` tool is the §6.3 inventory the kernel's verb answers —
+notably the one lens that sees a bundle's *non-markdown* files (a `.py`
+attester, a `.sql` computation), with each file's citing concepts and every
+pointer into `references/` that resolves to nothing, the bare-path miss named
+with its leading-slash fix. It landed here the way every capability does:
+kernel first (`Bundle::References`), then a thin projection.
+
 # Identity is the kernel registry's
 
 Every tool takes a `bundle` argument that is a **registry slug** — the same
@@ -28,7 +55,7 @@ identity `@slug` resolves at the CLI and `/b/<slug>/` mounts on the
 [hub](bundles-manager.md). One name across all four surfaces, and a slug is
 only ever a key into the served map: no tool opens a path from a request.
 
-**One name across the ten tools, too**, which took a second pass. `search` is
+**One name across the fourteen tools, too**, which took a second pass. `search` is
 the only one that accepts a *set*, and it announced that in the argument's name
 — `bundles` against nine `bundle`s. The plural was a signal nobody could act
 on: an MCP host's unknown property is refused by the schema before any okf

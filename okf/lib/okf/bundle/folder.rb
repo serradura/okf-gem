@@ -62,6 +62,14 @@ module OKF
         @bundle.directory_index
       end
 
+      def stats
+        @bundle.stats
+      end
+
+      def tag_groups(by:, entries: nil)
+        @bundle.tag_groups(by: by, entries: entries)
+      end
+
       # The §6.3 inventory — this handle's half is the disk: the reader models
       # only markdown, so listing `references/` here is how a .py attester or a
       # .sql computation becomes visible at all. The pure model gets the

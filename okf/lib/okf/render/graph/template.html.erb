@@ -1611,7 +1611,13 @@ const statusChip=c=>foldStatus(c.status)!=='stable'?`<span class="status ${esc(s
    declared `generated:`, since a v0.1 concept declaring neither would wear a
    chip about a family it never had. The catalog's trust facet gates on this
    same predicate: a tier shown on every card with no group to narrow on was
-   the shape it took when the two were spelled separately. */
+   the shape it took when the two were spelled separately.
+
+   The rule's home is Ruby — Concept.shows_trust?, which the server's
+   /node/meta and okf-tui both ask. This is the client-side twin, unavoidable
+   because it runs over baked rows with no Ruby to call; a change to one is a
+   change to both, and render_test.rb pins them equal so the copy cannot drift
+   silently. */
 const showsTrust=c=>!!(c.trust&&!(c.trust==='unverified'&&!c.generated));
 const trustChip=c=>showsTrust(c)?`<span class="tier ${esc(c.trust)}">${esc(c.trust)}</span>`:'';
 /* No `by` means v0.1 lifted this from a `timestamp`, which recorded no actor.

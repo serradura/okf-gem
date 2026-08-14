@@ -247,5 +247,20 @@ module ByDir
       assert_equal [ "decisions/ledger" ], accepted["results"].map { |row| row["id"] },
         "the effective status narrows the three `billing` matches to one"
     end
+
+    test "fields projects each result row; except is its inverse; the pair refuses" do
+      server = mcp_server(fixture("knowledge"))
+      projected = call_tool!(server, "search", terms: %w[billing], fields: %w[id score])["results"].first
+
+      assert_equal %w[id score], projected.keys.sort, "only the named keys survive"
+
+      dropped = call_tool!(server, "search", terms: %w[billing], except: %w[snippet])["results"].first
+      refute dropped.key?("snippet")
+      assert dropped.key?("id")
+
+      both = call_tool(server, "search", terms: %w[billing], fields: %w[id], except: %w[snippet])
+      assert both.error?
+      assert_match(/mutually exclusive/, both.text)
+    end
   end
 end

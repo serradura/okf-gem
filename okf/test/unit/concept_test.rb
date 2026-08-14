@@ -446,4 +446,38 @@ class OKF::ConceptTest < OKF::TestCase
     assert_nil concept.stale_after_date
     refute concept.stale_on?(Date.new(2026, 1, 1))
   end
+
+  # §5.3's display half. The tier is always derivable; whether a surface should
+  # *claim* it is a different question, and the whole reason a v0.1 bundle does
+  # not read "unverified" on every card.
+  test "shows_trust? withholds a tier nothing declared, and claims every other" do
+    v01 = build({})
+    refute v01.shows_trust?, "an untouched v0.1 concept declares no §5 family — the tier is derived, not claimed"
+    assert_equal "unverified", v01.trust, "the tier is still computed, for filtering"
+
+    opted_in = build("generated" => { "by" => "human:me", "at" => "2026-01-01" })
+    assert opted_in.shows_trust?, "a concept that declared `generated` opted into §5 — its unverified is an answer"
+
+    verified = build("verified" => [ { "by" => "human:me", "at" => "2026-01-01" } ])
+    assert verified.shows_trust?, "a declared tier above unverified is always claimable"
+    assert_equal "human-reviewed", verified.trust
+  end
+
+  test "the row form and the concept form spell one rule" do
+    rows = [ { trust: "unverified", generated: false },
+             { trust: "unverified", generated: true },
+             { trust: "machine-confirmed", generated: false },
+             { trust: "human-reviewed", generated: true } ]
+
+    assert_equal [ false, true, true, true ], rows.map { |row| OKF::Bundle::RowFilter.shows_trust?(row) }
+    # Both shapes route through the same class method, so a change to the rule
+    # cannot reach one surface and miss the other.
+    assert_equal rows.map { |row| OKF::Bundle::RowFilter.shows_trust?(row) },
+      rows.map { |row| OKF::Concept.shows_trust?(row[:trust], row[:generated]) }
+  end
+
+  test "shows_trust? folds the tier spelling a caller may echo back" do
+    assert OKF::Concept.shows_trust?("machine_confirmed", false)
+    refute OKF::Concept.shows_trust?("UNVERIFIED", false)
+  end
 end

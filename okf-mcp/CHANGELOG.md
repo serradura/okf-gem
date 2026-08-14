@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`tags`, `types` and `stats` — the read views the audit priced.** `tags`
+  ships with the `by: "dir" | "type"` curation view — the kernel's
+  `Bundle#tag_groups`, extracted so the within-group-beside-total counting
+  has one home — and `stats` reads the kernel's new `Bundle#stats`, whose
+  `by_dir` keeps the honest zero a directory holding nothing directly
+  reports. `files` is deliberately not a tool: `index`'s per-directory
+  listing and `catalog`'s projection already carry its whole answer, and
+  tool-list weight is a real cost on hosts.
+- **`lint` takes `today`** — the CLI's `--today`, in the same deliberately
+  narrow calendar-day grammar (a reinterpretable `20260101` or a
+  `2026-02-30` is refused by name), so an `expired` report is reproducible
+  and citable. The wall clock stays the default.
+- **`fields`/`except` projection on `search`, and `except` on `catalog`** —
+  the row-key vocabulary is checked either way, so a typo is refused by
+  name even when a query matches nothing; the pair is mutually exclusive.
+- **`references`, the eleventh tool** — the kernel's §6.3 inventory over MCP,
+  and the one lens that sees a bundle's non-markdown files: every
+  `references/` entry with the concepts citing it through the §6.2
+  path-valued fields, plus every pointer that resolves to nothing (a bare
+  `references/…` from a subdirectory is the classic miss; the dangling entry
+  names the leading-slash fix). Advisory like every read tool — dangling
+  pointers are data, never a tool error.
+- **`graph`'s traffic view takes `cut`** — the CLI's `--cut N`, so a client
+  can widen past the fitted threshold or narrow below it. Outside
+  `view: "traffic"` it is refused: a half-honored argument is the
+  silent-wrong-answer shape.
+
+### Fixed
+
+- **`search`'s declared output schema now carries `skipped`** — the field the
+  tool emits when `"*"` forgives a vanished bundle. A host typing its
+  structured-content handling off `outputSchema` dropped it, and the SDK's
+  result validation (on in the test suite) failed a payload the tool
+  genuinely produces; slugs, not rows, and never required.
+- **An out-of-range `--port` or unresolvable `--bind` is a usage error.** The
+  socket layer raises `SocketError` (Socket::ResolutionError on newer
+  Rubies), which the boot rescue did not name, so a typo came back as a
+  backtrace and exit 1 instead of the one readable line and exit 2 every
+  other boot failure earns.
+
 ### Changed
 
 - **`search` narrows by `status` and `trust`**, the two filters `catalog` and

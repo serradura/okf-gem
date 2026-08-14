@@ -127,6 +127,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`Concept#shows_trust?` and `Bundle::RowFilter.shows_trust?` — §5.3's
+  display half, in one place.** The tier is always derivable; whether a surface
+  should *claim* it is a different question, and the answer is no for a concept
+  that declared no §5 family, which is every concept of every v0.1 bundle.
+  Claiming it there would paint a provenance verdict onto documents that never
+  made one — the false claim the trust system exists to prevent. The rule was
+  spelled twice, inline in `/node/meta` and in the page's `showsTrust`, and a
+  third consumer (okf-tui, which needs it for a chip, a facet gate, the facet
+  counts and the narrowing) is what a hand-copied predicate does not survive:
+  a gate disagreeing with the counts beside it reads "unverified 3" over two
+  chipped cards. One class method takes the two wire values so a Concept and a
+  catalog row ask the same rule; the server now routes through it, and the
+  page's client-side twin — unavoidable, since it runs over baked rows with no
+  Ruby to call — is pinned equal to it by `parity_test.rb`, truth table and
+  source literal both.
+- **`Bundle#okf_version` — the spec version the root index declares (§12)**,
+  as the producer wrote it, or nil when it declares none, which §12 permits.
+  Stringified and stripped for the reason the validator compares that way: an
+  unquoted `okf_version: 0.2` is a Psych Float, and a consumer switching on it
+  must not be handed 0.2 the number. Public because the alternative is a
+  literal — a consumer naming the version on screen had no way to ask, which is
+  how a reader gets told "v0.1" about a bundle declaring 0.2. Unparseable
+  frontmatter stays the validator's error to report rather than this reader's
+  to raise.
 - **`log_order` [info], the first log-side lint check.** §9 describes the log
   as date-grouped entries, newest first — prose, not an RFC keyword, so
   disorder is curation slack rather than a conformance error: exactly lint's
@@ -138,6 +162,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `generated.by` no form can classify leaves a provenance reader unable to
   tell a person from a process, so it earns the same info finding with its own
   consequence. A *missing* `generated.by` stays the validator's warning.
+
+- **`Bundle#stats` and `Bundle#tag_groups` join the library API** —
+  extracted from the CLI's `stats` and `tags --by` so the MCP shell reads
+  the same rollups instead of hand-copying them: the `by_dir` zero-keeping
+  subtlety and the within-group-beside-total tag counting each have one
+  home now (`Folder` delegates both). The CLI verbs are pure consumers of
+  the extraction; their output is unchanged.
 
 ### Fixed
 

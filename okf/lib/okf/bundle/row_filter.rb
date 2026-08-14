@@ -38,6 +38,16 @@ module OKF
       def fold(value)
         value.to_s.downcase
       end
+
+      # The row-shaped spelling of Concept.shows_trust? — "is this row's tier one
+      # a surface should claim?". It lives beside #matches? because narrowing is
+      # one of its three consumers: the trust facet's gate, its counts and its
+      # narrowing all read this, so the facet describes exactly the rows wearing a
+      # tier. `generated` is the catalog's raw declared-key boolean, which is what
+      # tells a concept that opted into §5 from one that said nothing at all.
+      def shows_trust?(row)
+        Concept.shows_trust?(row[:trust], row[:generated])
+      end
     end
   end
 end

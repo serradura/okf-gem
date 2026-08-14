@@ -91,26 +91,37 @@ to pin the set instead.
 
 ## Tools
 
-Ten read-only tools. Every list answer is bounded and names the full count it
-was cut from — the rows the request matched, before any `limit`:
+Fourteen read-only tools. Every list answer is bounded and names the full
+count it was cut from — the rows the request matched, before any `limit`:
 
 | Tool | What it answers |
 |---|---|
 | `list_bundles` | what exists: slug, title, root, concept count, type/tag rollups, the default, the groups, the backend |
 | `dirs` | the shape — one row per directory with direct and subtree counts; **the first move** |
 | `index` | the index map: authored index bodies, rollups, listings, one directory at a time (depth 1 by default) |
-| `search` | pointed questions: ANDed terms, scored rows carrying the fields they matched, across several bundles at once |
+| `search` | pointed questions: ANDed terms, scored rows carrying the fields they matched, across several bundles at once; narrows by `type`, `dir`, `tag`, `status`, `trust`; `fields`/`except` project the rows |
 | `read_concept` | one concept's file, verbatim and live from disk; ids are exact |
-| `catalog` | per-concept metadata with link degrees; filters, paging, field projection |
+| `catalog` | per-concept metadata with link degrees; the same five filters, paging, `fields`/`except` projection |
 | `log` | every `log.md`, root first, live — the newest 3 dated entries per file, each answer held to a byte budget `limit` scales; a cut says `truncated` |
 | `validate` | the spec §11 conformance verdict |
-| `lint` | the curation-quality report; `group: "folder"` lists the unlinked files by folder |
-| `graph` | the knowledge graph in three bounded views: minimal, hubs, traffic — never with bodies |
+| `lint` | the curation-quality report; `group: "folder"` lists the unlinked files by folder; `today` pins the clock for a reproducible `expired` report |
+| `graph` | the knowledge graph in three bounded views: minimal, hubs, traffic (`cut` widens or narrows the arcs) — never with bodies |
+| `references` | the §6.3 inventory: every `references/` file — `.py` attesters and `.sql` computations included — with its citing concepts, and the pointers that resolve to nothing |
+| `tags` | the tag index by count; `by: "dir"` or `"type"` regroups for vocabulary curation, within-group counts beside cross-bundle totals |
+| `types` | the type index by count — how you learn what a producer meant by its open §4.1 vocabulary |
+| `stats` | the sizing rollup: concepts, dirs, cross-links, distinct tags, and the by_type/by_dir/by_top_dir distributions |
 
 Each returns its JSON twice: as text, and as `structuredContent` against a
 declared `outputSchema`, so a host consumes a result without parsing a blob and
 guessing at its shape. `read_concept` is the exception — markdown has no object
 shape to declare.
+
+The `status` and `trust` filters answer with the §5 families' vocabulary
+(`draft | stable | deprecated`; `unverified | machine-confirmed |
+human-reviewed`, either spelling). On `search` they narrow through the
+catalog rather than the engine's rows — a search row carries what the engine
+matched on, and the §5 families are not among it — so a `trust` that narrows
+`catalog` narrows `search` identically.
 
 ## Prompts
 

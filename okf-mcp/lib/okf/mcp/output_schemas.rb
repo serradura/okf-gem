@@ -62,13 +62,25 @@ module OKF
             bundles: ROWS,
             total: COUNT,
             results: ROWS,
-            unparseable: UNPARSEABLE
+            unparseable: UNPARSEABLE,
+            # Present only when "*" or a group forgave a vanished bundle —
+            # conditional, so never required; slugs, not rows. Omitting it
+            # entirely is how a real field failed result validation the first
+            # time it appeared.
+            skipped: { type: "array", items: SLUG }
           },
           required: %w[query engine bundles total results]
         },
         "catalog" => {
           properties: { bundle: SLUG, total: COUNT, concepts: ROWS, unparseable: UNPARSEABLE },
           required: %w[bundle total concepts]
+        },
+        # `dangling` is always present (empty when nothing misses): an absent
+        # list would read as "not checked", which is the one thing an
+        # inventory must never say by accident.
+        "references" => {
+          properties: { bundle: SLUG, total: COUNT, references: ROWS, dangling: ROWS, unparseable: UNPARSEABLE },
+          required: %w[bundle total references dangling]
         },
         # `total` is entries across every log file and `files` how many files
         # they came from — two different counts, both named, because one
@@ -77,6 +89,30 @@ module OKF
         "log" => {
           properties: { bundle: SLUG, total: COUNT, files: COUNT, logs: ROWS },
           required: %w[bundle total files logs]
+        },
+        # Two shapes, like lint's: the plain inverted index (`tags`) and the
+        # `by` regrouping (`groups`). Only what both carry is required.
+        "tags" => {
+          properties: {
+            bundle: SLUG, total: COUNT, tags: ROWS,
+            by: { type: "string" }, groups: ROWS,
+            unparseable: UNPARSEABLE
+          },
+          required: %w[bundle total]
+        },
+        "types" => {
+          properties: { bundle: SLUG, total: COUNT, types: ROWS, unparseable: UNPARSEABLE },
+          required: %w[bundle total types]
+        },
+        "stats" => {
+          properties: {
+            bundle: SLUG,
+            concepts: COUNT, dirs: COUNT, top_dirs: COUNT, concept_types: COUNT,
+            cross_links: COUNT, distinct_tags: COUNT,
+            by_type: { type: "object" }, by_dir: { type: "object" }, by_top_dir: { type: "object" },
+            unparseable: UNPARSEABLE
+          },
+          required: %w[bundle concepts dirs top_dirs concept_types cross_links distinct_tags by_type by_dir by_top_dir]
         },
         "validate" => {
           properties: {
