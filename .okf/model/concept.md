@@ -6,7 +6,7 @@ resource: okf/lib/okf/concept.rb
 tags: [pure]
 generated:
   by: human:maintainer
-  at: 2026-08-13T12:00:00Z
+  at: 2026-08-14T12:00:00Z
 sources:
   - title: okf/lib/okf/concept.rb
     resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/concept.rb
@@ -28,6 +28,16 @@ the `path` minus `.md` (e.g. `model/graph.md` → `model/graph`), which is why y
 name a file for what it *is*, not where it sits. A frontmatter `id`, when set,
 pins the identity explicitly — the path-derived name is the fallback, not the only
 source — so a concept can keep its id across a move.
+
+The override is this gem's **extension, not spec**: §2 defines the concept id
+as the path minus `.md`, full stop. Pinning one puts the concept in two worlds
+on purpose — the identity views ([catalog, hubs, `--dir`,
+search](../capabilities/read-views.md)) follow the id, because the edges do,
+while the physical views (`index`, `dirs`, stats' `by_dir`) keep the file where
+it lives, because an index is a physical listing. An integration test holds a
+concept whose id leaves its directory and asserts both worlds at once, so the
+split stays a decision; the authoring advice is the default's — rename the
+file, not the id.
 
 # What it derives from its own content
 

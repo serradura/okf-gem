@@ -38,4 +38,10 @@ straight from its own records — no Markdown round-trip — and still get valid
 lint, and graph for free. This is the surface the
 [library API](../capabilities/library-api.md) exposes to, say, a Rails store that
 already holds knowledge as rows. It also feeds the shared `#catalog`, the data
-behind every read view.
+behind every read view — and the rollups beside it, each kept in one home
+after a hand copy diverged: `#stats` (whose `by_dir` reads the directory
+index, so an empty directory reports its honest zero), `#tag_groups` (the
+vocabulary-curation cut, within-group counts beside cross-set totals), and
+`Bundle::References` (the §6.3 inventory — the one model that sees a bundle's
+non-markdown files, fed a manifest by the shell). The CLI verbs and the MCP
+tools consume the same three.

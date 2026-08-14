@@ -12,57 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > row and check ids — so the version this section ships under is a deliberate
 > semver decision to make at release time, not a ride on the next minor.
 
-### Changed
-
-- **`validate` warns on a declared-but-blank `status`.** `status: ""` is a
-  producer typo, not an absence — §5.4's default belongs to a concept that
-  never declared the key — and reading the blank through the default turned it
-  into `stable` before the vocabulary check ran, so the one value §5.4 names
-  nowhere was the one that never warned.
-- **`lint --stale-after` refuses the ISO spellings it used to reinterpret.**
-  It took whatever `Date.iso8601` parsed, so the basic (`20260101`) and week
-  (`2026-W01-1`) forms silently became a cutoff nobody asked for — `20260101`
-  read as the year 2026 day 01 of month 01 only by luck of the parser, and
-  `2026-W01-1` as 2025-12-29. Both now exit 2 naming the accepted shapes. A
-  `YYYY-MM-DD` date and a full `2026-01-01T09:00:00Z` timestamp (what a
-  concept's own `generated.at` looks like) are both still accepted, the
-  timestamp reduced to its date as before. The new `--today` takes the
-  narrower grammar — it names a calendar day, not a moment.
-- **The gem targets OKF v0.2** and keeps reading v0.1 under §13.1's two
-  sanctioned fallbacks: a legacy `timestamp` reads as `generated.at` (per-key,
-  so a half-migrated `generated: { by: … }` beside a `timestamp` keeps its
-  date, and no actor is ever invented), and a body `# Citations` list reads as
-  `sources` whenever the native key yields zero mappings. One `OKF::Concept`
-  class, no version hierarchy; a pure v0.1 bundle still validates with zero
-  warnings.
-- **Breaking: lint check ids renamed** — `missing_timestamp` is
-  `missing_generated`, `broken_citation` is `broken_source` — so `--only` /
-  `--except` lists naming the old ids exit 2. `uncited_external` is redefined
-  over `#sources` (a v0.1 `# Citations` still silences it — a prose-only
-  section included; so does a migrated `sources:` block). The `stale`
-  finding's JSON metric renames `timestamp:` to `generated_at:` (and its
-  message says "last updated <generated_at>") — a consumer reading
-  `finding.metric.timestamp` gets `null` and must move with it.
-- **Breaking: the `timestamp` catalog column is removed** — `--fields
-  timestamp` exits 2 loudly, naming the valid fields. The `concepts` row gains
-  `generated_at`, `generated_by`, `generated` (the raw declared-key boolean
-  that tells hand-written apart from v0.1-with-timestamp), `trust` (the
-  hyphenated wire literals `unverified` | `machine-confirmed` |
-  `human-reviewed`), `stale_after`, and a `sources` count. `status` stays the
-  raw declared value, `null` when absent. Temporal values render ISO 8601.
-- **Breaking: `Concept#citations` and `Markdown::Citations.targets` are
-  removed**, both subsumed by `Concept#sources` / `Citations.entries`.
-- **The staleness boundary is `today >= stale_after`** — a concept is stale
-  **on** the day itself, per §5.5. A consumer replacing its own `<`-based
-  check shifts by one day and should know it.
-- `GET /node/meta` returns JSON (`{ description, trust: { tier, generated_by,
-  generated_at, status, stale_after } }`, null-stripped) instead of an escaped
-  HTML fragment; the graph page composes the trust line client-side for served
-  and baked pages alike, and computes expiry against the viewer's own clock.
-- The demo Open Graph card URL the graph template points at moved to
-  `og-demo-v5.png` (the site's card-art version bump); the old URL keeps
-  serving the current art, so nothing breaks in between.
-
 ### Added
 
 - **`okf references` — the §6.3 inventory.** Lists every file under
@@ -124,9 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The skill teaches v0.2: the vendored SPEC is the published v0.2, a new
   attested-computation template carries §10.3's MUST NOT, and the migrate
   playbook walks the v0.1→v0.2 rewrite.
-
-### Added
-
 - **`Concept#shows_trust?` and `Bundle::RowFilter.shows_trust?` — §5.3's
   display half, in one place.** The tier is always derivable; whether a surface
   should *claim* it is a different question, and the answer is no for a concept
@@ -169,6 +115,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   subtlety and the within-group-beside-total tag counting each have one
   home now (`Folder` delegates both). The CLI verbs are pure consumers of
   the extraction; their output is unchanged.
+- **Two long-standing behaviors are documented contract now, each with a
+  pinning test.** Hidden files are outside the bundle: the reader excludes
+  dot-prefixed files and everything under a dot-prefixed directory — the
+  Unix convention, kept so reading a project root cannot pull an installed
+  skill or `.github/` templates in as concepts. And a frontmatter `id:`
+  renames the concept, not its home — an extension beyond §2's path-derived
+  identity, with the recorded split stated where authors read it: the
+  identity views (catalog, hubs, `--dir`, search) follow the id, the
+  physical views (`index`, `dirs`, stats' `by_dir`) keep the file where it
+  lives. Both in the skill's authoring guide.
+
+### Changed
+
+- **`validate` warns on a declared-but-blank `status`.** `status: ""` is a
+  producer typo, not an absence — §5.4's default belongs to a concept that
+  never declared the key — and reading the blank through the default turned it
+  into `stable` before the vocabulary check ran, so the one value §5.4 names
+  nowhere was the one that never warned.
+- **`lint --stale-after` refuses the ISO spellings it used to reinterpret.**
+  It took whatever `Date.iso8601` parsed, so the basic (`20260101`) and week
+  (`2026-W01-1`) forms silently became a cutoff nobody asked for — `20260101`
+  read as the year 2026 day 01 of month 01 only by luck of the parser, and
+  `2026-W01-1` as 2025-12-29. Both now exit 2 naming the accepted shapes. A
+  `YYYY-MM-DD` date and a full `2026-01-01T09:00:00Z` timestamp (what a
+  concept's own `generated.at` looks like) are both still accepted, the
+  timestamp reduced to its date as before. The new `--today` takes the
+  narrower grammar — it names a calendar day, not a moment.
+- **The gem targets OKF v0.2** and keeps reading v0.1 under §13.1's two
+  sanctioned fallbacks: a legacy `timestamp` reads as `generated.at` (per-key,
+  so a half-migrated `generated: { by: … }` beside a `timestamp` keeps its
+  date, and no actor is ever invented), and a body `# Citations` list reads as
+  `sources` whenever the native key yields zero mappings. One `OKF::Concept`
+  class, no version hierarchy; a pure v0.1 bundle still validates with zero
+  warnings.
+- **Breaking: lint check ids renamed** — `missing_timestamp` is
+  `missing_generated`, `broken_citation` is `broken_source` — so `--only` /
+  `--except` lists naming the old ids exit 2. `uncited_external` is redefined
+  over `#sources` (a v0.1 `# Citations` still silences it — a prose-only
+  section included; so does a migrated `sources:` block). The `stale`
+  finding's JSON metric renames `timestamp:` to `generated_at:` (and its
+  message says "last updated <generated_at>") — a consumer reading
+  `finding.metric.timestamp` gets `null` and must move with it.
+- **Breaking: the `timestamp` catalog column is removed** — `--fields
+  timestamp` exits 2 loudly, naming the valid fields. The `concepts` row gains
+  `generated_at`, `generated_by`, `generated` (the raw declared-key boolean
+  that tells hand-written apart from v0.1-with-timestamp), `trust` (the
+  hyphenated wire literals `unverified` | `machine-confirmed` |
+  `human-reviewed`), `stale_after`, and a `sources` count. `status` stays the
+  raw declared value, `null` when absent. Temporal values render ISO 8601.
+- **Breaking: `Concept#citations` and `Markdown::Citations.targets` are
+  removed**, both subsumed by `Concept#sources` / `Citations.entries`.
+- **The staleness boundary is `today >= stale_after`** — a concept is stale
+  **on** the day itself, per §5.5. A consumer replacing its own `<`-based
+  check shifts by one day and should know it.
+- `GET /node/meta` returns JSON (`{ description, trust: { tier, generated_by,
+  generated_at, status, stale_after } }`, null-stripped) instead of an escaped
+  HTML fragment; the graph page composes the trust line client-side for served
+  and baked pages alike, and computes expiry against the viewer's own clock.
+- The demo Open Graph card URL the graph template points at moved to
+  `og-demo-v5.png` (the site's card-art version bump); the old URL keeps
+  serving the current art, so nothing breaks in between.
+
 
 ### Fixed
 

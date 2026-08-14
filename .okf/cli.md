@@ -52,7 +52,7 @@ it; a group here that no command returns is a group nobody sees.
 | `:act` | `skill`, `server`, `render` | boot the [graph server](capabilities/graph-server.md) or write it as a [static file](capabilities/render.md); install the [agent skill](capabilities/agent-skill.md). |
 | `:registry` | `registry` | one umbrella verb over its subcommands — curate the [bundle registry](registry.md), global or [project-local](registry.md#global-by-default-project-local-by-discovery). |
 | `:judge` | `lint`, `loose`, `validate` | [validate](capabilities/validator.md) and [lint](capabilities/linter.md) answer different questions and stay separate. |
-| `:read` | `search`, `index`, `stats`, `types`, `tags`, `files`, `catalog` | the [browser views as text](capabilities/read-views.md), plus the `index` map and [ranked search](capabilities/search.md). |
+| `:read` | `search`, `index`, `dirs`, `stats`, `types`, `tags`, `files`, `references`, `catalog` | the [browser views as text](capabilities/read-views.md), plus the `index` map and [ranked search](capabilities/search.md). |
 | `:graph` | `graph` | its own group because it is the whole model at once, not a view onto part of it. |
 | `:extension` | *(whatever is installed)* | the only group with a printed heading — "where did this come from?" is a question only an addon raises. |
 

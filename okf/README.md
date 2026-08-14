@@ -90,7 +90,7 @@ behind one hub. `okf registry init` scopes one to a single project instead, and 
 committed `.okf-registry.json` travels with the repo.
 
 **A big bundle is read a level at a time.** `okf index --depth 1 --except
-body,listing` is the map an agent orients on — on a 400-concept bundle, 2.8 KB
+body,listing` is the map an agent orients on — on a 414-concept bundle, 2.8 KB
 against the full 313 KB — and `--dir` then opens one branch, bringing the
 ancestors that say what it is.
 
@@ -137,6 +137,21 @@ nothing else.
 Keeping them apart is what lets you gate CI on conformance without gating it on
 taste. `lint --json` is also the structured input an agent reads to reason about
 the two things no checker can compute — contradictions, and *semantic* staleness.
+
+## Trust is data, so you can filter on it
+
+OKF v0.2 lets a bundle say where each concept came from and how far to trust
+it — `generated` (who or what wrote it), `verified` (who confirmed it),
+`status` (its lifecycle), `stale_after` (a declared expiry) — and this gem
+reads the families everywhere: `--status` and `--trust` narrow `catalog`,
+`files`, `search`, `tags` and `types`; the graph page shows each concept's
+tier beside its type; `lint` reports what expired, against a clock you can
+pin (`--today`) for a reproducible report. `okf references` closes the loop
+for §10's attested computations, inventorying the `references/` files —
+attester code, computation files — that back them, with every pointer that
+resolves to nothing named. A v0.1 bundle needs none of this and stays
+readable forever (§13); the two Migration findings tell it what to modernize
+without ever failing it.
 
 ## Extending it
 

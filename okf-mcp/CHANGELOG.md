@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`tags`, `types` and `stats` — the read views the audit priced.** `tags`
+- **`tags`, `types` and `stats` — the CLI's remaining read views, as tools.** `tags`
   ships with the `by: "dir" | "type"` curation view — the kernel's
   `Bundle#tag_groups`, extracted so the within-group-beside-total counting
   has one home — and `stats` reads the kernel's new `Bundle#stats`, whose
@@ -35,19 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   can widen past the fitted threshold or narrow below it. Outside
   `view: "traffic"` it is refused: a half-honored argument is the
   silent-wrong-answer shape.
-
-### Fixed
-
-- **`search`'s declared output schema now carries `skipped`** — the field the
-  tool emits when `"*"` forgives a vanished bundle. A host typing its
-  structured-content handling off `outputSchema` dropped it, and the SDK's
-  result validation (on in the test suite) failed a payload the tool
-  genuinely produces; slugs, not rows, and never required.
-- **An out-of-range `--port` or unresolvable `--bind` is a usage error.** The
-  socket layer raises `SocketError` (Socket::ResolutionError on newer
-  Rubies), which the boot rescue did not name, so a typo came back as a
-  backtrace and exit 1 instead of the one readable line and exit 2 every
-  other boot failure earns.
 
 ### Changed
 
@@ -81,6 +68,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lands beside it. `lint` supplies the clock the `expired` check needs, the
   way the CLI does, and the client-visible descriptions and prompts cite
   v0.2's chapter numbers.
+
+### Fixed
+
+- **`search`'s declared output schema now carries `skipped`** — the field the
+  tool emits when `"*"` forgives a vanished bundle. A host typing its
+  structured-content handling off `outputSchema` dropped it, and the SDK's
+  result validation (on in the test suite) failed a payload the tool
+  genuinely produces; slugs, not rows, and never required.
+- **An out-of-range `--port` or unresolvable `--bind` is a usage error.** The
+  socket layer raises `SocketError` (Socket::ResolutionError on newer
+  Rubies), which the boot rescue did not name, so a typo came back as a
+  backtrace and exit 1 instead of the one readable line and exit 2 every
+  other boot failure earns.
+
 
 ## [1.0.0] - 2026-08-07
 

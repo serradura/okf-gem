@@ -24,7 +24,7 @@ capability that can fail a bundle — exit `1` on any hard error, `0` otherwise.
 |------|-----------|
 | §11 cond. 1 | every non-reserved file can be **read** and has a parseable [frontmatter](../format/frontmatter.md) block |
 | §11 cond. 2 | every such block has a **non-empty `type`** |
-| §11 cond. 3 | every `index.md` / `log.md` present is well-formed (nested index has no frontmatter, root index carries only `okf_version`, log dates are ISO) |
+| §11 cond. 3 | every `index.md` / `log.md` present is well-formed (nested index has no frontmatter, root index carries only `okf_version`, log dates are real ISO calendar days — `2026-02-30` matches the shape and is refused) |
 
 A file that will not **open** fails condition 1 too, not only one whose frontmatter will
 not parse: the reader keeps it in [`bundle.unparseable`](../model/bundle.md) with
