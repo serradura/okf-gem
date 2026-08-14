@@ -34,7 +34,7 @@ module ByDir
     # new verb from skipping the sweep silently. `skill` writes files and takes
     # no bundle; `registry` is stateful and takes no bundle; `server` has no
     # output to diff (its mount is asserted instead, below).
-    COMPARED = %i[validate lint catalog search graph files types tags stats index dirs loose render].freeze
+    COMPARED = %i[validate lint catalog search graph files types tags stats index dirs loose references render].freeze
     SKIPPED = %i[skill registry server].freeze
 
     # The fixtures that may keep the retired v0.1 spellings: the twins' v0.1
@@ -209,6 +209,14 @@ module ByDir
 
     test "loose reads both halves identically" do
       assert_twins("loose")
+    end
+
+    test "references reads both halves identically" do
+      # Neither half carries a references/ tree, and both halves' sources are
+      # URLs — the v0.1 Citations included, once §13.1 lifts them — so the
+      # equality here is two empty inventories. That is the property: migrating
+      # a bundle must not conjure a pointer the old spelling never made.
+      assert_twins("references")
     end
 
     test "search finds the same concepts in both halves, on body text and on source text alike" do

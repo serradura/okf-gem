@@ -85,8 +85,9 @@ these paths bare from a nested concept. Write `/references/…` and the field
 resolves from the bundle root wherever the concept sits, which is the same reason
 [links](#links-are-untyped-on-purpose) prefer the absolute form. `lint` catches
 the `.md` cases (`broken_attestation_ref`, `broken_source`); a `.sql` or `.py`
-target is not a concept, so no checker sees it and only the leading `/` protects
-you.
+target is not a concept, so no lint check sees it — `okf references` is the
+surface that does: it lists the `references/` tree from disk with every pointer
+that misses, and names the leading-`/` fix when that is the miss.
 
 ### `resource` is the bridge to reality <!-- rule:okf-resource-bridge -->
 Set `resource` (a canonical URI) **only** when a concept *is* a real, addressable

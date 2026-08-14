@@ -123,9 +123,20 @@ module OKF
       # @param bundle [String] path to the bundle root
       def resolve(raw, from:, bundle:)
         target = raw.to_s.split("#", 2).first.to_s
+        return nil unless target.end_with?(".md")
+
+        resolve_path(raw, from: from, bundle: bundle)
+      end
+
+      # The path arithmetic under #resolve without its +.md+ gate — the resolver
+      # for §6.2's path-valued frontmatter fields (resource, sources[].resource,
+      # computation, executor.resource, attester.resource), which accept any
+      # file. Body cross-links stay .md-only through #resolve; keeping the gate
+      # there and not here is what stops the two rules from trading places.
+      def resolve_path(raw, from:, bundle:)
+        target = raw.to_s.split("#", 2).first.to_s
         return nil if target.empty? || target.end_with?("/")
         return nil if target.match?(SCHEME) || target.start_with?("mailto:")
-        return nil unless target.end_with?(".md")
         return target.sub(%r{\A/+}, "") if target.start_with?("/")
 
         bundle_abs = File.expand_path(bundle)

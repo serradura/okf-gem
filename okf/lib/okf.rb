@@ -67,6 +67,7 @@ module OKF
   require "okf/concept"
   require "okf/bundle"
   require "okf/bundle/graph"
+  require "okf/bundle/references"
   require "okf/bundle/row_filter"
   require "okf/bundle/skeleton"
   require "okf/bundle/search"

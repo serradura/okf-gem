@@ -356,5 +356,18 @@ module ByDir
       assert_equal 2, result.status
       assert_match(/invalid --today `soon`/, result.err)
     end
+
+    test "a relative link that escapes the bundle root is reported verbatim, never resolved" do
+      # §5.1 resolution stops at the root: `../../escaped.md` names nothing the
+      # bundle can reach, so the finding carries the spelling as written — a
+      # resolved absolute path would leak the machine's layout into the report.
+      result = okf("lint", fixture("references-trap"), "--json", "--only", "missing_concept")
+      finding = json(result).fetch("findings").first
+
+      assert_equal 0, result.status
+      assert_equal "missing_concept", finding.fetch("check")
+      assert_equal "../../escaped.md", finding.fetch("path")
+      assert_equal [ "metrics/report" ], finding.fetch("metric").fetch("sources")
+    end
   end
 end

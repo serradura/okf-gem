@@ -128,8 +128,10 @@ Eight categories, each backed by individual checks (severity in brackets):
   reader-supplied `--stale-after` cutoff, keyed on `generated_at`)
 - **Provenance** — `uncited_external` [info] (external body links and no
   sources, in either spelling), `broken_source` [warn] (an in-bundle `.md`
-  source target that names no concept; URLs, scope descriptors and non-`.md`
-  assets are exempt by construction), `unattributed_claim` [warn] (a footnote
+  source target that names no concept; URLs and scope descriptors are out of
+  scope, and a non-`.md` asset is out of reach — the reader models concepts,
+  so lint never sees the file; `okf references` is the view that checks those
+  pointers), `unattributed_claim` [warn] (a footnote
   no `sources[].id` answers — it *misattributes* a claim, which is why it
   outranks its join-twin), `unused_source` [info] (a keyed source no footnote
   cites — slack, not a defect), `unprefixed_actor` [info] (a `verified[].by`
@@ -144,10 +146,12 @@ Eight categories, each backed by individual checks (severity in brackets):
   in-bundle `.md` that is not there — a contract no consumer can follow; the
   keys are read only on that type, since §4.1 lets any other concept use them
   for its own purpose). Its reach is exactly the `.md` files: URLs are out
-  of scope, and a `.sql` or `.py` target is invisible to *every* check here
-  because the reader models concepts, not assets — nothing in the bundle knows
-  that file exists. Remember §6.2 reads a bare `references/…` as relative to
-  the concept, so from a nested concept it wants the leading `/`
+  of scope, and a `.sql` or `.py` target is invisible to *every* check here,
+  because the linter reads the concept model and the model carries only
+  markdown — `okf references` is the surface that sees those files and reports
+  a pointer that misses, whatever the extension. Remember §6.2 reads a bare
+  `references/…` as relative to the concept, so from a nested concept it wants
+  the leading `/`
 - **Migration** — `legacy_timestamp` [info], `legacy_citations` [info]: one
   finding per bundle naming the files still in a retired v0.1 spelling, with
   the rewrite instructions in the message. Info on purpose — §13 says a v0.1
@@ -495,6 +499,28 @@ plus whatever the other flag selected: an answer to neither question.
 
 Reach for `stats` first to size a bundle, `catalog`/`files` to enumerate it, `tags`
 to find thematic clusters — all without standing up the server.
+
+## references — the `references/` inventory (§6.3)
+
+Lists every file under `references/` — including the non-markdown ones no other
+verb can see, since the concept model carries only markdown — with which
+concepts cite each file through the §6.2 path-valued fields (`resource`,
+`sources[].resource`, `computation`, `executor.resource`, `attester.resource`),
+plus every pointer into `references/` that resolves to nothing. Advisory:
+**exits `0`** even with dangling pointers — the findings are the output. JSON:
+`{ bundle, dangling, count, references: [{ path, dir, kind, referenced_by }] }`,
+with `--fields`/`--except` projecting the rows. A file that is itself a concept
+(§6.3 allows both) is marked `kind: "concept"`; body links are the graph's
+business and are not counted here.
+
+**The dangling list is where §6.2's bare-path trap surfaces.** A bare
+`references/attesters/rev.py` written from `metrics/` resolves relative to the
+concept — `metrics/references/attesters/rev.py`, nothing — and when the
+leading-slash spelling would have hit, the entry says so:
+`/references/attesters/rev.py exists — missing leading slash?`. Reach is any
+extension, which is exactly what `broken_source` and `broken_attestation_ref`
+cannot offer (their exemptions above), so run it wherever a bundle carries
+attester code or computation files.
 
 ## server — interactive graph server
 

@@ -65,6 +65,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`okf references` — the §6.3 inventory.** Lists every file under
+  `references/`, the non-markdown ones included (the concept model carries
+  only markdown, so no other verb can see a `.py` attester or a `.sql`
+  computation), with which concepts cite each file through the §6.2
+  path-valued fields — plus every pointer into `references/` that resolves to
+  nothing. A bare `references/…` written from a subdirectory resolves relative
+  to the concept (the §6.2 trap the SPEC's own examples invite), and when the
+  leading-slash spelling would have hit, the dangling entry says so. Advisory
+  (exit 0); `--json` with `--fields`/`--except` like the other read views.
+  Backed by `OKF::Bundle::References` (pure) and
+  `OKF::Bundle::Folder#references` (the disk manifest) in the library, and by
+  `Markdown::Links.resolve_path` — `#resolve`'s path arithmetic without its
+  `.md` gate, since §6.2 fields accept any file.
 - **The §5/§10 families across every surface.** The validator warns on their
   shapes (raw keys only, warnings only — §11's three hard conditions are
   untouched) and its warnings become machine-readable: each carries `check:`
