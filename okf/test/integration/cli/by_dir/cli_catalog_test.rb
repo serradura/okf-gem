@@ -405,5 +405,27 @@ module ByDir
       assert_equal rows.size, json(okf("catalog", fixture("twins/v0_1"), "--trust", "unverified", "--json")).fetch("count")
       assert_equal 0, json(okf("catalog", fixture("twins/v0_1"), "--trust", "human-reviewed", "--json")).fetch("count")
     end
+
+    test "a frontmatter id moves the identity views and never the physical ones" do
+      # The recorded rule (Bundle::Skeleton's comment): catalog, hubs, --dir
+      # and search follow the *id* because the edges do; index/dirs/stats'
+      # by_dir follows the *disk* because an index.md is a physical listing. A
+      # concept whose `id:` moves it out of its directory is where the two
+      # disagree on purpose — pinned here so the split stays a decision, not
+      # an accident. (§2 defines a concept id as the path minus `.md`; the
+      # override is this gem's documented extension — see authoring.md.)
+      row = json(okf("catalog", fixture("aliased-id"), "--json")).fetch("concepts").first
+
+      assert_equal "orders", row.fetch("id")
+      assert_equal ".", row.fetch("dir"), "the identity views follow the id"
+      assert_equal "(root)", row.fetch("top_dir")
+      assert_equal 1, json(okf("catalog", fixture("aliased-id"), "--dir", "root", "--json")).fetch("count")
+      assert_equal 0, json(okf("catalog", fixture("aliased-id"), "--dir", "tables", "--json")).fetch("count"),
+        "--dir narrows by id, so the physical directory does not answer"
+
+      stats = json(okf("stats", fixture("aliased-id"), "--json"))
+      assert_equal({ "tables" => 1, "." => 0 }, stats.fetch("by_dir"),
+        "the physical views keep the file where it lives")
+    end
   end
 end

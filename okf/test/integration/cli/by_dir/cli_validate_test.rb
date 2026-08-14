@@ -2,8 +2,8 @@
 
 require_relative "../cli_integration_case"
 
-# `okf validate` end-to-end — the §9 conformance verdict across conformant,
-# malformed (§9.1/§9.2), structural (§9.3), edge-case, and unhealthy fixtures.
+# `okf validate` end-to-end — the §11 conformance verdict across conformant,
+# malformed (§11.1/§11.2), structural (§11.3), edge-case, and unhealthy fixtures.
 module ByDir
   # Bundles named by path — the plain form every verb accepts.
   class CLIValidateTest < CLIIntegrationCase
@@ -27,7 +27,7 @@ module ByDir
       assert_equal 0, status
     end
 
-    test "malformed concepts are §9.1/§9.2 errors (exit 1)" do
+    test "malformed concepts are §11.1/§11.2 errors (exit 1)" do
       result = okf("validate", fixture("malformed"))
 
       assert_equal 1, result.status
@@ -38,14 +38,18 @@ module ByDir
       assert_match(/no-type\.md: frontmatter must include a non-empty type/, result.out)
     end
 
-    test "§9.3 structural violations are errors (exit 1)" do
+    test "§11.3 structural violations are errors (exit 1)" do
       result = okf("validate", fixture("structural"))
 
       assert_equal 1, result.status
-      assert_match(/✗ non-conformant \(3 error\(s\)\)/, result.out)
+      assert_match(/✗ non-conformant \(4 error\(s\)\)/, result.out)
       assert_match(/index\.md: root index\.md frontmatter may only include okf_version/, result.out)
       assert_match(%r{sub/index\.md: nested index\.md must not include frontmatter}, result.out)
       assert_match(/log\.md: log\.md date headings must use YYYY-MM-DD/, result.out)
+      # Two log headings fail for two different reasons — a prose date, and a
+      # calendar-invalid 2026-02-30 that matches the digit shape. Same message,
+      # so the count above is what proves the second was caught.
+      assert_equal 2, result.out.scan("log.md date headings must use YYYY-MM-DD").length
     end
 
     test "date-only and full ISO timestamps do not warn (issue #3 regression)" do
@@ -71,13 +75,13 @@ module ByDir
       assert_equal 0, status
     end
 
-    test "a file the reader cannot open is a §9.1 error naming it, not a backtrace" do
+    test "a file the reader cannot open is a §11.1 error naming it, not a backtrace" do
       skip_unless_permissions_bite
       dir = unreadable_bundle("locked")
 
       result = okf("validate", dir)
 
-      assert_equal 1, result.status, "a file that cannot be read cannot be shown to carry a type — §9.1 fails, and 1 is what a failing bundle exits"
+      assert_equal 1, result.status, "a file that cannot be read cannot be shown to carry a type — §11.1 fails, and 1 is what a failing bundle exits"
       refute_match(/\.rb:\d+/, result.err, "exit 1 means non-conformant; a backtrace means neither that nor a usage error")
       assert_match(/✗ ERROR  note\.md: .*Permission denied/, result.out,
         "the report names the file and why it could not be read, which is the whole point of failing instead of raising")
@@ -95,7 +99,7 @@ module ByDir
     end
     # ── the v0.2 families (§5, §10) ──────────────────────────────────────────
     #
-    # Every one of these is a *warning*. §11 restates §9's three conformance
+    # Every one of these is a *warning*. §11 restates §11's three conformance
     # conditions verbatim and adds nothing to the error side, so a v0.2 shape
     # fault can never make a bundle non-conformant — which is why each test
     # below asserts exit 0 alongside the message it is about.

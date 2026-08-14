@@ -125,6 +125,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   attested-computation template carries §10.3's MUST NOT, and the migrate
   playbook walks the v0.1→v0.2 rewrite.
 
+### Added
+
+- **`log_order` [info], the first log-side lint check.** §9 describes the log
+  as date-grouped entries, newest first — prose, not an RFC keyword, so
+  disorder is curation slack rather than a conformance error: exactly lint's
+  side of the split. Only shape-valid headings are compared; a malformed date
+  stays the validator's error, reported once.
+- **`unprefixed_actor` now covers `generated.by` too.** §7 gives the actor
+  convention to both identity fields; only `verified[].by` was checked, on the
+  argument that §5.3 derives trust from nothing else — true, but a
+  `generated.by` no form can classify leaves a provenance reader unable to
+  tell a person from a process, so it earns the same info finding with its own
+  consequence. A *missing* `generated.by` stays the validator's warning.
+
+### Fixed
+
+- **A calendar-invalid log heading is now a §11 error.** §9's MUST is ISO
+  8601, and `## 2026-02-30` matched the digit shape while naming a day that
+  never existed — the validator now asks `Date.iso8601`, so a log.md is
+  conformant only around real dates.
+- **`MAILTO:` is excluded case-insensitively**, like every other scheme (RFC
+  3986). The guard sat inline and case-sensitive beside the case-insensitive
+  `SCHEME` regex in three places, so an uppercase mailto whose address ends in
+  `.md` resolved as a relative path — a link outside the bundle reported as a
+  file inside it. One `Links::MAILTO` now, beside `SCHEME`, for the same
+  reason `SCHEME` moved there.
+- **`incomplete_computation` requires the fence, not the heading.** §10.3's
+  inline form is a fenced code block under `# Computation`; a heading over
+  prose used to count as provided, and a contract with nothing an executor
+  could run lint'd clean.
+
+
 ## [1.13.0] - 2026-08-07
 
 ### Added

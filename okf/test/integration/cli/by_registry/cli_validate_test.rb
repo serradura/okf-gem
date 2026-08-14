@@ -2,7 +2,7 @@
 
 require_relative "../cli_integration_case"
 
-# `okf validate` named through the registry — the §9 verdict is the bundle's, but
+# `okf validate` named through the registry — the §11 verdict is the bundle's, but
 # the identity in the report is the caller's: `@slug (/path)` in the header, and
 # `bundle` + `slug` side by side in the JSON.
 module ByRegistry

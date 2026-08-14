@@ -227,7 +227,8 @@ class OKF::Bundle::LinterTest < OKF::TestCase
       unused_source: :info, unprefixed_actor: :info,
       incomplete_computation: :warn, broken_attestation_ref: :warn,
       legacy_timestamp: :info, legacy_citations: :info,
-      duplicate_title: :info, unused_reference_def: :info, undefined_reference: :warn, self_link: :info
+      duplicate_title: :info, unused_reference_def: :info, undefined_reference: :warn, self_link: :info,
+      log_order: :info
     }
 
     assert_equal expected, OKF::Bundle::Linter::SEVERITIES
@@ -353,16 +354,17 @@ class OKF::Bundle::LinterTest < OKF::TestCase
     assert_equal 1, checks(:unused_source).size
   end
 
-  # ── Provenance: the §7 actor forms on verified[].by ─────────────────────────
+  # ── Provenance: the §7 actor forms on the two identity fields ───────────────
 
-  test "unprefixed_actor informs on a verified.by outside §7's three forms, and only there" do
+  test "unprefixed_actor informs on both §7 identity fields, each with its own consequence" do
     write("bare.md", "---\ntype: Note\ntitle: B\ndescription: d\nverified: { by: owner }\n---\n\na body long enough to skip the stub check\n")
+    write("gen.md", "---\ntype: Note\ntitle: G\ndescription: d\ngenerated: { by: owner }\n---\n\na body long enough to skip the stub check\n")
     write("fine.md", <<~MD)
       ---
       type: Note
       title: F
       description: d
-      generated: { by: owner-tool }
+      generated: { by: tooling/1.0 }
       sources:
         - id: s
           resource: https://e.com/s
@@ -377,10 +379,17 @@ class OKF::Bundle::LinterTest < OKF::TestCase
     MD
 
     findings = checks(:unprefixed_actor)
-    assert_equal %w[bare.md], findings.map { |f| f[:path] }
-    assert_equal :info, findings.first[:severity], "it must inform, never block"
-    assert_match(/reads as machine-confirmed/, findings.first[:message])
-    assert_match(/human:<id>/, findings.first[:message])
+    assert_equal %w[bare.md gen.md], findings.map { |f| f[:path] }.sort,
+      "sources[].author stays out — the SPEC's own examples use team:<id> there"
+    assert(findings.all? { |f| f[:severity] == :info }, "it must inform, never block")
+    verified = findings.find { |f| f[:path] == "bare.md" }
+    generated = findings.find { |f| f[:path] == "gen.md" }
+    assert_match(/verified\.by `owner`/, verified[:message])
+    assert_match(/reads as machine-confirmed/, verified[:message], "the §5.3 misread is verified.by's consequence")
+    assert_match(/generated\.by `owner`/, generated[:message])
+    assert_match(/cannot tell a person from a process/, generated[:message],
+      "generated.by feeds no tier, so its consequence is the audit trail")
+    assert_equal "generated.by", generated[:metric][:field]
   end
 
   # ── Attestation (§10.2/§10.3) ───────────────────────────────────────────────

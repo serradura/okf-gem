@@ -33,7 +33,8 @@ module OKF
         unused_source: :info, unprefixed_actor: :info,
         incomplete_computation: :warn, broken_attestation_ref: :warn,
         legacy_timestamp: :info, legacy_citations: :info,
-        duplicate_title: :info, unused_reference_def: :info, undefined_reference: :warn, self_link: :info
+        duplicate_title: :info, unused_reference_def: :info, undefined_reference: :warn, self_link: :info,
+        log_order: :info
       }.freeze
 
       # All checks, in display/registry order — derived from the severity map
@@ -405,22 +406,29 @@ module OKF
       # reports it — a lint twin double-counted one defect with two severities,
       # exactly what the parallel `verified[].by` family never did.
 
-      # Scoped strictly to `verified[].by` — the one field §5.3 derives trust
-      # from, where a bare `by: owner` silently reads as machine-confirmed: the
-      # exact misread the tier system exists to prevent. Not `generated.by`
-      # (inventing an actor is what the reader refuses) and not
-      # `sources[].author` (the SPEC's own examples use `team:<id>` there).
+      # The two fields §7 gives the actor convention to. `verified[].by` is
+      # where the misread bites — §5.3 derives the tier from it, so a bare
+      # `by: owner` silently reads as machine-confirmed. `generated.by` feeds
+      # no tier, but it is the field §7 names first, and a form nothing can
+      # classify leaves a provenance reader unable to tell a person from a
+      # process — so it earns the finding with its own consequence. Still not
+      # `sources[].author` (the SPEC's own examples use `team:<id>` there),
+      # and a *missing* `generated.by` stays the validator's warning.
       # Info is load-bearing: it must inform, never block.
       def check_unprefixed_actor
         @concepts.each do |concept|
-          concept.verified.each do |event|
-            actor = event["by"].to_s.strip
+          fields = []
+          generated_by = concept.generated && concept.generated["by"]
+          fields << [ "generated.by", generated_by, generated_consequence ]
+          concept.verified.each { |event| fields << [ "verified.by", event["by"], nil ] }
+          fields.each do |field, raw, consequence|
+            actor = raw.to_s.strip
             next if actor.empty? || ACTOR_FORMS.any? { |form| actor.match?(form) }
 
             add(:unprefixed_actor, "#{concept.id}.md",
-              "verified.by `#{actor}` matches none of §7's forms (`<producer>/<version>`, `human:<id>`, " \
-              "`process:<id>`)#{actor_consequence(actor)}",
-              metric: { by: actor })
+              "#{field} `#{actor}` matches none of §7's forms (`<producer>/<version>`, `human:<id>`, " \
+              "`process:<id>`)#{consequence || actor_consequence(actor)}",
+              metric: { by: actor, field: field })
           end
         end
       end
@@ -436,6 +444,32 @@ module OKF
           if actor.start_with?(Concept::HUMAN_ACTOR)
 
         " and reads as machine-confirmed; use `human:<id>` if a person confirmed this"
+      end
+
+      # §5.3 never reads `generated.by`, so unlike a verified actor nothing is
+      # misclassified — the cost is the audit trail: nobody downstream can say
+      # what kind of actor produced the text.
+      def generated_consequence
+        " — no trust tier reads it (§5.3 keys off verified), but a reader cannot tell a person from a process"
+      end
+
+      # §9 describes the log as date-grouped entries, newest first — prose, not
+      # an RFC keyword, so disorder is curation slack rather than a §11 error:
+      # exactly lint's side of the split. Only shape-valid headings are
+      # compared; a malformed date is already the validator's error, and
+      # double-reporting it here as disorder would name one defect twice.
+      def check_log_order
+        @bundle.log_files.each do |path|
+          dates = @bundle.reserved_content(path).each_line
+                         .select { |line| line.start_with?("## ") }
+                         .map { |line| line.sub(/\A## /, "").strip }
+                         .grep(/\A\d{4}-\d{2}-\d{2}\z/)
+          next if dates == dates.sort.reverse
+
+          add(:log_order, path,
+            "date headings are not newest-first (§9): #{dates.join(", ")}",
+            metric: { dates: dates })
+        end
       end
 
       # ── Attestation (§10) ────────────────────────────────────────────────────────
@@ -738,9 +772,30 @@ module OKF
       end
 
       # Whether the body carries a §10.3 `# Computation` section, fence-aware.
+      # §10.3's inline form is "a single fenced code block in the body under
+      # `# Computation`" — so inline is proven by the fence, not the heading. A
+      # heading over prose used to count as provided, and a contract with
+      # nothing an executor could run lint'd clean. Walked raw (not through
+      # each_prose_line, which blanks fences): a fence line while the section
+      # is open is the answer, and a heading inside an earlier fence is text.
       def computation_heading?(body)
-        Markdown::Links.each_prose_line(body.to_s) do |line|
-          return true if COMPUTATION_HEADING.match?(line.strip)
+        in_fence = false
+        in_section = false
+        body.to_s.each_line do |line|
+          stripped = line.strip
+          if stripped.start_with?("```", "~~~")
+            return true if in_section && !in_fence
+
+            in_fence = !in_fence
+            next
+          end
+          next if in_fence
+
+          if COMPUTATION_HEADING.match?(stripped)
+            in_section = true
+          elsif in_section && stripped.match?(/\A\#{1,6}\s/)
+            in_section = false
+          end
         end
         false
       end
@@ -757,7 +812,7 @@ module OKF
       end
 
       def external?(raw)
-        raw.match?(Markdown::Links::SCHEME) || raw.start_with?("mailto:")
+        raw.match?(Markdown::Links::SCHEME) || raw.match?(Markdown::Links::MAILTO)
       end
 
       def count_findings(check)

@@ -48,7 +48,7 @@ module AcrossBundles
 
     test "the refusal is a usage verdict (2) — render itself never fails a bundle (1)" do
       out = File.join(@out_dir, "structural.html")
-      assert_equal 0, okf("render", fixture("structural"), "-o", out).status # advisory even on a §9 reject
+      assert_equal 0, okf("render", fixture("structural"), "-o", out).status # advisory even on a §11 reject
 
       second = okf("render", fixture("structural"), fixture("minimal"), "-o", out)
 

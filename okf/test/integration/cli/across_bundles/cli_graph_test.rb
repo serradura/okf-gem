@@ -46,7 +46,7 @@ module AcrossBundles
     end
 
     test "the refusal is a usage verdict (2) — graph itself never fails a bundle (1)" do
-      assert_equal 0, okf("graph", fixture("structural")).status # advisory even on a §9 reject
+      assert_equal 0, okf("graph", fixture("structural")).status # advisory even on a §11 reject
 
       second = okf("graph", fixture("structural"), fixture("minimal"))
 

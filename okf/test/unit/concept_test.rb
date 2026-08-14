@@ -13,7 +13,8 @@ class OKF::ConceptTest < OKF::TestCase
   test "derives id from path and reads typed frontmatter accessors" do
     concept = OKF::Concept.new(
       path: "tables/orders.md",
-      frontmatter: { type: "BigQuery Table", title: "Orders", description: "d", tags: [ "sales" ], timestamp: "2026-01-01" },
+      frontmatter: { type: "BigQuery Table", title: "Orders", description: "d", tags: [ "sales" ],
+                     resource: "bigquery://project/sales/orders", timestamp: "2026-01-01" },
       body: "# Orders\n"
     )
 
@@ -22,6 +23,7 @@ class OKF::ConceptTest < OKF::TestCase
     assert_equal "Orders", concept.title
     assert_equal "d", concept.description
     assert_equal [ "sales" ], concept.tags
+    assert_equal "bigquery://project/sales/orders", concept.resource
     assert_equal "2026-01-01", concept.timestamp
   end
 

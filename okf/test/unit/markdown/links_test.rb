@@ -123,4 +123,33 @@ class OKF::Markdown::LinksTest < OKF::TestCase
     assert_equal [ { text: "", target: "HTTP://example.com/x" } ],
       OKF::Markdown::Citations.entries("# Citations\n\n- HTTP://example.com/x\n")
   end
+  test "mailto is excluded case-insensitively, like every other scheme" do
+    # SCHEME is /i; the mailto guard sat beside it case-sensitive, so
+    # `MAILTO:user@example.md` slipped past both gates and resolved as a
+    # relative path — a link outside the bundle reported as a file inside it.
+    [ "mailto:user@example.md", "MAILTO:user@example.md", "MailTo:user@example.md" ].each do |raw|
+      assert_nil OKF::Markdown::Links.resolve(raw, from: "features/x.md", bundle: "/bundle"), raw
+      assert_nil OKF::Markdown::Links.resolve_path(raw, from: "features/x.md", bundle: "/bundle"), raw
+    end
+  end
+
+  test "resolve_path accepts any extension where resolve keeps the .md gate" do
+    args = { from: "metrics/revenue.md", bundle: "/bundle" }
+
+    assert_nil OKF::Markdown::Links.resolve("attesters/revenue.py", **args)
+    assert_equal "metrics/attesters/revenue.py", OKF::Markdown::Links.resolve_path("attesters/revenue.py", **args)
+    assert_equal "references/rev.py", OKF::Markdown::Links.resolve_path("/references/rev.py", **args)
+  end
+
+  test "resolve_path keeps resolve's exclusions and its escape-verbatim answer" do
+    args = { from: "metrics/revenue.md", bundle: "/bundle" }
+
+    assert_nil OKF::Markdown::Links.resolve_path("", **args)
+    assert_nil OKF::Markdown::Links.resolve_path("references/", **args), "a directory is not a file pointer"
+    assert_nil OKF::Markdown::Links.resolve_path("https://example.com/q.sql", **args)
+    assert_equal "../../outside.py", OKF::Markdown::Links.resolve_path("../../outside.py", **args),
+      "an escape is returned verbatim, so a caller can name it without resolving it"
+    assert_equal "references/rev.py", OKF::Markdown::Links.resolve_path("/references/rev.py#L10", **args),
+      "an anchor is split off before resolution"
+  end
 end

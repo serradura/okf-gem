@@ -15,7 +15,7 @@ module OKF
         "Provenance" => %i[uncited_external broken_source unattributed_claim unused_source unprefixed_actor],
         "Attestation" => %i[incomplete_computation broken_attestation_ref],
         "Migration" => %i[legacy_timestamp legacy_citations],
-        "Hygiene" => %i[duplicate_title unused_reference_def undefined_reference self_link]
+        "Hygiene" => %i[duplicate_title unused_reference_def undefined_reference self_link log_order]
       }.freeze
 
       # `--today` reason for existing, in one line: a CI consumer wanting a

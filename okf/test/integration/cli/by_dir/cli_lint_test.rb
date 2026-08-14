@@ -143,7 +143,7 @@ module ByDir
     end
 
     test "lint buckets a blank type exactly as the read views do" do
-      # §9.2 makes `type: "  "` as non-conformant as a missing one, and the graph
+      # §11.2 makes `type: "  "` as non-conformant as a missing one, and the graph
       # was widened to say so — but lint kept its own `type || "Untyped"`, which
       # only catches nil. Two verbs then report type inventories that cannot be
       # reconciled: an agent cross-referencing them sees a bucket in one that does
@@ -182,9 +182,17 @@ module ByDir
       assert_match(/Provenance/, result.out)
       assert_match(/incomplete-computation\.md: Attested Computation with no computation/, result.out)
       assert_match(/both-computation\.md: Attested Computation provides its computation twice/, result.out)
+      # §10.3's inline form is a *fenced block* under the heading; a heading
+      # over prose is a promise with nothing an executor could run.
+      assert_match(/heading-no-fence\.md: Attested Computation with no computation/, result.out)
       assert_match(/unattributed\.md: footnote `\[\^missing-source\]` has no matching sources\[\]\.id/, result.out)
       assert_match(/unused-source\.md: source `uncited-source` is never cited/, result.out)
       assert_match(/unprefixed\.md: verified\.by `owner` matches none of §7's forms/, result.out)
+      # §7's convention covers both identity fields; generated.by earns the
+      # same finding with its own consequence (§5.3 derives no trust from it).
+      assert_match(/unprefixed-generated\.md: generated\.by `owner` matches none of §7's forms/, result.out)
+      # §9 reads the log newest-first; an inverted pair is curation slack.
+      assert_match(/log\.md: date headings are not newest-first/, result.out)
     end
 
     test "the conformant v0_2 baseline lints clean, and gates clean" do

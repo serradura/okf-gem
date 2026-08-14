@@ -305,10 +305,23 @@ module OKF
           next unless line.start_with?("## ")
 
           heading = line.sub(/\A## /, "").strip
-          next if heading.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+          next if date_heading?(heading)
 
           @result.add_error(path, "log.md date headings must use YYYY-MM-DD")
         end
+      end
+
+      # §9's MUST is ISO 8601, and 2026-02-30 is not a date — the digit shape
+      # alone accepted it, so a bundle could be conformant around a day that
+      # never existed. Same message either way: "must use YYYY-MM-DD" is as
+      # true of a February 30th as of a prose heading.
+      def date_heading?(heading)
+        return false unless heading.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+
+        Date.iso8601(heading)
+        true
+      rescue ArgumentError
+        false
       end
 
       # Broken bundle-internal links are warnings only (§6.1): the spec requires

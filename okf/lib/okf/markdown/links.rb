@@ -37,6 +37,11 @@ module OKF
       # provenance by Citations and as prose by this module.
       SCHEME_NAME = "[a-zA-Z][a-zA-Z0-9+.-]*"
       SCHEME = %r{\A#{SCHEME_NAME}://}.freeze
+      # mailto has no ://, so SCHEME cannot see it — and a scheme name is as
+      # case-insensitive here as everywhere else. This guard sat inline and
+      # case-sensitive in three places; `MAILTO:user@example.md` then passed
+      # both gates and resolved as a relative path.
+      MAILTO = /\Amailto:/i.freeze
 
       module_function
 
@@ -136,7 +141,7 @@ module OKF
       def resolve_path(raw, from:, bundle:)
         target = raw.to_s.split("#", 2).first.to_s
         return nil if target.empty? || target.end_with?("/")
-        return nil if target.match?(SCHEME) || target.start_with?("mailto:")
+        return nil if target.match?(SCHEME) || target.match?(MAILTO)
         return target.sub(%r{\A/+}, "") if target.start_with?("/")
 
         bundle_abs = File.expand_path(bundle)

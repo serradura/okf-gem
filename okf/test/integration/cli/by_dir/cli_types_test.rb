@@ -30,7 +30,7 @@ module ByDir
     end
 
     test "every spelling of an unusable type lands in one Untyped bucket" do
-      # §9.2 rejects a blank `type` exactly as it rejects a missing one, so the
+      # §11.2 rejects a blank `type` exactly as it rejects a missing one, so the
       # index must not sort them apart: `malformed` carries one of each, and a
       # whitespace-only type used to earn its own row labelled with spaces.
       rows = json(okf("types", fixture("malformed"), "--json")).fetch("types")

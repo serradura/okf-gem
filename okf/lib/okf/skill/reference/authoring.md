@@ -74,6 +74,15 @@ the domain. Non-concept assets a concept points at — run instructions, atteste
 code, computation files — live under `references/` by convention (§6.3): a naming
 convention, not a requirement, and the tools never require it.
 
+### Hidden files are outside the bundle <!-- rule:okf-no-hidden-concepts -->
+The reader excludes dot-prefixed files and every path under a dot-prefixed
+directory — the Unix hidden-file convention, kept deliberately: a project root
+often carries an installed skill (`.claude/`), templates (`.github/`) or other
+markdown that is not knowledge, and reading a directory must not pull those in
+as concepts. §3's taxonomy is read as covering the visible tree. The practical
+rule: never author a concept under a hidden directory — no verb will ever see
+it, and nothing will warn you.
+
 ### A path-valued field pointing at `references/` needs its leading `/` <!-- check:broken_attestation_ref -->
 §6.2 gives `resource`, `sources[].resource`, `computation`, `executor.resource`
 and `attester.resource` the same three forms as a link: a URL, a bundle-relative
@@ -88,6 +97,18 @@ the `.md` cases (`broken_attestation_ref`, `broken_source`); a `.sql` or `.py`
 target is not a concept, so no lint check sees it — `okf references` is the
 surface that does: it lists the `references/` tree from disk with every pointer
 that misses, and names the leading-`/` fix when that is the miss.
+
+### A frontmatter `id` renames the concept, not its home <!-- rule:okf-id-extension -->
+§2 defines the Concept ID as the file's path with `.md` removed, full stop.
+This gem additionally honors a frontmatter `id:` as an override — an okf
+extension, not spec, so a bundle leaning on it is trading portability for the
+alias. If you pin one, know the recorded split: links still resolve by path,
+so edges land correctly; the identity views (catalog, hubs, search, `--dir`)
+follow the id, because the edges do; the physical views (`index`, `dirs`,
+stats' `by_dir`) keep the file where it lives, because an index is a physical
+listing. A pinned id that disagrees with the path therefore makes the two
+families answer differently about where the concept is — prefer the default,
+and rename the file when a concept needs a new name.
 
 ### `resource` is the bridge to reality <!-- rule:okf-resource-bridge -->
 Set `resource` (a canonical URI) **only** when a concept *is* a real, addressable

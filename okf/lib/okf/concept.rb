@@ -364,7 +364,7 @@ module OKF
 
     # Body links that point outside the bundle — external URLs and mailto:.
     def external_links
-      links.select { |raw| raw.match?(Markdown::Links::SCHEME) || raw.start_with?("mailto:") }
+      links.select { |raw| raw.match?(Markdown::Links::SCHEME) || raw.match?(Markdown::Links::MAILTO) }
     end
 
     # Serialize back to a markdown document (frontmatter + body) — the inverse of

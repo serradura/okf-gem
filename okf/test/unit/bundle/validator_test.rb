@@ -108,7 +108,7 @@ class OKF::Bundle::ValidatorTest < OKF::TestCase
     assert result.valid?, result.errors.inspect
   end
 
-  test "root index.md with extra frontmatter keys is a §9.3 error" do
+  test "root index.md with extra frontmatter keys is a §11.3 error" do
     write("index.md", <<~MD)
       ---
       okf_version: "0.1"
@@ -124,7 +124,7 @@ class OKF::Bundle::ValidatorTest < OKF::TestCase
     assert_includes result.errors.map { |error| error[:message] }, "root index.md frontmatter may only include okf_version"
   end
 
-  test "nested index.md with frontmatter is a §9.3 error" do
+  test "nested index.md with frontmatter is a §11.3 error" do
     write("groups/index.md", <<~MD)
       ---
       okf_version: "0.1"
@@ -139,7 +139,7 @@ class OKF::Bundle::ValidatorTest < OKF::TestCase
     assert_includes result.errors.map { |error| error[:message] }, "nested index.md must not include frontmatter"
   end
 
-  test "non-ISO log.md date heading is a §9.3 error" do
+  test "non-ISO log.md date heading is a §11.3 error" do
     write("log.md", <<~MD)
       ## June 26, 2026
 

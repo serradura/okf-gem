@@ -278,7 +278,7 @@ module ByRegistry
     test "best-effort read through a ref: malformed files are skipped (stderr), stdout stays valid" do
       with_registry("malformed") do
         result = okf("catalog", "@malformed")
-        assert_equal 0, result.status, "a bundle full of §9 errors still catalogs — this is an advisory read, never exit 1"
+        assert_equal 0, result.status, "a bundle full of §11 errors still catalogs — this is an advisory read, never exit 1"
         assert_match(/skipped 2 unusable file\(s\)/, result.err)
         assert_match(/Good {2}·  Note/, result.out)
 

@@ -194,7 +194,7 @@ module ByRegistry
       with_registry("malformed") do
         result = okf("stats", "@malformed", "--json")
 
-        assert_equal 0, result.status, "a bundle full of §9 errors still rolls up — this is an advisory read, never exit 1"
+        assert_equal 0, result.status, "a bundle full of §11 errors still rolls up — this is an advisory read, never exit 1"
         assert_match(/skipped 2 unusable file\(s\)/, result.err)
         data = json(result)
         assert_equal 3, data.fetch("concepts") # the three that parse still count

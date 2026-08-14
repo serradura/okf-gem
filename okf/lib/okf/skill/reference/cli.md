@@ -135,8 +135,9 @@ Eight categories, each backed by individual checks (severity in brackets):
   no `sources[].id` answers — it *misattributes* a claim, which is why it
   outranks its join-twin), `unused_source` [info] (a keyed source no footnote
   cites — slack, not a defect), `unprefixed_actor` [info] (a `verified[].by`
-  outside §7's three forms reads as machine-confirmed; info so it informs,
-  never blocks). A missing `generated.by` is the *validator's* warning —
+  outside §7's three forms reads as machine-confirmed; a `generated.by`
+  outside them feeds no tier but leaves a reader unable to tell a person
+  from a process; info so it informs, never blocks). A missing `generated.by` is the *validator's* warning —
   REQUIRED-within is shape, not curation — so lint never double-reports it
 - **Attestation** — `incomplete_computation` [warn] (an Attested Computation
   providing its computation neither way, or both ways — §10.3 says a
@@ -160,7 +161,8 @@ Eight categories, each backed by individual checks (severity in brackets):
   `okf lint <dir> --only legacy_timestamp,legacy_citations --fail-on info`,
   exit 1 until clean.
 - **Hygiene** — `duplicate_title` [info], `unused_reference_def` [info],
-  `undefined_reference` [warn], `self_link` [info]
+  `undefined_reference` [warn], `self_link` [info], `log_order` [info] (§9
+  reads a log newest-first; disorder is slack, never a §11 error)
 
 `--only` / `--except` filter by the **individual check names above**, not the
 category labels — `okf lint <dir> --only orphan,stub` works; `--only reachability`

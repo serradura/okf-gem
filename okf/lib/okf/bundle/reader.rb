@@ -87,6 +87,12 @@ module OKF
 
       private
 
+      # Dir.glob's default (no FNM_DOTMATCH) excludes hidden files and every
+      # path under a hidden directory — kept deliberately, as the Unix
+      # convention it is: a bundle read from a project root must not pull in
+      # an installed skill under .claude/ or templates under .github/ as
+      # concepts. §3's taxonomy is read as covering the visible tree; the
+      # exclusion is documented in authoring.md and pinned by a reader test.
       def markdown_paths
         return [] unless Dir.exist?(@root)
 
