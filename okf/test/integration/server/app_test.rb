@@ -292,11 +292,40 @@ class OKF::Server::AppTest < OKF::TestCase
     assert_equal 1, JSON.parse(last_response.body)["total"]
   end
 
+  test "a falsy declared status reaches /node/meta as the same string the catalog row prints" do
+    # Psych reads `status: no` as false; OKF.blank?(false) is true, so the raw
+    # value was stripped here while the row serialized "false" — the served
+    # inspector and the baked one disagreed about the same concept.
+    write("boolish.md", "---\ntype: Note\ntitle: B\ndescription: d\nstatus: no\n---\n\nbody\n")
+    @app = OKF::Server::App.new(OKF::Bundle::Folder.load(@tmpdir), title: "Demo")
+
+    get "/node/meta", id: "boolish"
+
+    assert_equal "false", JSON.parse(last_response.body).dig("trust", "status"),
+      "one concept, one answer — whatever the row prints, the meta carries"
+  end
+
   private
 
   def write(path, content)
     target = File.join(@tmpdir, path)
     FileUtils.mkdir_p(File.dirname(target))
     File.write(target, content)
+  end
+  test "a degenerate generated.at serializes here exactly as the catalog row prints it" do
+    # The comment on App#iso claims 'the same ISO rule the catalog row keeps';
+    # falling back to the raw value instead of to_s made that false — a YAML
+    # list in `at:` reached served clients as a JSON array while the baked
+    # page carried the row's string.
+    write("weird.md", "---\ntype: Note\ntitle: W\ndescription: d\ngenerated:\n  by: someone\n  at: [2026, 6]\n---\n\nbody\n")
+    folder = OKF::Bundle::Folder.load(@tmpdir)
+    @app = OKF::Server::App.new(folder, title: "Demo")
+
+    get "/node/meta", id: "weird"
+    served = JSON.parse(last_response.body).dig("trust", "generated_at")
+    row = folder.catalog.find { |entry| entry[:id] == "weird" }[:generated_at]
+
+    assert_equal row, served
+    assert_kind_of String, served
   end
 end

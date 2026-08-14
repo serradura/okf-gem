@@ -132,12 +132,22 @@ Eight categories, each backed by individual checks (severity in brackets):
   assets are exempt by construction), `unattributed_claim` [warn] (a footnote
   no `sources[].id` answers — it *misattributes* a claim, which is why it
   outranks its join-twin), `unused_source` [info] (a keyed source no footnote
-  cites — slack, not a defect), `missing_generated_by` [info],
-  `unprefixed_actor` [info] (a `verified[].by` outside §7's three forms reads
-  as machine-confirmed; info so it informs, never blocks)
+  cites — slack, not a defect), `unprefixed_actor` [info] (a `verified[].by`
+  outside §7's three forms reads as machine-confirmed; info so it informs,
+  never blocks). A missing `generated.by` is the *validator's* warning —
+  REQUIRED-within is shape, not curation — so lint never double-reports it
 - **Attestation** — `incomplete_computation` [warn] (an Attested Computation
   providing its computation neither way, or both ways — §10.3 says a
-  `computation:` path is used *instead of* the body fence)
+  `computation:` path is used *instead of* the body fence),
+  `broken_attestation_ref` [warn] (on an `Attested Computation`, a
+  `computation`, `executor.resource` or `attester.resource` naming an
+  in-bundle `.md` that is not there — a contract no consumer can follow; the
+  keys are read only on that type, since §4.1 lets any other concept use them
+  for its own purpose). Its reach is exactly the `.md` files: URLs are out
+  of scope, and a `.sql` or `.py` target is invisible to *every* check here
+  because the reader models concepts, not assets — nothing in the bundle knows
+  that file exists. Remember §6.2 reads a bare `references/…` as relative to
+  the concept, so from a nested concept it wants the leading `/`
 - **Migration** — `legacy_timestamp` [info], `legacy_citations` [info]: one
   finding per bundle naming the files still in a retired v0.1 spelling, with
   the rewrite instructions in the message. Info on purpose — §13 says a v0.1

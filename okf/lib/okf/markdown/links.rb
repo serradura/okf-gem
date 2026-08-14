@@ -26,11 +26,17 @@ module OKF
       # per-claim attribution), which would otherwise read as a reference
       # definition nothing ever uses.
       DEFINITION = /\A[ \t]{0,3}\[([^\^\]][^\]]*)\]:[ \t]*(\S+)/.freeze
-      # In-prose footnote reference [^label] — §5.1 joins it on a sources[].id.
-      FOOTNOTE_REFERENCE = /\[\^([^\]\s]+)\]/.freeze
+      # In-prose footnote reference [^label] — §5.1 joins it on a sources[].id;
+      # (?<!!) skips an image whose alt text happens to start with a caret.
+      FOOTNOTE_REFERENCE = /(?<!!)\[\^([^\]\s]+)\]/.freeze
       # A footnote definition line ([^label]: prose) — never a reference.
       FOOTNOTE_DEFINITION = /\A[ \t]{0,3}\[\^([^\]\s]+)\]:/.freeze
-      SCHEME = %r{\A[a-z][a-z0-9+.-]*://}.freeze
+      # The URI scheme grammar, in one source string the citation item
+      # regexes compose from — schemes are case-insensitive (RFC 3986), and
+      # answering the case question in two places had HTTP:// counted as
+      # provenance by Citations and as prose by this module.
+      SCHEME_NAME = "[a-zA-Z][a-zA-Z0-9+.-]*"
+      SCHEME = %r{\A#{SCHEME_NAME}://}.freeze
 
       module_function
 
@@ -66,15 +72,29 @@ module OKF
       end
 
       # The distinct footnote labels referenced in prose (§5.1), in document
-      # order. A definition line is not a reference: a source cited only by its
-      # own definition line is still uncited, and labels are deduplicated so one
-      # unmatched label yields one finding, not one per use.
+      # order. A definition's own leading token is not a reference — a source
+      # cited only by `[^a]:` itself is still uncited — but the prose *after*
+      # it is prose like any other: `[^a]: see also [^b]` cites b, and skipping
+      # the whole line made that citation invisible to both provenance checks.
+      # Labels are deduplicated so one unmatched label yields one finding, not
+      # one per use.
       def footnote_references(text)
         labels = []
         each_prose_line(text) do |line|
-          next if FOOTNOTE_DEFINITION.match?(line)
+          line.sub(FOOTNOTE_DEFINITION, "").scan(FOOTNOTE_REFERENCE) { |captures| labels << captures.first }
+        end
+        labels.uniq
+      end
 
-          line.scan(FOOTNOTE_REFERENCE) { |captures| labels << captures.first }
+      # The footnote labels a body *defines* (`[^label]: …`), deduplicated. A
+      # label with a definition is a self-contained GFM content footnote;
+      # §5.1's keyed attribution never reserves the whole label space, so the
+      # provenance checks treat only undefined, unmatched labels as dangling.
+      def footnote_definitions(text)
+        labels = []
+        each_prose_line(text) do |line|
+          match = FOOTNOTE_DEFINITION.match(line)
+          labels << match[1] if match
         end
         labels.uniq
       end

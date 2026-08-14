@@ -6,7 +6,7 @@ resource: okf/lib/okf/skill/reference/SPEC.md
 tags: [okf, conformance]
 generated:
   by: human:maintainer
-  at: 2026-07-17T16:00:00Z
+  at: 2026-08-13T12:00:00Z
 sources:
   - title: SPEC.md
     resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md

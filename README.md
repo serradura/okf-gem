@@ -509,9 +509,10 @@ _"is this legal OKF?"_ and implements the spec's
 complementary question, _"is this well-curated, navigable, trustworthy?"_, over
 exactly those tolerated things: reachability, backlog, completeness, freshness,
 provenance, attestation, migration, hygiene. It is advisory and exits `0` even
-with findings unless you pass `--fail-on warn` (or `--fail-on info`, which is
-how a [migration campaign](https://okfgem.com/docs/) gates on the two findings
-that name a bundle's leftover v0.1 spellings).
+with findings unless you pass `--fail-on warn` (or, to gate a
+[migration campaign](https://okfgem.com/docs/) on the two findings that name a
+bundle's leftover v0.1 spellings and nothing else,
+`--only legacy_timestamp,legacy_citations --fail-on info`).
 
 Keeping them apart is what lets you gate CI on conformance without gating it on
 taste. `lint --json` is also the structured input an agent reads to reason about

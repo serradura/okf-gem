@@ -74,6 +74,20 @@ the domain. Non-concept assets a concept points at — run instructions, atteste
 code, computation files — live under `references/` by convention (§6.3): a naming
 convention, not a requirement, and the tools never require it.
 
+### A path-valued field pointing at `references/` needs its leading `/` <!-- check:broken_attestation_ref -->
+§6.2 gives `resource`, `sources[].resource`, `computation`, `executor.resource`
+and `attester.resource` the same three forms as a link: a URL, a bundle-relative
+path **beginning with `/`**, or a path relative to the concept. So a concept at
+`metrics/revenue.md` writing `attester: { resource: references/attesters/rev.py }`
+is naming `metrics/references/attesters/rev.py`, not the bundle's `references/`
+tree — the trap being that §6.3's own example, and the SPEC's Appendix, spell
+these paths bare from a nested concept. Write `/references/…` and the field
+resolves from the bundle root wherever the concept sits, which is the same reason
+[links](#links-are-untyped-on-purpose) prefer the absolute form. `lint` catches
+the `.md` cases (`broken_attestation_ref`, `broken_source`); a `.sql` or `.py`
+target is not a concept, so no checker sees it and only the leading `/` protects
+you.
+
 ### `resource` is the bridge to reality <!-- rule:okf-resource-bridge -->
 Set `resource` (a canonical URI) **only** when a concept *is* a real, addressable
 asset — a table (`bigquery://…`), a service repo, a dashboard, an endpoint. Its

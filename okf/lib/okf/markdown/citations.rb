@@ -12,9 +12,11 @@ module OKF
       CITATIONS = /\ACitations\z/i.freeze
       # A list item (or lone line) that is only a URL — the v0.1 spelling the
       # v0.2 SPEC's own Appendix A uses — and the same item written as an
-      # autolink. Both are citations with no text to lift into a title.
-      URL_ITEM = %r{\A(?:[-*+]\s+)?([a-z][a-z0-9+.-]*://\S+)\z}i.freeze
-      AUTOLINK_ITEM = /\A(?:[-*+]\s+)?<([a-z][a-z0-9+.-]*:[^>\s]+)>\z/i.freeze
+      # autolink (which also admits mailto:). Both are citations with no text
+      # to lift into a title; both compose their scheme from Links' one
+      # grammar, so citations and cross-links answer the case question alike.
+      URL_ITEM = %r{\A(?:[-*+]\s+)?(#{Links::SCHEME_NAME}://\S+)\z}.freeze
+      AUTOLINK_ITEM = /\A(?:[-*+]\s+)?<(#{Links::SCHEME_NAME}:[^>\s]+)>\z/.freeze
 
       module_function
 
@@ -62,17 +64,20 @@ module OKF
             next
           end
 
+          # Both grammars scan the same line and merge by offset, so the list
+          # keeps document order *within* a line too — scanning all inline
+          # links before any reference links reversed a mixed line's own order,
+          # and a migration lifting sources off this output writes the list
+          # permanently. Reference items resolve in place, text kept.
+          items = []
           line.scan(Links::INLINE_LINK) do |label, target|
-            found << { text: label.to_s.strip, target: target }
+            items << [ Regexp.last_match.begin(0), { text: label.to_s.strip, target: target } ]
           end
-          # Reference-style items resolve in place, so the list keeps document
-          # order and a `[Quarterly report][r1]` citation keeps its text — an
-          # appended second pass lost both, and a migration lifting sources off
-          # this output would have dropped the title for good.
           line.scan(Links::REFERENCE_LINK) do |label, explicit|
             target = definitions[(explicit.empty? ? label : explicit).strip.downcase]
-            found << { text: label.to_s.strip, target: target } if target
+            items << [ Regexp.last_match.begin(0), { text: label.to_s.strip, target: target } ] if target
           end
+          items.sort_by(&:first).each { |_, entry| found << entry }
         end
         found
       end

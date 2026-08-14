@@ -6,7 +6,7 @@ resource: okf/lib/okf/concept.rb
 tags: [pure]
 generated:
   by: human:maintainer
-  at: 2026-07-17T16:00:00Z
+  at: 2026-08-13T12:00:00Z
 sources:
   - title: okf/lib/okf/concept.rb
     resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/concept.rb
@@ -43,7 +43,9 @@ gem consumes:
   value yields zero mappings), `#verified` (a bare mapping reads as a
   one-element list; degenerate shapes fold to unverified), `#trust_tier` /
   `#trust` (derived per §5.3, never stored), `#status`/`#declared_status`
-  (absent reads stable), `#stale_after_date`/`#stale_on?(today)` (§5.5 — stale
+  (absent reads stable; both keep the producer's spelling, because every
+  surface that *displays* a status prints what was written — the fold belongs
+  to `.effective_status`, which is what narrowing compares through), `#stale_after_date`/`#stale_on?(today)` (§5.5 — stale
   on the day itself; the clock is always an argument, never read);
 - the §10 contract of an Attested Computation: `#runtime`, `#parameters`,
   `#computation`, `#executor`, `#attester`, `#attested_computation?`;

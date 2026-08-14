@@ -23,7 +23,7 @@ module OKF
       def call(argv)
         options = { json: false, by: nil }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf tags <dir|@slug> [--by type|dir] [--type T] [--dir D] [--json]"
+          o.banner = "Usage: okf tags <dir|@slug> [--by type|dir] [--type T] [--dir D] [--status S] [--trust T] [--json]"
           json_flags(o, options, "emit the tag index as JSON")
           o.on("--by DIM", %w[type dir area], "group the tags by a concept dimension (type | dir)") do |v|
             options[:by] = v.to_sym

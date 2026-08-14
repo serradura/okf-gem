@@ -227,5 +227,25 @@ module ByDir
         end
       end.new
     end
+
+    test "search narrows by status and trust, the way catalog and the CLI do" do
+      # `catalog` gained both v0.2 filters and `okf search --status/--trust`
+      # works, so an agent that learned the vocabulary from either one and
+      # brought it here got nothing narrowed. One tool answering differently
+      # from the next about one bundle is what RowFilter exists to prevent —
+      # and filter_rows already calls it.
+      server = mcp_server(fixture("knowledge"))
+
+      wide = call_tool!(server, "search", terms: [ "service" ])
+      assert_equal 4, wide["results"].length, "the unnarrowed term reaches every concept"
+
+      reviewed = call_tool!(server, "search", terms: [ "service" ], trust: "human-reviewed")
+      assert_equal [ "services/search" ], reviewed["results"].map { |row| row["id"] },
+        "of the four, only the human-reviewed one survives"
+
+      accepted = call_tool!(server, "search", terms: [ "billing" ], status: "accepted")
+      assert_equal [ "decisions/ledger" ], accepted["results"].map { |row| row["id"] },
+        "the effective status narrows the three `billing` matches to one"
+    end
   end
 end

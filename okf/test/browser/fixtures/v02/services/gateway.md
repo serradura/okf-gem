@@ -3,7 +3,7 @@ type: Service
 title: Gateway
 description: Terminates TLS and routes to the services behind it.
 tags: [core]
-status: stable
+status: Stable
 generated:
   by: human:maintainer
   at: 2026-06-02T00:00:00Z

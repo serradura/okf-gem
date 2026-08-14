@@ -237,6 +237,55 @@ class OKF::ConceptTest < OKF::TestCase
     assert_equal "shipped", build("status" => "shipped").declared_status
   end
 
+  test "a padded human: actor still reads human-reviewed, the way the linter reads it" do
+    # The linter strips before matching §7's forms, so a quoted `by` with a
+    # leading space was told "the `human:` prefix already reads as
+    # human-reviewed" by the very report whose trust stat counted it under
+    # machine-confirmed — the contradiction actor_consequence exists to end,
+    # surviving in the one place the two sides disagreed on whitespace.
+    assert_equal "human-reviewed", build("verified" => [ { "by" => "  human:jane doe" } ]).trust
+    assert_equal :human_reviewed, build("verified" => [ { "by" => "human:ok\n" } ]).trust_tier
+  end
+
+  test "generated and verified are built once, like sources beside them" do
+    # Both re-run stringify_keys and allocate on every call, and Bundle#catalog
+    # asks four times per row (generated_at and generated_by each read
+    # #generated twice, #trust re-walks #verified). The model is immutable once
+    # built, which is the same premise #sources memoizes on.
+    concept = build("generated" => { "by" => "human:me", "at" => "2026-06-01" },
+      "verified" => [ { "by" => "human:you" } ])
+
+    assert_same concept.generated, concept.generated
+    assert_same concept.verified, concept.verified
+  end
+
+  test "an absent generated is memoized as absent, not recomputed each time" do
+    # The nil case is the one a `||=` would silently re-run on every call —
+    # and it is the common case, since a bundle mid-migration has no `generated`.
+    concept = build({})
+
+    assert_nil concept.generated
+    assert_nil concept.generated
+    assert_equal({ "at" => "2026-05-28" }, build("timestamp" => "2026-05-28").generated,
+      "the §13.1 fallback still answers, and answers the same way twice")
+  end
+
+  test "status keeps the producer's spelling; only comparison folds" do
+    # Two jobs, two methods, and the split is load-bearing — it has been argued
+    # both ways. Everything that *displays* a status shows what the producer
+    # wrote (the catalog row is declared_status, so are the card chip and the
+    # inspector line), and everything that *narrows* folds, which is what
+    # `--status draft` matching `Draft` means. Collapsing them either way makes
+    # one surface disagree with the rest.
+    concept = build("status" => "Draft")
+
+    assert_equal "Draft", concept.status, "the accessor prints what the CLI and the page print"
+    assert_equal "Draft", concept.declared_status
+    assert_equal "draft", OKF::Concept.effective_status(concept.declared_status),
+      "the comparison fold is a separate method, and it is the one filters use"
+    assert_equal "stable", OKF::Concept.effective_status(nil), "which also carries §5.4's default"
+  end
+
   test "a YAML-boolean status reads as the string it serializes to, on every surface" do
     # Psych reads `status: no` as false. OKF.blank?(false) is true, so the old
     # accessor answered "stable" while the row's &.to_s printed "false" — one
@@ -385,5 +434,14 @@ class OKF::ConceptTest < OKF::TestCase
     assert_equal "stable", OKF::Concept::DEFAULT_STATUS
     assert_equal "human:", OKF::Concept::HUMAN_ACTOR
     assert_equal "Attested Computation", OKF::Concept::ATTESTED_COMPUTATION
+  end
+  test "stale_after_date refuses a DateTime the way the validator does" do
+    # DateTime < Date, so a bare is_a?(Date) guard admitted the one temporal
+    # class the strict-YYYY-MM-DD contract excludes — lint said expired, the
+    # validator said malformed, and the page's regex said fresh.
+    concept = build("stale_after" => DateTime.new(2020, 1, 1, 10))
+
+    assert_nil concept.stale_after_date
+    refute concept.stale_on?(Date.new(2026, 1, 1))
   end
 end

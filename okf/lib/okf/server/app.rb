@@ -227,15 +227,19 @@ module OKF
         fields["tier"] = concept.trust unless concept.trust_tier == :unverified && !concept.declared_generated?
         fields["generated_by"] = concept.generated_by
         fields["generated_at"] = iso(concept.generated_at)
-        fields["status"] = concept.declared_status
+        # The row's serialization, not the raw Psych value: `status: no` reads
+        # as false, blank?(false) is true, and stripping it here while the
+        # baked page reads the row's "false" split the served and baked
+        # inspectors over one concept.
+        fields["status"] = concept.declared_status&.to_s
         fields["stale_after"] = iso(concept.stale_after)
         fields.reject { |_, value| OKF.blank?(value) }
       end
 
-      # The same ISO rule the catalog row keeps: Psych hands over a Time or Date
-      # for an unquoted value, and its default to_s is not what §5.2 defines.
+      # The one temporal-serialization rule the catalog row keeps — shared, not
+      # mirrored, so /node/meta and the row cannot drift (see OKF.iso8601).
       def iso(value)
-        value.respond_to?(:iso8601) ? value.iso8601 : value
+        OKF.iso8601(value)
       end
 
       def respond(content_type, body)

@@ -165,7 +165,7 @@ module ByDir
       refute_match(/Attested Computation/, human.out)
 
       machine = json(okf("types", fixture("v0_2"), "--trust", "unverified", "--json"))
-      assert_equal [ "Attested Computation", "BigQuery Table" ], machine.fetch("types").map { |row| row["type"] }.sort
+      assert_equal [ "Attested Computation", "BigQuery Table", "Skill" ], machine.fetch("types").map { |row| row["type"] }.sort
     end
   end
 end

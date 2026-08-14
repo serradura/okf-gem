@@ -340,6 +340,30 @@ class OKF::Bundle::ValidatorTest < OKF::TestCase
     assert_includes result.warnings.map { |w| w[:message] }, "status should be one of draft, stable, deprecated"
   end
 
+  test "a declared but blank status earns the vocabulary warning too" do
+    # `status: ""` is a producer typo, not an absence: §5.4's default belongs to
+    # a concept that never declared the key. Reading the blank through
+    # effective_status turned it into `stable` before the vocabulary was
+    # checked, so the one spelling §5.4 names nowhere passed silently — and the
+    # catalog row still emitted `""` for the page to puzzle over.
+    write("blank.md", "---\ntype: Note\ntitle: B\ndescription: d\nstatus: \"\"\n---\n\nx\n")
+    write("spaces.md", "---\ntype: Note\ntitle: S\ndescription: d\nstatus: \"   \"\n---\n\nx\n")
+
+    result = OKF::Bundle::Validator.call(document)
+
+    assert result.valid?, "a stray status is a warning, never a rejection"
+    assert_equal 2, result.warnings.count { |w| w[:check] == :status_vocabulary }
+  end
+
+  test "the status vocabulary check folds case the way the filters match it" do
+    write("cased.md", "---\ntype: Note\ntitle: C\ndescription: d\nstatus: Stable\n---\n\nx\n")
+
+    result = OKF::Bundle::Validator.call(document)
+
+    refute_includes result.warnings.map { |w| w[:message] }, "status should be one of draft, stable, deprecated",
+      "--status stable matches this concept; warning it as non-vocabulary is one concept, two answers"
+  end
+
   private
 
   def document

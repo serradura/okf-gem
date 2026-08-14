@@ -10,7 +10,7 @@ module OKF
     # deliberately no disk cache here — the process is the cache; disk-side
     # state is okf-sqlite3's territory.
     class MemoryBackend
-      FILTER_KEYS = %i[type tag dir status].freeze
+      FILTER_KEYS = %i[type tag dir status trust].freeze
 
       # How many prepared corpora to hold at once, most-recently-used first.
       # It used to be unbounded, keyed on the queried subset — a long-lived
@@ -168,17 +168,21 @@ module OKF
         end
       end
 
+      # The kernel's one row predicate (Bundle::RowFilter), not a local copy:
+      # this seam diverged three recorded times, and the fix each time was to
+      # share the rule. This layer keeps only its own argument spelling —
+      # blanks mean "no filter" (an MCP client filling every optional property
+      # with "" is routine), and ""/"/" fold onto the root before the shared
+      # dir rule sees them.
       def matches?(row, filters)
-        FILTER_KEYS.all? do |key|
+        wants = {}
+        FILTER_KEYS.each do |key|
           wanted = filters[key]
-          next true if OKF.blank?(wanted)
+          next if OKF.blank?(wanted)
 
-          case key
-          when :tag then Array(row[:tags]).map { |tag| Filters.fold(tag) }.include?(Filters.fold(wanted))
-          when :dir then Filters.under_dir?(row[:dir], wanted)
-          else Filters.fold(row[key]) == Filters.fold(wanted)
-          end
+          wants[key] = key == :dir ? Filters.normalize_dir(wanted) : wanted
         end
+        Bundle::RowFilter.matches?(row, **wants)
       end
 
       # What the residency cache watches: every markdown file with its mtime

@@ -103,7 +103,7 @@ was cut from — the rows the request matched, before any `limit`:
 | `read_concept` | one concept's file, verbatim and live from disk; ids are exact |
 | `catalog` | per-concept metadata with link degrees; filters, paging, field projection |
 | `log` | every `log.md`, root first, live — the newest 3 dated entries per file, each answer held to a byte budget `limit` scales; a cut says `truncated` |
-| `validate` | the spec §9 conformance verdict |
+| `validate` | the spec §11 conformance verdict |
 | `lint` | the curation-quality report; `group: "folder"` lists the unlinked files by folder |
 | `graph` | the knowledge graph in three bounded views: minimal, hubs, traffic — never with bodies |
 

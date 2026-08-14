@@ -10,4 +10,6 @@ generated:
 
 Shaped correctly and missing the key that makes it provenance: §5.2 makes `by`
 REQUIRED within `generated`, and without it the record says a change happened
-and refuses to say by whom. Links to [unused source](unused-source.md).
+and refuses to say by whom. That is the *validator's* warning — REQUIRED-within
+is shape — so lint deliberately says nothing here. Links to
+[unused source](unused-source.md).

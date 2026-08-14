@@ -44,7 +44,7 @@ module OKF
       # for more.
       LOG_LIMIT = 3
 
-      # A §7 log is "a flat list of date-grouped entries, newest first", so a
+      # A §9 log is "a flat list of date-grouped entries, newest first", so a
       # `## ` heading at column 0 is the entry boundary. Split kept here rather
       # than pushed into the kernel because bounding for a context window is
       # this surface's problem alone: the graph page's Log panel wants the
@@ -63,7 +63,8 @@ module OKF
       LOG_BUDGET = 4_500
 
       # The catalog row, the projection vocabulary `fields` selects from.
-      CATALOG_FIELDS = %w[id title type description tags timestamp status backlog_ref dir top_dir links_out links_in].freeze
+      CATALOG_FIELDS = %w[id title type description tags generated_at generated_by generated trust status
+                          stale_after sources backlog_ref dir top_dir links_out links_in].freeze
 
       GRAPH_VIEWS = %w[minimal hubs traffic].freeze
       LINT_GROUPS = %w[check folder].freeze
@@ -392,6 +393,10 @@ module OKF
                 type: { type: "string", description: "Only concepts of this type." },
                 dir: { type: "string", description: "Only concepts in this directory or below it (\".\" for the bundle root)." },
                 tag: { type: "string", description: "Only concepts carrying this tag." },
+                status: { type: "string",
+                          description: "Only concepts at this effective lifecycle status " \
+                                       "(absent reads stable — draft | stable | deprecated, or any declared value)." },
+                trust: { type: "string", description: "Only concepts at this trust tier (unverified | machine-confirmed | human-reviewed; either spelling)." },
                 limit: { type: "integer", minimum: 1, description: "Maximum rows to return (default #{SEARCH_LIMIT}); `total` is the count before the cut." }
               },
               required: [ "terms" ]
@@ -440,7 +445,8 @@ module OKF
             name: "catalog",
             description: "Per-concept metadata for a whole bundle — #{CATALOG_FIELDS.join(", ")} — " \
                          "filterable by type, dir (prefix: a dir names itself and everything beneath " \
-                         "it), tag, and status. Use it for inventories and rollups; use search when you " \
+                         "it), tag, status (effective: absent reads stable) and trust tier. Use it for " \
+                         "inventories and rollups; use search when you " \
                          "have terms. Returns `limit` rows (default #{CATALOG_LIMIT}) from `offset`; `total` is the " \
                          "full count before slicing. `fields` projects each row down to the named keys.",
             input_schema: {
@@ -449,21 +455,24 @@ module OKF
                 type: { type: "string", description: "Only concepts of this type." },
                 dir: { type: "string", description: "Only concepts in this directory or below it (\".\" for the bundle root)." },
                 tag: { type: "string", description: "Only concepts carrying this tag." },
-                status: { type: "string", description: "Only concepts with this frontmatter status." },
+                status: { type: "string",
+                          description: "Only concepts at this effective lifecycle status " \
+                                       "(absent reads stable — draft | stable | deprecated, or any declared value)." },
+                trust: { type: "string", description: "Only concepts at this trust tier (unverified | machine-confirmed | human-reviewed; either spelling)." },
                 fields: { type: "array", items: { type: "string" }, description: "Emit only these row keys (#{CATALOG_FIELDS.join(", ")})." },
                 limit: { type: "integer", minimum: 1, description: "Maximum concepts to return (default #{CATALOG_LIMIT})." },
                 offset: { type: "integer", minimum: 0, description: "Skip this many concepts first (default 0)." }
               },
               required: [ "bundle" ]
             }
-          ) do |bundle:, type: nil, dir: nil, tag: nil, status: nil, fields: nil, limit: CATALOG_LIMIT, offset: 0|
+          ) do |bundle:, type: nil, dir: nil, tag: nil, status: nil, trust: nil, fields: nil, limit: CATALOG_LIMIT, offset: 0|
             root = context.root!(bundle)
             projection = check_fields(fields)
             # One folder, held: the `dir` check and the unparseable count both
             # want it, and asking the residency layer twice walks the tree twice.
             folder = context.memory.folder(root)
             check_dir!(context, [ [ slug_of(context, bundle), root ] ], dir)
-            rows = context.engine.catalog(root, { type: type, dir: dir, tag: tag, status: status })
+            rows = context.engine.catalog(root, { type: type, dir: dir, tag: tag, status: status, trust: trust })
             sliced = rows[offset, limit] || []
             sliced = sliced.map { |row| row.select { |key, _| projection.include?(key.to_s) } } if projection
             respond_json(with_unparseable(folder,
@@ -499,7 +508,7 @@ module OKF
         def validate_tool(context)
           define_tool(
             name: "validate",
-            description: "The spec §9 conformance verdict: `conformant` (hard errors empty), every error " \
+            description: "The spec §11 conformance verdict: `conformant` (hard errors empty), every error " \
                          "and soft warning with its file and why — unopenable files included. Read-only: " \
                          "you may flag what it finds; fixing it belongs to the okf skill and CLI. " \
                          "Curation quality is lint's question, kept deliberately separate.",
@@ -525,10 +534,11 @@ module OKF
           define_tool(
             name: "lint",
             description: "The curation-quality report — reachability, backlog, completeness, freshness, " \
-                         "provenance, hygiene — as warnings and infos that never reject (conformance is " \
-                         "validate's question). `only`/`except` select by check id " \
-                         "(#{Bundle::Linter::CHECKS.join(", ")}). `stale_after` turns on freshness: a " \
-                         "duration like 90d or 12w, or an ISO date. `group: \"folder\"` answers \"which " \
+                         "provenance, attestation, migration, hygiene — as warnings and infos that never " \
+                         "reject (conformance is validate's question). `only`/`except` select by check id " \
+                         "(#{Bundle::Linter::CHECKS.join(", ")}). `stale_after` turns on the age cutoff: a " \
+                         "duration like 90d or 12w, or an ISO date (declared expiries — `expired` — report " \
+                         "out of the box). `group: \"folder\"` answers \"which " \
                          "files float in the graph?\" instead — the unlinked concepts grouped by folder. " \
                          "Noticing rot is yours; fixing it belongs to the okf skill and CLI.",
             input_schema: {
@@ -588,6 +598,7 @@ module OKF
           check_dir!(context, pairs, options[:dir])
           rows = engine_rows(context, pairs, terms, fields, regexp, fuzzy, engine)
           rows = filter_rows(rows, options)
+          rows = narrow_by_catalog(rows, pairs, context, options)
           limit = options[:limit] || SEARCH_LIMIT
 
           payload = {
@@ -599,7 +610,7 @@ module OKF
             # difference decides whether a miss means "absent" or "the
             # tokenizer shattered the identifier".
             engine: fuzzy || engine.to_s == "index" ? "index" : "scan",
-            # §9 best-effort, surfaced per bundle: a corpus built from a folder
+            # §11 best-effort, surfaced per bundle: a corpus built from a folder
             # that skipped unusable files must say so, or a term living only in
             # an unreadable file reads back as "this bundle does not mention it".
             bundles: pairs.map { |slug, root| bundle_head_row(context, slug, root) },
@@ -690,13 +701,38 @@ module OKF
         # MCP client that fills every declared optional property with an empty
         # default (routine model behaviour) was handing `search` a filter that
         # matched nothing — while `catalog`, one tool over, read the same ""
-        # as "no filter" and answered for the whole bundle.
+        # as "no filter" and answered for the whole bundle. The row rules
+        # themselves are the kernel's one predicate (Bundle::RowFilter).
         def filter_rows(rows, options)
-          rows.select do |row|
-            (OKF.blank?(options[:type]) || Filters.fold(row[:type]) == Filters.fold(options[:type])) &&
-              (OKF.blank?(options[:dir]) || Filters.under_dir?(row[:dir], options[:dir])) &&
-              (OKF.blank?(options[:tag]) || Array(row[:tags]).any? { |tag| Filters.fold(tag) == Filters.fold(options[:tag]) })
+          wants = {}
+          %i[type dir tag].each do |key|
+            wanted = options[key]
+            next if OKF.blank?(wanted)
+
+            wants[key] = key == :dir ? Filters.normalize_dir(wanted) : wanted
           end
+          rows.select { |row| Bundle::RowFilter.matches?(row, **wants) }
+        end
+
+        # `status` and `trust` narrow through the catalog rather than through
+        # #filter_rows, because a search row carries what the engine matched on
+        # and the §5 families are not among it — handed to RowFilter they would
+        # read as absent and match nothing, which is worse than not offering
+        # the filter. So they resolve the way `okf search --status/--trust`
+        # resolves them: ask the catalog which ids qualify, per bundle, and
+        # keep the rows that survive. Same predicate underneath, so a `trust`
+        # that narrows `catalog` narrows `search` identically.
+        def narrow_by_catalog(rows, pairs, context, options)
+          wants = {}
+          %i[status trust].each do |key|
+            wants[key] = options[key] unless OKF.blank?(options[key])
+          end
+          return rows if wants.empty?
+
+          allowed = {}
+          pairs.each { |slug, root| allowed[slug] = context.engine.catalog(root, wants).to_set { |row| row[:id] } }
+          only = pairs.length == 1 ? pairs.first.first : nil
+          rows.select { |row| allowed[row[:slug] || only]&.include?(row[:id]) }
         end
 
         # The protocol row: `bundle` leads (identity first), the head already
@@ -744,6 +780,12 @@ module OKF
           opts = checks
           opts[:min_body] = min_body unless min_body.nil?
           opts[:stale_before] = parse_stale(stale_after) unless OKF.blank?(stale_after)
+          # The shell owns clock resolution (see parse_stale): the pure linter
+          # runs no `expired` check unless handed a day, the CLI passes
+          # Date.today, and this layer must too — without it, a bundle full of
+          # passed expiries linted healthy through MCP while the CLI reported
+          # every one.
+          opts[:today] = Date.today
           report = folder.lint(**opts)
           respond_json(
             bundle: slug_of(context, bundle),
@@ -896,7 +938,7 @@ module OKF
         # ("# Runbooks Log") and costs a line.
         #
         # A log the split cannot divide is one indivisible entry, because that
-        # is what content with no boundary is — §7 fixes no heading level, so
+        # is what content with no boundary is — §9 fixes no heading level, so
         # `###` date groups are conformant and `LOG_ENTRY` cannot see them.
         # But a *bare title* is not content: a scaffolded "# Update Log" with
         # no entries yet holds zero, and counting it as one told an agent
@@ -949,7 +991,7 @@ module OKF
           row
         end
 
-        # §9 best-effort, surfaced: a payload built from a folder that skipped
+        # §11 best-effort, surfaced: a payload built from a folder that skipped
         # unusable files says so, and validate names each file and why.
         def with_unparseable(folder, payload)
           count = folder.bundle.unparseable.length
@@ -1006,11 +1048,20 @@ module OKF
         # the pure Linter compares against — the CLI's resolution, kept here in
         # the shell so the linter never reads the clock.
         def parse_stale(value)
-          if (match = value.to_s.match(/\A(\d+)([dw])\z/))
+          text = value.to_s
+          if (match = text.match(/\A(\d+)([dw])\z/))
             days = match[1].to_i * (match[2] == "w" ? 7 : 1)
             Time.now - (days * 86_400)
+          elsif text.match?(Concept::ISO_CUTOFF)
+            # The kernel's cutoff grammar, which is also `okf lint
+            # --stale-after`'s: a date or a full timestamp (what a caller gets
+            # by reading a concept's `generated.at`), never the basic or week
+            # spellings Date.iso8601 would silently reinterpret — this shell
+            # would otherwise answer about one bundle's staleness from a value
+            # its own CLI exits 2 on.
+            Date.iso8601(text).to_time
           else
-            Date.iso8601(value.to_s).to_time
+            raise Error, "invalid stale_after #{value.inspect} — use 90d, 12w, or an ISO date like 2026-01-01"
           end
         rescue ArgumentError
           raise Error, "invalid stale_after #{value.inspect} — use 90d, 12w, or an ISO date like 2026-01-01"

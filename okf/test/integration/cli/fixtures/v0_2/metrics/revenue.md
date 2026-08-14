@@ -16,10 +16,10 @@ parameters:
     type: string
     required: false
 executor:
-  resource: references/skills/run-on-bigquery.md
+  resource: /references/skills/run-on-bigquery.md
   receipt: [ job_id, row_count, bytes_billed ]
 attester:
-  resource: references/attesters/revenue.py
+  resource: /references/attesters/revenue.py
 sources:
   - id: orders-table
     title: The orders table

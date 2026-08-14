@@ -1,7 +1,7 @@
 # Prompt: search — retrieve knowledge without paying for the whole bundle
 
 Retrieval matters as much as curation: a bundle nobody can query cheaply is
-dead weight. The discipline is progressive disclosure (spec §6): every step
+dead weight. The discipline is progressive disclosure (spec §8): every step
 pays a few hundred bytes to decide what the next step reads, and full bodies
 are read last, and only the winners.
 
@@ -49,7 +49,7 @@ are read last, and only the winners.
    an id home.
 4. **Read only the winners.** `read_concept` takes a result row's exact `id`
    and returns the file verbatim — that concept, not its folder, never the
-   whole tree. Follow its links (§5) one hop at a time; check `log` when
+   whole tree. Follow its links (§6) one hop at a time; check `log` when
    freshness matters.
 5. **Answer, then surface the friction.** Cite the concept ids you used. This
    server never writes — if the answer was missing, stale, or needlessly hard

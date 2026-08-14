@@ -15,19 +15,6 @@ module OKF
     # and semantic staleness are NOT detected here — they need meaning, not structure;
     # the JSON report is the substrate an agent consumes for those passes.
     class Linter
-      # All checks, in display/registry order. `--only`/`--except` select from these.
-      CHECKS = %i[
-        orphan not_in_index disconnected_component unlinked
-        missing_concept broken_index_entry
-        stub missing_title missing_description missing_generated
-        expired stale
-        uncited_external broken_source unattributed_claim unused_source
-        missing_generated_by unprefixed_actor
-        incomplete_computation
-        legacy_timestamp legacy_citations
-        duplicate_title unused_reference_def undefined_reference self_link
-      ].freeze
-
       # Severity is API: machine consumers gate edits and CI on `:warn` and drop
       # `:info`, so an id changing level changes its behavior for them — this map
       # is pinned by a test, and a new gateable state gets a flag (`--fail-on
@@ -43,11 +30,17 @@ module OKF
         stub: :info, missing_title: :info, missing_description: :info, missing_generated: :info,
         expired: :info, stale: :warn,
         uncited_external: :info, broken_source: :warn, unattributed_claim: :warn,
-        unused_source: :info, missing_generated_by: :info, unprefixed_actor: :info,
-        incomplete_computation: :warn,
+        unused_source: :info, unprefixed_actor: :info,
+        incomplete_computation: :warn, broken_attestation_ref: :warn,
         legacy_timestamp: :info, legacy_citations: :info,
         duplicate_title: :info, unused_reference_def: :info, undefined_reference: :warn, self_link: :info
       }.freeze
+
+      # All checks, in display/registry order — derived from the severity map
+      # (insertion-ordered) rather than hand-listed twice: two parallel lists
+      # of the same 25 ids needed a test just to police their sync.
+      # `--only`/`--except` select from these.
+      CHECKS = SEVERITIES.keys.freeze
 
       # An ATX heading naming the §10.3 computation section.
       COMPUTATION_HEADING = /\A\#{1,6}\s+Computation\s*\z/i.freeze
@@ -98,7 +91,16 @@ module OKF
         @indexed_ids = indexed_by_dir.values.reduce(Set.new, :|)
       end
 
+      # An id outside CHECKS refuses by name rather than intersecting to
+      # nothing: a caller pinned to a renamed id would otherwise get an empty,
+      # healthy report with skipped_checks: [] — "checked and fine" over a run
+      # that ran nothing, the exact silence skipped_checks exists to prevent.
+      # The CLI and the MCP shell validate first and exit 2; this is the same
+      # refusal for the library caller who has no argv layer in front.
       def selected_checks
+        unknown = (Array(@only) + Array(@except)).map(&:to_sym) - CHECKS
+        raise ArgumentError, "unknown check(s): #{unknown.uniq.join(", ")} (checks: #{CHECKS.join(", ")})" unless unknown.empty?
+
         checks = CHECKS
         checks &= Array(@only).map(&:to_sym) if @only
         checks -= Array(@except).map(&:to_sym) if @except
@@ -114,9 +116,19 @@ module OKF
         when nil then nil
         when DateTime, Time then value.to_date
         when Date then value
-        when String then Date.iso8601(value)
+        when String then parse_today(value)
         else raise ArgumentError, "today: must be a Date (got #{value.class})"
         end
+      end
+
+      # The rescue belongs to the parse alone. Wrapping the whole `case` put it
+      # around its own `else` too, so the refusal that names the class was
+      # caught and rewritten into the string message on its way out — a branch
+      # that could not be reached from any caller.
+      def parse_today(value)
+        raise ArgumentError, "not YYYY-MM-DD" unless value.match?(Concept::ISO_DATE)
+
+        Date.iso8601(value)
       rescue ArgumentError
         raise ArgumentError, "today: must be a Date or a YYYY-MM-DD string (got #{value.inspect})"
       end
@@ -301,8 +313,12 @@ module OKF
       # that did record provenance — just not as links.
       def check_uncited_external
         @concepts.each do |concept|
+          # Memoized guards first: the link extraction is the expensive pass,
+          # and a sourced concept never needs it run.
+          next if concept.sources.any? || concept.legacy_citations?
+
           externals = Markdown::Links.extract(concept.body).count { |raw| external?(raw) }
-          next if externals.zero? || concept.sources.any? || concept.legacy_citations?
+          next if externals.zero?
 
           add(:uncited_external, "#{concept.id}.md",
             "body has external link(s) but no sources",
@@ -314,10 +330,19 @@ module OKF
       # in-bundle `.md` path, so URLs, scope descriptors, and non-`.md` assets
       # (`references/attesters/revenue.py`) are exempt by construction — §5.1
       # permits all three, and the Bundle does not index them.
+      #
+      # A leftover `# Citations` section is checked *beside* the native list,
+      # not only through the fallback: on a half-migrated concept the native
+      # entries win #sources, but §13.1 keeps the section readable, and its
+      # broken target was a warn before migration started — adopting `sources:`
+      # must not downgrade that gate to the info-level backlog checks. When the
+      # fallback did fire, the lifted entries and the section are the same
+      # values, deduplicated below.
       def check_broken_source
         @concepts.each do |concept|
-          concept.sources.each do |source|
-            raw = source["resource"].to_s
+          resources = concept.sources.map { |source| source["resource"].to_s }
+          resources += concept.citation_entries.map { |entry| entry[:target].to_s } if concept.legacy_citations?
+          resources.uniq.each do |raw|
             target = Markdown::Links.resolve(raw, from: concept.path, bundle: @bundle.root)
             next if target.nil? || @existing.include?(target)
 
@@ -329,12 +354,24 @@ module OKF
 
       # §5.1's keyed attribution, checked in both directions. A dangling footnote
       # misattributes a claim, so it warns; an uncited source (below) is only
-      # slack, so it informs.
+      # slack, so it informs. Two boundaries on the join: a concept with no
+      # sources[].id at all has not adopted keyed attribution — §5.1 does not
+      # reserve footnotes for it, and an ordinary GFM footnote is prose, not a
+      # fault — and the label↔id comparison folds case the way GFM resolves
+      # footnotes and reference_definitions already folds labels.
       def check_unattributed_claim
         @concepts.each do |concept|
-          ids = source_ids(concept)
-          Markdown::Links.footnote_references(concept.body).each do |label|
-            next if ids.include?(label)
+          ids = source_ids(concept).map(&:downcase)
+          next if ids.empty?
+
+          defined = Markdown::Links.footnote_definitions(concept.body).map(&:downcase)
+          footnote_labels(concept).each do |label|
+            next if ids.include?(label.downcase)
+            # A label with its own definition is an ordinary GFM content
+            # footnote — it renders complete, and §5.1 never reserves the
+            # label space for attribution. The dangling ones (no id, no
+            # definition) are the misattributions this check exists for.
+            next if defined.include?(label.downcase)
 
             add(:unattributed_claim, "#{concept.id}.md",
               "footnote `[^#{label}]` has no matching sources[].id", metric: { label: label })
@@ -344,12 +381,17 @@ module OKF
 
       # Sources with no `id` never participate — a lifted v0.1 citation has
       # none, and it would be wrong to fault a bundle for not having adopted
-      # keyed attribution.
+      # keyed attribution. The same case fold, and the same guard-first order,
+      # as its join-twin above: without them every concept of a non-adopting
+      # bundle paid a full body scan to compare against an empty set.
       def check_unused_source
         @concepts.each do |concept|
-          labels = Markdown::Links.footnote_references(concept.body).to_set
-          source_ids(concept).each do |id|
-            next if labels.include?(id)
+          ids = source_ids(concept)
+          next if ids.empty?
+
+          labels = footnote_labels(concept).to_set(&:downcase)
+          ids.each do |id|
+            next if labels.include?(id.downcase)
 
             add(:unused_source, "#{concept.id}.md",
               "source `#{id}` is never cited by a footnote", metric: { id: id })
@@ -357,20 +399,11 @@ module OKF
         end
       end
 
-      # Asks the *declared* `generated`, not the derived one: a v0.1 document's
-      # generated is lifted from `timestamp` and carries no actor by construction,
-      # so reading the derived value would fault every concept of every v0.1
-      # bundle for a key its spec never had.
-      def check_missing_generated_by
-        @concepts.each do |concept|
-          declared = concept.frontmatter["generated"]
-          next unless declared.is_a?(Hash)
-          next unless OKF.blank?(Markdown::Frontmatter.stringify_keys(declared)["by"])
-
-          add(:missing_generated_by, "#{concept.id}.md",
-            "generated records no by (who or what produced this)")
-        end
-      end
+      # A missing `generated.by` is deliberately NOT a lint check: §5.2 marks
+      # `by` REQUIRED within the mapping, REQUIRED-within is the validator's
+      # side of the split, and the validator's :generated_by warning already
+      # reports it — a lint twin double-counted one defect with two severities,
+      # exactly what the parallel `verified[].by` family never did.
 
       # Scoped strictly to `verified[].by` — the one field §5.3 derives trust
       # from, where a bare `by: owner` silently reads as machine-confirmed: the
@@ -386,13 +419,67 @@ module OKF
 
             add(:unprefixed_actor, "#{concept.id}.md",
               "verified.by `#{actor}` matches none of §7's forms (`<producer>/<version>`, `human:<id>`, " \
-              "`process:<id>`) and reads as machine-confirmed; use `human:<id>` if a person confirmed this",
+              "`process:<id>`)#{actor_consequence(actor)}",
               metric: { by: actor })
           end
         end
       end
 
+      # §5.3 reads the tier off the `human:` prefix and nothing else, so an
+      # actor that carries it is already human-reviewed however malformed the
+      # id is — and the same report's trust stat says so. Telling that reader
+      # it "reads as machine-confirmed" contradicted the run they were reading
+      # and pointed the fix at a tier that was never wrong; the id is what
+      # needs the edit.
+      def actor_consequence(actor)
+        return " — the `human:` prefix already reads as human-reviewed, but the id is not a bare token" \
+          if actor.start_with?(Concept::HUMAN_ACTOR)
+
+        " and reads as machine-confirmed; use `human:<id>` if a person confirmed this"
+      end
+
       # ── Attestation (§10) ────────────────────────────────────────────────────────
+
+      # `incomplete_computation` asks whether the contract *names* its
+      # computation; this asks whether what it names is there. A §10 contract
+      # is an instruction to run something, so a path resolving to nothing is
+      # not slack the way an uncited source is — it is a contract no consumer
+      # can follow, which is why it warns like `broken_source` rather than
+      # informing. Same exemption by construction as `broken_source`: Links.resolve
+      # yields nil for a URL or a non-`.md` asset, so a `references/*.sql`
+      # computation and an `https://` runbook are both silently fine.
+      def check_broken_attestation_ref
+        @concepts.each do |concept|
+          # Gated on the type, like check_incomplete_computation: §4.1 lets a
+          # producer put `computation:` or `executor:` on anything and mean
+          # their own thing by it, and §10 governs those keys only here. An
+          # ungated check would fail a --fail-on warn gate over a key it has
+          # no standing to read.
+          next unless concept.attested_computation?
+
+          attestation_refs(concept).each do |field, raw|
+            target = Markdown::Links.resolve(raw.to_s, from: concept.path, bundle: @bundle.root)
+            next if target.nil? || @existing.include?(target)
+
+            add(:broken_attestation_ref, "#{concept.id}.md",
+              "#{field} `#{raw}` does not exist in the bundle", metric: { field: field, target: target })
+          end
+        end
+      end
+
+      # The §10 fields that name a file: `computation` (§10.3's path form) and
+      # the `resource` of `executor`/`attester` (§10.2), in the order a reader
+      # meets them so two dangling paths on one concept report predictably.
+      # #executor/#attester are nil unless the value is a mapping, so a
+      # malformed `executor: <path>` reads as absent here — its shape is the
+      # validator's finding, not a second report of the same defect.
+      def attestation_refs(concept)
+        [
+          [ "computation", concept.computation ],
+          [ "executor.resource", concept.executor && concept.executor["resource"] ],
+          [ "attester.resource", concept.attester && concept.attester["resource"] ]
+        ]
+      end
 
       # §10.2/§10.3: the computation is provided exactly one way — a body
       # `# Computation` fence *or* a `computation` path ("used instead of").
@@ -512,7 +599,9 @@ module OKF
         @report.stat(:types, frequency(@concepts.map { |c| Graph.default(c.type, "Untyped") }))
         @report.stat(:tags, frequency(@concepts.flat_map { |c| c.tags.is_a?(Array) ? c.tags : [] }))
         @report.stat(:trust, trust_distribution)
-        @report.stat(:status, frequency(@concepts.map(&:status)))
+        # Folded through the same rule --status narrows by, or the posture
+        # inventory cannot reconcile with the filter that acts on it.
+        @report.stat(:status, frequency(@concepts.map { |c| Concept.effective_status(c.declared_status) }))
       end
 
       # The clock-gated checks that were selected and could not run — named,
@@ -622,7 +711,12 @@ module OKF
         uses = []
         Markdown::Links.each_prose_line(body.to_s) do |line|
           line.scan(Markdown::Links::REFERENCE_LINK).each do |label, explicit|
-            uses << (explicit.empty? ? label : explicit).strip.downcase
+            key = (explicit.empty? ? label : explicit).strip.downcase
+            # A caret label is footnote space (§5.1) — the exclusion DEFINITION
+            # already makes. Adjacent footnotes (`[^a][^b]`) match the
+            # reference-link grammar, and counting them here turned a
+            # well-formed document into an undefined_reference warn.
+            uses << key unless key.start_with?("^")
           end
         end
         uses.uniq
@@ -630,6 +724,17 @@ module OKF
 
       def source_ids(concept)
         concept.sources.map { |source| source["id"].to_s.strip }.reject(&:empty?)
+      end
+
+      # One body scan per concept, however many joins ask — the two keyed-
+      # attribution checks read the same labels, and the scan is a real
+      # per-line pass (CODE_SPAN blanking included).
+      def footnote_labels(concept)
+        @footnote_labels ||= {}
+        # Keyed on the path, which is unique by construction — two files may
+        # pin the same custom `id`, and an id-keyed cache cross-contaminated
+        # their joins.
+        @footnote_labels[concept.path] ||= Markdown::Links.footnote_references(concept.body)
       end
 
       # Whether the body carries a §10.3 `# Computation` section, fence-aware.

@@ -105,7 +105,7 @@ module ByDir
 
       assert_equal 0, result.status
       assert_match(/✓ conformant — no issues/, result.out)
-      assert_match(/concepts: 5/, result.out)
+      assert_match(/concepts: 6/, result.out)
     end
 
     test "an unquoted okf_version is a Psych Float and must not warn" do

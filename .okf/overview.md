@@ -5,7 +5,7 @@ description: A light Ruby gem that reads, searches, validates, lints, and serves
 tags: [okf, gem, diagram]
 generated:
   by: human:maintainer
-  at: 2026-07-29T18:00:00Z
+  at: 2026-08-13T12:00:00Z
 sources:
   - title: README.md
     resource: https://github.com/serradura/okf-gem/blob/main/README.md

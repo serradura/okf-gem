@@ -222,32 +222,18 @@ module OKF
       # shape. An out-of-tree caller that never learned the third argument gets
       # exactly the resolution it was written against — the alias folds with no
       # directory set consulted — no better and no worse.
+      # The row rules live in Bundle::RowFilter, shared with the MCP shell;
+      # this layer keeps only what is the CLI's own — the deprecated --area
+      # (a top_dir compare no other surface offers) and the argument spelling
+      # (the `root`/`.` aliases resolved against the bundle's real dirs).
       def filter_entries(entries, options, dirs = nil)
         area = options[:area] && fold_area(options[:area], dirs)
         base = options[:dir] && fold_dir(options[:dir], dirs)
         entries.select do |entry|
-          (options[:type].nil? || fold(entry[:type]) == fold(options[:type])) &&
-            (area.nil? || fold(entry[:top_dir]) == area) &&
-            (base.nil? || under_dir?(entry[:dir], base)) &&
-            (options[:status].nil? || effective_status(entry) == fold(options[:status])) &&
-            (options[:trust].nil? || fold(entry[:trust]) == fold_tier(options[:trust])) &&
-            (options[:tag].nil? || entry[:tags].any? { |tag| fold(tag) == fold(options[:tag]) })
+          (area.nil? || fold(entry[:top_dir]) == area) &&
+            Bundle::RowFilter.matches?(entry, type: options[:type], dir: base, tag: options[:tag],
+              status: options[:status], trust: options[:trust])
         end
-      end
-
-      # `--status` narrows on the *effective* status (absent ⇒ stable, §5.4) even
-      # though the row serializes the declared one — narrowing semantics, not
-      # serialization.
-      def effective_status(entry)
-        value = entry[:status]
-        OKF.blank?(value) ? Concept::DEFAULT_STATUS : fold(value)
-      end
-
-      # The row prints tiers hyphenated (`machine-confirmed`); a caller may echo
-      # that back or type the underscore form — the flag folds both to the wire
-      # spelling the row carries.
-      def fold_tier(value)
-        fold(value).tr("_", "-")
       end
 
       # The directory set only when a flag is going to consult it. Deriving it
@@ -267,9 +253,9 @@ module OKF
       # and #fold for a stored one. A stored dir is never an alias — that is the
       # distinction the old signature could not make, and it is what had a row
       # named `root` counting the bundle root's subtree instead of its own.
+      # The comparison itself is Bundle::RowFilter's (fold is idempotent).
       def under_dir?(entry_dir, path)
-        entry = fold(entry_dir)
-        entry == path || entry.start_with?("#{path}/")
+        Bundle::RowFilter.under_dir?(entry_dir, path)
       end
 
       def fold(value)

@@ -15,3 +15,6 @@ the baseline the malformed and uncurated fixtures are read against.
 ## Metrics
 * [Revenue](metrics/revenue.md) - monthly revenue, attested
 * [Daily Orders](metrics/orders-daily.md) - order counts by day, attested
+
+## References
+* [Run on BigQuery](references/skills/run-on-bigquery.md) - the run instructions both attested computations name

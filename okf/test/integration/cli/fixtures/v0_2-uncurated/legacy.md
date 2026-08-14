@@ -13,5 +13,9 @@ time and the body carries the sources. Links to
 
 # Citations
 
-[1] [The v0.1 spec](https://example.com/spec/v0-1)
+[1] [The v0.1 spec](https://example.com/spec/v0-1) and [the errata][errata]
 - https://example.com/spec/v0-1-errata
+[2] [expired][]
+
+[errata]: https://example.com/spec/v0-1-errata-2
+[expired]: expired.md

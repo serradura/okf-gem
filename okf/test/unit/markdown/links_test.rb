@@ -114,4 +114,13 @@ class OKF::Markdown::LinksTest < OKF::TestCase
 
     assert_equal [ "a" ], OKF::Markdown::Links.footnote_references(body)
   end
+  test "an uppercase scheme is external to links and citations alike" do
+    # The scheme grammar lives in one source now; the citation regexes being
+    # /i while SCHEME was not had HTTP:// counted as provenance by one module
+    # and as prose by the other.
+    assert_equal [ "HTTP://example.com/x" ],
+      OKF::Markdown::Links.extract("see [x](HTTP://example.com/x)\n").grep(OKF::Markdown::Links::SCHEME)
+    assert_equal [ { text: "", target: "HTTP://example.com/x" } ],
+      OKF::Markdown::Citations.entries("# Citations\n\n- HTTP://example.com/x\n")
+  end
 end

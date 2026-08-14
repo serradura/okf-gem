@@ -5,6 +5,41 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **`search` narrows by `status` and `trust`**, the two filters `catalog` and
+  `okf search` already took. An agent that learned the vocabulary from either
+  one and brought it here got an invalid-argument error. They resolve through
+  the catalog rather than the engine's rows — a search row carries what the
+  engine matched on, and the §5 families are not among it.
+
+- **`lint`'s `stale_after` takes the kernel's cutoff grammar** — a
+  `YYYY-MM-DD` date or a full timestamp — rather than everything
+  `Date.iso8601` parses. `20260101` and `2026-W01-1` are now tool errors
+  naming the accepted shapes; a `generated.at`-shaped timestamp is accepted,
+  as before, and reduced to its date. They were accepted before
+  and silently reinterpreted — `okf lint --stale-after 20260101` exits 2, so
+  the shell and its own CLI answered differently about one bundle's staleness.
+
+- **The okf floor must move to okf's v0.2 release number in the release that
+  ships this** — the shell now reads v0.2 surfaces (the trust catalog column,
+  `Concept.effective_status`/`fold_tier`, the linter's clock contract), none
+  of which exist in published okf 1.13.0; the gemspec carries the same
+  RELEASE OBLIGATION note, and the floor cannot move sooner because the
+  monorepo resolves against the path-sourced okf still versioned 1.13.0.
+  `rake release` now refuses while the floor still admits 1.13.0 (the guard
+  hangs off `release:guard_clean`, ahead of both pushes, and deliberately not
+  off `build` — `rake install` depends on that), so the obligation stops a
+  release rather than riding inside one.
+- The catalog tool speaks v0.2: `CATALOG_FIELDS` matches the new row
+  (`timestamp` is gone — the vocabulary refuses it by name), `status` narrows
+  on the effective value through the kernel's own fold, and a `trust` filter
+  lands beside it. `lint` supplies the clock the `expired` check needs, the
+  way the CLI does, and the client-visible descriptions and prompts cite
+  v0.2's chapter numbers.
+
 ## [1.0.0] - 2026-08-07
 
 The first functional release: an MCP server over the okf kernel, judged by

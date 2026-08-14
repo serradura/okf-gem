@@ -108,6 +108,17 @@ test.describe("§5 trust in the inspector", () => {
 
     await expect(v02.locator("#side .meta-trust .stale")).toContainText("expired 2000-01-01");
     await expect(v02.locator("#side .meta-trust .status")).toHaveText("deprecated");
+
+    // `.stale` is the only member of this line with no size of its own — the
+    // badges (.tier, .status) carry theirs and `.gen` is sized beside them, so
+    // it rendered as a run of red text at the panel's inherited size next to
+    // three shaped siblings. The card path already got this right via .mini.
+    // toHaveCSS rather than a getComputedStyle evaluate: renderMeta rebuilds
+    // this line, and a node read straight after a text assertion can already be
+    // detached — which returns "" rather than failing, exactly the kind of
+    // assertion that cannot be trusted when it passes.
+    await expect(v02.locator("#side .meta-trust .gen")).toHaveCSS("font-size", "11.5px");
+    await expect(v02.locator("#side .meta-trust .stale")).toHaveCSS("font-size", "11.5px");
   });
 });
 

@@ -7,8 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+> The Breaking entries below change public shapes a shipped consumer already
+> reads — okf-mcp 1.0.0 pins `okf >= 1.13` open-ended and mirrors the catalog
+> row and check ids — so the version this section ships under is a deliberate
+> semver decision to make at release time, not a ride on the next minor.
+
 ### Changed
 
+- **`validate` warns on a declared-but-blank `status`.** `status: ""` is a
+  producer typo, not an absence — §5.4's default belongs to a concept that
+  never declared the key — and reading the blank through the default turned it
+  into `stable` before the vocabulary check ran, so the one value §5.4 names
+  nowhere was the one that never warned.
+- **`lint --stale-after` refuses the ISO spellings it used to reinterpret.**
+  It took whatever `Date.iso8601` parsed, so the basic (`20260101`) and week
+  (`2026-W01-1`) forms silently became a cutoff nobody asked for — `20260101`
+  read as the year 2026 day 01 of month 01 only by luck of the parser, and
+  `2026-W01-1` as 2025-12-29. Both now exit 2 naming the accepted shapes. A
+  `YYYY-MM-DD` date and a full `2026-01-01T09:00:00Z` timestamp (what a
+  concept's own `generated.at` looks like) are both still accepted, the
+  timestamp reduced to its date as before. The new `--today` takes the
+  narrower grammar — it names a calendar day, not a moment.
 - **The gem targets OKF v0.2** and keeps reading v0.1 under §13.1's two
   sanctioned fallbacks: a legacy `timestamp` reads as `generated.at` (per-key,
   so a half-migrated `generated: { by: … }` beside a `timestamp` keeps its
@@ -58,15 +77,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   passes today, `--today YYYY-MM-DD` pins it for reproducible CI reports, and
   the pure library runs no clock check unless handed `today:`, confessing via
   `stats[:skipped_checks]`); Provenance gains `broken_source`,
-  `unattributed_claim` (warn), `unused_source`, `missing_generated_by`, and
-  `unprefixed_actor` (info — a `verified[].by` outside §7's three forms reads
-  as machine-confirmed); Attestation gains `incomplete_computation` (warn, on
-  neither-or-both computation shapes); Migration's `legacy_timestamp` and
+  `unattributed_claim` (warn — only once a concept adopts keyed attribution,
+  with the label↔id join case-folded the way GFM resolves footnotes),
+  `unused_source`, and `unprefixed_actor` (info — a `verified[].by` outside
+  §7's three forms reads as machine-confirmed); a missing `generated.by` is
+  the validator's warning alone, never double-reported by lint. Attestation
+  gains `incomplete_computation` (warn, on
+  neither-or-both computation shapes) and `broken_attestation_ref` (warn — a
+  `computation`, `executor.resource` or `attester.resource` on an
+  `Attested Computation` naming an in-bundle `.md` that is not there; a contract whose parts are named but
+  absent is one no consumer can follow, so it warns rather than informs, with
+  the same URL/non-`.md` exemption `broken_source` carries); Migration's `legacy_timestamp` and
   `legacy_citations` (info) name what a v0.1 bundle would change without ever
   failing it. Reports gain `trust` and `status` distributions.
 - **`--fail-on info`** joins `never | warn` — gateability without a severity
   promotion; a migration campaign is
   `okf lint <dir> --only legacy_timestamp,legacy_citations --fail-on info`.
+- **`Linter.call(only:/except:)` refuses an unknown check id** with an
+  ArgumentError naming it, instead of silently intersecting to an empty run
+  that reports healthy — the library-side twin of the CLI's exit 2, and what
+  keeps a caller pinned to a renamed id from reading "checked and fine" over
+  a run that ran nothing.
 - **`--status` and `--trust` filters** on catalog, files, search, tags and
   types — `--status` matches the effective value (absent reads `stable`),
   `--trust` folds either tier spelling.

@@ -128,9 +128,10 @@ reject a bundle for a broken link or a missing optional field.
 `lint` asks the complementary question, *"is this well-curated, navigable,
 trustworthy?"*, over exactly those tolerated things: reachability, backlog,
 completeness, freshness, provenance, attestation, migration, hygiene. It is
-advisory and exits `0` even with findings unless you pass `--fail-on warn` or
-`--fail-on info` — the latter is how a migration campaign gates on the two
-findings that name a bundle's leftover v0.1 spellings.
+advisory and exits `0` even with findings unless you pass `--fail-on warn`, or
+`--only legacy_timestamp,legacy_citations --fail-on info` to gate a migration
+campaign on the two findings that name a bundle's leftover v0.1 spellings and
+nothing else.
 
 Keeping them apart is what lets you gate CI on conformance without gating it on
 taste. `lint --json` is also the structured input an agent reads to reason about

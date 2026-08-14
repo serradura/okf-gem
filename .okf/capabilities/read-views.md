@@ -5,7 +5,7 @@ description: The server's browser panels reproduced on the CLI, plus the index m
 tags: [read, cli, json]
 generated:
   by: human:maintainer
-  at: 2026-07-24T12:00:00Z
+  at: 2026-08-13T12:00:00Z
 sources:
   - title: cli.md — read views
     resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/cli.md
@@ -53,7 +53,7 @@ used — the rule the [CLI](../cli.md) keeps: `bundle` is always the directory,
 of counts over a bare `nodes`/`edges` payload; an agent holding several bundles
 had nothing in that answer to tell them apart.
 
-# `index` is the orient-first map (§6)
+# `index` is the orient-first map (§8)
 
 Alone among the read views, `index` shows the reserved `index.md` layer: the
 concept views skip those structural files, so only `index` renders the

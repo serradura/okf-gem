@@ -210,17 +210,10 @@ module OKF
 
     private
 
-    # A catalog row's temporal fields, as ISO 8601 — the format they were written
-    # in and the only one a consumer can parse back. YAML hands over a Date or a
-    # Time for an unquoted value, and `Time#to_s` would publish
-    # "2026-05-28 09:15:00 UTC", which is neither what the document said (§5.2
-    # says ISO 8601) nor something a reader can round-trip; a Date renders
-    # YYYY-MM-DD. A String passes through untouched: it is whatever the producer
-    # wrote, and the validator has already warned if that does not parse.
+    # The one temporal-serialization rule, shared with /node/meta — see
+    # OKF.iso8601.
     def iso8601(value)
-      return nil if value.nil?
-
-      value.respond_to?(:iso8601) ? value.iso8601 : value.to_s
+      OKF.iso8601(value)
     end
 
     # A concept's top-level dir, derived from its id — the first path segment, the

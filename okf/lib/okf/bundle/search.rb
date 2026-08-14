@@ -102,8 +102,14 @@ module OKF
         # A regression fix rather than a feature: in v0.1 a citation's text
         # lived in the body and was searchable at weight 1. After a bundle
         # migrates it lives in frontmatter, so without this a migrated bundle
-        # silently loses recall — same words, same weight, wherever the
-        # spelling put them.
+        # silently loses the hit entirely. What this restores is *recall* at
+        # the same weight — not an identical total. A v0.1 concept keeps
+        # matching `body` too, because the text really is body prose there, so
+        # it scores one higher than its migrated twin; that divergence is
+        # deliberate and pinned by cli_twins_test.rb ("migrating moves a
+        # source-only hit's snippet from body text to source text"). Suppressing
+        # it would mean lying about `--in body` on a bundle whose body does
+        # contain the words.
         "sources" => 1,
         "body" => 1
       }.freeze

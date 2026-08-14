@@ -25,6 +25,18 @@ module OKF
     value.respond_to?(:empty?) ? value.empty? : false
   end
 
+  # A temporal value as ISO 8601 — the one serialization rule for
+  # generated_at/stale_after, shared by the catalog row and /node/meta so the
+  # served and baked pages cannot drift over one concept's dates. YAML hands
+  # over a Date or a Time for an unquoted value (whose default to_s is not
+  # ISO); a String passes through; a degenerate value serializes as its
+  # string, never as raw structure.
+  def self.iso8601(value)
+    return nil if value.nil?
+
+    value.respond_to?(:iso8601) ? value.iso8601 : value.to_s
+  end
+
   # The directory a concept lives in, derived from its §2 id: the id *is* the
   # path minus `.md`, so putting the suffix back and taking the dirname is the
   # definition rather than a parse of it. One home for it because three views
@@ -55,6 +67,7 @@ module OKF
   require "okf/concept"
   require "okf/bundle"
   require "okf/bundle/graph"
+  require "okf/bundle/row_filter"
   require "okf/bundle/skeleton"
   require "okf/bundle/search"
   # These two lines ARE the engine preference order. Each engine registers itself

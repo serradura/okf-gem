@@ -129,4 +129,11 @@ class OKF::Markdown::CitationsTest < OKF::TestCase
   test "entries is empty without a Citations section" do
     assert_empty OKF::Markdown::Citations.entries("see [x](https://e.com)\n- https://ex.com/bare\n")
   end
+  test "entries keeps document order within one line, whatever mix of forms it carries" do
+    body = "# Citations\n\n- [Ref first][r1] then [Inline second](https://b.com)\n\n[r1]: https://a.com\n"
+
+    assert_equal [ "https://a.com", "https://b.com" ],
+      OKF::Markdown::Citations.entries(body).map { |e| e[:target] },
+      "scanning all inline links before any reference links reversed the line's own order"
+  end
 end

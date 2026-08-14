@@ -6,7 +6,7 @@ resource: okf/lib/okf/render/graph/template.html.erb
 tags: [security, server, xss, containment]
 generated:
   by: human:maintainer
-  at: 2026-08-10T12:00:00Z
+  at: 2026-08-13T12:00:00Z
 sources:
   - title: README.md — Server trust boundary
     resource: https://github.com/serradura/okf-gem/blob/main/README.md
@@ -31,9 +31,13 @@ There are two data paths into the page, and each carries its own guard:
 | Graph data **inlined** into the page               | through `json_for_script`, which escapes `<`                                                 | yes — it cannot break out of its `<script>`                  |
 | Concept bodies **fetched** on demand (`/node?id=`) | `marked` renders the Markdown, then `DOMPurify.sanitize` scrubs it before it reaches the DOM | yes — scripts, handlers, and `javascript:` URLs are stripped |
 
-The [description](../format/cross-links.md) shown in the inspector takes a third
-path and never needs the client's help: the server escapes it
-(`OKF::Server::App#description_fragment`) before sending it, so it arrives inert.
+The description and the §5 trust line shown in the inspector take a third path,
+and it moved when `/node/meta` became JSON. The server no longer sends a
+fragment to escape — it sends values (`description`, and the null-stripped
+`trust` mapping) — so the guard is that `renderMeta` puts every one of them into
+the DOM as **text**: a text node for the description, `textContent` for each
+chip. Nothing on this path is ever parsed as markup, which is why no sanitizer
+stands on it. A render path that reached for `innerHTML` here would need one.
 
 # The static render carries both guards
 
@@ -43,7 +47,9 @@ rendered one: `json_for_script` escapes it at inject time (a `</script>` inside 
 body cannot break out of its `<script>`), and it is still
 `DOMPurify.sanitize(marked.parse(...))`'d when the getter hands it to the DOM. The
 same two defenses, now both on the one path — a static file is no laxer than the
-server, and the embedded description stays server-escaped exactly as above.
+server, and the embedded description and trust line go through the same
+text-only `renderMeta` as above — composed client-side in both modes, from
+`/node/meta` when served and from the baked catalog row when not.
 
 # Both guards are asserted, against a bundle that attacks them
 

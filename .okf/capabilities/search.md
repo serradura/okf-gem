@@ -6,7 +6,7 @@ resource: okf/lib/okf/bundle/search.rb
 tags: [read, cli, json, registry, search]
 generated:
   by: human:maintainer
-  at: 2026-07-22T12:00:00Z
+  at: 2026-08-13T12:00:00Z
 sources:
   - title: okf/lib/okf/bundle/search.rb
     resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb

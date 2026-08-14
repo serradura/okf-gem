@@ -139,5 +139,45 @@ module ByDir
       assert result.error?
       assert_match(/unknown field\(s\): body/, result.text)
     end
+    # ── the v0.2 columns and filters (okf targets v0.2 now) ─────────────────
+
+    test "the row carries the v0.2 columns and the retired timestamp is a loud unknown" do
+      server = mcp_server(fixture("knowledge"))
+
+      data = call_tool!(server, "catalog", bundle: "knowledge", fields: %w[id trust generated_at generated])
+      data["concepts"].each { |row| assert_equal %w[generated generated_at id trust], row.keys.sort }
+
+      error = assert_raises(RuntimeError) { call_tool!(server, "catalog", bundle: "knowledge", fields: %w[timestamp]) }
+      assert_match(/unknown field\(s\): timestamp/, error.message)
+    end
+
+    test "status narrows on the effective value — absent reads stable (§5.4)" do
+      server = mcp_server(fixture("notes"))
+      total = call_tool!(server, "catalog", bundle: "notes")["total"]
+
+      assert_operator total, :>, 0
+      assert_equal total, call_tool!(server, "catalog", bundle: "notes", status: "stable")["total"],
+        "no note declares a status, and the CLI's --status stable matches them all — the MCP shell must agree"
+    end
+
+    test "trust narrows the rows, folding either tier spelling" do
+      server = mcp_server(fixture("knowledge"))
+
+      reviewed = call_tool!(server, "catalog", bundle: "knowledge", trust: "human-reviewed")
+      assert_equal [ "services/search" ], reviewed["concepts"].map { |row| row["id"] }
+      assert_equal reviewed["total"],
+        call_tool!(server, "catalog", bundle: "knowledge", trust: "human_reviewed")["total"]
+
+      assert_equal 3, call_tool!(server, "catalog", bundle: "knowledge", trust: "unverified")["total"]
+    end
+    test "CATALOG_FIELDS names exactly the keys a row actually carries" do
+      # The vocabulary is a hand copy of okf's row shape across a gem seam —
+      # the next key added to Bundle#catalog would ship visible in unprojected
+      # rows yet refused by `fields:` as unknown, with neither suite red.
+      server = mcp_server(fixture("knowledge"))
+      row = call_tool!(server, "catalog", bundle: "knowledge")["concepts"].first
+
+      assert_equal OKF::MCP::Server::CATALOG_FIELDS.sort, row.keys.map(&:to_s).sort
+    end
   end
 end

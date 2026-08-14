@@ -6,7 +6,7 @@ resource: okf/lib/okf/render/graph.rb
 tags: [server, graph]
 generated:
   by: human:maintainer
-  at: 2026-07-23T12:00:00Z
+  at: 2026-08-13T12:00:00Z
 sources:
   - title: okf/lib/okf/cli/render.rb
     resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/render.rb
@@ -30,7 +30,7 @@ second renderer. One `OKF::Render::Graph` — the view paired with the pure
 [graph model](../model/graph.md) — draws the page for both modes, and `okf render`
 bakes the bundle in through its `.static`/`.payload`. Every data read the page
 makes — a body, a description, the
-catalog, the §6 map, the §7 logs — flows through a small set of getter functions,
+catalog, the §8 map, the §9 logs — flows through a small set of getter functions,
 and an injected `EMBED` constant chooses their source: `null` when served, so the
 getters `fetch()` the live endpoints; the whole payload when rendered, so they
 resolve from the page itself. One interface, two adapters, and the views never

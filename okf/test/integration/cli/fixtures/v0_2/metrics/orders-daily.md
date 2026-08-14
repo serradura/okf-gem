@@ -5,12 +5,12 @@ description: Completed order counts by day, for the operations dashboard.
 tags: [sales, orders]
 status: stable
 runtime: bigquery
-computation: references/computations/orders-daily.sql
+computation: /references/computations/orders-daily.sql
 generated:
   by: human:maintainer
   at: 2026-06-04T14:20:00Z
 executor:
-  resource: references/skills/run-on-bigquery.md
+  resource: /references/skills/run-on-bigquery.md
   receipt: [ job_id, row_count ]
 sources:
   - title: The operations dashboard brief

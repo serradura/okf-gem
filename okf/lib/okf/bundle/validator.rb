@@ -53,7 +53,11 @@ module OKF
 
       # Every warning goes through here so the check id and its source cannot
       # drift apart: the id is the API, the source is derived from one constant.
-      def warn(path, check, message)
+      #
+      # Not `warn`: that name shadows Kernel#warn for every method in the class,
+      # so a later `warn "…"` meant for stderr would raise ArgumentError at
+      # runtime — a collision neither RuboCop nor the call site can show you.
+      def record_warning(path, check, message)
         @result.add_warning(path, message,
           check: check,
           source: CONVENTION_CHECKS.include?(check) ? :convention : :spec)
@@ -65,9 +69,9 @@ module OKF
       def validate_concept(concept)
         @result.count(:concepts)
         @result.add_error(concept.path, "frontmatter must include a non-empty type") if OKF.blank?(concept.type)
-        warn(concept.path, :recommended_title, "frontmatter should include title") if OKF.blank?(concept.title)
-        warn(concept.path, :recommended_description, "frontmatter should include description") if OKF.blank?(concept.description)
-        warn(concept.path, :tags_shape, "tags should be a list") if concept.frontmatter.key?("tags") && !concept.tags.is_a?(Array)
+        record_warning(concept.path, :recommended_title, "frontmatter should include title") if OKF.blank?(concept.title)
+        record_warning(concept.path, :recommended_description, "frontmatter should include description") if OKF.blank?(concept.description)
+        record_warning(concept.path, :tags_shape, "tags should be a list") if concept.frontmatter.key?("tags") && !concept.tags.is_a?(Array)
         validate_iso8601(concept.path, :timestamp_format, "timestamp", concept.timestamp) if concept.frontmatter.key?("timestamp")
         validate_families(concept)
         check_links(concept.path, concept.body)
@@ -101,12 +105,12 @@ module OKF
 
         value = concept.frontmatter["generated"]
         unless value.is_a?(Hash)
-          warn(concept.path, :generated_shape, "generated should be a mapping")
+          record_warning(concept.path, :generated_shape, "generated should be a mapping")
           return
         end
 
         generated = Markdown::Frontmatter.stringify_keys(value)
-        warn(concept.path, :generated_by, "generated should include by") if OKF.blank?(generated["by"])
+        record_warning(concept.path, :generated_by, "generated should include by") if OKF.blank?(generated["by"])
         validate_iso8601(concept.path, :generated_at_format, "generated.at", generated["at"]) if generated.key?("at")
       end
 
@@ -119,18 +123,18 @@ module OKF
         return validate_verified_entries(concept, [ value ]) if value.is_a?(Hash)
         return validate_verified_entries(concept, value) if value.is_a?(Array)
 
-        warn(concept.path, :verified_shape, "verified should be a mapping or a list of mappings")
+        record_warning(concept.path, :verified_shape, "verified should be a mapping or a list of mappings")
       end
 
       def validate_verified_entries(concept, entries)
         entries.each_with_index do |entry, index|
           unless entry.is_a?(Hash)
-            warn(concept.path, :verified_entry_shape, "verified[#{index}] should be a mapping")
+            record_warning(concept.path, :verified_entry_shape, "verified[#{index}] should be a mapping")
             next
           end
 
           event = Markdown::Frontmatter.stringify_keys(entry)
-          warn(concept.path, :verified_entry_by, "verified[#{index}] should include by") if OKF.blank?(event["by"])
+          record_warning(concept.path, :verified_entry_by, "verified[#{index}] should include by") if OKF.blank?(event["by"])
           validate_iso8601(concept.path, :verified_entry_at_format, "verified[#{index}].at", event["at"]) if event.key?("at")
         end
       end
@@ -140,7 +144,7 @@ module OKF
 
         value = concept.frontmatter["sources"]
         unless value.is_a?(Array)
-          warn(concept.path, :sources_shape, "sources should be a list")
+          record_warning(concept.path, :sources_shape, "sources should be a list")
           return
         end
 
@@ -153,19 +157,19 @@ module OKF
       # override must be the same mapping the sibling is (§5.1).
       def validate_source(concept, entry, index)
         unless entry.is_a?(Hash)
-          warn(concept.path, :source_entry_shape, "sources[#{index}] should be a mapping")
+          record_warning(concept.path, :source_entry_shape, "sources[#{index}] should be a mapping")
           return
         end
 
         source = Markdown::Frontmatter.stringify_keys(entry)
-        warn(concept.path, :source_resource, "sources[#{index}] should include resource") if OKF.blank?(source["resource"])
+        record_warning(concept.path, :source_resource, "sources[#{index}] should include resource") if OKF.blank?(source["resource"])
         validate_date(concept.path, :source_last_modified, "sources[#{index}].last_modified", source["last_modified"]) if source.key?("last_modified")
         if source.key?("usage_count") && !source["usage_count"].is_a?(Integer)
-          warn(concept.path, :source_usage_count, "sources[#{index}].usage_count should be an integer")
+          record_warning(concept.path, :source_usage_count, "sources[#{index}].usage_count should be an integer")
         end
         return unless source.key?("usage_window") && !source["usage_window"].is_a?(Hash)
 
-        warn(concept.path, :source_usage_window_shape, "sources[#{index}].usage_window should be a mapping")
+        record_warning(concept.path, :source_usage_window_shape, "sources[#{index}].usage_window should be a mapping")
       end
 
       def validate_usage_window(concept)
@@ -173,7 +177,7 @@ module OKF
 
         value = concept.frontmatter["usage_window"]
         unless value.is_a?(Hash)
-          warn(concept.path, :usage_window_shape, "usage_window should be a mapping")
+          record_warning(concept.path, :usage_window_shape, "usage_window should be a mapping")
           return
         end
 
@@ -185,8 +189,12 @@ module OKF
       # to tolerate it (§4.1), so this is a warning about a vocabulary a consumer
       # keyed to the spec will not understand — never a rejection.
       def validate_lifecycle(concept)
-        if concept.frontmatter.key?("status") && !Concept::STATUSES.include?(concept.status)
-          warn(concept.path, :status_vocabulary, "status should be one of #{Concept::STATUSES.join(", ")}")
+        # fold_status, not effective_status: the §5.4 default belongs to a
+        # concept that never declared the key, and applying it here read a
+        # blank `status: ""` as `stable` — so the one value §5.4 names nowhere
+        # was the one value that never warned.
+        if concept.frontmatter.key?("status") && !Concept::STATUSES.include?(Concept.fold_status(concept.declared_status))
+          record_warning(concept.path, :status_vocabulary, "status should be one of #{Concept::STATUSES.join(", ")}")
         end
 
         validate_date(concept.path, :stale_after_format, "stale_after", concept.stale_after) if concept.frontmatter.key?("stale_after")
@@ -198,7 +206,7 @@ module OKF
       # shape and REQUIRED-within are the validator's side).
       def validate_computation(concept)
         if concept.attested_computation? && OKF.blank?(concept.frontmatter["runtime"])
-          warn(concept.path, :runtime_required, "runtime is required for an Attested Computation")
+          record_warning(concept.path, :runtime_required, "runtime is required for an Attested Computation")
         end
 
         validate_parameters(concept)
@@ -211,18 +219,18 @@ module OKF
 
         value = concept.frontmatter["parameters"]
         unless value.is_a?(Array)
-          warn(concept.path, :parameters_shape, "parameters should be a list")
+          record_warning(concept.path, :parameters_shape, "parameters should be a list")
           return
         end
 
         value.each_with_index do |entry, index|
           unless entry.is_a?(Hash)
-            warn(concept.path, :parameter_entry_shape, "parameters[#{index}] should be a mapping")
+            record_warning(concept.path, :parameter_entry_shape, "parameters[#{index}] should be a mapping")
             next
           end
 
           parameter = Markdown::Frontmatter.stringify_keys(entry)
-          warn(concept.path, :parameter_name, "parameters[#{index}] should include name") if OKF.blank?(parameter["name"])
+          record_warning(concept.path, :parameter_name, "parameters[#{index}] should include name") if OKF.blank?(parameter["name"])
         end
       end
 
@@ -231,12 +239,12 @@ module OKF
 
         value = concept.frontmatter[key]
         unless value.is_a?(Hash)
-          warn(concept.path, shape_check, "#{key} should be a mapping")
+          record_warning(concept.path, shape_check, "#{key} should be a mapping")
           return
         end
 
         contract = Markdown::Frontmatter.stringify_keys(value)
-        warn(concept.path, resource_check, "#{key} should include resource") if OKF.blank?(contract["resource"])
+        record_warning(concept.path, resource_check, "#{key} should include resource") if OKF.blank?(contract["resource"])
       end
 
       # §11.1: a concept-position file whose frontmatter did not parse. The message is
@@ -288,7 +296,7 @@ module OKF
       def validate_okf_version(path, declared)
         return if OKF.blank?(declared) || Concept::KNOWN_SPEC_VERSIONS.include?(declared.to_s.strip)
 
-        warn(path, :okf_version_unknown,
+        record_warning(path, :okf_version_unknown,
           "okf_version `#{declared}` is not a version this gem knows (read best-effort under §12)")
       end
 
@@ -310,7 +318,7 @@ module OKF
           resolved = Markdown::Links.resolve(raw, from: path, bundle: @bundle.root)
           next if resolved.nil? || @existing.include?(resolved)
 
-          warn(path, :broken_link, "cross-link target not found: `#{raw}` (tolerated under §6.1)")
+          record_warning(path, :broken_link, "cross-link target not found: `#{raw}` (tolerated under §6.1)")
         end
       end
 
@@ -331,7 +339,7 @@ module OKF
           Date.iso8601(string)
         end
       rescue ArgumentError
-        warn(path, check, "#{field} should be ISO 8601 parseable")
+        record_warning(path, check, "#{field} should be ISO 8601 parseable")
       end
 
       # §5.1/§5.5 want a calendar day, not a moment: `last_modified`,
@@ -342,9 +350,9 @@ module OKF
         return if value.is_a?(Date) && !value.is_a?(DateTime)
 
         Date.iso8601(value.to_s)
-        warn(path, check, "#{field} should be a YYYY-MM-DD date") unless value.to_s.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+        record_warning(path, check, "#{field} should be a YYYY-MM-DD date") unless value.to_s.match?(/\A\d{4}-\d{2}-\d{2}\z/)
       rescue ArgumentError
-        warn(path, check, "#{field} should be a YYYY-MM-DD date")
+        record_warning(path, check, "#{field} should be a YYYY-MM-DD date")
       end
     end
   end

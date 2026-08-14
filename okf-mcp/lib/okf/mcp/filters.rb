@@ -10,13 +10,18 @@ module OKF
     # reported an empty bundle root while `search` and `dirs` answered for it.
     # Two copies of a rule is two answers waiting to disagree, so there is one.
     #
-    # There are genuinely **two** rules here, and the distinction is not drift:
+    # There are genuinely **two** rules here, and the distinction is not drift.
+    # Only one of them still lives in this file:
     #
-    #   #under_dir?  filters *concepts*. A dir names itself and everything
-    #                beneath it; `.` is a prefix of nothing, so the root
+    #   concepts     are filtered by `Bundle::RowFilter`, the kernel's one
+    #                catalog-row predicate — a dir names itself and everything
+    #                beneath it, and `.` is a prefix of nothing, so the root
     #                selects only what lives directly in it (the CLI's `--dir`).
+    #                This module's job there is #normalize_dir, the spelling
+    #                fold the kernel deliberately does not do.
     #   #within?     scopes a *tree* of directory rows, where the root is the
-    #                ancestor of every row (`dirs`/`index` walking down).
+    #                ancestor of every row (`dirs`/`index` walking down). The
+    #                kernel has no view of a directory tree, so this one stays.
     module Filters
       module_function
 
@@ -46,13 +51,6 @@ module OKF
       def normalize_dir(value)
         folded = fold(value).sub(%r{/+\z}, "")
         folded.empty? || folded == "." ? "." : folded
-      end
-
-      # Concept filtering: `dir` names itself and everything beneath it.
-      def under_dir?(entry_dir, wanted)
-        entry = fold(entry_dir)
-        path = normalize_dir(wanted)
-        entry == path || entry.start_with?("#{path}/")
       end
 
       # Tree scoping: the root is the ancestor of every row, so `.` selects

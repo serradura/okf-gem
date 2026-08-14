@@ -15,7 +15,7 @@ module OKF
     CONCEPT_SCOPED_CHECKS = %i[
       stub missing_title missing_description missing_generated
       expired uncited_external unattributed_claim unused_source
-      missing_generated_by unprefixed_actor incomplete_computation
+      unprefixed_actor incomplete_computation
       legacy_timestamp legacy_citations
       self_link unused_reference_def undefined_reference
     ].freeze
@@ -40,8 +40,55 @@ module OKF
     # §5.4: "Absent `status` ⇒ `stable`."
     DEFAULT_STATUS = "stable"
 
+    # §5.5's date spelling, strict. Both ends of the `today >= stale_after`
+    # comparison read it: #stale_after_date below, and the clock the linter is
+    # handed. Date.iso8601 alone also parses the basic (20260101) and week
+    # (2026-W01-1) forms, which would put the two ends on different grammars.
+    ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/.freeze
+
+    # The grammar for a *cutoff* a reader supplies (`--stale-after`, the MCP
+    # `stale_after`). Wider than ISO_DATE on purpose: a cutoff is a moment
+    # rather than a calendar day, and the value a caller has to hand is a
+    # concept's own `generated.at` — a full timestamp, which Date.iso8601
+    # reduces to its date. Narrow enough to still refuse the basic (20260101)
+    # and week (2026-W01-1) spellings, which are the ones a reader never means
+    # and the parser would silently reinterpret.
+    # `T` only: Date.iso8601 raises on the space-separated form, so admitting
+    # it here described a grammar one branch wider than the parser behind it —
+    # a value that matched the rule and was refused anyway.
+    ISO_CUTOFF = /\A\d{4}-\d{2}-\d{2}(?:T.+)?\z/.freeze
+
     # §10.1. The type that carries a sanctioned computation.
     ATTESTED_COMPUTATION = "Attested Computation"
+
+    # The narrowing semantics every surface shares — the CLI's --status/--trust
+    # and the MCP shell's filters both fold through here, so a tweak to either
+    # rule cannot land on one surface and not the other (which is exactly how
+    # `--status stable` and the MCP catalog once answered opposite things
+    # about one bundle).
+    #
+    # `--status` matches the EFFECTIVE status: absent (or blank) reads stable
+    # per §5.4, and the value folds through the same serialization #status
+    # keeps, so a YAML-boolean `status: no` is "false" everywhere.
+    def self.effective_status(value)
+      text = fold_status(value)
+      text.empty? ? DEFAULT_STATUS : text
+    end
+
+    # The case-fold *without* §5.4's default — what a filter's argument gets.
+    # The default belongs to a concept that declared no status; a caller who
+    # asked for one and supplied "" asked for a status no concept has, and
+    # answering `stable` there made the CLI's one empty filter that matches
+    # something (`--tag ""` and `--trust ""` both match nothing).
+    def self.fold_status(value)
+      value.nil? ? "" : value.to_s.strip.downcase
+    end
+
+    # A tier prints hyphenated (`machine-confirmed`); a caller may echo that
+    # back or type the underscore form — both fold to the wire spelling.
+    def self.fold_tier(value)
+      value.to_s.downcase.tr("_", "-")
+    end
 
     # Whether a bundle-relative path names a reserved file rather than a concept.
     # `::File` is explicit: OKF::Concept::File (the on-disk handle) shadows Ruby's
@@ -108,11 +155,15 @@ module OKF
     # provenance claim §5 exists to prevent. A non-mapping `generated` is
     # ignored rather than rejected (§11) and falls back like an absent one.
     def generated
-      native = frontmatter["generated"]
-      return Markdown::Frontmatter.stringify_keys(native) if native.is_a?(Hash)
-      return nil if OKF.blank?(timestamp)
+      # Memoized like #sources, on the same premise — the model is immutable
+      # once built — and for the same reason: one catalog row asks four times
+      # over (#generated_at and #generated_by each read this twice), and every
+      # call re-stringifies and re-allocates. `defined?` rather than `||=`
+      # because nil is the answer for a whole bundle mid-migration, and `||=`
+      # would recompute exactly there.
+      return @generated if defined?(@generated)
 
-      { "at" => timestamp }
+      @generated = compute_generated
     end
 
     # The content's last meaningful change (ISO 8601). The fallback is per-key,
@@ -143,9 +194,7 @@ module OKF
     # validator; `verified: []` and all-entries-dropped fold into the key-absent
     # case — every degenerate shape reads as unverified.
     def verified
-      raw = frontmatter["verified"]
-      entries = raw.is_a?(Hash) ? [ raw ] : Array(raw)
-      entries.grep(Hash).map { |entry| Markdown::Frontmatter.stringify_keys(entry) }
+      @verified ||= compute_verified
     end
 
     # §5.3 — derived, never stored. A stored tier would be subjective,
@@ -154,7 +203,10 @@ module OKF
     def trust_tier
       events = verified
       return :unverified if events.empty?
-      return :human_reviewed if events.any? { |event| event["by"].to_s.start_with?(HUMAN_ACTOR) }
+      # Stripped, because the linter strips before matching §7's forms: an
+      # unstripped compare here let one report call a padded `  human:…` actor
+      # human-reviewed in its message and machine-confirmed in its stat.
+      return :human_reviewed if events.any? { |event| event["by"].to_s.strip.start_with?(HUMAN_ACTOR) }
 
       :machine_confirmed
     end
@@ -197,6 +249,12 @@ module OKF
     # false into "absent", and the row's `&.to_s` prints "false": one concept,
     # two answers. Serializing first keeps every surface on the same string.
     def status
+      # Defaulted, *not* folded — and the split is the point. Every surface
+      # that displays a status prints what the producer wrote: the catalog row
+      # (`declared_status&.to_s`), the card chip, the inspector line. Only
+      # comparison folds, which is `.effective_status`'s job and why it is a
+      # separate method. Folding here made the library accessor the one place
+      # answering `deprecated` where the whole CLI and page say `Deprecated`.
       text = declared_status.nil? ? "" : declared_status.to_s.strip
       text.empty? ? DEFAULT_STATUS : text
     end
@@ -216,10 +274,14 @@ module OKF
     # Date; an unparseable string is a validator warning, never a read failure.
     def stale_after_date
       value = stale_after
-      return value if value.is_a?(Date)
+      # DateTime < Date, so a bare Date check would admit the one temporal
+      # class the strict-YYYY-MM-DD contract excludes — the same exclusion the
+      # validator's date check makes, kept in step so lint, validate and the
+      # page cannot answer three ways about one value.
+      return value if value.is_a?(Date) && !value.is_a?(DateTime)
 
       text = value.to_s.strip
-      return nil unless text.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+      return nil unless text.match?(ISO_DATE)
 
       begin
         Date.iso8601(text)
@@ -272,14 +334,25 @@ module OKF
       mapping("attester")
     end
 
+    # The §13.1 lifted entries, parsed once for however many readers ask —
+    # #sources' fallback and the linter's broken_source (which checks the
+    # section's targets even beside a native list) share this parse.
+    def citation_entries
+      @citation_entries ||= Markdown::Citations.entries(body)
+    end
+
     # ── detection (lint's and the surfaces'; never reading's) ──
 
     def legacy_timestamp?
       frontmatter.key?("timestamp")
     end
 
+    # Memoized with defined? because the answer may be false: the linter asks
+    # per check, and each un-memoized ask was a full body scan.
     def legacy_citations?
-      !Markdown::Citations.section(body).nil?
+      return @legacy_citations if defined?(@legacy_citations)
+
+      @legacy_citations = !Markdown::Citations.section(body).nil?
     end
 
     # ── analysis (pure; the same primitives the graph/linter use) ──
@@ -308,6 +381,20 @@ module OKF
 
     private
 
+    def compute_generated
+      native = frontmatter["generated"]
+      return Markdown::Frontmatter.stringify_keys(native) if native.is_a?(Hash)
+      return nil if OKF.blank?(timestamp)
+
+      { "at" => timestamp }
+    end
+
+    def compute_verified
+      raw = frontmatter["verified"]
+      entries = raw.is_a?(Hash) ? [ raw ] : Array(raw)
+      entries.grep(Hash).map { |entry| Markdown::Frontmatter.stringify_keys(entry) }
+    end
+
     def compute_sources
       native = frontmatter["sources"]
       if native.is_a?(Array)
@@ -315,7 +402,7 @@ module OKF
         return entries.map { |entry| Markdown::Frontmatter.stringify_keys(entry) } unless entries.empty?
       end
 
-      Markdown::Citations.entries(body).map do |entry|
+      citation_entries.map do |entry|
         source = {}
         source["title"] = entry[:text] unless OKF.blank?(entry[:text])
         source["resource"] = entry[:target]

@@ -12,9 +12,8 @@ module OKF
         "Backlog" => %i[missing_concept broken_index_entry],
         "Completeness" => %i[stub missing_title missing_description missing_generated],
         "Freshness" => %i[expired stale],
-        "Provenance" => %i[uncited_external broken_source unattributed_claim unused_source
-                           missing_generated_by unprefixed_actor],
-        "Attestation" => %i[incomplete_computation],
+        "Provenance" => %i[uncited_external broken_source unattributed_claim unused_source unprefixed_actor],
+        "Attestation" => %i[incomplete_computation broken_attestation_ref],
         "Migration" => %i[legacy_timestamp legacy_citations],
         "Hygiene" => %i[duplicate_title unused_reference_def undefined_reference self_link]
       }.freeze
@@ -34,7 +33,7 @@ module OKF
 
       def self.help_rows
         [
-          [ "lint      <dir|@slug> [--json] [--fail-on warn] [...]", "report curation-quality issues" ]
+          [ "lint      <dir|@slug> [--json] [--fail-on LEVEL] [...]", "report curation-quality issues" ]
         ]
       end
 
@@ -42,10 +41,12 @@ module OKF
         options = { json: false, min_body: OKF::Bundle::Linter::DEFAULT_MIN_BODY, stale_after: nil,
                     today: nil, only: nil, except: nil, fail_on: :never }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf lint <dir|@slug> [--json] [--min-body N] [--stale-after DUR] [--only a,b] [--except a,b] [--fail-on warn]"
+          o.banner = "Usage: okf lint <dir|@slug> [--json] [--min-body N] [--stale-after DUR] [--today DATE] " \
+                     "[--only a,b] [--except a,b] [--fail-on never|info|warn]"
           json_flags(o, options, "emit a JSON report")
           o.on("--min-body N", Integer, "stub threshold in body characters (default #{OKF::Bundle::Linter::DEFAULT_MIN_BODY})") { |v| options[:min_body] = v }
-          o.on("--stale-after DUR", "flag concepts older than DUR (e.g. 90d, 12w, 2026-01-01)") { |v| options[:stale_after] = v }
+          o.on("--stale-after DUR", "flag concepts older than DUR (e.g. 90d, 12w, 2026-01-01,",
+            "or a full 2026-01-01T09:00:00Z timestamp)") { |v| options[:stale_after] = v }
           o.on("--today DATE", "the day `expired` compares stale_after against (default: today)") { |v| options[:today] = v }
           o.on("--only LIST", Array, "run only these checks (comma-separated)") { |v| options[:only] = v.map(&:to_sym) }
           o.on("--except LIST", Array, "skip these checks (comma-separated)") { |v| options[:except] = v.map(&:to_sym) }
@@ -95,6 +96,7 @@ module OKF
       # default runs no clock check at all (and confesses via skipped_checks).
       def parse_today(value)
         return Date.today if value.nil?
+        return :invalid unless value.match?(Concept::ISO_DATE)
 
         Date.iso8601(value)
       rescue ArgumentError
@@ -110,8 +112,14 @@ module OKF
         if (match = value.match(/\A(\d+)([dw])\z/))
           days = match[1].to_i * (match[2] == "w" ? 7 : 1)
           Time.now - (days * 86_400)
-        else
+        elsif value.match?(Concept::ISO_CUTOFF)
+          # Not --today's grammar: that one is a calendar day, this one a
+          # moment, so a full `generated.at` timestamp is accepted and reduced
+          # to its date. What both refuse is the same — the basic and week
+          # spellings Date.iso8601 would silently reinterpret.
           Date.iso8601(value).to_time
+        else
+          :invalid
         end
       rescue ArgumentError
         :invalid

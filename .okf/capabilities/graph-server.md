@@ -6,7 +6,7 @@ resource: okf/lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
 generated:
   by: human:maintainer
-  at: 2026-07-23T12:00:00Z
+  at: 2026-08-13T12:00:00Z
 sources:
   - title: okf/lib/okf/server/app.rb
     resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/app.rb
@@ -302,7 +302,7 @@ disabled: the page never serves a 404 from a body link. A **file-tree mode** on
 the toolbar redraws the bundle as folders-become-nodes with only folder→child
 edges — the acyclic layered tree of the files, next to the emergent link graph.
 
-Beside it, **show indexes** draws the §6 map as a layer of its own, under
+Beside it, **show indexes** draws the §8 map as a layer of its own, under
 *whatever* layout is running rather than only inside the tree. Each `index.md`
 becomes a tile edged to the concepts it lists and to the maps beneath it. It
 shares one *selector* with file-tree mode's folder node, because the two are the
@@ -541,8 +541,8 @@ node — selecting into a graph nobody is looking at is a silent no-op, and
 # The browser shows the authored layer, not just derived views
 
 The graph, catalog, files, tags, and stats panels are all *derived* from the
-model; the one layer humans actually write — the §6 index map and the
-[§7 log](../format/okf-format.md) — now renders in the browser too. The tree
+model; the one layer humans actually write — the §8 index map and the
+[§9 log](../format/okf-format.md) — now renders in the browser too. The tree
 column is **one tree**. The authored files used to live on a second tab as a
 flat list of paths, which put a directory's own map somewhere other than the
 directory — the one place a reader looks for it. `index.md` and `log.md` are rows

@@ -6,7 +6,7 @@ resource: okf-mcp/lib/okf/mcp/server.rb
 tags: [mcp, serve, agent, registry, search]
 generated:
   by: human:maintainer
-  at: 2026-08-07T12:00:00Z
+  at: 2026-08-13T12:00:00Z
 ---
 
 # Overview
@@ -134,7 +134,7 @@ counted log *files*, so `total: 1` sat above this repo's entire 119,863-byte
 history — the answer to "what changed recently" scaling with the project's age
 rather than the question. The pre-release ROI eval found it, and on the same
 recommended path the instructions name. It now returns the newest three
-date-grouped entries per file (§7's own structure) with each file's `total` and
+date-grouped entries per file (§9's own structure) with each file's `total` and
 `returned`, which cut that answer to 13,491 bytes and a whole eval session in
 half. The split stays here rather than in the kernel because bounding for a
 context window is this surface's problem alone — the [graph
@@ -144,7 +144,7 @@ bounded and is not**, which is the same false-comfort class as a capability
 declared by default.
 
 That shape kept producing instances, each found by review rather than by use.
-§7 fixes no heading level, so a log grouped under `###` is conformant and the
+§9 fixes no heading level, so a log grouped under `###` is conformant and the
 `## ` split cannot see it: the file came back *whole* under `total: 0`, an
 unbounded read advertising itself as empty, and `limit` could not reach the
 path at all. The first fix counted it as one indivisible entry cut by size —

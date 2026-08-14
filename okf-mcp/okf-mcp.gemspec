@@ -49,5 +49,20 @@ Gem::Specification.new do |spec|
   # the dir refusal consults), and the slug grammar this shell rides. 1.12
   # lacked #directories, so the old floor admitted a kernel this code raises
   # NoMethodError against.
+  # RELEASE OBLIGATION: this floor must move to okf's v0.2 release number in
+  # the same PR that bumps okf past 1.13.0 — the shell now reads surfaces
+  # published 1.13.0 does not have (Concept.effective_status/fold_tier, the
+  # trust catalog column), and against it a status filter raises NameError
+  # while a trust filter silently matches nothing. It cannot move earlier:
+  # the monorepo resolves this gemspec against the path-sourced okf, whose
+  # version is still 1.13.0 until its own release PR. The okf-mcp CHANGELOG's
+  # Unreleased section carries the same note where the release notes are cut.
+  #
+  # A note nothing checks is a note that gets published around, so two guards
+  # hold the two halves — and it takes two, because they cover opposite days:
+  #   Rakefile#verify_okf_floor  gates `release`, so no release can be cut while
+  #     this line still admits okf 1.13.0. That is the window open *today*.
+  #   test/unit/gemspec_test.rb  fails the suite if okf bumps and this line
+  #     does not follow. That is every day after.
   spec.add_dependency "okf", ">= 1.13"
 end

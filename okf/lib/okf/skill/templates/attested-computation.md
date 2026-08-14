@@ -7,10 +7,10 @@ runtime: <REQUIRED — what runs it and what parameters mean: bigquery, dbt, pyt
 parameters:
   - { name: <name>, type: <type>, required: true }
 executor:
-  resource: <path to run instructions, e.g. references/skills/run-on-bq.md>
+  resource: <path to run instructions, e.g. /references/skills/run-on-bq.md>
   receipt: [<field>, <field>]
 attester:
-  resource: <path to the deterministic check, e.g. references/attesters/check.py>
+  resource: <path to the deterministic check, e.g. /references/attesters/check.py>
 generated:
   by: <actor per §7>
   at: <ISO 8601>

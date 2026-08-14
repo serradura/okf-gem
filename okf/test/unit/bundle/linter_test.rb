@@ -224,15 +224,16 @@ class OKF::Bundle::LinterTest < OKF::TestCase
       stub: :info, missing_title: :info, missing_description: :info, missing_generated: :info,
       expired: :info, stale: :warn,
       uncited_external: :info, broken_source: :warn, unattributed_claim: :warn,
-      unused_source: :info, missing_generated_by: :info, unprefixed_actor: :info,
-      incomplete_computation: :warn,
+      unused_source: :info, unprefixed_actor: :info,
+      incomplete_computation: :warn, broken_attestation_ref: :warn,
       legacy_timestamp: :info, legacy_citations: :info,
       duplicate_title: :info, unused_reference_def: :info, undefined_reference: :warn, self_link: :info
     }
 
     assert_equal expected, OKF::Bundle::Linter::SEVERITIES
-    assert_equal OKF::Bundle::Linter::CHECKS.sort, OKF::Bundle::Linter::SEVERITIES.keys.sort,
-      "every check has exactly one pinned severity"
+    # CHECKS is derived (SEVERITIES.keys), so pinning the map pins the registry
+    # and its display order in the same stroke — no sync assertion needed.
+    assert_equal expected.keys, OKF::Bundle::Linter::CHECKS
   end
 
   test "the retired ids are gone from every registry that could silently keep them" do
@@ -301,8 +302,7 @@ class OKF::Bundle::LinterTest < OKF::TestCase
 
       Claim one.[^missing] Claim two, same source.[^missing] Fine claim.[^present]
 
-      [^missing]: a definition line is not a reference
-      [^present]: nor is this one
+      [^present]: a definition line's leading token is not a reference
     MD
 
     findings = checks(:unattributed_claim)
@@ -351,13 +351,6 @@ class OKF::Bundle::LinterTest < OKF::TestCase
     MD
 
     assert_equal 1, checks(:unused_source).size
-  end
-
-  test "missing_generated_by asks the declared generated, never the lifted one" do
-    write("actorless.md", "---\ntype: Note\ntitle: A\ndescription: d\ngenerated: { at: 2026-01-01 }\n---\n\na body long enough to skip the stub check\n")
-    write("legacy.md", fm(title: "L", timestamp: "2026-01-01") + "a body long enough to skip the stub check\n")
-
-    assert_equal %w[actorless.md], paths(:missing_generated_by)
   end
 
   # ── Provenance: the §7 actor forms on verified[].by ─────────────────────────
@@ -480,7 +473,250 @@ class OKF::Bundle::LinterTest < OKF::TestCase
     assert_equal %w[dated.md], paths(:expired, today: "2026-09-23")
     assert_equal %w[dated.md], paths(:expired, today: Time.utc(2026, 9, 23, 12))
     error = assert_raises(ArgumentError) { report(today: :tomorrow) }
-    assert_match(/today: must be a Date/, error.message)
+    # "by name" is the class's name: an unparseable *string* is the one case
+    # the value is worth echoing, and a value of the wrong kind entirely is
+    # answered by naming the kind it should have been.
+    assert_match(/today: must be a Date \(got Symbol\)/, error.message)
+
+    string_error = assert_raises(ArgumentError) { report(today: "not-a-date") }
+    assert_match(/today: must be a Date or a YYYY-MM-DD string \(got "not-a-date"\)/, string_error.message)
+  end
+
+  test "broken_attestation_ref reads §10's keys only on the type §10 governs" do
+    # §4.1 lets a producer add any frontmatter key, so `computation:` on a
+    # Recipe means whatever that producer decided. Warning about it fails a
+    # --fail-on warn gate over a key §10 does not govern for that concept —
+    # the same line check_incomplete_computation already draws.
+    write("recipe.md", "---\ntype: Recipe\ntitle: R\ndescription: d\n" \
+                       "computation: /steps/does-not-exist.md\n---\n\na body long enough to skip the stub check\n")
+    write("real.md", "---\ntype: Attested Computation\ntitle: A\ndescription: d\nruntime: bigquery\n" \
+                     "computation: /steps/does-not-exist.md\n---\n\na body long enough to skip the stub check\n")
+
+    assert_equal %w[real.md], paths(:broken_attestation_ref),
+      "the same dangling path, reported on the Attested Computation and not on the Recipe"
+  end
+
+  test "a human: actor with a malformed id is not told it reads as machine-confirmed" do
+    # §5.3 derives the tier from the `human:` prefix alone, so `human:jane doe`
+    # is already human-reviewed however malformed the id is. Saying it "reads
+    # as machine-confirmed" contradicted the same run's own trust stat and sent
+    # the reader to fix a tier that was never wrong.
+    write("signed.md", "---\ntype: Note\ntitle: S\ndescription: d\n" \
+                       "verified:\n  - by: 'human:jane doe'\n---\n\na body long enough to skip the stub check\n")
+
+    result = report
+    finding = checks(:unprefixed_actor).first
+
+    refute_nil finding, "the id still matches none of §7's forms, so the finding stands"
+    refute_match(/machine-confirmed/, finding[:message],
+      "the prefix already reads as human-reviewed — the same report's trust stat says so")
+    assert_equal 1, result.stats[:trust]["human-reviewed"],
+      "the tier the message must not contradict"
+  end
+
+  test "plain footnotes on a concept with no keyed sources are prose, not a warn" do
+    # §5.1 does not reserve footnotes for attribution: a document using
+    # ordinary GFM footnotes, with no sources[].id anywhere, has not adopted
+    # keyed attribution — faulting it would gate --fail-on warn on a writing
+    # style. The same rule check_unused_source already states from the other
+    # side.
+    write("essay.md", fm(title: "E") + "A claim.[^note]\n\n[^note]: just a footnote, no sources at all\n")
+    write("keyed.md", <<~MD)
+      ---
+      type: Note
+      title: K
+      description: d
+      sources:
+        - id: real
+          resource: https://e.com/real
+      ---
+
+      A claim.[^typo] — undefined and unmatched, so it still warns
+
+    MD
+
+    assert_equal %w[keyed.md], paths(:unattributed_claim)
+  end
+
+  test "adjacent footnote references are not an undefined reference-style link" do
+    # `[^rev][^audit]` parses as a REFERENCE_LINK text/label pair, and
+    # DEFINITION rightly refuses caret labels — so a well-formed doc with two
+    # adjacent footnotes earned a false undefined_reference warn.
+    write("doc.md", <<~MD)
+      ---
+      type: Note
+      title: D
+      description: d
+      sources:
+        - id: rev
+          resource: https://e.com/rev
+        - id: audit
+          resource: https://e.com/audit
+      ---
+
+      Confirmed twice.[^rev][^audit]
+
+      [^rev]: the review
+      [^audit]: the audit
+    MD
+
+    assert_empty paths(:undefined_reference)
+    assert_empty paths(:unattributed_claim)
+  end
+
+  test "the footnote-to-source join folds case the way GFM renders it" do
+    write("cased.md", <<~MD)
+      ---
+      type: Note
+      title: C
+      description: d
+      sources:
+        - id: R1
+          resource: https://e.com/r1
+      ---
+
+      A claim.[^r1]
+    MD
+
+    assert_empty paths(:unattributed_claim), "GitHub renders this attribution; the join must agree"
+    assert_empty paths(:unused_source)
+  end
+
+  test "a source cited only inside another footnote's definition prose is not unused" do
+    write("doc.md", <<~MD)
+      ---
+      type: Note
+      title: D
+      description: d
+      sources:
+        - id: a
+          resource: https://e.com/a
+        - id: b
+          resource: https://e.com/b
+      ---
+
+      A claim.[^a]
+
+      [^a]: see also [^b]
+    MD
+
+    assert_empty paths(:unused_source), "only the leading definition token is not a reference; its prose is"
+    assert_empty paths(:unattributed_claim)
+  end
+
+  test "the library refuses an unknown check id instead of running nothing and reporting fine" do
+    write("a.md", fm(title: "A") + "hi\n")
+
+    error = assert_raises(ArgumentError) { report(only: [ :broken_citation ]) }
+    assert_match(/unknown check\(s\): broken_citation/, error.message)
+    assert_raises(ArgumentError) { report(except: [ :missing_timestamp ]) }
+  end
+
+  test "a leftover Citations section keeps its warn-level broken targets beside a native sources list" do
+    # Half-migrated: the native list took over #sources, but §13.1 keeps the
+    # section readable — and on main its broken in-bundle target was a warn.
+    # Migration must not downgrade a gate from exit 1 to exit 0.
+    write("half.md", <<~MD)
+      ---
+      type: Note
+      title: H
+      description: d
+      sources:
+        - resource: https://e.com/native
+      ---
+
+      prose
+
+      # Citations
+
+      [1] [old ref](/nope.md)
+    MD
+
+    findings = checks(:broken_source)
+    assert_equal %w[half.md], findings.map { |f| f[:path] }
+    assert_equal :warn, findings.first[:severity]
+  end
+
+  test "two files pinning the same custom id do not cross-contaminate the footnote joins" do
+    write("a.md", <<~MD)
+      ---
+      type: Note
+      title: A
+      id: shared
+      description: d
+      sources:
+        - id: y
+          resource: https://e.com/y
+      ---
+
+      no footnotes here, so y is unused
+    MD
+    write("b.md", <<~MD)
+      ---
+      type: Note
+      title: B
+      id: shared
+      description: d
+      sources:
+        - id: z
+          resource: https://e.com/z
+      ---
+
+      cites its own source.[^z]
+    MD
+
+    assert_equal 1, checks(:unused_source).size,
+      "the label cache must key on the path (unique by construction), not a producer-pinned id"
+  end
+
+  test "an image alt starting with a caret is not a footnote reference" do
+    write("doc.md", <<~MD)
+      ---
+      type: Note
+      title: D
+      description: d
+      sources:
+        - id: real
+          resource: https://e.com/real
+      ---
+
+      A diagram: ![^diagram](d.png) and a real citation.[^real]
+    MD
+
+    assert_empty paths(:unattributed_claim)
+  end
+
+  test "an adopter can still carry an ordinary GFM content footnote" do
+    # §5.1 never reserves every [^label] for attribution: a label with its own
+    # definition line is a self-contained content footnote that renders fine —
+    # the dangling ones (no definition, no source id) are the misattributions.
+    write("doc.md", <<~MD)
+      ---
+      type: Note
+      title: D
+      description: d
+      sources:
+        - id: bq
+          resource: https://e.com/bq
+      ---
+
+      A cited claim.[^bq] An aside.[^note] A dangling one.[^ghost]
+
+      [^note]: ordinary explanatory footnote, defined right here
+    MD
+
+    findings = checks(:unattributed_claim)
+    assert_equal [ "ghost" ], findings.map { |f| f[:metric][:label] },
+      "defined content footnotes pass; only the undefined, unmatched label warns"
+  end
+
+  test "the status distribution folds case the way every filter surface does" do
+    write("a.md", fm(title: "A") + "a body long enough to skip the stub check\n")
+    write("b.md", "---\ntype: Note\ntitle: B\ndescription: d\nstatus: Draft\n---\n\na body long enough to skip the stub check\n")
+    write("c.md", "---\ntype: Note\ntitle: C\ndescription: d\nstatus: draft\n---\n\na body long enough to skip the stub check\n")
+
+    assert_equal({ "draft" => 2, "stable" => 1 }, report.stats[:status],
+      "--status draft narrows both concepts into one bucket; the posture inventory must reconcile with it")
   end
 
   private

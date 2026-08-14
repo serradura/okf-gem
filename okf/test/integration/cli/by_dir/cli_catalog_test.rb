@@ -330,6 +330,29 @@ module ByDir
         "an unquoted stale_after: is a Psych Date and renders YYYY-MM-DD"
     end
 
+    test "a v0.1 # Citations list counts its reference-style items too" do
+      # §13.1's fallback lifts the body list into `sources`, and the section may
+      # use any Markdown link grammar. The reference-style half had only unit
+      # coverage: every CLI assertion happened to use inline links, so a caller
+      # reaching the count through the fallback never walked it.
+      rows = json(okf("catalog", fixture("v0_2-uncurated"), "--json")).fetch("concepts")
+      row = rows.find { |entry| entry["id"] == "legacy" }
+
+      assert_equal 4, row.fetch("sources"),
+        "two inline/autolink items plus a full [text][label] and a collapsed [label][]"
+    end
+
+    test "--status \"\" matches nothing, the way every other empty filter does" do
+      # "" is a value, not an absence: --tag "" and --trust "" both match
+      # nothing, and --status must not be the one flag where an empty string
+      # silently means `stable` (§5.4's default belongs to a row with no
+      # status, never to a caller who asked for one and supplied none).
+      empty = json(okf("catalog", fixture("v0_2"), "--status", "", "--json"))
+
+      assert_equal 0, empty.fetch("count"), "an empty --status must not fold into the §5.4 default"
+      assert_empty empty.fetch("concepts")
+    end
+
     test "status stays the raw declared value, and --status matches the effective one" do
       rows = json(okf("catalog", fixture("twins/v0_2"), "--json")).fetch("concepts")
       assert(rows.all? { |row| row.fetch("status").nil? },
@@ -344,7 +367,7 @@ module ByDir
       assert_equal [ "tables/customers" ], drafts.fetch("concepts").map { |row| row["id"] }
 
       human = okf("catalog", fixture("v0_2"), "--trust", "human-reviewed")
-      assert_match(/1 of 5 concepts/, human.out)
+      assert_match(/1 of 6 concepts/, human.out)
       assert_match(/Orders/, human.out)
       refute_match(/Customers/, human.out)
     end

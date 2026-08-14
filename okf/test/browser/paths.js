@@ -47,6 +47,20 @@ export const v02Dir = path.join(here, "fixtures", "v02");
 export const v02Page = path.join(here, ".tmp", "v02.html");
 export const V02_PORT = PORT + 11;
 
+// A bundle mid-migration and unreviewed: two concepts declare `generated:`,
+// none declares `verified:`, and one is still plain v0.1. The `v02` fixture cannot make this shape —
+// two of its concepts are verified on purpose, and that is what the trust
+// chips are read against there. This is the ordinary state of a bundle the
+// day its migration lands, and the one where the trust facet's gate and the
+// chip predicate have to agree: every card shows an `unverified` tier, so the
+// filter group must exist to narrow on. It also carries the multi-word
+// `status: In Review` §4.1 permits, which the class attribute has to slug.
+// Own server and static page, as the rest — the catalog arrives by fetch in
+// one mode and from EMBED in the other, so both have to be walked.
+export const generatedOnlyDir = path.join(here, "fixtures", "generated-only");
+export const generatedOnlyPage = path.join(here, ".tmp", "generated-only.html");
+export const GENERATED_ONLY_PORT = PORT + 12;
+
 // The hub serves the bundle and hostile fixtures together (two dirs → hub mode),
 // so /b/bundle/ carries a sibling and the palette's bundle switcher exists.
 // Reached by URL directly, so it needs no Playwright project of its own.

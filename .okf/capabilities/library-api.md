@@ -6,7 +6,7 @@ resource: okf/lib/okf.rb
 tags: [ruby, diagram]
 generated:
   by: human:maintainer
-  at: 2026-07-22T18:00:00Z
+  at: 2026-08-13T12:00:00Z
 sources:
   - title: README.md — Library
     resource: https://github.com/serradura/okf-gem/blob/main/README.md

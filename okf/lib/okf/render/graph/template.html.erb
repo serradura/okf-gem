@@ -266,7 +266,11 @@
  .stale{color:var(--warn)}
  /* The inspector's trust line: the chips under a concept's description. */
  .meta-trust{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
- .meta-trust .gen{font-size:11.5px;color:var(--faint)}
+ /* The two text members of the line, as opposed to the .tier/.status badges
+    that carry their own size. `.stale` has only a colour globally, so
+    without this it rendered at the panel's inherited size beside them. */
+ .meta-trust .gen,.meta-trust .stale{font-size:11.5px}
+ .meta-trust .gen{color:var(--faint)}
  .tag{background:var(--line-2);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--muted)}
 
  /* ── graph view ── */
@@ -1591,8 +1595,25 @@ function showLog(path){LOGS=null;getLogs().then(logs=>{const l=logs.find(x=>x.pa
                months; the page compares dates the way the CLI does. */
 const TODAY=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const isExpired=sa=>!!sa&&/^\d{4}-\d{2}-\d{2}$/.test(sa)&&TODAY()>=sa;
-const statusChip=c=>(c.status&&c.status!=='stable')?`<span class="status ${esc(c.status)}">${esc(c.status)}</span>`:'';
-const trustChip=c=>(c.trust&&!(c.trust==='unverified'&&!c.generated))?`<span class="tier ${esc(c.trust)}">${esc(c.trust)}</span>`:'';
+/* One fold for every status keying — chips, facets, suppression — because the
+   row carries the DECLARED value and the CLI folds case when it narrows: a
+   `status: Stable` bundle otherwise grew duplicate facet chips filtering
+   disjoint sets, and "Stable" cards wore a chip the default never earns. The
+   raw spelling still renders as the chip's text; only keys fold. */
+const foldStatus=v=>{const s=String(v==null?'':v).trim().toLowerCase();return s||'stable';};
+/* The folded value is a filter key, not a class name: §4.1 lets a producer
+   declare `In Review`, which folded straight into the attribute became
+   `class="status in review"` — two classes a stylesheet may already own. One
+   token for the class, the raw spelling still the chip's text. */
+const statusSlug=v=>foldStatus(v).replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'stable';
+const statusChip=c=>foldStatus(c.status)!=='stable'?`<span class="status ${esc(statusSlug(c.status))}">${esc(c.status)}</span>`:'';
+/* An `unverified` tier is an answer, not an absence — but only once a concept
+   declared `generated:`, since a v0.1 concept declaring neither would wear a
+   chip about a family it never had. The catalog's trust facet gates on this
+   same predicate: a tier shown on every card with no group to narrow on was
+   the shape it took when the two were spelled separately. */
+const showsTrust=c=>!!(c.trust&&!(c.trust==='unverified'&&!c.generated));
+const trustChip=c=>showsTrust(c)?`<span class="tier ${esc(c.trust)}">${esc(c.trust)}</span>`:'';
 /* No `by` means v0.1 lifted this from a `timestamp`, which recorded no actor.
    Printing one would be the false provenance claim §5 exists to prevent. */
 const genChip=c=>c.generated_at?`<span class="mini">⌂ ${esc(c.generated_at)}${c.generated_by?' by '+esc(c.generated_by):''}</span>`:'';
@@ -1604,7 +1625,7 @@ const genChip=c=>c.generated_at?`<span class="mini">⌂ ${esc(c.generated_at)}${
    mode, so on-disk edits keep reflecting. */
 const EMBED_ROW=EMBED?Object.fromEntries((EMBED.catalog||[]).map(c=>[c.id,c])):null;
 const rowTrust=c=>{if(!c)return null;const t={};
- if(c.trust&&!(c.trust==='unverified'&&!c.generated))t.tier=c.trust;
+ if(showsTrust(c))t.tier=c.trust;
  if(c.generated_by)t.generated_by=c.generated_by;
  if(c.generated_at)t.generated_at=c.generated_at;
  if(c.status)t.status=c.status;
@@ -1623,7 +1644,7 @@ function renderMeta(el,meta){el.textContent='';
  const chip=(cls,text)=>{const s=document.createElement('span');s.className=cls;s.textContent=text;line.appendChild(s);};
  if(t.tier)chip('tier '+t.tier,t.tier);
  if(t.generated_at)chip('gen',t.generated_at+(t.generated_by?' by '+t.generated_by:''));
- if(t.status&&t.status!=='stable')chip('status '+t.status,t.status);
+ if(foldStatus(t.status)!=='stable')chip('status '+statusSlug(t.status),t.status);
  if(isExpired(t.stale_after))chip('stale','expired '+t.stale_after);
  if(line.childNodes.length)el.appendChild(line);}
 function getNodeBody(id){return EMBED?Promise.resolve(EMBED.bodies[id]||''):fetch(NODE_ENDPOINT+'?id='+encodeURIComponent(id)).then(r=>r.ok?r.text():'');}
@@ -2323,14 +2344,17 @@ const catActiveTypes=new Set(), catActiveDirs=new Set(), catActiveTags=new Set()
    counts the EFFECTIVE value (absent reads stable, the same rule --status
    narrows by); trust counts the derived tier. A facet with nothing to say
    stays hidden: the status group needs at least one DECLARED status, and the
-   trust group at least one verified concept — otherwise every v0.1 bundle
-   would wear a row of chips saying only "unverified". */
+   trust group at least one concept whose tier the page is willing to claim —
+   otherwise every v0.1 bundle would wear a row of chips saying only
+   "unverified". `showsTrust` is that willingness, and all three of the gate,
+   the counts and the narrowing read it, so the facet describes exactly the
+   cards wearing a tier chip. Counting rows the page shows no chip for made it
+   read "unverified 3" over two chipped cards, and narrow to three. */
 let catStatusCounts={}, catTrustCounts={}, catShowStatus=false, catShowTrust=false;
-function catFacets(list){catStatusCounts={};catTrustCounts={};
- list.forEach(c=>{const s=c.status||'stable';catStatusCounts[s]=(catStatusCounts[s]||0)+1;
-  if(c.trust)catTrustCounts[c.trust]=(catTrustCounts[c.trust]||0)+1;});
- catShowStatus=list.some(c=>c.status);
- catShowTrust=Object.keys(catTrustCounts).some(t=>t!=='unverified');}
+function catFacets(list){catStatusCounts={};catTrustCounts={};catShowTrust=false;
+ list.forEach(c=>{const s=foldStatus(c.status);catStatusCounts[s]=(catStatusCounts[s]||0)+1;
+  if(showsTrust(c)){catTrustCounts[c.trust]=(catTrustCounts[c.trust]||0)+1;catShowTrust=true;}});
+ catShowStatus=list.some(c=>c.status);}
 const facetByCount=counts=>Object.keys(counts).sort((a,b)=>counts[b]-counts[a]||a.localeCompare(b));
 const facetItems=counts=>facetByCount(counts).map(v=>({v:v,n:counts[v]}));
 const catByCount=types.slice().sort((a,b)=>(TYPES[b]||[]).length-(TYPES[a]||[]).length);
@@ -2373,8 +2397,8 @@ function renderCatalog(){if(!CATALOG)return;getCatalog().then(list=>{const s=(q.
  const rows=list.filter(c=>{if(catActiveTypes.size&&!catActiveTypes.has(c.type))return false;
   if(catActiveDirs.size&&![...catActiveDirs].some(d=>underDir(dirOf(c.id),d)))return false;
   if(catActiveTags.size&&!c.tags.some(t=>catActiveTags.has(t)))return false;
-  if(catActiveStatus.size&&!catActiveStatus.has(c.status||'stable'))return false;
-  if(catActiveTrust.size&&!catActiveTrust.has(c.trust))return false;
+  if(catActiveStatus.size&&!catActiveStatus.has(foldStatus(c.status)))return false;
+  if(catActiveTrust.size&&!(showsTrust(c)&&catActiveTrust.has(c.trust)))return false;
   if(ids)return ids.has(c.id);
   if(s){const hay=(c.title+' '+c.description+' '+c.type+' '+c.tags.join(' ')+' '+c.id).toLowerCase();if(!hay.includes(s))return false;}return true;});
  document.getElementById('cat-cnt').textContent=rows.length+' of '+list.length+' concepts';

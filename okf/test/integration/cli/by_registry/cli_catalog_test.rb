@@ -318,7 +318,7 @@ module ByRegistry
 
         human = okf("catalog", "@v0_2", "--trust", "human-reviewed")
         assert_equal 0, human.status
-        assert_match(/1 of 5 concepts/, human.out)
+        assert_match(/1 of 6 concepts/, human.out)
       end
     end
   end

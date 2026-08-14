@@ -63,6 +63,24 @@ class CLICommandHelpTest < CLIIntegrationCase
     end
   end
 
+  # The two v0.2 filters are registered unconditionally inside #filter_flags,
+  # so every verb that narrows catalog rows accepts them. A banner that omits a
+  # flag the verb takes is the drift that leaves a capability discoverable only
+  # by reading the source: OptionParser lists them below, but the banner is the
+  # line a reader scans for the grammar.
+  ROW_FILTERING = [ %w[catalog], %w[files], %w[search], %w[tags], %w[types] ].freeze
+
+  test "every row-filtering command's banner names the v0.2 filters it accepts" do
+    ROW_FILTERING.each do |argv|
+      banner = okf(*argv, "--help").out.lines.first.to_s
+
+      assert_match(/--status\b/, banner,
+        "okf #{argv.join(" ")}: the banner omits --status, which the verb accepts")
+      assert_match(/--trust\b/, banner,
+        "okf #{argv.join(" ")}: the banner omits --trust, which the verb accepts")
+    end
+  end
+
   test "every command lists -h among its options" do
     ALL.each do |argv|
       assert_match(/^\s+-h, --help\b/, okf(*argv, "--help").out,

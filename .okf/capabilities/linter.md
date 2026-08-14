@@ -6,7 +6,7 @@ resource: okf/lib/okf/bundle/linter.rb
 tags: [curation, cli]
 generated:
   by: human:maintainer
-  at: 2026-07-17T16:00:00Z
+  at: 2026-08-13T12:00:00Z
 sources:
   - title: okf/lib/okf/bundle/linter.rb
     resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/linter.rb
@@ -29,8 +29,8 @@ with findings unless you opt in with `--fail-on warn` (any warn) or
 | Backlog | `missing_concept`, `broken_index_entry` |
 | Completeness | `stub`, `missing_title`, `missing_description`, `missing_generated` |
 | Freshness | `expired`, `stale` |
-| Provenance | `uncited_external`, `broken_source`, `unattributed_claim`, `unused_source`, `missing_generated_by`, `unprefixed_actor` |
-| Attestation | `incomplete_computation` |
+| Provenance | `uncited_external`, `broken_source`, `unattributed_claim`, `unused_source`, `unprefixed_actor` |
+| Attestation | `incomplete_computation`, `broken_attestation_ref` |
 | Migration | `legacy_timestamp`, `legacy_citations` |
 | Hygiene | `duplicate_title`, `unused_reference_def`, `undefined_reference`, `self_link` |
 

@@ -81,7 +81,7 @@ read and act on, never a missing toolchain to send to doctor.
 Don't memorize the surface — `okf --help` maps every verb, `okf <verb> --help` its
 flags. The division of labour is the whole game:
 
-- **Shell out — never eyeball —** anything a verb computes: conformance (§9), what
+- **Shell out — never eyeball —** anything a verb computes: conformance (§11), what
   exists, what links where, where a term lives, what's stale, the map. Every read
   verb takes `--json` and the list views filter by type/dir/tag, so ask the narrow
   question instead of paging the bundle.
