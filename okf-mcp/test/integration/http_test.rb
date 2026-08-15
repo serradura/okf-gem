@@ -230,7 +230,7 @@ class HTTPTest < MCPIntegrationCase
   def post_chunked(port, body)
     socket = TCPSocket.new("127.0.0.1", port)
     socket.write("POST / HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\n" \
-                 "Accept: application/json, text/event-stream\r\nTransfer-Encoding: chunked\r\n\r\n")
+                 "Accept: application/json, text/event-stream\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n")
     socket.write("#{body.bytesize.to_s(16)}\r\n#{body}\r\n0\r\n\r\n")
     response = socket.read.to_s
     socket.close
