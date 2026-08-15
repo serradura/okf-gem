@@ -5,7 +5,9 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-08-15
+
+First release.
 
 ### Added
 
@@ -233,3 +235,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   comes from (`area` → `top_dir`, then `timestamp` → `generated_at`), so `< 3`
   turns the next one into a resolution failure a maintainer sees instead of a
   wrong number a reader believes.
+
+[1.0.0]: https://github.com/serradura/okf-gem/releases/tag/okf-tui/v1.0.0

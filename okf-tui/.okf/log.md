@@ -2,6 +2,18 @@
 
 ## 2026-08-15
 
+* **Release**: **1.0.0**, the first. Six views over one bundle or many —
+  bundles, browse, search, graph, health, help — with the registry and its
+  groups as editable configuration, and search across every bundle in scope
+  through one shared corpus, so the scores compare between them. It
+  [invents no analysis](decisions/invents-no-analysis.md): okf owns the format,
+  the model, and every question on screen. The floor is `okf >= 2.0, < 3`, and
+  the ceiling is the one exception to
+  [no version ceilings](decisions/no-version-ceilings.md) — earned rather than
+  conventional, because an okf major is where
+  [the silent drift](decisions/okf-capability-drift.md) comes from, and a
+  renamed field read as nil is a wrong number with a green suite either side
+  of it.
 * **Note**: **the gem ships no executable.** `okf tui` is the entry point,
   registered through [the plugin seam](decisions/one-door-the-plugin-seam.md),
   so installing the gem is the whole installation. A second binary that only
