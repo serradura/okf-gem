@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+# Minitest's progress dots go through a pipe on CI, where stdout is block-
+# buffered — so a run that wedges flushes nothing and the log cannot say which
+# test it stopped after. That cost several rounds of guessing; syncing makes a
+# hang name itself.
+$stdout.sync = true
+
 begin
   require "simplecov"
 
