@@ -84,6 +84,47 @@ jobs:
       - name: Run the default task
         run: bundle exec rake
 
+  okf-tui:
+    name: okf-tui / Ruby ${{ matrix.ruby }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: okf-tui
+    strategy:
+      fail-fast: false
+      matrix:
+        # okf's own range, because okf-tui takes okf's floor: the tool should
+        # run on whatever Ruby the OS already ships. Same split as the okf job —
+        # the Rubies that predate ubuntu-latest's toolchain run on the older
+        # image ruby/setup-ruby still builds them for.
+        include:
+          - { ruby: "2.4", os: ubuntu-22.04 }
+          - { ruby: "2.5", os: ubuntu-22.04 }
+          - { ruby: "2.6", os: ubuntu-22.04 }
+          - { ruby: "2.7", os: ubuntu-latest }
+          - { ruby: "3.0", os: ubuntu-latest }
+          - { ruby: "3.1", os: ubuntu-latest }
+          - { ruby: "3.2", os: ubuntu-latest }
+          - { ruby: "3.3", os: ubuntu-latest }
+          - { ruby: "3.4", os: ubuntu-latest }
+          - { ruby: "4.0", os: ubuntu-latest }
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+          # Its own input, not the job default: `defaults.run` only applies to
+          # `run:` steps, and this action has to find the Gemfile it caches
+          # against.
+          working-directory: okf-tui
+      - name: Run the default task
+        run: bundle exec rake
+
   # The Ruby that belongs to no gem — this repo's Rakefile and the Claude Code
   # plugin's curation hook — is linted by no gem's `rake rubocop`, so without
   # this job it is held to the 2.4 floor by comment only. One modern Ruby is
