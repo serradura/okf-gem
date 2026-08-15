@@ -5,12 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0] - 2026-08-14
 
-> The Breaking entries below change public shapes a shipped consumer already
-> reads — okf-mcp 1.0.0 pins `okf >= 1.13` open-ended and mirrors the catalog
-> row and check ids — so the version this section ships under is a deliberate
-> semver decision to make at release time, not a ride on the next minor.
+> Major, not minor. The Breaking entries below change public shapes a shipped
+> consumer already reads: two lint check ids are renamed, the `stale` finding's
+> JSON metric moves from `timestamp` to `generated_at`, and the `timestamp`
+> catalog column is gone. A v0.1 *bundle* still validates with zero warnings —
+> §13.1's fallbacks hold — but spec compatibility and API compatibility are
+> different promises, and semver tracks the second. okf-mcp's open-ended
+> `okf >= 1.13` is closed to `>= 2.0, < 3` in the same release.
 
 ### Added
 
@@ -1513,6 +1516,7 @@ Initial release.
 
 - Runs on Ruby >= 2.4 with two runtime dependencies: rack and webrick.
 
+[2.0.0]: https://github.com/serradura/okf-gem/compare/v1.13.0...v2.0.0
 [1.13.0]: https://github.com/serradura/okf-gem/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/serradura/okf-gem/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/serradura/okf-gem/compare/v1.10.0...v1.11.0
