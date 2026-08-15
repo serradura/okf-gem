@@ -131,8 +131,6 @@ class CLIPluginTest < MCPIntegrationCase
   private
 
   def spawn_verb(*args, &block)
-    skip "spawns a subprocess that re-resolves the bundle — it wedges a cold runner" if ENV["CI"]
-
     Open3.popen3(RbConfig.ruby, "-rbundler/setup", "-I#{LIB}", OKF_EXE, "mcp", *args, &block)
   end
 
@@ -158,8 +156,6 @@ class CLIPluginTest < MCPIntegrationCase
   end
 
   def spawn_okf(*argv)
-    skip "spawns a subprocess that re-resolves the bundle — it wedges a cold runner" if ENV["CI"]
-
     stdout, stderr, status = Open3.capture3(RbConfig.ruby, "-rbundler/setup", "-I#{LIB}", OKF_EXE, *argv)
     Result.new(status.exitstatus, stdout, stderr)
   end

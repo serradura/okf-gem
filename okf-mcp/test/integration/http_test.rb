@@ -33,7 +33,7 @@ class HTTPTest < MCPIntegrationCase
     end
   end
 
-  # Skipped on CI, and hardened so that skip is a choice rather than a rescue.
+  # Hardened after it wedged CI runners.
   #
   # It spawns a real subprocess that re-resolves the bundle (`-rbundler/setup`),
   # which a cold runner is too slow for: the boot line never arrives, and the
@@ -48,8 +48,6 @@ class HTTPTest < MCPIntegrationCase
   # our own. A slow boot now fails and says so; it cannot wedge a runner again,
   # here or on anyone's machine.
   test "the spawned verb serves --http, announces the real port, and dies cleanly on TERM" do
-    skip "spawns a subprocess that re-resolves the bundle — too slow to boot on a cold runner" if ENV["CI"]
-
     require "open3"
     require "timeout"
     okf = Gem.bin_path("okf", "okf")
