@@ -35,7 +35,18 @@ class OutputSchemaTest < MCPIntegrationCase
     [ "graph", { bundle: "knowledge" } ],
     [ "graph", { bundle: "knowledge", view: "hubs" } ],
     [ "graph", { bundle: "knowledge", view: "traffic" } ],
-    [ "graph", { bundle: "scrappy" } ]
+    [ "graph", { bundle: "scrappy" } ],
+    [ "graph", { bundle: "knowledge", view: "traffic", cut: 1 } ],
+    [ "references", { bundle: "knowledge" } ],
+    [ "references", { bundle: "referenced" } ],
+    [ "tags", { bundle: "knowledge" } ],
+    [ "tags", { bundle: "knowledge", by: "dir" } ],
+    [ "tags", { bundle: "knowledge", by: "type" } ],
+    [ "types", { bundle: "knowledge" } ],
+    [ "stats", { bundle: "knowledge" } ],
+    [ "catalog", { bundle: "knowledge", except: %w[description tags] } ],
+    [ "search", { terms: %w[billing], fields: %w[id score] } ],
+    [ "lint", { bundle: "knowledge", today: "2026-01-01" } ]
   ].freeze
 
   test "every tool but read_concept declares an output schema" do
@@ -51,6 +62,28 @@ class OutputSchemaTest < MCPIntegrationCase
     end
   end
 
+  # `skipped` appears only when "*" forgave a vanished bundle, so the happy
+  # VARIANTS never emit it — and a declared schema that omits a real field is
+  # exactly the drift this suite exists to catch.
+  test "a search that skipped a vanished bundle still validates" do
+    goner = File.join(@out_dir, "goner")
+    FileUtils.mkdir_p(goner)
+    File.write(File.join(goner, "note.md"), "---\ntype: Note\ntitle: N\n---\n\nbody\n")
+    registry = OKF::MCP::Registry.from_argv([ fixture("knowledge"), goner ])
+    server = OKF::MCP::Server.build(
+      registry,
+      engine: OKF::MCP::MemoryBackend.new,
+      configuration: ::MCP::Configuration.new(validate_tool_call_results: true)
+    )
+    handshake(server)
+    FileUtils.rm_rf(goner)
+
+    result = call_tool(server, "search", terms: %w[billing], bundle: "*")
+
+    refute result.error?, "the skipped bundle broke result validation: #{result.text}"
+    assert result.data.key?("skipped"), "the vanished bundle must be confessed"
+  end
+
   test "every payload validates against the schema its tool declares" do
     server = validating_server
     VARIANTS.each do |name, args|
@@ -60,7 +93,7 @@ class OutputSchemaTest < MCPIntegrationCase
   end
 
   test "structuredContent carries the same object the text does" do
-    server = mcp_server(fixture("knowledge"), fixture("scrappy"))
+    server = mcp_server(fixture("knowledge"), fixture("scrappy"), fixture("referenced"))
     VARIANTS.each do |name, args|
       response = rpc(server, "tools/call", name: name, arguments: args)
       result = response.fetch("result")
@@ -91,7 +124,7 @@ class OutputSchemaTest < MCPIntegrationCase
   private
 
   def validating_server
-    registry = OKF::MCP::Registry.from_argv([ fixture("knowledge"), fixture("scrappy") ])
+    registry = OKF::MCP::Registry.from_argv([ fixture("knowledge"), fixture("scrappy"), fixture("referenced") ])
     server = OKF::MCP::Server.build(
       registry,
       engine: OKF::MCP::MemoryBackend.new,

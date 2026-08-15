@@ -35,7 +35,11 @@ class OKF::Render::ParityTest < OKF::TestCase
   test "the render bake exposes exactly the data the live endpoints serve" do
     bake = json_norm(OKF::Render::Graph.payload(@folder))
 
-    assert_equal %w[catalog index logs bodies], bake.keys, "the four baked keys, in order"
+    # `bodies` and `sources` are the two named exceptions to "baked ↔ endpoint
+    # parity": neither has a bare endpoint of its own — bodies are served per
+    # node, and the server deliberately carries only a source *count* on a
+    # catalog row rather than fattening every fetch to serve one view.
+    assert_equal %w[catalog index logs bodies sources], bake.keys, "the five baked keys, in order"
 
     # /catalog, /index, /log wrap in an envelope the same arrays the bake carries bare
     assert_equal bake["catalog"], get_json("/catalog")["concepts"], "bake.catalog == GET /catalog"
@@ -51,18 +55,63 @@ class OKF::Render::ParityTest < OKF::TestCase
     end
   end
 
-  test "the bake omits meta, yet the server still serves the /node/meta the static page derives from the catalog" do
+  test "the bake omits meta, yet the server serves the same fields the static page reads off its catalog row" do
     bake = OKF::Render::Graph.payload(@folder)
-    refute_includes bake.keys, :meta, "no meta map is baked — the static page derives it from the catalog"
+    refute_includes bake.keys, :meta, "no meta map is baked — the static page composes it from the catalog row"
 
-    # the raw description the client will escape rides in the baked catalog…
+    # the raw description the client will render via textContent rides in the baked catalog…
     pinned = bake[:catalog].find { |concept| concept[:id] == "notes/n" }
     assert_equal "a <b>bold</b> claim", pinned[:description]
 
-    # …and the live server still computes the escaped fragment on demand
+    # …and the live server answers the same raw string as JSON, one composition
+    # client-side for both modes
     get "/node/meta", id: "notes/n"
-    assert_includes last_response.body, "&lt;b&gt;"
-    refute_includes last_response.body, "<b>bold</b>"
+    assert_equal "a <b>bold</b> claim", JSON.parse(last_response.body).fetch("description")
+  end
+
+  test "the baked sources text matches what the Ruby engines index, empty strings included" do
+    bake = OKF::Render::Graph.payload(@folder)
+
+    bake[:sources].each_value { |text| assert_kind_of String, text }
+    assert_equal @folder.concepts.map(&:id).sort, bake[:sources].keys.sort,
+      "every concept bakes a sources string — an undefined getter throws client-side"
+  end
+
+  # §5.3's display rule runs in two places by necessity: Ruby, for /node/meta and
+  # for every consumer of the library (okf-tui asks Concept#shows_trust?), and JS,
+  # for the baked page, which has no Ruby to call. Two spellings of one rule is
+  # exactly the shape RowFilter was extracted to end, so this pins them.
+  #
+  # What it catches: a change to either side alone. The truth table below is the
+  # JS expression's semantics, written out; the Ruby is asserted against it, and
+  # the JS source against its literal. Change the rule in Ruby and the table
+  # fails here, beside the JS text that must move with it.
+  SHOWS_TRUST_JS = "const showsTrust=c=>!!(c.trust&&!(c.trust==='unverified'&&!c.generated));"
+
+  SHOWS_TRUST_TABLE = [
+    # [ trust, generated declared, claimable? ]
+    [ "unverified",        false, false ],  # an untouched v0.1 concept: derived, never claimed
+    [ "unverified",        true,  true  ],  # declared `generated` — its unverified is an answer
+    [ "machine-confirmed", false, true  ],
+    [ "machine-confirmed", true,  true  ],
+    [ "human-reviewed",    false, true  ],
+    [ "human-reviewed",    true,  true  ],
+    [ "",                  true,  false ],  # nothing to claim
+    [ nil,                 true,  false ]
+  ].freeze
+
+  test "the page's showsTrust and Concept.shows_trust? are one rule" do
+    template = File.read(File.expand_path("../../../lib/okf/render/graph/template.html.erb", __dir__))
+
+    assert_includes template, SHOWS_TRUST_JS,
+      "the client-side twin moved; the Ruby rule and this literal must move together"
+
+    SHOWS_TRUST_TABLE.each do |tier, generated, expected|
+      assert_equal expected, OKF::Concept.shows_trust?(tier, generated),
+        "Ruby disagrees with the page for trust=#{tier.inspect} generated=#{generated}"
+      assert_equal expected, OKF::Bundle::RowFilter.shows_trust?(trust: tier, generated: generated),
+        "the row form disagrees for trust=#{tier.inspect} generated=#{generated}"
+    end
   end
 
   private

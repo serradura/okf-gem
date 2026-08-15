@@ -6,8 +6,8 @@ up. Restructuring the bundle itself — moving concepts, adding areas — is
 lives in [authoring.md](../reference/authoring.md).
 
 1. **Orient before hunting.** Run `okf dirs <dir>` (the shape), then `okf index
-   <dir> --dir <branch>` on the branch the change touches (the §6 map: its index
-   body, rollups and listing), read `log.md` (the §7 baseline: what changed
+   <dir> --dir <branch>` on the branch the change touches (the §8 map: its index
+   body, rollups and listing), read `log.md` (the §9 baseline: what changed
    last), and `okf stats <dir>` (size and shape) *before* you grep. It is the
    cheapest context and it primes the hunt — and it is the only reliable way to
    catch enumeration drift, because **grep cannot find an index entry that is
@@ -19,7 +19,8 @@ lives in [authoring.md](../reference/authoring.md).
    cannot express — and `okf graph <dir> --json --minimal` to pull the edges (the
    concepts that link *to* the ones you're touching) without paying for every body.
    Let search and the graph find them so nothing drifts silently.
-3. Update bodies and `timestamp`; fix or add cross-links; create new concepts for
+3. Update bodies and `generated.at` (and `generated.by` — who is making this
+   change, in §7's spelling); fix or add cross-links; create new concepts for
    new assets; mark retired assets with a `**Deprecation**` note rather than
    silently deleting the context that explains them.
 4. **Update every enumeration that names what you changed — including `index.md`
@@ -28,9 +29,9 @@ lives in [authoring.md](../reference/authoring.md).
    is how you verify this — re-run `okf index` and confirm each listing matches
    reality.
 5. Run `validate`, then `lint` to catch the curation drift the change introduced —
-   new orphans, broken citations, dangling index entries. Add `--stale-after`
-   (e.g. `90d`) if concepts carry timestamps: freshness is off by default, so a
-   plain `lint` will not tell you what the change left stale.
+   new orphans, broken sources, dangling index entries, footnotes that lost
+   their source. `expired` reports out of the box; add `--stale-after`
+   (e.g. `90d`) when you also want an age cutoff, which stays off by default.
 6. **Review loose files** <!-- check:unlinked --> — run `okf loose <dir>` (the
    folder-grouped view of `lint`'s `unlinked` check): the concepts with **no
    cross-links in or out**, which

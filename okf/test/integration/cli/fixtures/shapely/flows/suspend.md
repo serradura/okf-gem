@@ -3,7 +3,9 @@ type: Flow
 title: Suspend
 description: Takes a line down, the mirror of activate.
 tags: [flows, async]
-timestamp: 2026-07-01T09:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-01T09:00:00Z
 ---
 
 # Suspend

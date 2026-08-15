@@ -2,7 +2,7 @@
   <a href="https://okfgem.com">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset=".github/hero-dark.png">
-      <img src=".github/hero-light.png" width="100%" alt="okf-gem, the Open Knowledge Format toolkit. Everything OKF, in one gem: author, curate, and consume your project's knowledge, with your agent. 100% local. Start at https://okfgem.com/#try. Three pieces in one install: the Agent Skill (the brain) authors, curates and consumes; the CLI/Lib (the muscle) validates, lints and does full-text search; the Graph (the dashboard) searches and explores it, live or static. Available from RubyGems, as a Docker image, and as a Claude Code plugin.">
+      <img src=".github/hero-light.png" width="100%" alt="okf-gem, the Open Knowledge Format for coding agents. Everything OKF, in one ecosystem: author, curate, and consume your project's knowledge, with your agent. 100% local. Start at https://okfgem.com/#try. The pieces, top to bottom: the Agent Skill (the brain) authors, curates and consumes, and writes the bundle (the memory) — Markdown + YAML, in your repo. The bundle is read by, and by nothing else, the library (the spine): require okf, the only thing that touches disk. Three surfaces sit over it — the CLI (the muscle) for validate and lint, the Graph (the vision) live or static, and MCP (the nerve) for any host. Available from RubyGems, as a Docker image, and as a Claude Code plugin, speaking OKF v0.2.">
     </picture>
   </a>
 </p>
@@ -14,7 +14,7 @@
   <a href="https://github.com/serradura/okf-gem/actions/workflows/main.yml"><img src="https://github.com/serradura/okf-gem/actions/workflows/main.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/serradura/okf-gem"><img src="https://img.shields.io/badge/ruby-%3E%3D%202.4-black" alt="Ruby >= 2.4"></a>
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
-  <a href="okf/lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.1-6E56CF" alt="OKF v0.1"></a>
+  <a href="okf/lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.2-6E56CF" alt="OKF v0.2"></a>
   <a href="#claude-code-plugin"><img src="https://img.shields.io/badge/Claude%20Code-plugin-D97757" alt="Claude Code plugin"></a>
 </p>
 
@@ -31,13 +31,13 @@ durable home in your repo, in Markdown your team and your agents both read: the
 decisions and the reasoning an agent cannot re-derive from the code, versioned
 beside the code they explain.
 
-One install carries the whole workflow, and that is the point of a single gem:
+One install carries the whole workflow, and that is the point:
 
 - an **Agent Skill**, so your agent writes and curates the knowledge instead of you;
 - a **CLI and Ruby library**, so it stays correct: validated, linted, and searchable in milliseconds;
 - a **Graph**, so anyone can see the shape of what the team knows, live or as one static file you can host anywhere.
 
-The package is **Agent Skill + CLI/Lib + Graph**. It runs 100% local, adds no
+That is **Agent Skill + CLI/Lib + Graph**. It runs 100% local, adds no
 service to your stack, and does not define a new place to keep knowledge: it
 gives you leverage over the Markdown you already have.
 
@@ -98,7 +98,9 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph served over HTTP, and a mountable Rack app.
 resource: okf/lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-11T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-11T12:00:00Z
 ---
 
 # Overview
@@ -108,6 +110,21 @@ timestamp: 2026-07-11T12:00:00Z
 
 That bundle is this gem's own documentation. Clone the repo and run
 `okf server .okf` to browse it as an interactive graph.
+
+### Trust, provenance, and lifecycle — OKF v0.2
+
+Knowledge written continuously by agents raises questions a static corpus never
+had to answer: who wrote this, who checked it, is it still current? OKF v0.2
+makes them frontmatter — `generated` (who produced the content, and when),
+`verified` (who confirmed it, deriving the trust tier every surface shows:
+unverified · machine-confirmed · human-reviewed), `sources` with per-claim
+footnote attribution, `status`, and `stale_after` — and this gem reads all of
+it: as [catalog columns and `--status`/`--trust` filters](https://okfgem.com/docs/),
+as the [graph page](#the-graph)'s third visual channel, and as
+[lint](https://okfgem.com/docs/cli/lint/)'s provenance, attestation and
+migration findings. Every family is optional, and a v0.1 bundle keeps reading
+forever — two `lint` findings tell you exactly what a migration would change,
+and never fail you for not having done it.
 
 ## Try it in four steps
 
@@ -147,12 +164,12 @@ every word, code gets written up for you.
 > In Claude Code, the [plugin](#claude-code-plugin) adds a post-edit curation hook
 > that runs `validate` + `lint` for you.
 
-The package, end to end:
+How the pieces fit together:
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/overview-dark.png">
-    <img src=".github/overview-light.png" width="760" alt="The package: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by the CLI/Lib (validate: legal OKF per section 9; lint: well-curated and fresh; search: ranked retrieval; require okf for Ruby objects) and by the Graph, in four modes: okf server (a live local server), okf render (the same page exported as one static, self-contained HTML file you can host anywhere), okf registry (every registered bundle behind one hub), and OKF::Server::App (the Rack app mounted in a Rails route). One gem, 100% local, Ruby 2.4 or newer, only rack, webrick and minifts as dependencies.">
+    <img src=".github/overview-light.png" width="760" alt="The pieces, end to end: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by — and by nothing else — the library (require okf), which reads, validates and indexes it and is the only thing that touches disk. Three surfaces sit over that one kernel. The CLI, for deterministic checks: validate (legal OKF per section 11), lint (curated and fresh), search (find it, ranked), registry (bundles addressed as @slug). The Graph, explored in the browser: okf server (a live local server), okf render (the same page as static, self-contained HTML you can host anywhere), OKF::Server::App (the Rack app for one bundle), OKF::Server::Hub (the Rack app for every bundle). And the MCP server (the okf-mcp gem, read by any MCP host): 14 read tools, reads and never writes, over stdio or http, with no CLI in the loop. The CLI runs the checks and retrieves the data the Agent Skill acts on. 100% local, Ruby 2.4 or newer, only rack, webrick and minifts as dependencies.">
   </picture>
 </p>
 
@@ -403,9 +420,10 @@ okf validate  <dir|@slug>                        # is this legal OKF?
 okf lint      <dir|@slug> [--fail-on warn]       # is it navigable, complete, fresh?
 okf loose     <dir|@slug>                        # concepts with no links in or out
 okf search    <dir|@slug…|@all> <term…>          # ranked retrieval; @all spans every bundle
-okf index     <dir|@slug> [--dir D] [--depth N]  # the §6 map: index bodies, rollups, listings
+okf index     <dir|@slug> [--dir D] [--depth N]  # the §8 map: index bodies, rollups, listings
 okf dirs      <dir|@slug> [--dir D] [--depth N]  # the shape: every directory and what it holds
 okf catalog | files | tags | types | stats  <dir|@slug>   # the browser views, on the CLI
+okf references <dir|@slug>                       # the references/ inventory: files, citers, dangling pointers
 okf graph     <dir|@slug> [--hubs] [--traffic]   # the raw graph; --hubs ranks concepts, --traffic dirs
 okf server    [DIR|@slug…] [-p PORT] [--bind ADDR]   # the live graph: one bundle, or all of them
 okf render    <dir|@slug> [-o FILE]              # the same page as one static, self-contained file
@@ -420,9 +438,9 @@ threshold crossed), `2` usage error. Every flag is in `okf <verb> --help` and in
 
 ```bash
 $ okf validate docs
-OKF v0.1 conformance — docs
+OKF v0.2 conformance — docs
   concepts: 37   index.md: 10   log.md: 1
-  ! warn  features/link-suggestions.md: cross-link target not found: `/graph-view.md` (tolerated under §5.3)
+  ! warn  features/link-suggestions.md: cross-link target not found: `/graph-view.md` (tolerated under §6.1)
   …
   ✓ conformant (33 warning(s))
 
@@ -468,7 +486,7 @@ require "okf"
 
 folder = OKF::Bundle::Folder.load("docs")
 folder.concepts                  # => [OKF::Concept]
-folder.validate                  # => §9 conformance result
+folder.validate                  # => §11 conformance result
 folder.lint                      # => curation report
 folder.graph                     # => nodes, edges, indexes
 
@@ -485,14 +503,17 @@ the pure layer, the writer, and the lower-level pieces.
 
 `validate` (the [conformance validator](https://okfgem.com/docs/cli/validate/)) asks
 _"is this legal OKF?"_ and implements the spec's
-[§9](okf/lib/okf/skill/reference/SPEC.md#9-conformance) exactly — which means it is
+[§11](okf/lib/okf/skill/reference/SPEC.md#11-conformance) exactly — which means it is
 *forbidden* to reject a bundle for a broken link or a missing optional field.
 
 `lint` (the [curation linter](https://okfgem.com/docs/cli/lint/)) asks the
 complementary question, _"is this well-curated, navigable, trustworthy?"_, over
 exactly those tolerated things: reachability, backlog, completeness, freshness,
-provenance, hygiene. It is advisory and exits `0` even with findings unless you
-pass `--fail-on warn`.
+provenance, attestation, migration, hygiene. It is advisory and exits `0` even
+with findings unless you pass `--fail-on warn` (or, to gate a
+[migration campaign](https://okfgem.com/docs/) on the two findings that name a
+bundle's leftover v0.1 spellings and nothing else,
+`--only legacy_timestamp,legacy_citations --fail-on info`).
 
 Keeping them apart is what lets you gate CI on conformance without gating it on
 taste. `lint --json` is also the structured input an agent reads to reason about

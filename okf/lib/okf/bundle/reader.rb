@@ -10,8 +10,8 @@ module OKF
     # index.md/log.md is kept as raw text (its structure is validated as text), and
     # a file the reader cannot use — frontmatter that does not parse, or a file it
     # cannot open at all — is retained as an unparseable entry (carrying the
-    # ParseError message or the errno, so §9.1 can report it) rather than dropped
-    # or raised. That tolerance is the whole §9 best-effort promise: one bad file
+    # ParseError message or the errno, so §11 condition 1 can report it) rather than dropped
+    # or raised. That tolerance is the whole §11 best-effort promise: one bad file
     # never breaks the rest, and this is the read every verb shares.
     #
     # Containment is enforced twice, because the two ways out of the root are
@@ -22,7 +22,7 @@ module OKF
     # location checked against the real root before a byte is read. An escaping
     # file joins the unparseable bucket rather than raising: a planted symlink is
     # one bad file, and letting it take down the whole bundle read would hand any
-    # writer of a served directory a denial of service. §9.1 then names it.
+    # writer of a served directory a denial of service. §11 condition 1 then names it.
     class Reader
       def self.read(dir)
         new(dir).read
@@ -72,7 +72,7 @@ module OKF
             # share — and in the worst way: a backtrace under an exit code that
             # claims non-conformance, or a served bundle taken down by one planted
             # symlink. So it joins the same bucket a bad frontmatter block does,
-            # and §9.1 reports it naming the file and the reason.
+            # and §11 condition 1 reports it naming the file and the reason.
             #
             # Its content is "" rather than nil: unknown, but every analyzer reads
             # it as text, and empty is the honest shape of a file we never read —
@@ -87,6 +87,12 @@ module OKF
 
       private
 
+      # Dir.glob's default (no FNM_DOTMATCH) excludes hidden files and every
+      # path under a hidden directory — kept deliberately, as the Unix
+      # convention it is: a bundle read from a project root must not pull in
+      # an installed skill under .claude/ or templates under .github/ as
+      # concepts. §3's taxonomy is read as covering the visible tree; the
+      # exclusion is documented in authoring.md and pinned by a reader test.
       def markdown_paths
         return [] unless Dir.exist?(@root)
 

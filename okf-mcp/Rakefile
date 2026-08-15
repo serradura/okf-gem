@@ -41,6 +41,56 @@ task :set_integration_coverage_dir do
   ENV["OKF_MCP_COVERAGE_NAME"] = "Integration Tests (alone)"
 end
 
+# The last okf release that predates the surfaces this shell now calls —
+# Bundle::RowFilter (memory_backend.rb, server.rb#filter_rows),
+# Concept.effective_status, Concept.fold_tier, and the trust catalog column.
+# A floor that still admits it ships a gem whose first `catalog` call raises
+# NameError on a host that resolved the floor instead of the checkout.
+OKF_FLOOR_MUST_EXCEED = "1.13.0"
+
+# test/unit/gemspec_test.rb holds the floor to the kernel it develops against,
+# which is the right guard for every day that is not a release day and the
+# wrong one for the day that is: both read 1.13.0, so it is green precisely
+# while the broken release is possible. The Gemfile resolves okf from the
+# checkout next door, so no suite here can notice — only the release path can,
+# and this is where it does. Same spirit as the kernel's `task build:
+# "plugin:verify"`: a forgotten obligation stops the release instead of
+# shipping inside one.
+desc "Refuse to build while the declared okf floor admits a kernel lacking the surfaces this shell calls"
+task :verify_okf_floor do
+  spec = Dir.chdir(__dir__) { Gem::Specification.load(File.expand_path("okf-mcp.gemspec", __dir__)) }
+  dependency = spec.dependencies.find { |d| d.name == "okf" }
+  abort "okf-mcp.gemspec declares no okf dependency" if dependency.nil?
+
+  floor = dependency.requirement.requirements.find { |op, _| op == ">=" }&.last
+  abort "okf-mcp.gemspec declares no `>=` floor on okf: #{dependency.requirement}" if floor.nil?
+  next if floor > Gem::Version.new(OKF_FLOOR_MUST_EXCEED)
+
+  abort <<~MESSAGE
+    okf-mcp.gemspec floors okf at #{floor}, which admits okf #{OKF_FLOOR_MUST_EXCEED} — a kernel
+    without Bundle::RowFilter, Concept.effective_status or Concept.fold_tier.
+    Publishing against that floor ships a gem that raises NameError on its
+    first catalog or search call.
+
+    Release okf first, then move the floor to that version (the RELEASE
+    OBLIGATION comment in the gemspec, and the okf-mcp CHANGELOG's Unreleased
+    section, both name this).
+  MESSAGE
+end
+
+# Hung off `release:guard_clean`, and the two halves of that are both load-bearing.
+#
+# Not `build`, because Bundler's `install` and `install:local` depend on it and
+# this guard aborts unconditionally until okf ships — gating the build would
+# stop a maintainer installing from the checkout, a cost with no publish in sight.
+#
+# Not `release` either: a prerequisite added there lands *last*, after
+# `release:rubygem_push`, so the gem would reach RubyGems and the guard would
+# abort afterwards — the one outcome it exists to prevent. `guard_clean` is the
+# first step of the release chain, so depending on it puts the check ahead of
+# both pushes.
+task "release:guard_clean" => :verify_okf_floor
+
 require "rubocop/rake_task"
 
 RuboCop::RakeTask.new

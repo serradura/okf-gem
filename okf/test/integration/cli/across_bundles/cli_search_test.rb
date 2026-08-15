@@ -527,7 +527,7 @@ module AcrossBundles
 
         bogus = okf("search", "@conformant", "@mentions", "payments", "--in", "bogus")
         assert_equal 2, bogus.status
-        assert_match(/error: unknown field\(s\): bogus \(searchable: title, id, tags, type, description, body\)/, bogus.err)
+        assert_match(/error: unknown field\(s\): bogus \(searchable: title, id, tags, type, description, sources, body\)/, bogus.err)
         assert_empty bogus.out
       end
     end
@@ -720,6 +720,19 @@ module AcrossBundles
         assert_equal [ "malformed" ], data["matches"].map { |row| row["slug"] },
           "the concepts that parsed are still searched and still labeled"
         assert_equal "good", data["matches"].first["id"]
+      end
+    end
+    test "--trust and --status narrow one ranking across every named bundle" do
+      with_registry("all", "mentions") do
+        open_run = json(okf("search", "@all", "@mentions", "orders", "--json"))
+        narrowed = json(okf("search", "@all", "@mentions", "orders", "--trust", "unverified", "--json"))
+        none = json(okf("search", "@all", "@mentions", "orders", "--trust", "human-reviewed", "--json"))
+        stable = json(okf("search", "@all", "@mentions", "orders", "--status", "stable", "--json"))
+
+        assert_equal open_run.fetch("matches"), narrowed.fetch("matches"),
+          "every concept in these bundles is unverified, so the narrowing keeps the whole ranking"
+        assert_equal 0, none.fetch("count"), "one meaning across the run: nobody is human-reviewed"
+        assert_equal open_run.fetch("count"), stable.fetch("count")
       end
     end
   end

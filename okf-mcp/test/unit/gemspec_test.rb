@@ -1,0 +1,40 @@
+# frozen_string_literal: true
+
+require "test_helper"
+
+# The declared `okf` floor is the one dependency claim nothing else can check.
+# The Gemfile develops this shell against the kernel *checkout* next door, so
+# every suite here runs against whatever `okf/lib/okf/version.rb` currently
+# says — a surface published after the floor is used freely, stays green in CI,
+# and fails on a host that resolved the floor instead. That is a publish-time
+# failure with no earlier symptom, which is what this test moves forward.
+class OKF::MCP::GemspecTest < OKF::TestCase
+  GEM_ROOT = File.expand_path("../..", __dir__)
+
+  # The floor may lead the kernel (okf-mcp can require an unreleased okf and
+  # wait for it) but it may never lag: a lagging floor admits a kernel this
+  # code raises NameError against. Equality is the normal state — the same PR
+  # that bumps okf moves this line.
+  test "the okf floor is not older than the kernel this suite resolves against" do
+    assert_operator floor, :>=, Gem::Version.new(OKF::VERSION),
+      "okf-mcp.gemspec floors okf at #{floor}, but this suite runs against okf #{OKF::VERSION}: " \
+      "the shell may already read surfaces #{floor} never published. Move the floor to " \
+      "#{OKF::VERSION} (see the RELEASE OBLIGATION comment in the gemspec)."
+  end
+
+  private
+
+  def floor
+    dep = spec.dependencies.find { |d| d.name == "okf" }
+    refute_nil dep, "okf-mcp.gemspec declares no okf dependency"
+    requirement = dep.requirement.requirements.find { |op, _| op == ">=" }
+    refute_nil requirement, "the okf dependency declares no `>=` floor: #{dep.requirement}"
+    requirement.last
+  end
+
+  def spec
+    # `spec.files` comes from `git ls-files` with chdir, so the working
+    # directory it is evaluated in decides the answer.
+    @spec ||= Dir.chdir(GEM_ROOT) { Gem::Specification.load(File.join(GEM_ROOT, "okf-mcp.gemspec")) }
+  end
+end

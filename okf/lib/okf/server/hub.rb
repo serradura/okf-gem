@@ -599,7 +599,7 @@ module OKF
       end
 
       # ok / warn / error, with the word that carries the same message for a
-      # reader who cannot see the colour. validate and lint stay separate (§9):
+      # reader who cannot see the colour. validate and lint stay separate (§11):
       # a curation finding is a warning and never a conformance error, so a thin
       # bundle keeps its link and only a non-conformant one reads as broken.
       # Memoised like #counts — every stray 404 renders a bundle list too, and

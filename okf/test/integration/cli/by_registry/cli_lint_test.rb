@@ -184,5 +184,25 @@ module ByRegistry
       FileUtils.rm_rf(dir)
       dir
     end
+    test "--today and --fail-on work through a @ref, in both formats" do
+      with_registry("v0_2-uncurated") do
+        human = okf("lint", "@v0_2-uncurated", "--today", "2000-01-01", "--only", "expired")
+        assert_match(/expired\.md: expired on 2000-01-01/, human.out)
+        assert_equal 0, human.status
+
+        machine = json(okf("lint", "@v0_2-uncurated", "--today", "2000-01-01", "--only", "expired", "--json"))
+        assert_equal [ "expired" ], machine["findings"].map { |f| f["check"] }.uniq
+        refute_match(/expired on/, okf("lint", "@v0_2-uncurated", "--today", "1999-12-31", "--only", "expired").out)
+      end
+    end
+
+    test "all three --fail-on levels answer through a @ref" do
+      with_registry("twins/v0_1") do
+        assert_equal 0, okf("lint", "@v0_1").status
+        assert_equal 0, okf("lint", "@v0_1", "--fail-on", "never").status
+        assert_equal 0, okf("lint", "@v0_1", "--fail-on", "warn").status
+        assert_equal 1, okf("lint", "@v0_1", "--fail-on", "info").status
+      end
+    end
   end
 end

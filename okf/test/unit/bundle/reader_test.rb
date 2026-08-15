@@ -59,6 +59,21 @@ class OKF::Bundle::ReaderTest < OKF::TestCase
     assert_equal [ "groups/log.md" ], bundle.log_files
   end
 
+  test "hidden files and hidden directories are excluded, deliberately" do
+    # The Unix hidden-file convention, not an accident of the glob: a bundle
+    # often lives beside dot-dirs whose markdown is not knowledge — a skill
+    # installed under .claude/, templates under .github/ — and reading a
+    # project root must not pull those in as concepts. The exclusion is
+    # documented in authoring.md; this pin is what keeps it a decision.
+    write(".hidden.md", "---\ntype: Note\n---\n\n# Hidden\n")
+    write(".hidden_dir/concept.md", "---\ntype: Note\n---\n\n# Nested\n")
+    bundle = OKF::Bundle::Reader.read(@tmpdir)
+
+    refute_includes bundle.paths, ".hidden.md"
+    assert bundle.paths.none? { |path| path.start_with?(".hidden_dir/") }
+    assert_equal [ "groups/log.md", "index.md", "references/vendor/api.md", "tables/orders.md" ], bundle.paths
+  end
+
   test "an empty or missing directory reads as an empty bundle" do
     missing = OKF::Bundle::Reader.read(File.join(@tmpdir, "nope"))
 

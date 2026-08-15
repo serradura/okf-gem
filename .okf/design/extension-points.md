@@ -4,7 +4,14 @@ title: Three extension points, one idiom
 description: Linter checks, search engines and CLI verbs all register the same way — append-only, idempotent by id — and CLI discovery loads only okf-* gems, a namespacing convention first and a mild guard second.
 resource: okf/lib/okf/cli.rb
 tags: [architecture, cli, extensibility, search, registry, security]
-timestamp: 2026-07-20T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-20T12:00:00Z
+sources:
+  - title: okf/lib/okf/cli.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli.rb
+  - title: okf/lib/okf/bundle/search.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb
 ---
 
 # Overview
@@ -194,11 +201,3 @@ stream-injection contract that Thor would fight rather than serve.
 What Thor's ecosystem *did* supply is the structure: a base class holding the
 shared surface, one file per command group, and privacy as the command boundary.
 Those are ideas, and ideas are free.
-
-# Citations
-
-[1] [okf/lib/okf/cli.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli.rb) — `register`, `load_plugins`, the lazy dispatch, and `PLUGIN_FILE`.
-[2] [okf/lib/okf/bundle/search.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb) — the idiom this one copies.
-[3] Verified 2026-07-19 on `ruby:2.4.10` (RubyGems 3.0.3): `Gem.find_latest_files` is present and answers in ~11ms; the full suite is green on the floor.
-[4] Thor's ruby_version on RubyGems, 2026-07-19: 1.4.0 and 1.3.2 declare `>= 2.6.0`; 1.2.2 declares `>= 2.0.0`.
-[5] Measured 2026-07-19: under `bundle exec`, `Gem.find_latest_files("okf/plugin.rb")` returned 0 with a sibling okf-tui checkout present but absent from the Gemfile; outside bundler it scans every installed gem (259 on that machine).

@@ -15,12 +15,17 @@ module ByDir
       "files" => [ "files", :dir ],
       "directories" => [ "index", :dir ],
       "dirs" => [ "dirs", :dir ],
-      "matches" => [ "search", :dir, "orders" ]
+      "matches" => [ "search", :dir, "orders" ],
+      "references" => [ "references", :dir ]
     }.freeze
+
+    # The bundle each view proves its shape on. `conformant` carries no
+    # references/ tree, so that one view needs the fixture that does.
+    VIEW_FIXTURES = Hash.new("conformant").merge("references" => "v0_2").freeze
 
     test "every declared row shape matches the rows the view actually emits" do
       VIEWS.each do |key, argv|
-        command = argv.map { |arg| arg == :dir ? fixture("conformant") : arg }
+        command = argv.map { |arg| arg == :dir ? fixture(VIEW_FIXTURES[key]) : arg }
         rows = json(okf(*command, "--json")).fetch(key)
         refute_empty rows, "#{key} needs a non-empty result for this to mean anything"
 

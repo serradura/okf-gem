@@ -57,13 +57,83 @@ class OKF::Markdown::CitationsTest < OKF::TestCase
     assert_nil OKF::Markdown::Citations.section(body)
   end
 
-  test "targets extract the citation link targets via Links" do
+  test "entries carries in-bundle citation targets alongside external ones" do
     body = "# Citations\n\n[1] [Source](https://example.com/a)\n[2] [Ref](/tables/x.md)\n"
 
-    assert_equal [ "https://example.com/a", "/tables/x.md" ], OKF::Markdown::Citations.targets(body)
+    assert_equal [ "https://example.com/a", "/tables/x.md" ],
+      OKF::Markdown::Citations.entries(body).map { |entry| entry[:target] }
+  end
+  # ── entries: the three §13.1 item forms a v0.1 list may use ──
+
+  test "entries lifts labelled links with their text" do
+    body = "# Citations\n\n[1] [The paper](https://ex.com/paper)\n"
+
+    assert_equal [ { text: "The paper", target: "https://ex.com/paper" } ], OKF::Markdown::Citations.entries(body)
   end
 
-  test "targets is empty when there is no Citations section" do
-    assert_empty OKF::Markdown::Citations.targets("just a body with a [link](/a.md)\n")
+  test "entries reads the SPEC's own bare-URL list form verbatim" do
+    body = <<~MD
+      # Citations
+      - https://wiki.acme/finance/fpa-handbook
+      - https://wiki.acme/finance/revenue-recognition
+      - https://wiki.acme/finance/cost-allocation
+    MD
+
+    assert_equal [
+      { text: "", target: "https://wiki.acme/finance/fpa-handbook" },
+      { text: "", target: "https://wiki.acme/finance/revenue-recognition" },
+      { text: "", target: "https://wiki.acme/finance/cost-allocation" }
+    ], OKF::Markdown::Citations.entries(body)
+  end
+
+  test "entries reads autolink items" do
+    body = "# Citations\n\n- <https://ex.com/a>\n\nprose that is not a citation stays out\n"
+
+    assert_equal [ { text: "", target: "https://ex.com/a" } ], OKF::Markdown::Citations.entries(body)
+  end
+
+  test "entries resolves reference-style citations in place — text kept, document order kept" do
+    body = <<~MD
+      # Citations
+
+      - [Quarterly report][r1]
+      - [Raw data](https://ex.com/raw)
+
+      [r1]: https://ex.com/q3
+    MD
+
+    entries = OKF::Markdown::Citations.entries(body)
+
+    assert_equal [ "https://ex.com/q3", "https://ex.com/raw" ], entries.map { |e| e[:target] },
+      "the appended-second-pass shape broke document order"
+    assert_equal [ "Quarterly report", "Raw data" ], entries.map { |e| e[:text] },
+      "a reference-style citation keeps its text"
+  end
+
+  test "entries keeps a numeric reference label as text rather than nothing" do
+    body = "# Citations\n\n[1][ref]\n\n[ref]: https://ex.com/r\n"
+
+    assert_equal [ { text: "1", target: "https://ex.com/r" } ], OKF::Markdown::Citations.entries(body)
+  end
+
+  test "entries mixes the three forms in document order" do
+    body = "# Citations\n\n- [The paper](https://ex.com/paper)\n- https://ex.com/bare\n- <https://ex.com/auto>\n"
+
+    assert_equal [
+      { text: "The paper", target: "https://ex.com/paper" },
+      { text: "", target: "https://ex.com/bare" },
+      { text: "", target: "https://ex.com/auto" }
+    ], OKF::Markdown::Citations.entries(body)
+  end
+
+  test "entries is empty without a Citations section" do
+    assert_empty OKF::Markdown::Citations.entries("see [x](https://e.com)\n- https://ex.com/bare\n")
+  end
+  test "entries keeps document order within one line, whatever mix of forms it carries" do
+    body = "# Citations\n\n- [Ref first][r1] then [Inline second](https://b.com)\n\n[r1]: https://a.com\n"
+
+    assert_equal [ "https://a.com", "https://b.com" ],
+      OKF::Markdown::Citations.entries(body).map { |e| e[:target] },
+      "scanning all inline links before any reference links reversed the line's own order"
   end
 end

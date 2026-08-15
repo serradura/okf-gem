@@ -5,6 +5,84 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-08-14
+
+### Added
+
+- **`tags`, `types` and `stats` — the CLI's remaining read views, as tools.** `tags`
+  ships with the `by: "dir" | "type"` curation view — the kernel's
+  `Bundle#tag_groups`, extracted so the within-group-beside-total counting
+  has one home — and `stats` reads the kernel's new `Bundle#stats`, whose
+  `by_dir` keeps the honest zero a directory holding nothing directly
+  reports. `files` is deliberately not a tool: `index`'s per-directory
+  listing and `catalog`'s projection already carry its whole answer, and
+  tool-list weight is a real cost on hosts.
+- **`lint` takes `today`** — the CLI's `--today`, in the same deliberately
+  narrow calendar-day grammar (a reinterpretable `20260101` or a
+  `2026-02-30` is refused by name), so an `expired` report is reproducible
+  and citable. The wall clock stays the default.
+- **`fields`/`except` projection on `search`, and `except` on `catalog`** —
+  the row-key vocabulary is checked either way, so a typo is refused by
+  name even when a query matches nothing; the pair is mutually exclusive.
+- **`references`, the eleventh tool** — the kernel's §6.3 inventory over MCP,
+  and the one lens that sees a bundle's non-markdown files: every
+  `references/` entry with the concepts citing it through the §6.2
+  path-valued fields, plus every pointer that resolves to nothing (a bare
+  `references/…` from a subdirectory is the classic miss; the dangling entry
+  names the leading-slash fix). Advisory like every read tool — dangling
+  pointers are data, never a tool error.
+- **`graph`'s traffic view takes `cut`** — the CLI's `--cut N`, so a client
+  can widen past the fitted threshold or narrow below it. Outside
+  `view: "traffic"` it is refused: a half-honored argument is the
+  silent-wrong-answer shape.
+
+### Changed
+
+- **`search` narrows by `status` and `trust`**, the two filters `catalog` and
+  `okf search` already took. An agent that learned the vocabulary from either
+  one and brought it here got an invalid-argument error. They resolve through
+  the catalog rather than the engine's rows — a search row carries what the
+  engine matched on, and the §5 families are not among it.
+
+- **`lint`'s `stale_after` takes the kernel's cutoff grammar** — a
+  `YYYY-MM-DD` date or a full timestamp — rather than everything
+  `Date.iso8601` parses. `20260101` and `2026-W01-1` are now tool errors
+  naming the accepted shapes; a `generated.at`-shaped timestamp is accepted,
+  as before, and reduced to its date. They were accepted before
+  and silently reinterpreted — `okf lint --stale-after 20260101` exits 2, so
+  the shell and its own CLI answered differently about one bundle's staleness.
+
+- **The okf floor must move to okf's v0.2 release number in the release that
+  ships this** — the shell now reads v0.2 surfaces (the trust catalog column,
+  `Concept.effective_status`/`fold_tier`, the linter's clock contract), none
+  of which exist in published okf 1.13.0; the gemspec carries the same
+  RELEASE OBLIGATION note, and the floor cannot move sooner because the
+  monorepo resolves against the path-sourced okf still versioned 1.13.0.
+  `rake release` now refuses while the floor still admits 1.13.0 (the guard
+  hangs off `release:guard_clean`, ahead of both pushes, and deliberately not
+  off `build` — `rake install` depends on that), so the obligation stops a
+  release rather than riding inside one.
+- The catalog tool speaks v0.2: `CATALOG_FIELDS` matches the new row
+  (`timestamp` is gone — the vocabulary refuses it by name), `status` narrows
+  on the effective value through the kernel's own fold, and a `trust` filter
+  lands beside it. `lint` supplies the clock the `expired` check needs, the
+  way the CLI does, and the client-visible descriptions and prompts cite
+  v0.2's chapter numbers.
+
+### Fixed
+
+- **`search`'s declared output schema now carries `skipped`** — the field the
+  tool emits when `"*"` forgives a vanished bundle. A host typing its
+  structured-content handling off `outputSchema` dropped it, and the SDK's
+  result validation (on in the test suite) failed a payload the tool
+  genuinely produces; slugs, not rows, and never required.
+- **An out-of-range `--port` or unresolvable `--bind` is a usage error.** The
+  socket layer raises `SocketError` (Socket::ResolutionError on newer
+  Rubies), which the boot rescue did not name, so a typo came back as a
+  backtrace and exit 1 instead of the one readable line and exit 2 every
+  other boot failure earns.
+
+
 ## [1.0.0] - 2026-08-07
 
 The first functional release: an MCP server over the okf kernel, judged by
@@ -213,5 +291,6 @@ rather than pretending to be changes somebody could have seen.
 
 The name reservation on RubyGems: an empty gem, no functionality.
 
+[1.1.0]: https://github.com/serradura/okf-gem/compare/okf-mcp/v1.0.0...okf-mcp/v1.1.0
 [1.0.0]: https://github.com/serradura/okf-gem/releases/tag/okf-mcp/v1.0.0
 [0.0.0]: https://rubygems.org/gems/okf-mcp/versions/0.0.0

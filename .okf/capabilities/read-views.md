@@ -1,9 +1,14 @@
 ---
 type: Capability
-title: Read views (index, dirs, catalog, files, types, tags, stats, loose, graph)
+title: Read views (index, dirs, catalog, files, references, types, tags, stats, loose, graph)
 description: The server's browser panels reproduced on the CLI, plus the index map, so an agent reads a bundle at a glance without a browser.
 tags: [read, cli, json]
-timestamp: 2026-07-24T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-08-13T12:00:00Z
+sources:
+  - title: cli.md — read views
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/cli.md
 ---
 
 # Overview
@@ -25,6 +30,7 @@ these views group by, for the price of a few rows.
 | `dirs` | every directory with the concepts living directly in it | directory (root first) |
 | `catalog` | concepts with type, tags, link counts, status | top-level dir |
 | `files` | files with titles | folder |
+| `references` | the on-disk `references/` tree (§6.3) with each file's citers and the dangling §6.2 pointers | folder |
 | `types` | [types](../format/frontmatter.md) with their concepts | count |
 | `tags` | [tags](../format/frontmatter.md) with their concepts | count |
 | `stats` | rollups: concepts, dirs, types, cross-links, tags | — |
@@ -41,6 +47,15 @@ about. Counts stay direct, so a directory holding nothing itself reports the zer
 it holds rather than disappearing; `by_dir.keys` is therefore the complete list
 of what `--dir` can name.
 
+`references` is the one view whose rows are not concepts: the reader models
+only markdown, so a `.py` attester or a `.sql` computation exists to no other
+surface, and this verb lists the `references/` tree from disk with which
+concepts cite each file through the §6.2 path-valued fields — plus every
+pointer that resolves to nothing, the bare-path trap (§6.2 resolves a bare
+`references/…` relative to the concept) named with its leading-slash fix.
+Folder scope is deliberate: §6.3 is a naming convention, not a requirement,
+and a computation stored beside its concept is legal and not inventoried.
+
 Every one of them names the bundle it answers about, in the identity the caller
 used — the rule the [CLI](../cli.md) keeps: `bundle` is always the directory,
 `slug` always a registry slug, and a header that reads `@handbook (/path)` when a
@@ -48,7 +63,7 @@ used — the rule the [CLI](../cli.md) keeps: `bundle` is always the directory,
 of counts over a bare `nodes`/`edges` payload; an agent holding several bundles
 had nothing in that answer to tell them apart.
 
-# `index` is the orient-first map (§6)
+# `index` is the orient-first map (§8)
 
 Alone among the read views, `index` shows the reserved `index.md` layer: the
 concept views skip those structural files, so only `index` renders the
@@ -211,7 +226,3 @@ orphan) but is **not a graph edge**, so a listed file can still float here. A
 loose file may be perfectly fine — a terminal leaf like a backlog item is loose
 by design — so `loose` surfaces the set for a human or agent to judge and always
 exits `0`.
-
-# Citations
-
-[1] [cli.md — read views](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/cli.md) — the views and their flags.

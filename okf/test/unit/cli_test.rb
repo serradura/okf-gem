@@ -38,7 +38,7 @@ class OKF::CLITest < OKF::TestCase
     assert_match(/non-conformant/, @out.string)
   end
 
-  test "validate returns 1 for a §9.3 structural violation" do
+  test "validate returns 1 for a §11.3 structural violation" do
     write("groups/index.md", "---\nokf_version: \"0.1\"\n---\n\n# G\n") # nested index with frontmatter
     write("a.md", concept)
 

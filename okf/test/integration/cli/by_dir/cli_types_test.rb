@@ -30,7 +30,7 @@ module ByDir
     end
 
     test "every spelling of an unusable type lands in one Untyped bucket" do
-      # §9.2 rejects a blank `type` exactly as it rejects a missing one, so the
+      # §11.2 rejects a blank `type` exactly as it rejects a missing one, so the
       # index must not sort them apart: `malformed` carries one of each, and a
       # whitespace-only type used to earn its own row labelled with spaces.
       rows = json(okf("types", fixture("malformed"), "--json")).fetch("types")
@@ -157,6 +157,15 @@ module ByDir
       assert_equal 2, json(result).fetch("count") # Note, plus the one Untyped bucket the unusable types share
       assert_equal [ "good" ], json(result).fetch("types").find { |row| row.fetch("type") == "Note" }.fetch("concepts")
       refute_match(/note:/, result.out)
+    end
+    test "--status and --trust narrow the type counts, in both formats" do
+      human = okf("types", fixture("v0_2"), "--status", "draft")
+      assert_equal 0, human.status
+      assert_match(/BigQuery Table/, human.out)
+      refute_match(/Attested Computation/, human.out)
+
+      machine = json(okf("types", fixture("v0_2"), "--trust", "unverified", "--json"))
+      assert_equal [ "Attested Computation", "BigQuery Table", "Skill" ], machine.fetch("types").map { |row| row["type"] }.sort
     end
   end
 end

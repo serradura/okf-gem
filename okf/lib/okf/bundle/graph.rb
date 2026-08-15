@@ -20,7 +20,7 @@ module OKF
       attr_reader :nodes, :edges, :type_index, :tag_index
 
       def self.build(bundle, minimal: false, body: true)
-        # Best-effort (§9): a malformed concept never reaches here — the reader keeps
+        # Best-effort (§11): a malformed concept never reaches here — the reader keeps
         # it in bundle.unparseable — so the rest of the bundle still renders. Inspect
         # bundle.unparseable to detect skips.
         concepts = bundle.concepts
@@ -51,10 +51,19 @@ module OKF
       # Edges resolve by *path* — a markdown link is a file path — then map that path
       # to the concept living there and use its id, so a frontmatter `id` that differs
       # from the path still lands the edge on the right node.
+      # Body links and sources[].resource entries feed the same resolver: §5.1
+      # says a `resource` naming another concept is a derivation edge that
+      # "already exists in the bundle graph", and this is what makes that true —
+      # it is also what keeps a migrated bundle's graph equal to its v0.1 twin's,
+      # since a `# Citations` in-bundle link stops being a body link the moment
+      # it is lifted into frontmatter. URLs and scope descriptors resolve to
+      # nothing; an unresolvable path is broken_source's to report.
       def self.edges_for(concepts, id_by_path, root)
         seen = Set.new
         concepts.each_with_object([]) do |concept, edges|
-          Markdown::Links.extract(concept.body).each do |raw|
+          targets = Markdown::Links.extract(concept.body) +
+                    concept.sources.map { |source| source["resource"] }.compact
+          targets.each do |raw|
             resolved = Markdown::Links.resolve(raw, from: concept.path, bundle: root)
             next if resolved.nil?
 
@@ -86,7 +95,7 @@ module OKF
         concept.tags.is_a?(Array) ? concept.tags : []
       end
 
-      # Blank, not just nil: §9.2 makes a whitespace-only `type` as non-conformant
+      # Blank, not just nil: §11 condition 2 makes a whitespace-only `type` as non-conformant
       # as a missing one (the validator says so with the same OKF.blank?), so the
       # index must not sort them into different buckets. Otherwise `type: "  "`
       # earns its own row, labelled with spaces, next to Untyped.

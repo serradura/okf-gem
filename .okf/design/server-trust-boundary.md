@@ -4,7 +4,16 @@ title: The server trust boundary
 description: The trust boundary for serving a bundle you may not fully trust — both XSS paths into the page are closed, the registry write routes carry their own locks, and every read is realpath-contained so a symlinked file cannot escape the bundle root.
 resource: okf/lib/okf/render/graph/template.html.erb
 tags: [security, server, xss, containment]
-timestamp: 2026-08-10T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-08-13T12:00:00Z
+sources:
+  - title: README.md — Server trust boundary
+    resource: https://github.com/serradura/okf-gem/blob/main/README.md
+  - title: okf/lib/okf/render/graph/template.html.erb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph/template.html.erb
+  - title: okf/lib/okf/safe_read.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/safe_read.rb
 ---
 
 # Overview
@@ -22,9 +31,13 @@ There are two data paths into the page, and each carries its own guard:
 | Graph data **inlined** into the page               | through `json_for_script`, which escapes `<`                                                 | yes — it cannot break out of its `<script>`                  |
 | Concept bodies **fetched** on demand (`/node?id=`) | `marked` renders the Markdown, then `DOMPurify.sanitize` scrubs it before it reaches the DOM | yes — scripts, handlers, and `javascript:` URLs are stripped |
 
-The [description](../format/cross-links.md) shown in the inspector takes a third
-path and never needs the client's help: the server escapes it
-(`OKF::Server::App#description_fragment`) before sending it, so it arrives inert.
+The description and the §5 trust line shown in the inspector take a third path,
+and it moved when `/node/meta` became JSON. The server no longer sends a
+fragment to escape — it sends values (`description`, and the null-stripped
+`trust` mapping) — so the guard is that `renderMeta` puts every one of them into
+the DOM as **text**: a text node for the description, `textContent` for each
+chip. Nothing on this path is ever parsed as markup, which is why no sanitizer
+stands on it. A render path that reached for `innerHTML` here would need one.
 
 # The static render carries both guards
 
@@ -34,7 +47,9 @@ rendered one: `json_for_script` escapes it at inject time (a `</script>` inside 
 body cannot break out of its `<script>`), and it is still
 `DOMPurify.sanitize(marked.parse(...))`'d when the getter hands it to the DOM. The
 same two defenses, now both on the one path — a static file is no laxer than the
-server, and the embedded description stays server-escaped exactly as above.
+server, and the embedded description and trust line go through the same
+text-only `renderMeta` as above — composed client-side in both modes, from
+`/node/meta` when served and from the baked catalog row when not.
 
 # Both guards are asserted, against a bundle that attacks them
 
@@ -122,9 +137,3 @@ is trust extended to the CDN as much as to the bundle; MiniSearch alone is pinne
 to an exact version (`7.2.0`), because it has to *agree* with the Ruby port rather
 than merely work. So the rule is no longer _only serve bundles you trust_ — it is
 the ordinary care you would give any document from a source you do not know.
-
-# Citations
-
-[1] [README.md — Server trust boundary](https://github.com/serradura/okf-gem/blob/main/README.md) — the two-defense summary.
-[2] [okf/lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph/template.html.erb) — the inlined `EMBED` and the `DOMPurify.sanitize(marked.parse(...))` render; `json_for_script` (its `<`-escape) is the method in the sibling `render/graph.rb`.
-[3] [okf/lib/okf/safe_read.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/safe_read.rb) — the one realpath-containment primitive every bundle read passes through; `Path.under?` in `okf/lib/okf/path.rb` is the pure decision it feeds.

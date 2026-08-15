@@ -4,7 +4,20 @@ title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: okf/lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
-timestamp: 2026-07-23T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-08-13T12:00:00Z
+sources:
+  - title: okf/lib/okf/server/app.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/app.rb
+  - resource: render.md
+  - title: okf/lib/okf/cli/server.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/server.rb
+  - resource: render.md
+  - title: okf/lib/okf/server/hub.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/hub.rb
+  - title: okf/lib/okf/render/graph/template.html.erb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph/template.html.erb
 ---
 
 # Overview
@@ -252,10 +265,10 @@ The one search box is backed by a full-text index —
 [MiniSearch](https://github.com/lucaong/minisearch), lazy-loaded on first focus
 and pinned to the same `7.2.0` the Ruby [`minifts`](search.md) port tracks, so an
 `okf search --engine index` result and the browser's rank identically. It indexes title, id,
-type, tags and **description** in every mode, plus each concept's **body**
-wherever the page already holds it: `okf render` bakes every body in, so a static
-file searches bodies offline; the live server keeps bodies lazy, so its index
-stays metadata-only until a backend body index arrives. Matches are ranked,
+type, tags and **description** in every mode, plus each concept's **body and
+source text** wherever the page already holds them: `okf render` bakes both in,
+so a static file searches them offline; the live server keeps bodies lazy, so
+its index stays metadata-only until a backend body index arrives. Matches are ranked,
 multi-term (`AND`), prefix (as-you-type) and typo-tolerant, and drive the graph,
 catalog and files views alike; a second index covers each `index.md`/`log.md`
 **body**, not just its filename, so the tree's authored rows are searchable on
@@ -289,7 +302,7 @@ disabled: the page never serves a 404 from a body link. A **file-tree mode** on
 the toolbar redraws the bundle as folders-become-nodes with only folder→child
 edges — the acyclic layered tree of the files, next to the emergent link graph.
 
-Beside it, **show indexes** draws the §6 map as a layer of its own, under
+Beside it, **show indexes** draws the §8 map as a layer of its own, under
 *whatever* layout is running rather than only inside the tree. Each `index.md`
 becomes a tile edged to the concepts it lists and to the maps beneath it. It
 shares one *selector* with file-tree mode's folder node, because the two are the
@@ -528,8 +541,8 @@ node — selecting into a graph nobody is looking at is a silent no-op, and
 # The browser shows the authored layer, not just derived views
 
 The graph, catalog, files, tags, and stats panels are all *derived* from the
-model; the one layer humans actually write — the §6 index map and the
-[§7 log](../format/okf-format.md) — now renders in the browser too. The tree
+model; the one layer humans actually write — the §8 index map and the
+[§9 log](../format/okf-format.md) — now renders in the browser too. The tree
 column is **one tree**. The authored files used to live on a second tab as a
 flat list of paths, which put a directory's own map somewhere other than the
 directory — the one place a reader looks for it. `index.md` and `log.md` are rows
@@ -624,9 +637,9 @@ sequenceDiagram
 |------|--------|
 | `/` | the HTML page (graph + inlined minimal data) |
 | `/node?id=` | one concept's rendered body |
-| `/node/meta?id=` | one concept's metadata |
+| `/node/meta?id=` | one concept's description + null-stripped §5 trust fields (JSON; the page composes the trust line client-side, for served and baked pages alike) |
 | `/catalog`, `/tags`, `/types` | the JSON behind the browser panels |
-| `/index` | the §6 map behind the tree's `index.md` rows (boot snapshot) |
+| `/index` | the §8 map behind the tree's `index.md` rows (boot snapshot) |
 | `/log` | every `log.md`, read live from disk for the Log |
 | `/search?q=` | ranked concepts in this bundle, for the palette (JSON) |
 
@@ -663,10 +676,3 @@ run through `DOMPurify.sanitize(marked.parse(...))`, which strips any script or
 handler before it reaches the DOM. See the
 [server trust boundary](../design/server-trust-boundary.md) for what that does and
 does not cover.
-
-# Citations
-
-[1] [okf/lib/okf/server/app.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/app.rb) — the Rack app and its routes; `GET /` renders the page through [`OKF::Render::Graph`](render.md).
-[2] [okf/lib/okf/cli/server.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/server.rb) — the `serve` boot seam that wraps every served app in `Rack::Deflater` (the static counterpart, [`render`](render.md), is its own capability).
-[3] [okf/lib/okf/server/hub.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/hub.rb) — the multi-bundle dispatcher: the `/b/<slug>/` mounts, the default redirect, and the hub's own index, empty-state, and 404 pages.
-[4] [okf/lib/okf/render/graph/template.html.erb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph/template.html.erb) — the page itself: the two MiniSearch indexes behind the search box, the compound-parent visibility pass that keeps emptied directory boxes off the canvas, and the file tree's fold controls.

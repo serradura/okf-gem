@@ -5,13 +5,199 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0] - 2026-08-14
+
+> Major, not minor. The Breaking entries below change public shapes a shipped
+> consumer already reads: two lint check ids are renamed, the `stale` finding's
+> JSON metric moves from `timestamp` to `generated_at`, and the `timestamp`
+> catalog column is gone. A v0.1 *bundle* still validates with zero warnings —
+> §13.1's fallbacks hold — but spec compatibility and API compatibility are
+> different promises, and semver tracks the second. okf-mcp's open-ended
+> `okf >= 1.13` is closed to `>= 2.0, < 3` in the same release.
+
+### Added
+
+- **`okf references` — the §6.3 inventory.** Lists every file under
+  `references/`, the non-markdown ones included (the concept model carries
+  only markdown, so no other verb can see a `.py` attester or a `.sql`
+  computation), with which concepts cite each file through the §6.2
+  path-valued fields — plus every pointer into `references/` that resolves to
+  nothing. A bare `references/…` written from a subdirectory resolves relative
+  to the concept (the §6.2 trap the SPEC's own examples invite), and when the
+  leading-slash spelling would have hit, the dangling entry says so. Advisory
+  (exit 0); `--json` with `--fields`/`--except` like the other read views.
+  Backed by `OKF::Bundle::References` (pure) and
+  `OKF::Bundle::Folder#references` (the disk manifest) in the library, and by
+  `Markdown::Links.resolve_path` — `#resolve`'s path arithmetic without its
+  `.md` gate, since §6.2 fields accept any file.
+- **The §5/§10 families across every surface.** The validator warns on their
+  shapes (raw keys only, warnings only — §11's three hard conditions are
+  untouched) and its warnings become machine-readable: each carries `check:`
+  (a stable id) and `source:` (`spec` | `convention`), with errors keeping
+  their exact two-key shape. A root `index.md`'s `okf_version` is actually
+  read now — an unknown version warns under §12 and the bundle is consumed
+  anyway; unquoted `okf_version: 0.2` (a Psych Float) is accepted.
+- **Eight lint categories with pinned severities** (`Linter::SEVERITIES`, a
+  tested constant): Freshness gains `expired` (info, clock-gated — the CLI
+  passes today, `--today YYYY-MM-DD` pins it for reproducible CI reports, and
+  the pure library runs no clock check unless handed `today:`, confessing via
+  `stats[:skipped_checks]`); Provenance gains `broken_source`,
+  `unattributed_claim` (warn — only once a concept adopts keyed attribution,
+  with the label↔id join case-folded the way GFM resolves footnotes),
+  `unused_source`, and `unprefixed_actor` (info — a `verified[].by` outside
+  §7's three forms reads as machine-confirmed); a missing `generated.by` is
+  the validator's warning alone, never double-reported by lint. Attestation
+  gains `incomplete_computation` (warn, on
+  neither-or-both computation shapes) and `broken_attestation_ref` (warn — a
+  `computation`, `executor.resource` or `attester.resource` on an
+  `Attested Computation` naming an in-bundle `.md` that is not there; a contract whose parts are named but
+  absent is one no consumer can follow, so it warns rather than informs, with
+  the same URL/non-`.md` exemption `broken_source` carries); Migration's `legacy_timestamp` and
+  `legacy_citations` (info) name what a v0.1 bundle would change without ever
+  failing it. Reports gain `trust` and `status` distributions.
+- **`--fail-on info`** joins `never | warn` — gateability without a severity
+  promotion; a migration campaign is
+  `okf lint <dir> --only legacy_timestamp,legacy_citations --fail-on info`.
+- **`Linter.call(only:/except:)` refuses an unknown check id** with an
+  ArgumentError naming it, instead of silently intersecting to an empty run
+  that reports healthy — the library-side twin of the CLI's exit 2, and what
+  keeps a caller pinned to a renamed id from reading "checked and fine" over
+  a run that ran nothing.
+- **`--status` and `--trust` filters** on catalog, files, search, tags and
+  types — `--status` matches the effective value (absent reads `stable`),
+  `--trust` folds either tier spelling.
+- **Sources are searchable text** in both Ruby engines (weight 1 — the weight
+  the body text carried in v0.1) and snippet-eligible, so a migrated bundle
+  keeps its recall and a source-only hit keeps a snippet; the static page
+  bakes and indexes the same source text.
+- **Trust as the graph page's third channel**: tier chips, status badges
+  (declared non-default only), a generated line, a client-clock stale marker,
+  and status/trust filter groups counted off the catalog.
+- The skill teaches v0.2: the vendored SPEC is the published v0.2, a new
+  attested-computation template carries §10.3's MUST NOT, and the migrate
+  playbook walks the v0.1→v0.2 rewrite.
+- **`Concept#shows_trust?` and `Bundle::RowFilter.shows_trust?` — §5.3's
+  display half, in one place.** The tier is always derivable; whether a surface
+  should *claim* it is a different question, and the answer is no for a concept
+  that declared no §5 family, which is every concept of every v0.1 bundle.
+  Claiming it there would paint a provenance verdict onto documents that never
+  made one — the false claim the trust system exists to prevent. The rule was
+  spelled twice, inline in `/node/meta` and in the page's `showsTrust`, and a
+  third consumer (okf-tui, which needs it for a chip, a facet gate, the facet
+  counts and the narrowing) is what a hand-copied predicate does not survive:
+  a gate disagreeing with the counts beside it reads "unverified 3" over two
+  chipped cards. One class method takes the two wire values so a Concept and a
+  catalog row ask the same rule; the server now routes through it, and the
+  page's client-side twin — unavoidable, since it runs over baked rows with no
+  Ruby to call — is pinned equal to it by `parity_test.rb`, truth table and
+  source literal both.
+- **`Bundle#okf_version` — the spec version the root index declares (§12)**,
+  as the producer wrote it, or nil when it declares none, which §12 permits.
+  Stringified and stripped for the reason the validator compares that way: an
+  unquoted `okf_version: 0.2` is a Psych Float, and a consumer switching on it
+  must not be handed 0.2 the number. Public because the alternative is a
+  literal — a consumer naming the version on screen had no way to ask, which is
+  how a reader gets told "v0.1" about a bundle declaring 0.2. Unparseable
+  frontmatter stays the validator's error to report rather than this reader's
+  to raise.
+- **`log_order` [info], the first log-side lint check.** §9 describes the log
+  as date-grouped entries, newest first — prose, not an RFC keyword, so
+  disorder is curation slack rather than a conformance error: exactly lint's
+  side of the split. Only shape-valid headings are compared; a malformed date
+  stays the validator's error, reported once.
+- **`unprefixed_actor` now covers `generated.by` too.** §7 gives the actor
+  convention to both identity fields; only `verified[].by` was checked, on the
+  argument that §5.3 derives trust from nothing else — true, but a
+  `generated.by` no form can classify leaves a provenance reader unable to
+  tell a person from a process, so it earns the same info finding with its own
+  consequence. A *missing* `generated.by` stays the validator's warning.
+
+- **`Bundle#stats` and `Bundle#tag_groups` join the library API** —
+  extracted from the CLI's `stats` and `tags --by` so the MCP shell reads
+  the same rollups instead of hand-copying them: the `by_dir` zero-keeping
+  subtlety and the within-group-beside-total tag counting each have one
+  home now (`Folder` delegates both). The CLI verbs are pure consumers of
+  the extraction; their output is unchanged.
+- **Two long-standing behaviors are documented contract now, each with a
+  pinning test.** Hidden files are outside the bundle: the reader excludes
+  dot-prefixed files and everything under a dot-prefixed directory — the
+  Unix convention, kept so reading a project root cannot pull an installed
+  skill or `.github/` templates in as concepts. And a frontmatter `id:`
+  renames the concept, not its home — an extension beyond §2's path-derived
+  identity, with the recorded split stated where authors read it: the
+  identity views (catalog, hubs, `--dir`, search) follow the id, the
+  physical views (`index`, `dirs`, stats' `by_dir`) keep the file where it
+  lives. Both in the skill's authoring guide.
 
 ### Changed
 
+- **`validate` warns on a declared-but-blank `status`.** `status: ""` is a
+  producer typo, not an absence — §5.4's default belongs to a concept that
+  never declared the key — and reading the blank through the default turned it
+  into `stable` before the vocabulary check ran, so the one value §5.4 names
+  nowhere was the one that never warned.
+- **`lint --stale-after` refuses the ISO spellings it used to reinterpret.**
+  It took whatever `Date.iso8601` parsed, so the basic (`20260101`) and week
+  (`2026-W01-1`) forms silently became a cutoff nobody asked for — `20260101`
+  read as the year 2026 day 01 of month 01 only by luck of the parser, and
+  `2026-W01-1` as 2025-12-29. Both now exit 2 naming the accepted shapes. A
+  `YYYY-MM-DD` date and a full `2026-01-01T09:00:00Z` timestamp (what a
+  concept's own `generated.at` looks like) are both still accepted, the
+  timestamp reduced to its date as before. The new `--today` takes the
+  narrower grammar — it names a calendar day, not a moment.
+- **The gem targets OKF v0.2** and keeps reading v0.1 under §13.1's two
+  sanctioned fallbacks: a legacy `timestamp` reads as `generated.at` (per-key,
+  so a half-migrated `generated: { by: … }` beside a `timestamp` keeps its
+  date, and no actor is ever invented), and a body `# Citations` list reads as
+  `sources` whenever the native key yields zero mappings. One `OKF::Concept`
+  class, no version hierarchy; a pure v0.1 bundle still validates with zero
+  warnings.
+- **Breaking: lint check ids renamed** — `missing_timestamp` is
+  `missing_generated`, `broken_citation` is `broken_source` — so `--only` /
+  `--except` lists naming the old ids exit 2. `uncited_external` is redefined
+  over `#sources` (a v0.1 `# Citations` still silences it — a prose-only
+  section included; so does a migrated `sources:` block). The `stale`
+  finding's JSON metric renames `timestamp:` to `generated_at:` (and its
+  message says "last updated <generated_at>") — a consumer reading
+  `finding.metric.timestamp` gets `null` and must move with it.
+- **Breaking: the `timestamp` catalog column is removed** — `--fields
+  timestamp` exits 2 loudly, naming the valid fields. The `concepts` row gains
+  `generated_at`, `generated_by`, `generated` (the raw declared-key boolean
+  that tells hand-written apart from v0.1-with-timestamp), `trust` (the
+  hyphenated wire literals `unverified` | `machine-confirmed` |
+  `human-reviewed`), `stale_after`, and a `sources` count. `status` stays the
+  raw declared value, `null` when absent. Temporal values render ISO 8601.
+- **Breaking: `Concept#citations` and `Markdown::Citations.targets` are
+  removed**, both subsumed by `Concept#sources` / `Citations.entries`.
+- **The staleness boundary is `today >= stale_after`** — a concept is stale
+  **on** the day itself, per §5.5. A consumer replacing its own `<`-based
+  check shifts by one day and should know it.
+- `GET /node/meta` returns JSON (`{ description, trust: { tier, generated_by,
+  generated_at, status, stale_after } }`, null-stripped) instead of an escaped
+  HTML fragment; the graph page composes the trust line client-side for served
+  and baked pages alike, and computes expiry against the viewer's own clock.
 - The demo Open Graph card URL the graph template points at moved to
   `og-demo-v5.png` (the site's card-art version bump); the old URL keeps
   serving the current art, so nothing breaks in between.
+
+
+### Fixed
+
+- **A calendar-invalid log heading is now a §11 error.** §9's MUST is ISO
+  8601, and `## 2026-02-30` matched the digit shape while naming a day that
+  never existed — the validator now asks `Date.iso8601`, so a log.md is
+  conformant only around real dates.
+- **`MAILTO:` is excluded case-insensitively**, like every other scheme (RFC
+  3986). The guard sat inline and case-sensitive beside the case-insensitive
+  `SCHEME` regex in three places, so an uppercase mailto whose address ends in
+  `.md` resolved as a relative path — a link outside the bundle reported as a
+  file inside it. One `Links::MAILTO` now, beside `SCHEME`, for the same
+  reason `SCHEME` moved there.
+- **`incomplete_computation` requires the fence, not the heading.** §10.3's
+  inline form is a fenced code block under `# Computation`; a heading over
+  prose used to count as provided, and a contract with nothing an executor
+  could run lint'd clean.
+
 
 ## [1.13.0] - 2026-08-07
 
@@ -1330,6 +1516,7 @@ Initial release.
 
 - Runs on Ruby >= 2.4 with two runtime dependencies: rack and webrick.
 
+[2.0.0]: https://github.com/serradura/okf-gem/compare/v1.13.0...v2.0.0
 [1.13.0]: https://github.com/serradura/okf-gem/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/serradura/okf-gem/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/serradura/okf-gem/compare/v1.10.0...v1.11.0

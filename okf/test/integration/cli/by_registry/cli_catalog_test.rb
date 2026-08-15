@@ -53,7 +53,9 @@ module ByRegistry
         assert_equal "conformant", data.fetch("slug"), "`slug` is only ever the registry slug"
         assert_equal 3, data.fetch("count")
         keys = data.fetch("concepts").first.keys.sort
-        assert_equal %w[backlog_ref description dir id links_in links_out status tags timestamp title top_dir type], keys
+        assert_equal %w[backlog_ref description dir generated generated_at generated_by id links_in links_out
+                        sources stale_after status tags title top_dir trust type],
+          keys
         assert_equal "datasets/sales", data.fetch("concepts").first.fetch("id")
       end
     end
@@ -111,11 +113,11 @@ module ByRegistry
 
     test "--except drops the named properties and keeps the envelope whole" do
       with_registry("conformant") do
-        data = json(okf("catalog", "@conformant", "--except", "tags,timestamp"))
+        data = json(okf("catalog", "@conformant", "--except", "tags,generated_at"))
         row = data.fetch("concepts").first
 
         refute row.key?("tags")
-        refute row.key?("timestamp")
+        refute row.key?("generated_at")
         assert_equal "datasets/sales", row.fetch("id")
         assert_equal "conformant", data.fetch("slug")
       end
@@ -276,7 +278,7 @@ module ByRegistry
     test "best-effort read through a ref: malformed files are skipped (stderr), stdout stays valid" do
       with_registry("malformed") do
         result = okf("catalog", "@malformed")
-        assert_equal 0, result.status, "a bundle full of §9 errors still catalogs — this is an advisory read, never exit 1"
+        assert_equal 0, result.status, "a bundle full of §11 errors still catalogs — this is an advisory read, never exit 1"
         assert_match(/skipped 2 unusable file\(s\)/, result.err)
         assert_match(/Good {2}·  Note/, result.out)
 
@@ -308,6 +310,16 @@ module ByRegistry
       okf("registry", "set", dir)
       FileUtils.rm_rf(dir)
       dir
+    end
+    test "--status and --trust narrow through a @ref, in both formats" do
+      with_registry("v0_2") do
+        drafts = json(okf("catalog", "@v0_2", "--status", "draft", "--json"))
+        assert_equal [ "tables/customers" ], drafts.fetch("concepts").map { |row| row["id"] }
+
+        human = okf("catalog", "@v0_2", "--trust", "human-reviewed")
+        assert_equal 0, human.status
+        assert_match(/1 of 6 concepts/, human.out)
+      end
     end
   end
 end

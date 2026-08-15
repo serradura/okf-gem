@@ -4,7 +4,14 @@ title: Integration tests are the critical layer
 description: The CLI is the product, so the suite that drives it end to end outranks the unit tests — and its coverage is measured alone, because the full number flatters.
 resource: okf/test/integration/cli
 tags: [testing, cli, architecture]
-timestamp: 2026-07-20T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-20T12:00:00Z
+sources:
+  - title: "AGENTS.md — Testing: integration first"
+    resource: https://github.com/serradura/okf-gem/blob/main/AGENTS.md
+  - title: okf/test/integration/cli/cli_integration_case.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/integration/cli/cli_integration_case.rb
 ---
 
 # Overview
@@ -118,8 +125,3 @@ run printed both halves of the bug at once — `/` redirecting to `conformant` w
 the listing starred a `doomed (missing)` entry. Neither the reviewer nor the fix
 had to be trusted: the test failed for exactly the predicted reason, the fix
 turned it green, and it has guarded the agreement since.
-
-# Citations
-
-[1] [AGENTS.md — Testing: integration first](https://github.com/serradura/okf-gem/blob/main/AGENTS.md) — the rule as the maintainer guide states it.
-[2] [okf/test/integration/cli/cli_integration_case.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/integration/cli/cli_integration_case.rb) — the shared base: the scratch registry, the non-booting server runner, group-local fixture resolution.

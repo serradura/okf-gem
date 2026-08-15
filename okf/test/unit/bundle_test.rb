@@ -161,4 +161,46 @@ class OKF::BundleTest < OKF::TestCase
   test "directory_index is empty for a bundle with no concepts or index files" do
     assert_empty OKF::Bundle.new.directory_index
   end
+
+  # §12. Public because a consumer that names the version on screen otherwise
+  # names a literal — which is exactly how a reader gets told "v0.1" about a
+  # bundle declaring 0.2.
+  test "okf_version reads what the root index declares, as the producer wrote it" do
+    bundle = OKF::Bundle.new(
+      reserved: [ OKF::Bundle::Entry.new(path: "index.md", content: "---\nokf_version: \"0.2\"\n---\n# Root\n") ]
+    )
+
+    assert_equal "0.2", bundle.okf_version
+  end
+
+  test "okf_version stringifies the Psych Float an unquoted version yields" do
+    # `okf_version: 0.2` parses as a Float, and a consumer switching on it must
+    # not be handed 0.2 the number — the same reason the validator compares
+    # after to_s.strip.
+    bundle = OKF::Bundle.new(
+      reserved: [ OKF::Bundle::Entry.new(path: "index.md", content: "---\nokf_version: 0.2\n---\n# Root\n") ]
+    )
+
+    assert_equal "0.2", bundle.okf_version
+  end
+
+  test "okf_version is nil when none is declared, which §12 permits" do
+    assert_nil OKF::Bundle.new.okf_version, "no index.md at all"
+
+    plain = OKF::Bundle.new(reserved: [ OKF::Bundle::Entry.new(path: "index.md", content: "# Root\n") ])
+    assert_nil plain.okf_version, "an index.md with no frontmatter — the MAY-not-declare case"
+
+    empty = OKF::Bundle.new(
+      reserved: [ OKF::Bundle::Entry.new(path: "index.md", content: "---\nokf_version: \"\"\n---\n") ]
+    )
+    assert_nil empty.okf_version, "a blank value is an absence, not a version"
+  end
+
+  test "okf_version leaves unparseable frontmatter to the validator rather than raising" do
+    bundle = OKF::Bundle.new(
+      reserved: [ OKF::Bundle::Entry.new(path: "index.md", content: "---\nokf_version: [\n---\n") ]
+    )
+
+    assert_nil bundle.okf_version
+  end
 end

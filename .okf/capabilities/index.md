@@ -7,8 +7,8 @@ fronted by the [CLI](../cli.md).
 
 # Judge
 
-* [Conformance validator](validator.md) - the §9 legal check; the only capability that can fail a bundle.
-* [Curation linter](linter.md) - advisory quality report across six categories; never rejects.
+* [Conformance validator](validator.md) - the §11 legal check; the only capability that can fail a bundle.
+* [Curation linter](linter.md) - advisory quality report across eight categories; never rejects.
 
 # Serve & read
 

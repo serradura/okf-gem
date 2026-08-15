@@ -23,6 +23,11 @@ module OKF
       # it is installed instead of the first time a user types its verb.
       DUCK_TYPE = %i[id group help_rows hidden? new].freeze
 
+      # Every key a filter flag can set. One list, read by both the narrowing
+      # itself and the "is anything narrowing?" guard, so adding a filter cannot
+      # leave one of them behind.
+      FILTER_KEYS = %i[type area dir tag status trust].freeze
+
       class << self
         # The verb this answers to, as a Symbol. The registry is keyed on it.
         def id
@@ -188,6 +193,17 @@ module OKF
           end
         end
         parser.on("--tag TAG", "only concepts carrying this tag") { |v| options[:tag] = v } if keys.include?(:tag)
+        # The read-side payoff of v0.2, and the two questions no v0.1 tool could
+        # answer: which concepts nobody has verified, and which are on their way
+        # out. Unconditional — every filtering verb narrows the same catalog
+        # rows, and on a v0.1 bundle the answers still read (`stable` for every
+        # concept, `unverified` for every concept — §13.1, not an error).
+        parser.on("--status STATUS", "only concepts at this lifecycle status (draft | stable | deprecated)") do |v|
+          options[:status] = v
+        end
+        parser.on("--trust TIER", "only concepts at this trust tier (unverified | machine-confirmed | human-reviewed)") do |v|
+          options[:trust] = v
+        end
       end
 
       # The argument is resolved once per view, not once per entry: the `root`
@@ -206,14 +222,17 @@ module OKF
       # shape. An out-of-tree caller that never learned the third argument gets
       # exactly the resolution it was written against — the alias folds with no
       # directory set consulted — no better and no worse.
+      # The row rules live in Bundle::RowFilter, shared with the MCP shell;
+      # this layer keeps only what is the CLI's own — the deprecated --area
+      # (a top_dir compare no other surface offers) and the argument spelling
+      # (the `root`/`.` aliases resolved against the bundle's real dirs).
       def filter_entries(entries, options, dirs = nil)
         area = options[:area] && fold_area(options[:area], dirs)
         base = options[:dir] && fold_dir(options[:dir], dirs)
         entries.select do |entry|
-          (options[:type].nil? || fold(entry[:type]) == fold(options[:type])) &&
-            (area.nil? || fold(entry[:top_dir]) == area) &&
-            (base.nil? || under_dir?(entry[:dir], base)) &&
-            (options[:tag].nil? || entry[:tags].any? { |tag| fold(tag) == fold(options[:tag]) })
+          (area.nil? || fold(entry[:top_dir]) == area) &&
+            Bundle::RowFilter.matches?(entry, type: options[:type], dir: base, tag: options[:tag],
+              status: options[:status], trust: options[:trust])
         end
       end
 
@@ -234,9 +253,9 @@ module OKF
       # and #fold for a stored one. A stored dir is never an alias — that is the
       # distinction the old signature could not make, and it is what had a row
       # named `root` counting the bundle root's subtree instead of its own.
+      # The comparison itself is Bundle::RowFilter's (fold is idempotent).
       def under_dir?(entry_dir, path)
-        entry = fold(entry_dir)
-        entry == path || entry.start_with?("#{path}/")
+        Bundle::RowFilter.under_dir?(entry_dir, path)
       end
 
       def fold(value)
@@ -429,12 +448,12 @@ module OKF
       # into a single ranking with nothing saying so. One invocation, one
       # meaning — see Search#multi_search.
       def filter_ids(folder, options, dirs = nil)
-        return nil if options[:type].nil? && options[:area].nil? && options[:dir].nil? && options[:tag].nil?
+        return nil if FILTER_KEYS.none? { |key| options[key] }
 
         filter_entries(folder.catalog, options, dirs || dir_scope(folder, options)).map { |entry| entry[:id] }
       end
 
-      # §9 best-effort: the graph is built from concepts that parse. Surface any that
+      # §11 best-effort: the graph is built from concepts that parse. Surface any that
       # the reader could not parse (to stderr, so JSON on stdout stays clean) rather
       # than dropping them silently.
       def report_skipped(folder)

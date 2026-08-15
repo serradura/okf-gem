@@ -21,7 +21,7 @@ is the lede.
    text views, which are lighter than `--json` when you are reading a report
    rather than extracting structure from it. Then recommend by what they
    report, most-blocking first:
-   - **`validate` has errors** → lead with **`curate`**: §9 conformance errors are
+   - **`validate` has errors** → lead with **`curate`**: §11 conformance errors are
      the only hard failures, and curate fixes them before anything else.
    - **clean `validate`, but `lint`/`loose` findings** → lead with **`curate`** to
      settle the curation debt (reachability, backlog, completeness, hygiene),
@@ -39,9 +39,10 @@ is the lede.
      with almost no internal traffic in `okf graph --traffic` → offer
      **`refine`** (evidence-driven restructuring; it proposes before it
      touches anything).
-4. **Freshness is off by default.** If the bundle carries timestamps, note that a
-   plain `lint` said nothing about staleness and `okf lint <root> --stale-after
-   90d` is the check that would.
+4. **The age cutoff is off by default.** A plain `lint` already reports concepts
+   past their own declared `stale_after` (`expired`), but says nothing about
+   *age*; when the bundle records change times, note that `okf lint <root>
+   --stale-after 90d` is the check that would.
 
 Keep it to two or three pointed picks, each with the exact `/okf:gem <verb>` to
 run and a one-line reason from the signals. Never auto-run a workflow from here.

@@ -110,8 +110,8 @@ class OKF::Render::GraphTest < OKF::TestCase
     assert_includes html, "new MiniSearch(", "builds a client-side full-text index"
     assert_match(/FT_FIELDS=\[ ?'title','id','type','tags','description'/, html,
       "descriptions are indexed, so a graph node is findable by its leaf description")
-    assert_includes html, "EMBED?[ 'body' ]".delete(" "),
-      "concept bodies join the index wherever the page holds them (the static bake)"
+    assert_includes html, "EMBED?[ 'body','sources' ]".delete(" "),
+      "concept bodies and source text join the index wherever the page holds them (the static bake)"
   end
 
   test "the graph can draw the authored index layer, in any layout" do

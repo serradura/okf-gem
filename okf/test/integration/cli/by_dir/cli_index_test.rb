@@ -359,7 +359,7 @@ module ByDir
       sub = okf("index", fixture("structural"))
       assert_equal 0, sub.status
       assert_match(/^  sub\/  ·  0 concepts$/, sub.out)
-      assert_match(/^    # A nested index must not carry frontmatter \(§9\.3\)$/, sub.out)
+      assert_match(/^    # A nested index must not carry frontmatter \(§11.3\)$/, sub.out)
       refute_match(/sub\//, okf("files", fixture("structural")).out)
     end
 

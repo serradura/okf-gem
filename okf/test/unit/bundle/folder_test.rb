@@ -30,7 +30,7 @@ class OKF::Bundle::FolderTest < OKF::TestCase
     assert OKF::Bundle::Folder.load(@tmpdir).validate.valid?
   end
 
-  test "validate reports §9.3 structural issues as errors" do
+  test "validate reports §11.3 structural issues as errors" do
     write("groups/index.md", "---\nokf_version: \"0.1\"\n---\n\n# G\n")
 
     refute OKF::Bundle::Folder.load(@tmpdir).validate.valid?

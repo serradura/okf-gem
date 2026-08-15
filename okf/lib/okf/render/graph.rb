@@ -55,14 +55,22 @@ module OKF
       # answer. Every key here is data a client getter reads from EMBED instead of
       # fetching — and each derives from the *same* folder method the matching
       # OKF::Server::App endpoint uses, so the bake and the live server cannot
-      # drift (/node/meta is the exception: the fragment is derived on the client
-      # from the catalog's raw description, so no map is baked for it).
+      # drift (/node/meta is the exception: the trust line is composed on the
+      # client from the catalog row, so no map is baked for it). `bodies` and
+      # `sources` have no bare endpoint at all — they exist so a static file
+      # searches offline what the server-mode index deliberately leaves out; the
+      # sources text is the same join the Ruby engines index, so `--engine index`
+      # and the baked page rank identically. Empty strings are baked too: an
+      # undefined getter throws client-side.
       def self.payload(folder)
         {
           catalog: folder.catalog,
           index: folder.directory_index,
           logs: folder.log_entries,
-          bodies: folder.concepts.each_with_object({}) { |concept, map| map[concept.id] = concept.body.to_s }
+          bodies: folder.concepts.each_with_object({}) { |concept, map| map[concept.id] = concept.body.to_s },
+          sources: folder.concepts.each_with_object({}) do |concept, map|
+            map[concept.id] = OKF::Bundle::Search.field_texts(concept)["sources"]
+          end
         }
       end
 

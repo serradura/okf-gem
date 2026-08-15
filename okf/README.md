@@ -67,9 +67,10 @@ okf validate  <dir|@slug>                        # is this legal OKF?
 okf lint      <dir|@slug> [--fail-on warn]       # is it navigable, complete, fresh?
 okf loose     <dir|@slug>                        # concepts with no links in or out
 okf search    <dir|@slug…|@all> <term…>          # ranked retrieval; @all spans every bundle
-okf index     <dir|@slug> [--dir D] [--depth N]  # the §6 map: index bodies, rollups, listings
+okf index     <dir|@slug> [--dir D] [--depth N]  # the §8 map: index bodies, rollups, listings
 okf dirs      <dir|@slug> [--dir D] [--depth N]  # the shape: every directory and what it holds
 okf catalog | files | tags | types | stats  <dir|@slug>   # the browser views, on the CLI
+okf references <dir|@slug>                       # the references/ inventory: files, citers, dangling pointers
 okf graph     <dir|@slug> [--hubs] [--traffic]   # the raw graph; --hubs ranks concepts, --traffic dirs
 okf server    [DIR|@slug…] [-p PORT] [--bind ADDR]   # the live graph: one bundle, or all of them
 okf render    <dir|@slug> [-o FILE]              # the same page as one static, self-contained file
@@ -89,7 +90,7 @@ behind one hub. `okf registry init` scopes one to a single project instead, and 
 committed `.okf-registry.json` travels with the repo.
 
 **A big bundle is read a level at a time.** `okf index --depth 1 --except
-body,listing` is the map an agent orients on — on a 400-concept bundle, 2.8 KB
+body,listing` is the map an agent orients on — on a 414-concept bundle, 2.8 KB
 against the full 313 KB — and `--dir` then opens one branch, bringing the
 ancestors that say what it is.
 
@@ -105,7 +106,7 @@ require "okf"
 
 folder = OKF::Bundle::Folder.load("docs")
 folder.concepts                  # => [OKF::Concept]
-folder.validate                  # => §9 conformance result
+folder.validate                  # => §11 conformance result
 folder.lint                      # => curation report
 folder.graph                     # => nodes, edges, indexes
 
@@ -122,17 +123,35 @@ writer, and the lower-level pieces.
 ## validate and lint are two different questions
 
 `validate` asks *"is this legal OKF?"* and implements the spec's
-[§9](lib/okf/skill/reference/SPEC.md#9-conformance) exactly — which means it is *forbidden* to
+[§11](lib/okf/skill/reference/SPEC.md#11-conformance) exactly — which means it is *forbidden* to
 reject a bundle for a broken link or a missing optional field.
 
 `lint` asks the complementary question, *"is this well-curated, navigable,
 trustworthy?"*, over exactly those tolerated things: reachability, backlog,
-completeness, freshness, provenance, hygiene. It is advisory and exits `0` even
-with findings unless you pass `--fail-on warn`.
+completeness, freshness, provenance, attestation, migration, hygiene. It is
+advisory and exits `0` even with findings unless you pass `--fail-on warn`, or
+`--only legacy_timestamp,legacy_citations --fail-on info` to gate a migration
+campaign on the two findings that name a bundle's leftover v0.1 spellings and
+nothing else.
 
 Keeping them apart is what lets you gate CI on conformance without gating it on
 taste. `lint --json` is also the structured input an agent reads to reason about
 the two things no checker can compute — contradictions, and *semantic* staleness.
+
+## Trust is data, so you can filter on it
+
+OKF v0.2 lets a bundle say where each concept came from and how far to trust
+it — `generated` (who or what wrote it), `verified` (who confirmed it),
+`status` (its lifecycle), `stale_after` (a declared expiry) — and this gem
+reads the families everywhere: `--status` and `--trust` narrow `catalog`,
+`files`, `search`, `tags` and `types`; the graph page shows each concept's
+tier beside its type; `lint` reports what expired, against a clock you can
+pin (`--today`) for a reproducible report. `okf references` closes the loop
+for §10's attested computations, inventorying the `references/` files —
+attester code, computation files — that back them, with every pointer that
+resolves to nothing named. A v0.1 bundle needs none of this and stays
+readable forever (§13); the two Migration findings tell it what to modernize
+without ever failing it.
 
 ## Extending it
 

@@ -16,13 +16,25 @@ module OKF
 
   # Blank in the frontmatter sense: nil, false, an empty/whitespace-only string,
   # or an empty collection. Numbers and other scalars are never blank. The one
-  # domain-wide predicate behind "non-empty type" (§9.2) and the recommended-field
+  # domain-wide predicate behind "non-empty type" (§11 cond. 2) and the recommended-field
   # warnings, kept here so the gem needs no ActiveSupport.
   def self.blank?(value)
     return true if value.nil? || value == false
     return value.strip.empty? if value.is_a?(String)
 
     value.respond_to?(:empty?) ? value.empty? : false
+  end
+
+  # A temporal value as ISO 8601 — the one serialization rule for
+  # generated_at/stale_after, shared by the catalog row and /node/meta so the
+  # served and baked pages cannot drift over one concept's dates. YAML hands
+  # over a Date or a Time for an unquoted value (whose default to_s is not
+  # ISO); a String passes through; a degenerate value serializes as its
+  # string, never as raw structure.
+  def self.iso8601(value)
+    return nil if value.nil?
+
+    value.respond_to?(:iso8601) ? value.iso8601 : value.to_s
   end
 
   # The directory a concept lives in, derived from its §2 id: the id *is* the
@@ -36,11 +48,17 @@ module OKF
 
   require "okf/version"
 
+  # The OKF spec version this gem targets — one declaration behind the validate
+  # header and its help row, so the version a bundle is judged against cannot
+  # be stated two ways. The gem still *reads* v0.1 (§13.1); this is what it
+  # validates for. Known readable versions: Concept::KNOWN_SPEC_VERSIONS.
+  SPEC_VERSION = "0.2"
+
   # ── kernel: cross-cutting primitives ──
   require "okf/path"
   require "okf/safe_read"
 
-  # ── Markdown: parse structure out of a markdown document (§4/§5/§8) ──
+  # ── Markdown: parse structure out of a markdown document (§4/§6/§5.1) ──
   require "okf/markdown/frontmatter"
   require "okf/markdown/links"
   require "okf/markdown/citations"
@@ -49,6 +67,8 @@ module OKF
   require "okf/concept"
   require "okf/bundle"
   require "okf/bundle/graph"
+  require "okf/bundle/references"
+  require "okf/bundle/row_filter"
   require "okf/bundle/skeleton"
   require "okf/bundle/search"
   # These two lines ARE the engine preference order. Each engine registers itself

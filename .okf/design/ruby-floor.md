@@ -3,7 +3,14 @@ type: Constraint
 title: The Ruby 2.4 floor
 description: The gem runs on every Ruby since 2.4 so it works on the interpreter an OS already ships.
 tags: [ruby, portability]
-timestamp: 2026-07-17T16:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-17T16:00:00Z
+sources:
+  - title: okf/okf.gemspec
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/okf.gemspec
+  - title: AGENTS.md — Hard constraints
+    resource: https://github.com/serradura/okf-gem/blob/main/AGENTS.md
 ---
 
 # Overview
@@ -44,8 +51,3 @@ not share it:
 docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
   "cp -a /src /build && cd /build/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
 ```
-
-# Citations
-
-[1] [okf/okf.gemspec](https://github.com/serradura/okf-gem/blob/main/okf/okf.gemspec) — `required_ruby_version = ">= 2.4.0"`.
-[2] [AGENTS.md — Hard constraints](https://github.com/serradura/okf-gem/blob/main/AGENTS.md) — the banned-API list and the Docker truth test.

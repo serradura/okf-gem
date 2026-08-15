@@ -18,16 +18,23 @@ module OKF
     #
     #   GET /               the interactive graph page (text/html)
     #   GET /node?id=…      the concept's raw markdown body (text/markdown)
-    #   GET /node/meta?id=… its description, as an escaped HTML fragment
+    #   GET /node/meta?id=… its description and null-stripped §5 trust fields —
+    #                       { description, trust: { tier, generated_by,
+    #                       generated_at, status, stale_after } } (JSON). The
+    #                       page composes the trust line client-side, once, for
+    #                       served and baked pages alike; expiry is the client's
+    #                       to compute, against the viewer's own today.
     #   GET /catalog        rich per-concept metadata for the catalog/files/stats
     #                       views: { concepts: [ {id, title, type, description,
-    #                       tags, timestamp, status, top_dir, dir, links_*} ] } (JSON)
+    #                       tags, generated_at, generated_by, generated, trust,
+    #                       status, stale_after, sources, top_dir, dir,
+    #                       links_*} ] } (JSON)
     #   GET /tags           the tag index  { tag  => [id, …] } (JSON)
     #   GET /types          the type index { type => [id, …] } (JSON)
-    #   GET /index          the §6 progressive-disclosure map for the Index panel:
+    #   GET /index          the §8 progressive-disclosure map for the Index panel:
     #                       { directories: [ …okf-index rows… ] } (JSON, from the
     #                       boot snapshot — authored maps are structure)
-    #   GET /log            the §7 history for the Log panel: { logs: [ {path,
+    #   GET /log            the §9 history for the Log panel: { logs: [ {path,
     #                       dir, content} ] } (JSON; content read live from disk,
     #                       like a body — the log is the file that changes most)
     #   GET /search?q=…     ranked concepts in this bundle, for the ⌘K palette:
@@ -143,14 +150,14 @@ module OKF
         { concepts: @folder.catalog }
       end
 
-      # The §6 map the Index panel renders — the same rows `okf index` prints,
+      # The §8 map the Index panel renders — the same rows `okf index` prints,
       # built by the pure OKF::Bundle#directory_index over the boot snapshot
       # (authored index bodies are structure, read at load like the graph).
       def directory_index
         { directories: @folder.directory_index }
       end
 
-      # The §7 history the Log panel renders: every log.md with its content, root
+      # The §9 history the Log panel renders: every log.md with its content, root
       # scope first, read live from disk. Built by OKF::Bundle::Folder#log_entries,
       # shared with `okf render`'s bake so the served and baked logs cannot drift.
       def logs
@@ -181,11 +188,19 @@ module OKF
         respond("text/markdown; charset=utf-8", concept.body)
       end
 
+      # JSON, not a fragment: a server-composed HTML line would be a second
+      # render path reaching innerHTML outside DOMPurify — the exact hole the
+      # self-contained-page rule names — and would need a byte-identical JS twin
+      # for the baked page anyway. The client owns the one composition, and
+      # every string here lands via textContent there.
       def node_meta(id)
         concept = concept_for(id)
         return not_found if concept.nil?
 
-        respond("text/html; charset=utf-8", description_fragment(concept))
+        payload = { "description" => concept.description.to_s }
+        trust = trust_fields(concept)
+        payload["trust"] = trust unless trust.empty?
+        respond_json(payload)
       end
 
       # Resolve an id to its concept, read live from disk. The id is only ever a key
@@ -200,11 +215,32 @@ module OKF
         nil
       end
 
-      def description_fragment(concept)
-        description = concept.description.to_s
-        return %(<span class="empty">no description</span>) if description.strip.empty?
+      # Null-stripped, and absent as a whole when a concept says nothing about
+      # its own provenance — a v0.1 concept that adopted no §5 family gets the
+      # panel it always had. The tier is skipped for unverified-and-undeclared
+      # through Concept#shows_trust?, the one predicate the card chip and the
+      # page's facets read too: an untouched v0.1 bundle must not read
+      # "unverified" on every panel. No expiry verdict is baked (the client
+      # compares dates with the viewer's today), and no actor is invented for a
+      # lifted timestamp.
+      def trust_fields(concept)
+        fields = {}
+        fields["tier"] = concept.trust if concept.shows_trust?
+        fields["generated_by"] = concept.generated_by
+        fields["generated_at"] = iso(concept.generated_at)
+        # The row's serialization, not the raw Psych value: `status: no` reads
+        # as false, blank?(false) is true, and stripping it here while the
+        # baked page reads the row's "false" split the served and baked
+        # inspectors over one concept.
+        fields["status"] = concept.declared_status&.to_s
+        fields["stale_after"] = iso(concept.stale_after)
+        fields.reject { |_, value| OKF.blank?(value) }
+      end
 
-        html_escape(description)
+      # The one temporal-serialization rule the catalog row keeps — shared, not
+      # mirrored, so /node/meta and the row cannot drift (see OKF.iso8601).
+      def iso(value)
+        OKF.iso8601(value)
       end
 
       def respond(content_type, body)
@@ -224,10 +260,6 @@ module OKF
 
       def not_found
         self.class.not_found
-      end
-
-      def html_escape(str)
-        Rack::Utils.escape_html(str.to_s)
       end
     end
   end

@@ -3,8 +3,17 @@ type: Constraint
 title: The monorepo layout
 description: One directory per gem, named for the gem; everything that is not a gem stays at the root.
 tags: [packaging, repo, portability]
-timestamp: 2026-07-24T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-24T12:00:00Z
 resource: Rakefile
+sources:
+  - title: Rakefile
+    resource: https://github.com/serradura/okf-gem/blob/main/Rakefile
+  - title: okf/okf.gemspec
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/okf.gemspec
+  - title: okf/test/unit/packaging_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/unit/packaging_test.rb
 ---
 
 # Overview
@@ -119,9 +128,3 @@ buy nothing.
 Releases are cut from the gem's own directory — Bundler reads the gemspec in its
 working directory and derives the tag from it — so the root `rake release`
 refuses rather than doing something plausible.
-
-# Citations
-
-[1] [Rakefile](https://github.com/serradura/okf-gem/blob/main/Rakefile) — the root delegator and the `GEMS` list a new gem is added to.
-[2] [okf/okf.gemspec](https://github.com/serradura/okf-gem/blob/main/okf/okf.gemspec) — `chdir:` on `git ls-files`, and the reject list paired with `.dockerignore`.
-[3] [okf/test/unit/packaging_test.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/unit/packaging_test.rb) — the assertions that keep the license copies real and identical.

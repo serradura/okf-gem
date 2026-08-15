@@ -2,7 +2,7 @@
 
 require_relative "../cli_integration_case"
 
-# `okf validate` named through the registry — the §9 verdict is the bundle's, but
+# `okf validate` named through the registry — the §11 verdict is the bundle's, but
 # the identity in the report is the caller's: `@slug (/path)` in the header, and
 # `bundle` + `slug` side by side in the JSON.
 module ByRegistry
@@ -13,7 +13,7 @@ module ByRegistry
         result = okf("validate", "@conformant")
 
         assert_equal 0, result.status
-        assert_match(/\AOKF v0\.1 conformance — @conformant \(#{Regexp.escape(fixture("conformant"))}\)$/, result.out,
+        assert_match(/\AOKF v0\.2 conformance — @conformant \(#{Regexp.escape(fixture("conformant"))}\)$/, result.out,
           "the header speaks the name that was typed, and the path it resolved to")
         assert_match(/concepts: 3\s+index\.md: 2\s+log\.md: 1/, result.out)
         assert_match(/✓ conformant — no issues/, result.out)
@@ -48,7 +48,7 @@ module ByRegistry
 
         assert_equal fixture("conformant"), report["bundle"]
         refute report.key?("slug"), "the same bundle by path stays a path, though the registry knows it"
-        assert_match(/\AOKF v0\.1 conformance — #{Regexp.escape(fixture("conformant"))}$/, okf("validate", fixture("conformant")).out)
+        assert_match(/\AOKF v0\.2 conformance — #{Regexp.escape(fixture("conformant"))}$/, okf("validate", fixture("conformant")).out)
       end
     end
 
@@ -68,7 +68,7 @@ module ByRegistry
         result = okf("validate", "@malformed")
 
         assert_equal 1, result.status, "the ref changes the name, never the verdict"
-        assert_match(/\AOKF v0\.1 conformance — @malformed \(#{Regexp.escape(fixture("malformed"))}\)$/, result.out)
+        assert_match(/\AOKF v0\.2 conformance — @malformed \(#{Regexp.escape(fixture("malformed"))}\)$/, result.out)
         assert_match(/✗ non-conformant \(4 error\(s\)\)/, result.out)
         assert_equal false, json(okf("validate", "@malformed", "--json"))["conformant"]
       end

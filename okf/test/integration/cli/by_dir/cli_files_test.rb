@@ -206,5 +206,21 @@ module ByDir
       assert_equal 2, banner.status
       assert_match(/Usage: okf files <dir\|@slug>/, banner.err)
     end
+    test "--status and --trust narrow the file tree, in both formats" do
+      human = okf("files", fixture("v0_2"), "--trust", "human-reviewed")
+      assert_equal 0, human.status
+      assert_match(/orders\.md/, human.out)
+      refute_match(/customers\.md/, human.out)
+
+      machine = json(okf("files", fixture("v0_2"), "--status", "draft", "--json"))
+      assert_equal [ "tables/customers.md" ], machine.fetch("files").map { |row| row["path"] }
+    end
+
+    test "trust is the catalog's column, not this row's — --fields trust exits 2" do
+      result = okf("files", fixture("v0_2"), "--fields", "trust")
+
+      assert_equal 2, result.status
+      assert_match(/unknown field/, result.err)
+    end
   end
 end

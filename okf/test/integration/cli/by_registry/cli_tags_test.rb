@@ -315,7 +315,7 @@ module ByRegistry
       with_registry("malformed") do
         result = okf("tags", "@malformed", "--json")
 
-        assert_equal 0, result.status, "a bundle full of §9 errors still indexes — this is an advisory read, never exit 1"
+        assert_equal 0, result.status, "a bundle full of §11 errors still indexes — this is an advisory read, never exit 1"
         assert_match(/skipped 2 unusable file\(s\)/, result.err)
         assert_equal 0, json(result).fetch("count") # the note went to stderr, not into stdout
         assert_equal "malformed", json(result).fetch("slug")

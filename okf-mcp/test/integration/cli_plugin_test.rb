@@ -90,7 +90,7 @@ class CLIPluginTest < MCPIntegrationCase
 
         write_frame(stdin, id: 2, method: "tools/list", params: {})
         names = read_frame(stdout).dig("result", "tools").map { |tool| tool["name"] }
-        assert_equal %w[list_bundles dirs index search read_concept catalog log validate lint graph], names
+        assert_equal %w[list_bundles dirs index search read_concept catalog log validate lint graph references tags types stats], names
 
         write_frame(stdin, id: 3, method: "tools/call", params: { name: "dirs", arguments: { bundle: "knowledge" } })
         result = read_frame(stdout).fetch("result")

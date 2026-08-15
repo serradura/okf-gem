@@ -4,7 +4,12 @@ title: The core/shell split
 description: A pure functional core that never touches disk or stdio, and a thin shell that owns all I/O — enforced by a test.
 resource: okf/test/unit/boundary_test.rb
 tags: [architecture, pure, testing, diagram]
-timestamp: 2026-07-18T19:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-18T19:00:00Z
+sources:
+  - title: okf/test/unit/boundary_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/unit/boundary_test.rb
 ---
 
 # Overview
@@ -66,7 +71,3 @@ config file or logged to stderr would not get the same pass.
   pure core to host apps that never want the gem's filesystem opinions.
 - **Best-effort reads** — the reader collects unparseable files instead of
   raising, so the pure graph still renders while the shell reports the skips.
-
-# Citations
-
-[1] [okf/test/unit/boundary_test.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/unit/boundary_test.rb) — the boundary made executable.

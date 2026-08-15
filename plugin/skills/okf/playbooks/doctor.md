@@ -39,7 +39,9 @@ Verify with `okf --version` before moving on.
    directory, or a root `index.md` whose frontmatter carries `okf_version`.
 2. Found one? Run `okf validate <root>` and `okf lint <root>`, then summarize
    in a few lines: conformant or not (and the errors if not), the warning
-   count, and the top curation findings by category.
+   count, the top curation findings by category, the trust/status posture the
+   lint stats report, and — when the Migration category fires — that the bundle
+   still writes v0.1 spellings and the skill's migrate playbook can move them.
 3. No bundle? Offer to bootstrap one. The okf skill knows how (its "produce"
    workflow); do not scaffold anything without the user's yes.
 

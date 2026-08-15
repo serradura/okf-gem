@@ -62,6 +62,22 @@ module OKF
         @bundle.directory_index
       end
 
+      def stats
+        @bundle.stats
+      end
+
+      def tag_groups(by:, entries: nil)
+        @bundle.tag_groups(by: by, entries: entries)
+      end
+
+      # The §6.3 inventory — this handle's half is the disk: the reader models
+      # only markdown, so listing `references/` here is how a .py attester or a
+      # .sql computation becomes visible at all. The pure model gets the
+      # manifest and answers the rest (citers, dangling pointers).
+      def references
+        Bundle::References.build(@bundle, files: reference_files)
+      end
+
       # Every log.md with its content, root scope first — read live from disk so a
       # just-appended entry shows without a reload; the reserved snapshot is the
       # fallback if the file has since vanished. Shared by `okf render`'s bake
@@ -119,7 +135,7 @@ module OKF
         Concept::File.new(root: @root, path: path).read
       end
 
-      # Materialize the in-memory bundle to disk (Writer validates §9 before
+      # Materialize the in-memory bundle to disk (Writer validates §11 before
       # publishing, so a malformed bundle is never written).
       def save(overwrite: false)
         Writer.call(
@@ -138,6 +154,16 @@ module OKF
       end
 
       private
+
+      # Bundle-relative paths of every file under references/, sorted. A glob
+      # on a directory that does not exist is simply empty — no references/ and
+      # an empty references/ are the same inventory.
+      def reference_files
+        Dir.glob(File.join(@root, "references", "**", "*"))
+           .select { |path| File.file?(path) }
+           .map { |path| Pathname.new(path).relative_path_from(Pathname.new(@root)).to_s }
+           .sort
+      end
 
       def reserved_hash(basename)
         @bundle.reserved

@@ -20,11 +20,16 @@ mis-homed hubs, an uncurated tag layer — that is [refine](refine.md).
    `okf loose <root> --json`.
 3. Interpret through the three lenses the okf skill teaches, and keep them
    separate:
-   - conformance errors (§9) are the only hard failures; fix them first,
+   - conformance errors (§11) are the only hard failures; fix them first,
      always;
    - lint findings are curation debt across reachability, backlog,
-     completeness, freshness, provenance, and hygiene. They are advisory;
-     rank them by how much each hurts a reader navigating the graph;
+     completeness, freshness, provenance, attestation, migration, and hygiene.
+     They are advisory; rank them by how much each hurts a reader navigating
+     the graph. Read the stats' `trust` and `status` distributions for the
+     bundle's posture (how much is unverified, what is draft or deprecated),
+     and treat the Migration findings as an offer, not debt — §13 keeps a v0.1
+     bundle consumable forever, and the [migrate playbook](migrate.md) carries
+     the rewrite when the user wants it;
    - loose files can be legitimate terminal leaves, so judge each one before
      linking it anywhere.
 4. Propose, then apply: list the fixes worth making (must-fix errors first,

@@ -1,5 +1,5 @@
 import { hostilePage, HOSTILE_PORT } from "../paths.js";
-import { test as base, expect, bootGraph } from "../helpers.js";
+import { test as base, expect, bootGraph, clickNode } from "../helpers.js";
 
 // The two XSS defenses AGENTS.md calls load-bearing, asserted for the first
 // time. Until this file existed, the only checks were that the string
@@ -120,5 +120,28 @@ test.describe("inlined data escaping", () => {
     // through a text path and not an HTML one.
     await expect(hostile.locator("#side-body .title")).toContainText("</script>");
     expect(await firedFlags(hostile, FLAGS)).toEqual([]);
+  });
+
+  test("the trust line lands producer strings as text, never markup", async ({ hostile }) => {
+    // generated.by is a producer string reaching a panel the sanitizer never
+    // sees — it lands via textContent, so hostile markup renders as visible
+    // text and no element, handler, or flag comes to life.
+    await clickNode(hostile, "attributes");
+
+    const line = hostile.locator("#side .meta-trust");
+    await expect(line).toBeVisible();
+    await expect(line.locator(".gen")).toContainText("<img src=x");
+    expect(await line.locator("img, b").count()).toBe(0);
+    expect(await hostile.evaluate(() => Boolean(window.__xssTrustGen))).toBe(false);
+
+    // The fixture's `verified.by` carries its own payload, but App#trust_fields
+    // serializes only tier/generated_*/status/stale_after — so the reviewer
+    // string has no path to the page at all. Asserting *that* is the assertion
+    // that can fail: a __xssTrustBy flag check is green whether the field is
+    // withheld or rendered safely, and stays green if the payload never
+    // arrives. `onmouseover` is the fixture's verified-side marker, distinct
+    // from generated.by's `onerror`, and "human-reviewed" is why the actor's
+    // own `rev` is not the string to look for.
+    await expect(line).not.toContainText("onmouseover");
   });
 });

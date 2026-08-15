@@ -4,7 +4,7 @@ module OKF
   module Markdown
     # Markdown cross-link extraction and resolution — the single source of truth for
     # "which concepts does this body point at". Shared by OKF::Bundle::Graph (to build edges)
-    # and OKF::Bundle::Validator (to warn on broken cross-links, §5.3), so both agree on what
+    # and OKF::Bundle::Validator (to warn on broken cross-links, §6.1), so both agree on what
     # counts as a link and where it resolves.
     module Links
       FENCE = /\A(```|~~~)/.freeze
@@ -14,13 +14,34 @@ module OKF
       # blanked before scanning — the inline analogue of FENCE.
       CODE_SPAN = /(`+).*?\1/.freeze
       # Inline link [text](target) or [text](target "title"); (?<!!) skips images.
-      INLINE_LINK = /(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/.freeze
+      # group 1 = the link text, group 2 = the target: extract() wants only the
+      # target, Citations.entries carries the text into a source's `title` —
+      # one grammar, one regex.
+      INLINE_LINK = /(?<!!)\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/.freeze
       # Reference-style use: full [text][label] or collapsed [label][]; (?<!!) skips
       # images. group 1 = text/label, group 2 = the explicit label (empty if collapsed).
       REFERENCE_LINK = /(?<!!)\[([^\]]*)\]\[([^\]]*)\]/.freeze
       # Reference definition: [label]: target  (optionally followed by a "title").
-      DEFINITION = /\A[ \t]{0,3}\[([^\]]+)\]:[ \t]*(\S+)/.freeze
-      SCHEME = %r{\A[a-z][a-z0-9+.-]*://}.freeze
+      # A label may not begin with `^`: that is a footnote definition (§5.1
+      # per-claim attribution), which would otherwise read as a reference
+      # definition nothing ever uses.
+      DEFINITION = /\A[ \t]{0,3}\[([^\^\]][^\]]*)\]:[ \t]*(\S+)/.freeze
+      # In-prose footnote reference [^label] — §5.1 joins it on a sources[].id;
+      # (?<!!) skips an image whose alt text happens to start with a caret.
+      FOOTNOTE_REFERENCE = /(?<!!)\[\^([^\]\s]+)\]/.freeze
+      # A footnote definition line ([^label]: prose) — never a reference.
+      FOOTNOTE_DEFINITION = /\A[ \t]{0,3}\[\^([^\]\s]+)\]:/.freeze
+      # The URI scheme grammar, in one source string the citation item
+      # regexes compose from — schemes are case-insensitive (RFC 3986), and
+      # answering the case question in two places had HTTP:// counted as
+      # provenance by Citations and as prose by this module.
+      SCHEME_NAME = "[a-zA-Z][a-zA-Z0-9+.-]*"
+      SCHEME = %r{\A#{SCHEME_NAME}://}.freeze
+      # mailto has no ://, so SCHEME cannot see it — and a scheme name is as
+      # case-insensitive here as everywhere else. This guard sat inline and
+      # case-sensitive in three places; `MAILTO:user@example.md` then passed
+      # both gates and resolved as a relative path.
+      MAILTO = /\Amailto:/i.freeze
 
       module_function
 
@@ -33,7 +54,7 @@ module OKF
         definitions = reference_definitions(text)
         found = []
         each_prose_line(text) do |line|
-          found.concat(line.scan(INLINE_LINK).flatten)
+          line.scan(INLINE_LINK) { |_text, target| found << target }
           line.scan(REFERENCE_LINK).each do |label, explicit|
             key = (explicit.empty? ? label : explicit).strip.downcase
             target = definitions[key]
@@ -53,6 +74,34 @@ module OKF
           definitions[match[1].strip.downcase] = match[2] if match
         end
         definitions
+      end
+
+      # The distinct footnote labels referenced in prose (§5.1), in document
+      # order. A definition's own leading token is not a reference — a source
+      # cited only by `[^a]:` itself is still uncited — but the prose *after*
+      # it is prose like any other: `[^a]: see also [^b]` cites b, and skipping
+      # the whole line made that citation invisible to both provenance checks.
+      # Labels are deduplicated so one unmatched label yields one finding, not
+      # one per use.
+      def footnote_references(text)
+        labels = []
+        each_prose_line(text) do |line|
+          line.sub(FOOTNOTE_DEFINITION, "").scan(FOOTNOTE_REFERENCE) { |captures| labels << captures.first }
+        end
+        labels.uniq
+      end
+
+      # The footnote labels a body *defines* (`[^label]: …`), deduplicated. A
+      # label with a definition is a self-contained GFM content footnote;
+      # §5.1's keyed attribution never reserves the whole label space, so the
+      # provenance checks treat only undefined, unmatched labels as dangling.
+      def footnote_definitions(text)
+        labels = []
+        each_prose_line(text) do |line|
+          match = FOOTNOTE_DEFINITION.match(line)
+          labels << match[1] if match
+        end
+        labels.uniq
       end
 
       # Yield each line outside a fenced code block, with inline code spans blanked.
@@ -79,9 +128,20 @@ module OKF
       # @param bundle [String] path to the bundle root
       def resolve(raw, from:, bundle:)
         target = raw.to_s.split("#", 2).first.to_s
-        return nil if target.empty? || target.end_with?("/")
-        return nil if target.match?(SCHEME) || target.start_with?("mailto:")
         return nil unless target.end_with?(".md")
+
+        resolve_path(raw, from: from, bundle: bundle)
+      end
+
+      # The path arithmetic under #resolve without its +.md+ gate — the resolver
+      # for §6.2's path-valued frontmatter fields (resource, sources[].resource,
+      # computation, executor.resource, attester.resource), which accept any
+      # file. Body cross-links stay .md-only through #resolve; keeping the gate
+      # there and not here is what stops the two rules from trading places.
+      def resolve_path(raw, from:, bundle:)
+        target = raw.to_s.split("#", 2).first.to_s
+        return nil if target.empty? || target.end_with?("/")
+        return nil if target.match?(SCHEME) || target.match?(MAILTO)
         return target.sub(%r{\A/+}, "") if target.start_with?("/")
 
         bundle_abs = File.expand_path(bundle)

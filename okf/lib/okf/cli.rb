@@ -39,8 +39,10 @@ module OKF
       # would let `--fields slug` pass on a search whose rows have none, and hand
       # back an empty object per match under a count that says otherwise.
       "matches_by_ref" => %w[slug id title type dir top_dir tags matched score snippet],
-      "concepts" => %w[id title type description tags timestamp status backlog_ref dir top_dir links_out links_in],
+      "concepts" => %w[id title type description tags generated_at generated_by generated trust status
+                       stale_after sources backlog_ref dir top_dir links_out links_in],
       "files" => %w[path id dir type title description],
+      "references" => %w[path dir kind referenced_by],
       "directories" => %w[dir ancestor index_path present synthesized count types tags subdirs body listing],
       "dirs" => %w[dir ancestor count subtree subdirs],
       "bundles" => %w[slug title dir mount default missing]
@@ -505,6 +507,7 @@ require "okf/cli/stats"
 require "okf/cli/types"
 require "okf/cli/tags"
 require "okf/cli/files"
+require "okf/cli/references"
 require "okf/cli/catalog"
 require "okf/cli/graph"
 

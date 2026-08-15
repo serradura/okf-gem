@@ -4,7 +4,16 @@ title: Ranked text search (search)
 description: Full-text retrieval over concept metadata and bodies — raw-text matching by default, BM25+ token ranking on request, and explainable row by row either way.
 resource: okf/lib/okf/bundle/search.rb
 tags: [read, cli, json, registry, search]
-timestamp: 2026-07-22T12:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-08-13T12:00:00Z
+sources:
+  - title: okf/lib/okf/bundle/search.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb
+  - title: okf/test/integration/cli/by_dir/cli_search_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/integration/cli/by_dir/cli_search_test.rb
+  - title: okf/test/unit/bundle/search/recall_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/unit/bundle/search/recall_test.rb
 ---
 
 # Overview
@@ -82,7 +91,7 @@ not necessarily the same one. Field weights are shared by both engines:
 | `id` | 4 |
 | `tags` | 3 |
 | `type`, `description` | 2 |
-| `body` | 1 |
+| `sources`, `body` | 1 |
 
 The **scan** matches a term as a literal substring anywhere in a field and scores
 by summing the weights of the fields that matched — an absolute number, small and
@@ -90,10 +99,20 @@ integral. The **index** matches a whole token or a token it prefixes (`dedup`
 reaches `deduplication`), and scores BM25+ with those weights riding as per-field
 boost — a float, relative to the corpus.
 
-Rows order by score descending, then slug, then id. A match in `description` or
-`body` carries one bounded context snippet (~44 characters each side of the first
-matched term); the other fields need none because they already appear whole on
-the row.
+Rows order by score descending, then slug, then id. A match in `description`,
+`body` or `sources` carries one bounded context snippet (~44 characters each
+side of the first matched term); the other fields need none because they
+already appear whole on the row. `sources` is each entry's title and resource
+joined, at the weight the `# Citations` body text carried in v0.1, so a
+migrated bundle keeps its recall and a source-only hit keeps a snippet — the
+snippet *moves* from body text to source text rather than vanishing.
+
+The pages share the fields with one pinned asymmetry: the **static** page bakes
+each concept's body and source text and indexes both offline; the **served**
+page indexes metadata only — its catalog row carries a source *count*, and
+spending body-sized bytes on every fetch to serve one view is the trade the
+payload already refuses for `body`. Pre-existing, deliberate, and stated at
+`FT_FIELDS` in the template rather than discovered.
 
 **The row still says which fields hit.** A relevance number alone would be a
 verdict an agent cannot check, so every row carries its `matched` list — read off
@@ -274,10 +293,3 @@ The suite plants a fact in a fixture bundle and asserts that the progressive
 path — index skeleton, one search, one body — answers it in **under 25% of the
 bytes** of the full graph dump. The [companion skill](agent-skill.md)'s search
 playbook rides that path, so its economics stay true by construction.
-
-# Citations
-
-[1] [okf/lib/okf/bundle/search.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb) — the facade: the row, the snippet, the sort, the engine registry and router.
-[2] [okf/test/integration/cli/by_dir/cli_search_test.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/integration/cli/by_dir/cli_search_test.rb) — the retrieval eval, and the default-engine pin.
-[3] [okf/test/unit/bundle/search/recall_test.rb](https://github.com/serradura/okf-gem/blob/main/okf/test/unit/bundle/search/recall_test.rb) — the default has no recall holes; the index's are named and pinned.
-[4] Benchmark, 2026-07-18, Ruby 4.0.5, end to end through the CLI: 0.16 s / 0.83 s / 3.00 s for `--engine index` at 24 / 250 / 1,000 concepts, against 0.10 s / 0.18 s / 0.24 s for the default scan.

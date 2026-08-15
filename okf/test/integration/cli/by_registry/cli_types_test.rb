@@ -230,7 +230,7 @@ module ByRegistry
       with_registry("malformed") do
         result = okf("types", "@malformed", "--json")
 
-        assert_equal 0, result.status, "a bundle full of §9 errors still indexes — this is an advisory read, never exit 1"
+        assert_equal 0, result.status, "a bundle full of §11 errors still indexes — this is an advisory read, never exit 1"
         assert_match(/skipped 2 unusable file\(s\)/, result.err)
         assert_equal 2, json(result).fetch("count") # Note, plus the one Untyped bucket the unusable types share
         assert_equal [ "good" ], json(result).fetch("types").find { |row| row.fetch("type") == "Note" }.fetch("concepts")

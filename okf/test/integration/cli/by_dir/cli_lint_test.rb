@@ -69,8 +69,8 @@ module ByDir
     test "provenance findings fire on the provenance fixture" do
       result = okf("lint", fixture("provenance"))
 
-      assert_match(%r{uncited\.md: body has external link}, result.out)
-      assert_match(%r{badcite\.md: citation target `/nope\.md`}, result.out)
+      assert_match(%r{uncited\.md: body has external link\(s\) but no sources}, result.out)
+      assert_match(%r{badcite\.md: source target `/nope\.md` does not exist}, result.out)
     end
 
     test "the whole hygiene category fires on the hygiene fixture" do
@@ -143,7 +143,7 @@ module ByDir
     end
 
     test "lint buckets a blank type exactly as the read views do" do
-      # §9.2 makes `type: "  "` as non-conformant as a missing one, and the graph
+      # §11.2 makes `type: "  "` as non-conformant as a missing one, and the graph
       # was widened to say so — but lint kept its own `type || "Untyped"`, which
       # only catches nil. Two verbs then report type inventories that cannot be
       # reconciled: an agent cross-referencing them sees a bucket in one that does
@@ -170,6 +170,212 @@ module ByDir
       assert_equal 2, okf("lint", fixture("unhealthy"), "--only", "bogus").status
       assert_equal 2, okf("lint", fixture("conformant"), "--stale-after", "soon").status
       assert_equal 2, okf("lint", File.join(BUNDLES, "does-not-exist")).status
+    end
+    # ── the v0.2 checks (WI-3) ───────────────────────────────────────────────
+
+    test "the uncurated v0.2 bundle renders the Attestation and Migration categories, exit 0" do
+      result = okf("lint", fixture("v0_2-uncurated"))
+
+      assert_equal 0, result.status
+      assert_match(/Attestation/, result.out)
+      assert_match(/Migration/, result.out)
+      assert_match(/Provenance/, result.out)
+      assert_match(/incomplete-computation\.md: Attested Computation with no computation/, result.out)
+      assert_match(/both-computation\.md: Attested Computation provides its computation twice/, result.out)
+      # §10.3's inline form is a *fenced block* under the heading; a heading
+      # over prose is a promise with nothing an executor could run.
+      assert_match(/heading-no-fence\.md: Attested Computation with no computation/, result.out)
+      assert_match(/unattributed\.md: footnote `\[\^missing-source\]` has no matching sources\[\]\.id/, result.out)
+      assert_match(/unused-source\.md: source `uncited-source` is never cited/, result.out)
+      assert_match(/unprefixed\.md: verified\.by `owner` matches none of §7's forms/, result.out)
+      # §7's convention covers both identity fields; generated.by earns the
+      # same finding with its own consequence (§5.3 derives no trust from it).
+      assert_match(/unprefixed-generated\.md: generated\.by `owner` matches none of §7's forms/, result.out)
+      # §9 reads the log newest-first; an inverted pair is curation slack.
+      assert_match(/log\.md: date headings are not newest-first/, result.out)
+    end
+
+    test "the conformant v0_2 baseline lints clean, and gates clean" do
+      # The fixture the malformed and uncurated bundles are read against. Every
+      # v0.2 family is populated here, so a new check that misreads one of them
+      # shows up as a warning on the bundle that has nothing wrong with it —
+      # which is exactly how `broken_attestation_ref` shipped a false positive
+      # on its first cut, against a `references/` path §6.2 reads as relative.
+      result = okf("lint", fixture("v0_2"))
+
+      assert_match(/✓ healthy — no issues/, result.out)
+      assert_equal 0, okf("lint", fixture("v0_2"), "--fail-on", "warn").status
+      assert_equal 0, okf("lint", fixture("v0_2"), "--fail-on", "info").status
+    end
+
+    test "every check id belongs to exactly one display category" do
+      # A finding whose check sits in no category is counted in the summary and
+      # printed nowhere: the `--json` report carries it and the human report
+      # silently drops it. That is how a new check ships invisible.
+      require "okf/cli"
+      categorized = OKF::CLI::Lint::LINT_CATEGORIES.values.flatten
+
+      assert_equal OKF::Bundle::Linter::CHECKS.sort, categorized.sort,
+        "a check outside the category map prints nowhere; one in two categories prints twice"
+    end
+
+    test "a §10 resource naming a file the bundle does not carry is a warn" do
+      # `incomplete_computation` asks whether a contract names its computation;
+      # nothing asked whether what it names is *there*. A dangling executor,
+      # attester or computation path is a contract no consumer can follow —
+      # the same defect `broken_source` already reports for sources[].
+      result = okf("lint", fixture("v0_2-uncurated"))
+
+      assert_match(%r{dangling-executor\.md: executor\.resource `/references/skills/missing-runbook\.md` }, result.out)
+      assert_equal 1, okf("lint", fixture("v0_2-uncurated"), "--only", "broken_attestation_ref",
+        "--fail-on", "warn").status, "a contract pointing at nothing is gateable"
+    end
+
+    test "expired fires on the stale_after day itself and not the day before (--today)" do
+      on_the_day = okf("lint", fixture("v0_2-uncurated"), "--today", "2000-01-01", "--only", "expired")
+      day_before = okf("lint", fixture("v0_2-uncurated"), "--today", "1999-12-31", "--only", "expired")
+
+      assert_match(/expired\.md: expired on 2000-01-01 \(stale_after\)/, on_the_day.out)
+      refute_match(/expired on/, day_before.out)
+      assert_equal 0, on_the_day.status, "expired is info; it reports, it does not gate"
+    end
+
+    test "the CLI supplies a clock by default, so expired reports without --today" do
+      # The fixture's stale_after is 2000-01-01 — far past on any wall clock, so
+      # this asserts the default-clock path without depending on today's date.
+      result = okf("lint", fixture("v0_2-uncurated"))
+
+      assert_match(/expired\.md: expired on 2000-01-01/, result.out)
+    end
+
+    test "an unparseable stale_after yields the validate warning and never an expired finding" do
+      result = okf("lint", fixture("v0_2-malformed"), "--today", "2099-01-01", "--json")
+
+      assert_empty json(result)["findings"].select { |f| f["check"] == "expired" },
+        "malformed must never read as expired"
+    end
+
+    test "the twins' v0.1 half emits exactly the two Migration findings, as info" do
+      report = json(okf("lint", fixture("twins/v0_1"), "--json"))
+
+      checks = report["findings"].map { |f| f["check"] }.sort
+      assert_equal %w[legacy_citations legacy_timestamp], checks
+      assert(report["findings"].all? { |f| f["severity"] == "info" })
+      timestamps = report["findings"].find { |f| f["check"] == "legacy_timestamp" }
+      assert_nil timestamps["path"], "one finding per bundle; the members live in the metric"
+      assert_equal [ "tables/customers.md", "tables/orders.md" ], timestamps["metric"]["concepts"]
+    end
+
+    test "a fully migrated bundle emits zero Migration findings" do
+      report = json(okf("lint", fixture("twins/v0_2"), "--json"))
+
+      assert_empty report["findings"].select { |f| f["check"].start_with?("legacy_") }
+    end
+
+    test "--fail-on info gates what --fail-on warn deliberately does not" do
+      # twins/v0_1's only findings are expired-free info (the two Migration
+      # rows), so warn stays green and info goes red — gateability without a
+      # severity promotion.
+      assert_equal 0, okf("lint", fixture("twins/v0_1"), "--fail-on", "warn").status
+      assert_equal 1, okf("lint", fixture("twins/v0_1"), "--fail-on", "info").status
+      assert_equal 0, okf("lint", fixture("twins/v0_1")).status
+    end
+
+    test "a migration campaign is --only the two legacy checks with --fail-on info" do
+      campaign = %w[--only legacy_timestamp,legacy_citations --fail-on info]
+
+      assert_equal 1, okf("lint", fixture("twins/v0_1"), *campaign).status
+      assert_equal 0, okf("lint", fixture("twins/v0_2"), *campaign).status
+    end
+
+    test "lint confesses the checks it could not run, in both formats" do
+      report = json(okf("lint", fixture("conformant"), "--json"))
+      assert_equal [ "stale" ], report["stats"]["skipped_checks"],
+        "the CLI supplies a clock, so only the cutoff-gated check skips"
+
+      human = okf("lint", fixture("conformant"))
+      assert_match(/skipped: stale/, human.out)
+
+      with_cutoff = json(okf("lint", fixture("conformant"), "--stale-after", "90d", "--json"))
+      assert_empty with_cutoff["stats"]["skipped_checks"]
+    end
+
+    test "the report prints the bundle's trust and status posture" do
+      result = okf("lint", fixture("v0_2"))
+
+      assert_match(/trust: unverified \d+, machine-confirmed \d+, human-reviewed \d+/, result.out)
+      assert_match(/status: /, result.out)
+    end
+
+    test "--stale-after accepts exactly the timestamps it can parse" do
+      # ISO_CUTOFF admitted a space-separated timestamp that Date.iso8601 then
+      # refused, so the constant documented a grammar one branch wider than the
+      # real one — a value that matched the rule and failed anyway.
+      assert_equal 2, okf("lint", fixture("v0_2"), "--stale-after", "2026-01-01 09:00:00").status,
+        "a space-separated timestamp is refused, and refused by the grammar rather than by the parser"
+      assert_equal 0, okf("lint", fixture("v0_2"), "--stale-after", "2026-01-01T09:00:00Z").status,
+        "the T-separated form is the one that parses, and it still works"
+    end
+
+    test "--stale-after refuses the spellings it would silently reinterpret" do
+      # `2026-W01-1` was read as 2025-12-29 here while `--today` exited 2 on the
+      # identical spelling — one flag family answering two ways.
+      %w[2026-W01-1 20260101].each do |spelling|
+        result = okf("lint", fixture("v0_2-uncurated"), "--stale-after", spelling)
+
+        assert_equal 2, result.status, "--stale-after #{spelling}"
+        assert_match(/invalid --stale-after `#{Regexp.escape(spelling)}`/, result.err)
+      end
+
+      assert_equal 0, okf("lint", fixture("v0_2-uncurated"), "--stale-after", "2026-01-01").status,
+        "the spelling it documents still works"
+      assert_equal 0, okf("lint", fixture("v0_2-uncurated"), "--stale-after", "90d").status,
+        "and so does the relative form"
+    end
+
+    test "--stale-after still takes a full timestamp, which is what generated.at looks like" do
+      # A cutoff is a moment, unlike --today's calendar day, and the value a
+      # reader has to hand is a concept's own `generated.at`. Narrowing this to
+      # a bare date refused exactly the form they would paste.
+      moment = okf("lint", fixture("v0_2-uncurated"), "--stale-after", "2026-06-03T00:00:00Z", "--only", "stale", "--json")
+      day = okf("lint", fixture("v0_2-uncurated"), "--stale-after", "2026-06-03", "--only", "stale", "--json")
+
+      assert_equal 0, moment.status, moment.err
+      assert_equal json(day)["findings"], json(moment)["findings"],
+        "the time of day is reduced away, the way it always was"
+    end
+
+    test "--today takes YYYY-MM-DD and refuses the other ISO 8601 spellings it once accepted" do
+      # The flag documents DATE and its refusal says "use YYYY-MM-DD", while
+      # Date.iso8601 also parses the basic and week forms. The other end of the
+      # comparison — Concept#stale_after_date — is strict, so accepting them
+      # left the two halves of one comparison on different grammars.
+      %w[20000101 2000-W01-1].each do |spelling|
+        result = okf("lint", fixture("v0_2-uncurated"), "--today", spelling)
+
+        assert_equal 2, result.status, "--today #{spelling}: a usage error, not a silent reinterpretation"
+        assert_match(/invalid --today `#{Regexp.escape(spelling)}`/, result.err)
+      end
+    end
+
+    test "--today rejects a value that is not a date (exit 2)" do
+      result = okf("lint", fixture("conformant"), "--today", "soon")
+
+      assert_equal 2, result.status
+      assert_match(/invalid --today `soon`/, result.err)
+    end
+
+    test "a relative link that escapes the bundle root is reported verbatim, never resolved" do
+      # §5.1 resolution stops at the root: `../../escaped.md` names nothing the
+      # bundle can reach, so the finding carries the spelling as written — a
+      # resolved absolute path would leak the machine's layout into the report.
+      result = okf("lint", fixture("references-trap"), "--json", "--only", "missing_concept")
+      finding = json(result).fetch("findings").first
+
+      assert_equal 0, result.status
+      assert_equal "missing_concept", finding.fetch("check")
+      assert_equal "../../escaped.md", finding.fetch("path")
+      assert_equal [ "metrics/report" ], finding.fetch("metric").fetch("sources")
     end
   end
 end

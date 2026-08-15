@@ -289,5 +289,14 @@ module ByDir
       assert_equal 0, json(result).fetch("count") # the note went to stderr, not into stdout
       refute_match(/note:/, result.out)
     end
+    test "--status and --trust narrow the tag counts, in both formats" do
+      human = okf("tags", fixture("v0_2"), "--trust", "human-reviewed")
+      assert_equal 0, human.status
+      assert_match(/orders/, human.out)
+      refute_match(/customers/, human.out)
+
+      machine = json(okf("tags", fixture("v0_2"), "--status", "draft", "--json"))
+      assert_equal %w[customers sales], machine.fetch("tags").map { |row| row["tag"] }.sort
+    end
   end
 end

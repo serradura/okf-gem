@@ -3,7 +3,7 @@
 Reached by `search <query…>` — the query is everything after the verb; given no
 query, ask what to find. Retrieval matters as much as curation: a bundle nobody
 can query cheaply is dead weight. The discipline is progressive disclosure
-(spec §6): every step pays a few hundred bytes to decide what the next step
+(spec §8): every step pays a few hundred bytes to decide what the next step
 reads, and full bodies are read last, and only the winners.
 
 1. **Just run it — no presence probe.** Point the finder at a path or an `@slug`
@@ -58,7 +58,7 @@ reads, and full bodies are read last, and only the winners.
    @slugs (`okf search @handbook @notes <terms>`) or `@all` for every registered
    one — and read the per-row bundle slug before following an id home.
 4. **Read only the winners.** A match row's `id` is its file: `<dir>/<id>.md`.
-   Read that file — not its folder, never the whole tree. Follow its links (§5)
+   Read that file — not its folder, never the whole tree. Follow its links (§6)
    one hop at a time; check `log.md` when freshness matters.
 5. **Answer, then write back.** Cite the concept ids you used. If the answer
    was missing, stale, or needlessly hard to find — a gap, a broken link, an

@@ -47,7 +47,7 @@ module AcrossBundles
     end
 
     test "the refusal is a usage verdict (2), never the non-conformant one (1)" do
-      assert_equal 1, okf("validate", fixture("structural")).status # the bundle itself fails §9
+      assert_equal 1, okf("validate", fixture("structural")).status # the bundle itself fails §11
 
       second = okf("validate", fixture("structural"), fixture("minimal"))
 

@@ -1,5 +1,48 @@
 # Update Log
 
+## 2026-08-14
+* **Addition**: the **§6.3 references inventory**, on every surface at once —
+  `okf references` on the [CLI](capabilities/read-views.md), pure
+  `Bundle::References` in [the model](model/bundle.md), and a `references`
+  tool on the [MCP server](capabilities/mcp-server.md). It is the one lens
+  that sees a bundle's non-markdown files (a `.py` attester, a `.sql`
+  computation) with the concepts citing each, and it names §6.2's bare-path
+  trap with its leading-slash fix instead of leaving it to documentation.
+* **Fix**: a spec-compliance pass hardened the checkers, each fix stated
+  where it lives: the [validator](capabilities/validator.md) refuses a
+  calendar-invalid log date the digit shape used to admit; the
+  [linter](capabilities/linter.md) grows `log_order` (its first log-side
+  check) and reads both §7 identity fields in `unprefixed_actor`; an
+  uppercase `mailto:` no longer resolves as a bundle path; and §10.3's inline
+  computation is proven by the fence, not the heading over it. Two behaviors
+  the pass confirmed as deliberate are now documented and pinned rather than
+  silent: hidden files are outside the bundle, and a frontmatter `id`
+  [renames the concept, not its home](model/concept.md).
+* **Addition**: [okf-mcp](capabilities/mcp-server.md) reaches **fourteen
+  read-only tools** — `references`, `tags` (with the `by` curation view),
+  `types` and `stats` join — plus a pinnable `lint` clock (`today`),
+  `fields`/`except` projections on search and catalog, and `graph`'s traffic
+  `cut`. The rollups behind the new views were extracted kernel-side first
+  (`Bundle#stats`, `#tag_groups` — [one home](model/bundle.md)), so both
+  shells consume the same counting rules; `files` is deliberately not a tool,
+  and the refusal is recorded in the concept.
+
+## 2026-08-13
+* **OKF v0.2 is the target**: the gem reads, validates, lints, serves and
+  teaches the [published v0.2](format/okf-0-2.md) — one reading rule on
+  [Concept](model/concept.md) carrying §13.1's two fallbacks inline (no version
+  hierarchy), shape warnings for every §5/§10 family on the
+  [validator](capabilities/validator.md) (machine-readable, `check:`/`source:`),
+  eight [linter](capabilities/linter.md) categories with pinned severities, an
+  explicit clock, and the two Migration findings that tell a v0.1 bundle what
+  to change without ever failing it. The surfaces speak it too:
+  [trust/status columns and filters](capabilities/read-views.md) on the CLI,
+  [source text in search](capabilities/search.md) where the body used to hold
+  it, and the trust line as the [graph page](capabilities/graph-server.md)'s
+  third channel. This bundle migrated in the same change — `generated` replaces
+  `timestamp`, [`sources`](format/citations.md) replace the `# Citations`
+  sections — and the lessons live in the concepts each is about.
+
 ## 2026-08-07
 * **Release**: **okf-mcp 1.0.0** shipped — the [MCP server](capabilities/mcp-server.md),
   a fourth surface beside the [CLI](cli.md), the

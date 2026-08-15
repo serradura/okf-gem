@@ -46,7 +46,7 @@ module AcrossBundles
     end
 
     test "the refusal is a usage verdict (2) — types itself never fails a bundle (1)" do
-      assert_equal 0, okf("types", fixture("structural")).status # advisory even on a §9 reject
+      assert_equal 0, okf("types", fixture("structural")).status # advisory even on a §11 reject
 
       second = okf("types", fixture("structural"), fixture("minimal"))
 

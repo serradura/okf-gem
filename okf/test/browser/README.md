@@ -92,6 +92,9 @@ specs/
   files-tree.spec.js   the collapse state machine (desktop + mobile) + the type/tag comboboxes
   files-tree-nested.spec.js  the nested-dir tree: only-subdir folders, last-segment headers, depth (own fixture)
   filters-manytags.spec.js   the filter finder's top-40 tag-chip cap (own 45-tag fixture)
+  trust-v02.spec.js    the §5 chips, the inspector's trust line, and the two new facet groups (own v0.2 fixture)
+  trust-unreviewed.spec.js   generated-but-never-verified: the trust facet is offered wherever a chip is
+                             shown, and a multi-word status is one class (own fixture)
   files-tree-deeppath.spec.js  a long reserved-row path ellipsizes, badge on-screen (own deep-path fixture)
   graph-zoomfloor.spec.js    the zoom floor relaxing on a graph bigger than the viewport (own 100-node ring)
   mobile-layout.spec.js the ≤768px tools sheet and file header, in geometry

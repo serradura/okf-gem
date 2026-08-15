@@ -64,4 +64,22 @@ class ServerTest < OKF::TestCase
     server.handle_json(JSON.generate(jsonrpc: "2.0", id: 2, method: "tools/list", params: {}))
     assert_equal 2, wrapped
   end
+  test "the okf floor moves with okf's release — 1.13.0 lacks the surfaces this shell reads" do
+    # The gemspec carries this as a RELEASE OBLIGATION prose note; this is the
+    # tripwire that makes it mechanical. The floor cannot move before okf's
+    # own version does (the monorepo resolves against the path-sourced okf),
+    # so: the moment okf releases past 1.13.0, this test goes red until the
+    # floor excludes 1.13.0 — against which a status filter raises NameError
+    # and a trust filter silently matches nothing.
+    gemspec = Gem::Specification.load(File.expand_path("../../okf-mcp.gemspec", __dir__))
+    floor = gemspec.dependencies.find { |dep| dep.name == "okf" }.requirement
+
+    if Gem::Version.new(OKF::VERSION) > Gem::Version.new("1.13.0")
+      refute floor.satisfied_by?(Gem::Version.new("1.13.0")),
+        "okf moved past 1.13.0 — the RELEASE OBLIGATION in okf-mcp.gemspec is due"
+    else
+      assert floor.satisfied_by?(Gem::Version.new(OKF::VERSION)),
+        "the floor must keep resolving against the monorepo's own okf"
+    end
+  end
 end

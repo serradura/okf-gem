@@ -160,21 +160,29 @@ module OKF
         build_context(errors, warnings, findings)
       end
 
-      # A lint finding concerns the edit when it points at the edited file, or —
-      # for backlog findings like missing_concept — when the edited concept is
-      # among the sources demanding a target that does not exist.
+      # A lint finding concerns the edit when it points at the edited file, or
+      # when the edited concept is named in the finding's own membership — the
+      # backlog checks list demanding concepts under metric.sources (ids, no
+      # .md), and the bundle-level findings (Migration, duplicate_title,
+      # disconnected_component) carry path: nil with their members under
+      # metric.concepts / metric.members, in either spelling. Without the
+      # membership read, the migration nudge never reached the agent at the
+      # one moment the check was built for: right after it edited a v0.1 file.
       def concerns?(finding, rel)
         return true if finding["path"] == rel
 
         metric = finding["metric"]
-        sources = metric.is_a?(Hash) ? Array(metric["sources"]) : []
-        sources.include?(rel.sub(/\.md\z/, ""))
+        return false unless metric.is_a?(Hash)
+
+        id = rel.sub(/\.md\z/, "")
+        members = Array(metric["sources"]) + Array(metric["concepts"]) + Array(metric["members"])
+        members.include?(rel) || members.include?(id)
       end
 
       def build_context(errors, warnings, findings)
         lines = errors.map { |e| "  ✗ error #{e["path"]}: #{e["message"]}" } +
                 warnings.map { |w| "  ! warn #{w["path"]}: #{w["message"]}" } +
-                findings.map { |f| "  #{f["severity"] == "warn" ? "!" : "·"} lint/#{f["check"]} #{f["path"]}: #{f["message"]}" }
+                findings.map { |f| "  #{f["severity"] == "warn" ? "!" : "·"} lint/#{f["check"]} #{[ f["path"], f["message"] ].compact.join(": ")}" }
 
         shown = lines.take(MAX_LINES)
         shown << "  … #{lines.size - MAX_LINES} more (run /okf:gem curate for the full report)" if lines.size > MAX_LINES

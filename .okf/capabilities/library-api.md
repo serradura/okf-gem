@@ -4,7 +4,14 @@ title: Library API
 description: The Ruby surface — a pure in-memory model plus on-disk handles, an "ActiveRecord for the filesystem".
 resource: okf/lib/okf.rb
 tags: [ruby, diagram]
-timestamp: 2026-07-22T18:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-08-13T12:00:00Z
+sources:
+  - title: README.md — Library
+    resource: https://github.com/serradura/okf-gem/blob/main/README.md
+  - title: okf/lib/okf.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf.rb
 ---
 
 # Overview
@@ -65,7 +72,7 @@ needed. The lower-level pieces work standalone too:
 # Folder is an ActiveRecord for the filesystem
 
 `OKF::Bundle::Folder.load(dir)` reads a directory into a pure bundle;
-`Folder.new(bundle:, root:).save` materializes one back — and **validates §9
+`Folder.new(bundle:, root:).save` materializes one back — and **validates §11
 before publishing** through an atomic writer, so it never leaves a broken bundle
 on disk. `OKF::Server::App.new(folder)` turns a folder straight into the
 [graph server](graph-server.md) — mountable anywhere, and the one option a mount
@@ -73,8 +80,3 @@ owns is `search_endpoint:`, since the page resolves it against the reader's URL
 and only the host knows its own prefix (the `/search` route answers either way).
 And `OKF::Render::Graph.static(folder)` bakes that
 same page into one self-contained file — the Ruby side of [`okf render`](render.md).
-
-# Citations
-
-[1] [README.md — Library](https://github.com/serradura/okf-gem/blob/main/README.md) — worked examples of both layers.
-[2] [okf/lib/okf.rb](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf.rb) — the require surface.

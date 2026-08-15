@@ -141,4 +141,31 @@ class OKF::Bundle::GraphTest < OKF::TestCase
     FileUtils.mkdir_p(File.dirname(target))
     File.write(target, content)
   end
+  test "a sources resource naming a concept is an edge — §5.1's lineage claim" do
+    write("a.md",
+      "---\ntype: Note\nsources:\n  - id: b\n    resource: b.md\n  - resource: https://ex.com/x\n  " \
+      "- resource: all queries in BigQuery project X\n  - resource: ghost.md\n---\n\nno body links here\n")
+    write("b.md", fm("Feature", "B") + "hi\n")
+
+    graph = OKF::Bundle::Graph.build(document)
+
+    assert_equal [ { source: "a", target: "b" } ], graph.edges
+    refute_includes graph.unlinked_ids, "b"
+  end
+
+  test "a body link and a sources resource at the same target stay one edge" do
+    write("a.md", "---\ntype: Note\nsources:\n  - resource: b.md\n---\n\nSee [B](b.md).\n")
+    write("b.md", fm("Feature", "B") + "hi\n")
+
+    assert_equal 1, OKF::Bundle::Graph.build(document).edges.size
+  end
+
+  test "a v0.1 Citations link and its migrated sources twin yield the same edge" do
+    write("v1.md", fm("Note", "V1") + "# Citations\n\n[1] [B](b.md)\n")
+    write("b.md", fm("Feature", "B") + "hi\n")
+
+    graph = OKF::Bundle::Graph.build(document)
+
+    assert_equal [ { source: "v1", target: "b" } ], graph.edges
+  end
 end

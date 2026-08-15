@@ -35,13 +35,13 @@ Two ideas govern everything:
   declare a graph; it arises from how you link concepts. Good linking *is* good
   knowledge modelling.
 
-## The hard rules (§9 conformance)
+## The hard rules (§11 conformance)
 
 Three conditions, all hard — `validate` fails a bundle on any of them:
 
-1. **§9.1** every non-reserved `.md` file has a parseable YAML frontmatter block;
-2. **§9.2** every such block has a **non-empty `type`**;
-3. **§9.3** every reserved file present is well-formed — a nested `index.md` has
+1. **§11 cond. 1** every non-reserved `.md` file has a parseable YAML frontmatter block;
+2. **§11 cond. 2** every such block has a **non-empty `type`**;
+3. **§11 cond. 3** every reserved file present is well-formed — a nested `index.md` has
    no frontmatter, the bundle-root `index.md` carries *only* `okf_version`, and
    `log.md` date headings are ISO `YYYY-MM-DD`.
 
@@ -55,11 +55,11 @@ most common mistake:
 
 | Lens      | Question                          | Tool                    | Nature                    |
 |-----------|-----------------------------------|-------------------------|---------------------------|
-| **Legal** | Is it conformant OKF? (§9)        | `validate`              | Binary, tolerant          |
+| **Legal** | Is it conformant OKF? (§11)       | `validate`              | Binary, tolerant          |
 | **Good**  | Is it navigable, complete, fresh? | `lint`                  | Advisory, structural      |
 | **True**  | Is it consistent and *current*?   | *you*, over `lint --json` | Semantic — needs meaning |
 
-`validate` is *forbidden* by §9 from failing a bundle for broken links or missing
+`validate` is *forbidden* by §11 from failing a bundle for broken links or missing
 optional fields — that is `lint`'s job. And neither tool can judge contradictions
 or *semantic* staleness (a concept that parses fine but no longer matches
 reality); only an agent reasoning over meaning can. That last lens is where you
@@ -81,7 +81,7 @@ read and act on, never a missing toolchain to send to doctor.
 Don't memorize the surface — `okf --help` maps every verb, `okf <verb> --help` its
 flags. The division of labour is the whole game:
 
-- **Shell out — never eyeball —** anything a verb computes: conformance (§9), what
+- **Shell out — never eyeball —** anything a verb computes: conformance (§11), what
   exists, what links where, where a term lives, what's stale, the map. Every read
   verb takes `--json` and the list views filter by type/dir/tag, so ask the narrow
   question instead of paging the bundle.
@@ -92,9 +92,11 @@ flags. The division of labour is the whole game:
   (parses fine, no longer true), whether a loose file is terminal-by-design, whether
   a singleton tag is a deliberate marker. Tool output is evidence, never a verdict.
 
-The one trap worth carrying in your head: **freshness is off by default** — a plain
-`okf lint` never reports stale concepts; pass `--stale-after <90d|12w|ISO-date>`
-when the bundle carries timestamps. <!-- check:stale -->
+The one trap worth carrying in your head: **the age cutoff is off by default** —
+a plain `okf lint` reports concepts past their own declared `stale_after` (the
+`expired` check reads the clock the CLI supplies), but never judges *age*; pass
+`--stale-after <90d|12w|ISO-date>` when you want anything not touched since then
+flagged too. <!-- check:stale -->
 
 Read [cli.md](reference/cli.md) before *interpreting* a verb's output in depth:
 what `validate` may and may not reject, lint's categories and check ids, the JSON
@@ -105,8 +107,8 @@ shapes, the tag-curation views, the server's trust boundary.
 Picking up a bundle you don't already know — to consume or maintain — start with
 `okf dirs <dir|@slug>`: one row per *directory*, so it stays small on a bundle of
 any size and it names the branches every other view narrows to. Then open the one
-you want with `okf index <dir|@slug> --dir <branch>` (the §6 map: that directory's
-index body, rollups, and listing), and read `log.md` (the §7 baseline of what
+you want with `okf index <dir|@slug> --dir <branch>` (the §8 map: that directory's
+index body, rollups, and listing), and read `log.md` (the §9 baseline of what
 changed last) — all of it **before** greping or opening leaves. Reach for `index`
 rather than grep for the one reason that outranks convenience: **grep cannot find
 an index entry that is missing**, so enumeration drift is invisible to it — you
