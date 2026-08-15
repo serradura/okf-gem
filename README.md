@@ -2,7 +2,7 @@
   <a href="https://okfgem.com">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset=".github/hero-dark.png">
-      <img src=".github/hero-light.png" width="100%" alt="okf-gem, the Open Knowledge Format toolkit. Everything OKF, in one gem: author, curate, and consume your project's knowledge, with your agent. 100% local. Start at https://okfgem.com/#try. Three pieces in one install: the Agent Skill (the brain) authors, curates and consumes; the CLI/Lib (the muscle) validates, lints and does full-text search; the Graph (the dashboard) searches and explores it, live or static. Available from RubyGems, as a Docker image, and as a Claude Code plugin.">
+      <img src=".github/hero-light.png" width="100%" alt="okf-gem, the Open Knowledge Format for coding agents. Everything OKF, in one ecosystem: author, curate, and consume your project's knowledge, with your agent. 100% local. Start at https://okfgem.com/#try. The pieces, top to bottom: the Agent Skill (the brain) authors, curates and consumes, and writes the bundle (the memory) — Markdown + YAML, in your repo. The bundle is read by, and by nothing else, the library (the spine): require okf, the only thing that touches disk. Three surfaces sit over it — the CLI (the muscle) for validate and lint, the Graph (the vision) live or static, and MCP (the nerve) for any host. Available from RubyGems, as a Docker image, and as a Claude Code plugin, speaking OKF v0.2.">
     </picture>
   </a>
 </p>
@@ -31,13 +31,13 @@ durable home in your repo, in Markdown your team and your agents both read: the
 decisions and the reasoning an agent cannot re-derive from the code, versioned
 beside the code they explain.
 
-One install carries the whole workflow, and that is the point of a single gem:
+One install carries the whole workflow, and that is the point:
 
 - an **Agent Skill**, so your agent writes and curates the knowledge instead of you;
 - a **CLI and Ruby library**, so it stays correct: validated, linted, and searchable in milliseconds;
 - a **Graph**, so anyone can see the shape of what the team knows, live or as one static file you can host anywhere.
 
-The package is **Agent Skill + CLI/Lib + Graph**. It runs 100% local, adds no
+That is **Agent Skill + CLI/Lib + Graph**. It runs 100% local, adds no
 service to your stack, and does not define a new place to keep knowledge: it
 gives you leverage over the Markdown you already have.
 
@@ -164,12 +164,12 @@ every word, code gets written up for you.
 > In Claude Code, the [plugin](#claude-code-plugin) adds a post-edit curation hook
 > that runs `validate` + `lint` for you.
 
-The package, end to end:
+How the pieces fit together:
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/overview-dark.png">
-    <img src=".github/overview-light.png" width="760" alt="The package: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by the CLI/Lib (validate: legal OKF per section 9; lint: well-curated and fresh; search: ranked retrieval; require okf for Ruby objects) and by the Graph, in four modes: okf server (a live local server), okf render (the same page exported as one static, self-contained HTML file you can host anywhere), okf registry (every registered bundle behind one hub), and OKF::Server::App (the Rack app mounted in a Rails route). One gem, 100% local, Ruby 2.4 or newer, only rack, webrick and minifts as dependencies.">
+    <img src=".github/overview-light.png" width="760" alt="The pieces, end to end: the Agent Skill (your coding agent authors and curates, you stay the editor) writes and maintains the bundle, a folder of Markdown + YAML in your repo where one concept is one file and links between files are the knowledge graph. The bundle is read by — and by nothing else — the library (require okf), which reads, validates and indexes it and is the only thing that touches disk. Three surfaces sit over that one kernel. The CLI, for deterministic checks: validate (legal OKF per section 11), lint (curated and fresh), search (find it, ranked), registry (bundles addressed as @slug). The Graph, explored in the browser: okf server (a live local server), okf render (the same page as static, self-contained HTML you can host anywhere), OKF::Server::App (the Rack app for one bundle), OKF::Server::Hub (the Rack app for every bundle). And the MCP server (the okf-mcp gem, read by any MCP host): 14 read tools, reads and never writes, over stdio or http, with no CLI in the loop. The CLI runs the checks and retrieves the data the Agent Skill acts on. 100% local, Ruby 2.4 or newer, only rack, webrick and minifts as dependencies.">
   </picture>
 </p>
 
