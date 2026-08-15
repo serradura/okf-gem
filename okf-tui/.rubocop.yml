@@ -1,0 +1,90 @@
+AllCops:
+  # The gem runs on every Ruby back to 2.4 (rack's own floor) — RuboCop parses
+  # with that version and flags newer-only syntax. CI's oldest job is the real
+  # arbiter; this is the fast local check.
+  TargetRubyVersion: 2.4
+  NewCops: enable
+  SuggestExtensions: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+# House style: literal arrays read with breathing room — [ 1, 2 ].
+Layout/SpaceInsideArrayLiteralBrackets:
+  EnforcedStyle: space
+
+Layout/LineLength:
+  Max: 160
+
+# The codebase prefers explicit code over these opinions: prose-length methods
+# in the CLI/linter, `+` concatenation, compact test-class names, and modifier
+# ifs written out when the guard matters.
+Metrics/AbcSize:
+  Enabled: false
+Metrics/ClassLength:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Metrics/MethodLength:
+  Enabled: false
+Metrics/ParameterLists:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+Style/Documentation:
+  Enabled: false
+Style/IfUnlessModifier:
+  Enabled: false
+Style/MultilineBlockChain:
+  Enabled: false
+Style/RegexpLiteral:
+  Enabled: false
+Style/Semicolon:
+  Enabled: false
+Style/StringConcatenation:
+  Enabled: false
+
+Lint/AmbiguousBlockAssociation:
+  Exclude:
+    - "test/**/*"
+
+# A test file is a list of scenarios: length there is coverage, not complexity.
+# inherit_mode keeps the cop's own defaults (gemspecs, Rakefiles) instead of
+# replacing them — without it, excluding test/ would silently re-enable the cop
+# on okf-tui.gemspec.
+Metrics/BlockLength:
+  inherit_mode:
+    merge:
+      - Exclude
+  Exclude:
+    - "test/**/*"
+
+# ── okf-tui additions ───────────────────────────────────────────────────────
+
+# `[ [ x, low ].max, high ].min` is not always Comparable#clamp: clamp raises
+# when the bounds cross, and several of these compute a bound that legitimately
+# goes negative (a window taller than the list it scrolls). The long form is the
+# one that stays correct there.
+Style/ComparableClamp:
+  Enabled: false
+
+# Commands whose return value is incidental — `switch`, `commit_search`,
+# `activate` do a thing and report whether it happened. A `?` would promise a
+# question they do not ask.
+Naming/PredicateMethod:
+  Enabled: false
+
+# Views is one module of row builders, one per screen, and Ui is the layout
+# vocabulary they all share. Length there is surface area, not complexity — the
+# same reason ClassLength is off.
+Metrics/ModuleLength:
+  Enabled: false

@@ -1,0 +1,30 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+# Specify your gem's dependencies in okf-tui.gemspec
+gemspec
+
+# Develop against the kernel checkout next door, not the released gem — the same
+# arrangement okf-mcp has. Naming the gem's directory rather than the repository
+# root is deliberate: a path source globs `{,*,*/*}.gemspec`, so the root would
+# resolve today only by also finding every sibling's gemspec and okf's merely
+# incidentally.
+#
+# It follows that the suite here and the suite on CI do not run the same okf:
+# this resolves the checkout, CI resolves whatever the gemspec floor admits from
+# RubyGems. See AGENTS.md (Testing) for the Gemfile.ci-check run that closes it.
+gem "okf", path: "../okf"
+
+gem "rake", "~> 13.0"
+
+# minitest 5.16 raised its floor to Ruby 2.6; 5.15 still runs the whole suite on
+# 2.4/2.5, and bundler picks the right one per Ruby.
+gem "minitest", ">= 5.15", "< 6"
+
+# Tooling that has dropped the old Rubies — the suite itself runs without it, so
+# the floor is verified with `rake test` there rather than the default task.
+if RUBY_VERSION >= "2.7"
+  gem "irb"
+  gem "rubocop", "~> 1.21"
+end
