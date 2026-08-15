@@ -128,3 +128,51 @@ buy nothing.
 Releases are cut from the gem's own directory — Bundler reads the gemspec in its
 working directory and derives the tag from it — so the root `rake release`
 refuses rather than doing something plausible.
+
+**`GemHelper#tag_prefix=` is not in every Bundler the matrix runs on.** It
+arrived in Bundler 2.2; the Bundler each old Ruby *ships* predates it — 1.17.3 on
+2.4 and 2.5, 1.17.2 on 2.6, 2.1.4 on 2.7 — so calling it there raises
+`NoMethodError` at Rakefile load, taking `rake test` down with it before a single
+test runs. CI hides this, because `ruby/setup-ruby` installs the newest Bundler
+each Ruby accepts rather than the bundled one; the [2.4 floor
+run](ruby-floor.md), which uses the image as it comes, is what surfaced it in
+okf-tui.
+
+The guard is a `respond_to?`, and what it does in the negative branch is the
+point: it defines a `release` task that **aborts**, rather than installing the
+real one without a prefix. An old Ruby is one to test on, never one to release
+from, so the tasks are absent there rather than present and wrong — a bare
+`vX.Y.Z` pushed by accident triggers an image build for a different gem, and no
+part of that is undoable.
+
+# A sibling keeps no repo-level half
+
+Files that are the root's live only at the root: a sibling gem carries no CI
+workflow, no code of conduct, no `.claude/`, and no independently worded legal
+files. Each would be a duplicate of something the repository already owns, and a
+duplicate is a drift waiting for a reader. Three of the obligations are
+load-bearing rather than tidy:
+
+- **CI is a job in the root's workflow**, never a second workflow file. One job
+  per gem with `working-directory:` set on both the job and `ruby/setup-ruby`
+  (the action needs its own input to find the Gemfile it caches against).
+- **`NOTICE` and `LICENSE.txt` are byte-identical duplicates of the root's**,
+  which the section above explains and each gem's packaging test pins. The rule
+  admits no locally reworded variant, however defensible: the point is that the
+  copies cannot drift, and an exception is a drift with a reason attached.
+- **The root's `.rubocop.yml` `Exclude` list has to grow with each sibling**, and
+  nothing enforces that it does. The list is how "every gem lints itself through
+  its own config" is actually implemented, and it silently failed to hold:
+  `okf-mcp/` was absent from it from the day it landed, so the repo-level lint
+  had been re-checking that gem's whole tree against okf's 2.4 target the entire
+  time. It passed, which is why nobody noticed — a rule enforced by an
+  enumeration is only as true as the last person to remember the enumeration.
+
+The Gemfile's path source is the fourth. A sibling names the kernel checkout
+unconditionally — `gem "okf", path: "../okf"` — because here the checkout is
+always next door, and that line is what lets a kernel change be driven from a
+shell without a release. The cost is a checkout-versus-RubyGems gap: every
+suite — local, CI, the floor container — resolves the checkout, and nothing
+crosses to RubyGems by default. So a sibling keeps a scripted run against the
+published kernel, and a test pinning that its declared floor never lags the
+kernel it develops against.

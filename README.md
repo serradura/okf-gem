@@ -524,9 +524,10 @@ the two things no checker can compute — contradictions, and *semantic* stalene
 Publish a gem named `okf-*` carrying an `okf/plugin.rb` and installing it is the
 whole installation: your verb answers to `okf` and behaves like a built-in.
 Nothing an addon registers can displace one, and a broken addon is skipped rather
-than taking the CLI down. `okf-mcp` is the first one: installing it adds `okf
-mcp` to `okf help`, and the MCP server needs no line of the baseline to know it
-exists. Contract and threat model:
+than taking the CLI down. Two ship here: `okf-mcp` adds `okf mcp`, the MCP server
+any agent host can read a bundle through, and `okf-tui` adds `okf tui`, the
+full-screen terminal UI. Neither needs a line of the baseline to know it exists.
+Contract and threat model:
 [extension points](.okf/design/extension-points.md).
 
 The graph page treats a bundle as untrusted content: inlined data is escaped, and
@@ -545,6 +546,7 @@ beside it.
 ```
 okf/              the okf gem: skill, CLI, library, graph      → okf/README.md
 okf-mcp/          the MCP server over the same kernel          → okf-mcp/README.md
+okf-tui/          the terminal UI over the same kernel         → okf-tui/README.md
 plugin/           the Claude Code plugin (this repo is its marketplace)
 .okf/             this project's own knowledge, as an OKF bundle
 Dockerfile        builds the published image from okf/
@@ -557,11 +559,13 @@ From the repo root — plain `rake`, there is no root Gemfile:
 ```bash
 rake              # every gem's default task (tests + RuboCop), then the repo-level lint
 rake test         # every gem's test suite
-rake okf          # validate + lint this repo's own .okf bundle
-rake serve        # browse that bundle as a graph
+rake okf          # validate + lint every .okf bundle in the repo
+rake serve        # browse this project's own bundle as a graph
 ```
 
-From `okf/`, for work on the gem itself:
+From any gem's directory, for work on that gem — `cd okf-mcp` or `cd okf-tui`
+follows the same three commands, and each has its own README and CI job. From
+`okf/`, for work on the baseline itself:
 
 ```bash
 cd okf

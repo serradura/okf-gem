@@ -10,7 +10,11 @@ contracts.
 The ecosystem grows as sibling directories — an MCP shell, a TUI, an FTS5
 storage engine — each named for the gem it ships. This file is about the
 baseline; a sibling inherits the working style and the Git rules below, but not
-the 2.4 floor or the dependency limits, which are `okf`'s own.
+the 2.4 floor or the dependency limits, which are `okf`'s own. A sibling with
+contracts of its own carries its own `AGENTS.md` beside its code
+([`okf-tui/AGENTS.md`](okf-tui/AGENTS.md) is the one that does) — this file stays
+the general rule and that one is the instance, so the same fact is never stated
+in two places to drift apart.
 
 ## Map
 
@@ -20,6 +24,10 @@ The repository — one directory per gem, plus what is not a gem:
 okf/            the baseline gem; everything below lives inside it
 okf-mcp/        the MCP shell: the kernel's capabilities as MCP tools + prompts
                 (floor 2.7 — the `mcp` SDK's — and deps exactly `mcp` + `okf`)
+okf-tui/        the terminal UI: six views over one or many bundles, and the
+                registry (floor 2.4 — okf's — deps `okf` + the TTY toolkit; it
+                has its own AGENTS.md, and ships its own `.okf/` in the gem).
+                Like okf-mcp it ships no exe: `okf tui` is the entry point
 plugin/         the Claude Code plugin — generated skill copy, command, curation hook
 .claude-plugin/ the marketplace manifest (the repo doubles as the marketplace)
 .okf/           the project's own knowledge bundle
@@ -317,7 +325,7 @@ From the repo root — plain `rake`, no bundler, because there is no root Gemfil
 ```bash
 rake                               # every gem's default task, then the repo-level rubocop
 rake test                          # every gem's suite
-rake okf                           # validate + lint this repo's own .okf bundle
+rake okf                           # validate + lint every .okf bundle in the repo
 rake serve                         # serve this repo's own .okf as a graph
 ```
 
