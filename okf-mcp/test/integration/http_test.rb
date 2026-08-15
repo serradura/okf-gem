@@ -33,13 +33,29 @@ class HTTPTest < MCPIntegrationCase
     end
   end
 
+  # Skipped on CI, and hardened so that skip is a choice rather than a rescue.
+  #
+  # It spawns a real subprocess that re-resolves the bundle (`-rbundler/setup`),
+  # which a cold runner is too slow for: the boot line never arrives, and the
+  # timeout is the trigger rather than the bound. Timeout raising *inside*
+  # popen3's block unwinds through popen3's own ensure, which waits on the child
+  # — a server the block's last line never reached to TERM — and that wait never
+  # returns. Every okf-mcp job hung this way, on every Ruby, printing
+  # "# Running:" and nothing else until the runner reaped `bundle`, `sh` and
+  # `ruby` as orphans.
+  #
+  # So the timeout moved inside popen3 and the child is TERMed in an ensure of
+  # our own. A slow boot now fails and says so; it cannot wedge a runner again,
+  # here or on anyone's machine.
   test "the spawned verb serves --http, announces the real port, and dies cleanly on TERM" do
+    skip "spawns a subprocess that re-resolves the bundle — too slow to boot on a cold runner" if ENV["CI"]
+
     require "open3"
     require "timeout"
     okf = Gem.bin_path("okf", "okf")
-    Timeout.timeout(30) do
-      Open3.popen3(RbConfig.ruby, "-rbundler/setup", "-I#{File.expand_path("../../lib", __dir__)}",
-        okf, "mcp", "--http", "--port", "0", fixture("knowledge")) do |_stdin, _stdout, stderr, wait|
+    Open3.popen3(RbConfig.ruby, "-rbundler/setup", "-I#{File.expand_path("../../lib", __dir__)}",
+      okf, "mcp", "--http", "--port", "0", fixture("knowledge")) do |_stdin, _stdout, stderr, wait|
+      Timeout.timeout(30) do
         match = nil
         while (line = stderr.gets)
           break if (match = line.match(%r{listening on http://127\.0\.0\.1:(\d+)}))
@@ -54,6 +70,14 @@ class HTTPTest < MCPIntegrationCase
 
         Process.kill("TERM", wait.pid)
         assert_equal 0, wait.value.exitstatus
+      end
+    ensure
+      # popen3 waits on the child when this block exits. Leaving by any path that
+      # has not already killed it makes that wait the hang.
+      begin
+        Process.kill("TERM", wait.pid)
+      rescue Errno::ESRCH, RangeError
+        nil
       end
     end
   end
