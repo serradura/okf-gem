@@ -11,7 +11,7 @@
 # context to keep in sync for no gain.
 
 # Adding a gem to the repo is adding it here.
-GEMS = %w[okf okf-mcp].freeze
+GEMS = %w[okf okf-mcp okf-tui].freeze
 
 ROOT = __dir__
 
@@ -68,10 +68,17 @@ task :rubocop do
   end
 end
 
-desc "Validate and lint this repo's own .okf bundle with the checkout's CLI"
+# Every OKF bundle the repository carries: this project's, and any a gem ships
+# inside itself (okf-tui's `.okf/` is in its `spec.files`, so a broken one would
+# be published rather than merely committed).
+BUNDLES = [ ".okf", "okf-tui/.okf" ].freeze
+
+desc "Validate and lint every .okf bundle in the repo with the checkout's CLI"
 task :okf do
-  okf "validate", "#{ROOT}/.okf"
-  okf "lint", "#{ROOT}/.okf"
+  BUNDLES.each do |bundle|
+    okf "validate", "#{ROOT}/#{bundle}"
+    okf "lint", "#{ROOT}/#{bundle}"
+  end
 end
 
 desc "Serve this repo's own .okf bundle as a graph"

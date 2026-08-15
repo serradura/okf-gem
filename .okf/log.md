@@ -1,5 +1,43 @@
 # Update Log
 
+## 2026-08-15
+* **Addition**: **[okf-tui](https://github.com/serradura/okf-gem/tree/main/okf-tui) joins the
+  repository as its third gem**, cut at 1.0.0 — the full-screen terminal UI over
+  one bundle or many: six views, the registry and its groups as editable
+  configuration, and search across every bundle in scope through one shared
+  corpus. It is the second gem to reach the kernel through the
+  [extension points](design/extension-points.md) seam, so installing it teaches
+  `okf` a `tui` verb with no edit here — and, like okf-mcp, it ships **no
+  executable of its own**: the seam is the entry point rather than a second way
+  in, because a binary that only aliases a verb is one more name to install and
+  document, and two front ends are two argument grammars that drift while each
+  passes its own tests. It is the second, too, to hold the line that a
+  shell [invents no analysis](capabilities/read-views.md) — every number on
+  screen is a pure call on the same core the CLI and the graph server use, with
+  agreement tests comparing two of them against `okf dirs --json` and `okf graph
+  --traffic` row for row. It floors okf at `>= 2.0, < 3`: the ceiling is earned
+  rather than conventional, because an okf *major* is where the renames that
+  break a shell **silently** come from (`area` → `top_dir`, then `timestamp` →
+  `generated_at` — each read as nil, each a wrong number with a green suite
+  either side of it).
+* **Update**: [the monorepo layout](design/monorepo-layout.md) now states that
+  **a sibling keeps no repo-level half**: its CI is a job in the root's
+  workflow, its `NOTICE` and `LICENSE.txt` are byte-identical duplicates of the
+  root's, and the root lint's exclude list has to grow with it — an obligation
+  nothing enforces, and which had already silently failed, since `okf-mcp/` was
+  never added and the repo-level lint had been re-checking that whole gem
+  against okf's 2.4 target since the day it landed.
+* **Correction**: **`GemHelper#tag_prefix=` does not exist on every Bundler the
+  matrix runs on.** It arrived in Bundler 2.2, and the Bundler each old Ruby
+  ships predates it (1.17.3 on 2.4/2.5, 2.1.4 on 2.7), so a sibling's Rakefile
+  raises `NoMethodError` at load there and takes `rake test` down before a test
+  runs. CI cannot see it — `ruby/setup-ruby` installs a newer Bundler than the
+  Ruby ships — and the [2.4 floor run](design/ruby-floor.md) is what caught it,
+  which is the argument for that container in one sentence. The guard refuses to
+  release rather than releasing unprefixed: an old Ruby is one to test on, never
+  one to release from, and a bare `vX.Y.Z` fires the image build for a different
+  gem.
+
 ## 2026-08-14
 * **Addition**: the **§6.3 references inventory**, on every surface at once —
   `okf references` on the [CLI](capabilities/read-views.md), pure
