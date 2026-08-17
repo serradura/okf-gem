@@ -158,9 +158,12 @@ without ever failing it.
 Publish a gem named `okf-*` carrying an `okf/plugin.rb` and installing it is the
 whole installation: your verb answers to `okf` and behaves like a built-in.
 Nothing an addon registers can displace one, and a broken addon is skipped rather
-than taking the CLI down. [`okf-mcp`](https://rubygems.org/gems/okf-mcp) is the
-first one — install it and `okf mcp` serves your bundles over the Model Context
-Protocol, with nothing in this gem naming it.
+than taking the CLI down. Three ship alongside this one, with nothing in this
+gem naming any of them: [`okf-mcp`](https://rubygems.org/gems/okf-mcp) serves
+your bundles over the Model Context Protocol,
+[`okf-tui`](https://rubygems.org/gems/okf-tui) browses them full-screen in a
+terminal, and [`okf-pro`](https://rubygems.org/gems/okf-pro) writes an
+agent's knowledge repository and enforces it at three doors.
 
 The graph page treats a bundle as untrusted content: inlined data is escaped and
 every concept body is sanitized before it reaches the DOM, so a script hidden in

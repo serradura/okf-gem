@@ -5,13 +5,13 @@
 # is what CI runs, and what the Ruby 2.4 floor is proven against).
 #
 # Run it as plain `rake`, not `bundle exec rake`: there is deliberately no root
-# Gemfile. The gems here do not share a Ruby floor — okf runs from 2.4, an MCP
-# shell would start at 2.7, an FTS5 engine at 3.2 — so a single lockfile could
-# never resolve for all of them, and a root bundle would only be a second
-# context to keep in sync for no gain.
+# Gemfile. The gems here do not share a Ruby floor — okf, okf-tui and okf-pro
+# run from 2.4, the MCP shell from 2.7 (the `mcp` SDK's), an FTS5 engine would
+# start at 3.2 — so a single lockfile could never resolve for all of them, and a
+# root bundle would only be a second context to keep in sync for no gain.
 
 # Adding a gem to the repo is adding it here.
-GEMS = %w[okf okf-mcp okf-tui].freeze
+GEMS = %w[okf okf-mcp okf-tui okf-pro].freeze
 
 ROOT = __dir__
 
@@ -71,7 +71,7 @@ end
 # Every OKF bundle the repository carries: this project's, and any a gem ships
 # inside itself (okf-tui's `.okf/` is in its `spec.files`, so a broken one would
 # be published rather than merely committed).
-BUNDLES = [ ".okf", "okf-tui/.okf" ].freeze
+BUNDLES = [ ".okf", "okf-tui/.okf", "okf-pro/.okf" ].freeze
 
 desc "Validate and lint every .okf bundle in the repo with the checkout's CLI"
 task :okf do

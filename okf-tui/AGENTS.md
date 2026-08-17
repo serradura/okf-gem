@@ -417,15 +417,17 @@ an edited file in a sibling gem blocks a release of this one, and all it says is
 
 Gem packaging detail: `spec.files` comes from `git ls-files` run with `chdir:`
 into this directory, minus `test/`, `bin/`, the Gemfile, the Rakefile,
-`.rubocop.yml`, `.gitignore` and `AGENTS.md`. Everything at the repo root is
-invisible to it, so a new *root* file needs no reject — but a new top-level file
-**here** ships unless the gemspec rejects it, so check `gem build` output when
-adding one. `.okf/` is not rejected on purpose: the gem ships its own knowledge
+`.rubocop.yml`, `.gitignore`, `AGENTS.md` and `CLAUDE.md` — the last because it
+is one line pointing at the first, and a shipped pointer to a rejected file
+resolves to nothing for the reader of an installed gem. Everything at the repo
+root is invisible to it, so a new *root* file needs no reject — but a top-level
+file **here** ships unless the gemspec rejects it, so check `gem build` output
+when adding one. `.okf/` is not rejected on purpose: the gem ships its own knowledge
 bundle. And `LICENSE.txt` and `NOTICE` are real duplicates of the repo root's,
 never symlinks — `gem build` packages a symlink as a symlink, RubyGems >= 3.2
 refuses to extract one, and older RubyGems (which the 2.4 end of this matrix
 runs) installs it dangling, so the gem ships with no licence and exits 0.
-`test/unit/packaging_test.rb` pins all three claims.
+`test/unit/packaging_test.rb` pins all of those claims.
 
 The PR that carries a version bump is a release PR, and takes the repo-level
 shape: the `release` label, the title `Release okf-tui X.Y.Z — <summary>`, and

@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# The commit-time door — second of three, between the hooks (agent-time) and
+# CI (push-time). It exists for the edit the other two never see: a change made
+# in your own editor and committed from your own shell.
+#
+# Same contract as .claude/hooks/run: everything it can detect, it refuses
+# loudly. A gate that waves a commit through because its checker is missing has
+# converted "unchecked" into "checked and fine".
+#
+# What gets audited is the STAGED tree, not the worktree. They differ in both
+# directions, and each direction was a hole: stage a broken edit, fix the
+# worktree without re-adding, and a worktree audit passes the broken commit;
+# stage a clean edit next to an unrelated dirty file, and a worktree audit
+# refuses a commit that is fine. The staged tree is what the commit will
+# contain, so it is the only thing worth asking about.
+#
+# One-time setup per clone (hooks do not travel with a checkout):
+#   git config core.hooksPath .githooks
+set -u
+
+root="$(git rev-parse --show-toplevel)" || exit 1
+
+if ! command -v okf > /dev/null 2>&1; then
+  echo "COMMIT REFUSED — \`okf\` is not on PATH, so the bundle cannot be audited. Run \`gem install okf okf-pro\`." >&2
+  exit 1
+fi
+
+# IDENTITY, NOT EXISTENCE — the same proof .claude/hooks/run makes, for the
+# same reason it states: `command -v okf` finds a NAME, and a stray `okf` on
+# PATH that exits 0 is indistinguishable from a clean gate by status alone.
+# Without this, a shim was two silent passes and a commit, at the one door that
+# exists for the edit the agent hooks never see.
+#
+# The handshake runs a real gate through the hook door, because that is where
+# the marker is written and it is written before the check runs — so its
+# presence means okf-pro was actually reached, not merely that something
+# answered to the name. The event is an empty object: it reaches the check,
+# the check has nothing to say about it, and nothing is written anywhere.
+MARKER='okf-pro-enforcer v1'
+if ! printf '{}' | okf pro hook guard-verified 2>&1 > /dev/null | grep -q "^${MARKER}\$"; then
+  echo "COMMIT REFUSED — \`okf\` did not identify itself as the enforcer, so nothing was audited. Either okf-pro is not installed (\`gem install okf-pro\`), or something else on PATH answers to \`okf\`." >&2
+  exit 1
+fi
+
+staged="$(mktemp -d)" || {
+  echo "COMMIT REFUSED — could not create a temp directory to materialise the staged tree." >&2
+  exit 1
+}
+trap 'rm -rf "$staged"' EXIT
+
+# checkout-index writes exactly what the index holds — HEAD plus whatever is
+# staged, minus whatever is not. The trailing slash on --prefix is load-bearing.
+if ! git -C "$root" checkout-index -a --prefix="$staged/" 2> /dev/null; then
+  echo "COMMIT REFUSED — could not materialise the staged tree for audit." >&2
+  exit 1
+fi
+
+# Two questions, and they need different inputs. The append-only record is a
+# question about the CHANGE, so it reads the index directly — materialise the
+# staged tree and the modification is no longer visible as one. It runs first:
+# a rewritten record is not a lint finding, it is the artefact gone.
+#
+# Both verbs answer 0 clean, 1 findings, 2 could-not-run, and this door treats
+# 1 and 2 alike: a commit is refused either way. The distinction is for the
+# reader, and it is why neither verb spells "the checker broke" as 1.
+okf pro records "$root" || exit 1
+
+okf pro audit "$staged" || exit 1

@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# The enforcement seam, and the fail-closed wrapper around it.
+#
+# THE CONTRACT: blocking checks fail CLOSED, feedback checks fail LOUD, and no
+# check ever fails SILENT. This file is where the first clause is actually kept.
+#
+# It cannot be collapsed into the checker, and the reason is the whole contract.
+# A script whose interpreter is missing exits 127; a script whose syntax the
+# interpreter rejects exits 1. The hook protocol reads every non-zero code other
+# than 2 as a NON-BLOCKING error — the tool call proceeds. So a Ruby checker
+# structurally cannot refuse on its own absence: something already running has
+# to do it. That is this file's entire job, and it is why settings.json points
+# here and never at `okf` directly.
+#
+# What it refuses with exit 2, each one measured rather than imagined:
+#   no check name;
+#   no `okf` on PATH;
+#   `okf` present but okf-pro not installed (a LoadError out of the deferred
+#     require is a ScriptError, outside every rescue in okf's dispatch — the
+#     process exits 1, which the protocol reads as "proceed");
+#   a syntax error in okf-pro's own plugin.rb (same ScriptError reason, and
+#     nothing Ruby-side runs at all — only this file can catch that one);
+#   a stray `okf` shim on PATH that exits 0 (status alone cannot tell it from a
+#     clean gate, so identity is proved separately — see MARKER below);
+#   any other exit code, which means nothing to the protocol and must not be
+#     allowed to mean "fine".
+#
+# What it does NOT do is exec. The prototype's wrapper did, and an exec'd
+# process's SyntaxError is unreachable: nothing is left running to report it.
+set -u
+
+MARKER='okf-pro-enforcer v1'
+
+check="${1:-}"
+if [ -z "$check" ]; then
+  echo "ENFORCEMENT MISCONFIGURED — .claude/hooks/run was called with no check name; nothing ran." >&2
+  exit 2
+fi
+
+okf_bin="$(command -v okf)" || okf_bin=""
+if [ -z "$okf_bin" ]; then
+  echo "ENFORCEMENT DEGRADED — \`okf\` is not on PATH; no check ran. Run \`gem install okf okf-pro\`, or every edit lands unchecked." >&2
+  exit 2
+fi
+
+# The event arrives on stdin and can only be read once, and this wrapper may run
+# the checker twice (see the bundler fallback below). Buffer it.
+work="$(mktemp -d)" || {
+  echo "ENFORCEMENT DEGRADED — could not create a temp directory to buffer the hook event; no check ran." >&2
+  exit 2
+}
+trap 'rm -rf "$work"' EXIT
+cat > "$work/event" || :
+
+# Bundler's variables make gem discovery bundle-scoped, and okf finds its
+# extensions with Gem.find_latest_files — so inside a bundle that does not name
+# okf-pro, `okf pro` is an unknown command and every gate is off. Restoring
+# the pre-bundler environment fixes that. It is done from bundler's OWN
+# restoration data rather than a hard-coded variable list: the list that matters
+# is RUBYOPT and BUNDLER_SETUP, and BUNDLER_SETUP is recent enough that naming it
+# would be a bet on the adopter's bundler version, on a gem whose floor is 2.4.
+unbundle() {
+  while IFS='=' read -r k v; do
+    case "$k" in BUNDLER_ORIG_*) ;; *) continue ;; esac
+    orig="${k#BUNDLER_ORIG_}"
+    if [ "$v" = "BUNDLER_ENVIRONMENT_PRESERVER_INTENTIONALLY_NIL" ]; then
+      unset "$orig"
+    else
+      export "$orig=$v"
+    fi
+    unset "$k"
+  done < <(env)
+}
+
+# One attempt: run the check, capture both streams, and report whether the
+# binary identified itself as the enforcer. Nothing is emitted from here — an
+# attempt that failed to identify is one whose output must not be believed.
+attempt() {
+  "$okf_bin" pro hook "$check" < "$work/event" > "$work/out" 2> "$work/err"
+  rc=$?
+  grep -q "^${MARKER}\$" "$work/err"
+}
+
+if attempt; then
+  :
+elif [ -n "${OKF_PRO_NO_UNBUNDLE:-}" ]; then
+  # Pinned to the first attempt on purpose. The fallback is not free: inside a
+  # bundle, `Gem.find_latest_files` returns nothing at all, so a repo that
+  # deliberately vendors okf-pro through its Gemfile is served ONLY by the
+  # unstripped run, and stripping would lock it out of its own checker.
+  :
+else
+  unbundle
+  attempt || :
+fi
+
+if ! grep -q "^${MARKER}\$" "$work/err"; then
+  # Whatever it did say first, then the verdict — the same order the passing
+  # path uses, so the last line on stderr is always this wrapper's answer.
+  sed "/^${MARKER}\$/d" "$work/err" >&2
+  echo "ENFORCEMENT DEGRADED — \`okf\` did not identify itself as the enforcer, so no check ran. Either okf-pro is not installed (\`gem install okf-pro\`), or something else on PATH answers to \`okf\`. Nothing here has been checked." >&2
+  exit 2
+fi
+
+# stdout is the protocol's own channel — a PreToolUse `ask` decision and the
+# SessionStart banner both travel on it — so it is passed through byte for byte.
+# The prototype's fix for this file captured it in a command substitution and
+# swallowed both: an `ask` became a hard block, and the session banner vanished.
+cat "$work/out"
+sed "/^${MARKER}\$/d" "$work/err" >&2
+
+case "$rc" in
+  0) exit 0 ;;
+  2) exit 2 ;;
+  *)
+    echo "ENFORCEMENT DEGRADED — \`okf pro hook $check\` exited $rc, which the hook protocol reads as non-blocking. Refusing instead: an exit code the gate did not choose is not a verdict." >&2
+    exit 2
+    ;;
+esac

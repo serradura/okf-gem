@@ -1,9 +1,9 @@
 # Capabilities
 
 The seven things the baseline gem does over a bundle, plus the read views that
-print it at a glance — and the first sibling surface built on the same kernel.
-All of them run over the same [pure model](../model/); the gem's own are
-fronted by the [CLI](../cli.md).
+print it at a glance — and the sibling surfaces built on the same kernel. All of
+them run over the same [pure model](../model/); the gem's own are fronted by the
+[CLI](../cli.md).
 
 # Judge
 
@@ -23,3 +23,4 @@ fronted by the [CLI](../cli.md).
 
 * [Library API](library-api.md) - the Ruby surface: pure model plus on-disk handles.
 * [Companion agent skill](agent-skill.md) - the skill shipped inside the gem that teaches an agent to author OKF.
+* [Enforcement layer](enforcement.md) - the sibling `okf-pro` gem: writes an agent's knowledge repository, then holds it to a few invariants at three doors under a fail-closed contract.

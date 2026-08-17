@@ -93,7 +93,7 @@ class RegisteredCommandsConformTest < OKF::TestCase
     source = File.read(File.expand_path("../../../lib/okf/cli.rb", __dir__), encoding: "UTF-8")
 
     assert_equal "okf/plugin.rb", OKF::CLI::PLUGIN_FILE
-    refute_match(/okf-tui|okf\/tui|okf-mcp|okf-sqlite3/, source,
+    refute_match(%r{okf-tui|okf/tui|okf-mcp|okf-pro|okf/pro|okf-sqlite3}, source,
       "cli.rb must not name a specific addon — discovery is by convention")
   end
 end

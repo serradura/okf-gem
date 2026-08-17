@@ -1,0 +1,17 @@
+# Scratch. The dot prefix is load-bearing: okf walks every .md under the bundle
+# root and skips only dot-paths, so scratch lives behind a dot or it fails
+# validation. The directory ships; its contents never do.
+.tmp/*
+!.tmp/.gitkeep
+
+# What `okf pro setup` writes when a file it wanted was already yours. They
+# are yours to merge and then delete — and they are invisible to `okf validate`
+# and `okf lint` inside .okf/, because they are not `.md`, so without this line
+# they get committed and nothing ever says so.
+*.okf-pro-new
+
+# macOS finder droppings. Not knowledge, not code, and they appear inside .okf/
+# the moment anyone opens the bundle in Finder. Ignored here rather than in a
+# personal global config, because this tree gets cloned by other people and
+# their git does not carry yours.
+.DS_Store
