@@ -40,11 +40,16 @@ Gem::Specification.new do |spec|
   # inside it, so an installed okf-tui carries a real bundle to open — its own —
   # without a checkout. It is validated and lint-clean, which the repo's
   # `rake okf` covers along with the project's.
+  #
+  # `CLAUDE.md` is rejected alongside `AGENTS.md`, and only reads as a stylistic
+  # choice: it is one line, `@AGENTS.md`, so shipping it without its target puts
+  # a pointer to nothing inside the published gem. The two go together or
+  # neither goes. `test/unit/packaging_test.rb` pins that.
   gemspec = File.basename(__FILE__)
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).reject do |f|
       (f == gemspec) ||
-        f.start_with?(*%w[bin/ Gemfile Rakefile .gitignore test/ .rubocop.yml AGENTS.md])
+        f.start_with?(*%w[bin/ Gemfile Rakefile .gitignore test/ .rubocop.yml AGENTS.md CLAUDE.md])
     end
   end
   # No executable. This gem's entry point is the `okf tui` verb it registers
