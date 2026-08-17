@@ -1,0 +1,69 @@
+name: okf-pro
+
+# The third door, behind the Claude Code hooks (agent-time) and
+# .githooks/pre-commit (commit-time). Hooks fire only at the agent's tool
+# boundary and git hooks only on machines that configured them, so a push can
+# still carry an edit nothing checked. This is where it gets checked. Nothing is
+# published; the bundle is the artefact.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Install okf-pro
+        run: gem install okf-pro
+
+      # The CLI is asked directly, and on purpose, even though `okf pro audit`
+      # runs the same two analyzers. A checker that is the only thing verifying
+      # the bundle can be wrong in the one direction nobody notices — always
+      # passing — and then CI is decorative in a way no test would catch. These
+      # two steps are the independent authority; audit below adds what only the
+      # checker knows.
+      - name: Validate — OKF conformance
+        run: okf validate .okf
+
+      # `okf lint` exits 0 even when it finds problems. Without --fail-on warn
+      # this step is decorative: green forever, and green for reasons unrelated
+      # to the bundle being any good.
+      - name: Lint — curation quality
+        run: okf lint .okf --fail-on warn
+
+      # The invariants that are not conformance: a snapshot under the log's
+      # newest day, every open project paired to a board line, every unverified
+      # briefing still owed a read. These are the ones an editor-made commit
+      # bypasses entirely, and they are the reason this door exists.
+      - name: Audit — the bundle's own invariants
+        run: okf pro audit .
+
+      # Attestation reports; it does not gate. "Unverified" is the truth about a
+      # concept, not a defect in it, and a gate here would pressure toward the
+      # one lie the whole system guards against — so it lands in the run summary,
+      # where a person reads it while deciding what to look at.
+      #
+      # Staleness is asked of `okf lint` rather than of this gem: `stale_after`
+      # is the format's own field (§5.5), the kernel owns where its boundary
+      # falls, and a second implementation of "is this past its window" that
+      # disagreed by a day would be worse than none.
+      - name: Attestation and staleness — report only
+        if: always()
+        run: |
+          {
+            echo "## Attestation and staleness"
+            echo
+            echo "Advisory. Unverified is the truth, not a defect; a passed window is a prompt to look."
+            echo
+            echo '```'
+            okf pro unverified .
+            okf lint .okf --only expired || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
