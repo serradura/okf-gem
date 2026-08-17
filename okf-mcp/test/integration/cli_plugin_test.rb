@@ -67,7 +67,7 @@ class CLIPluginTest < MCPIntegrationCase
   test "okf help lists the verb under installed extensions" do
     result = spawn_okf("help")
     assert_equal 0, result.status
-    assert_match(/installed extensions:/, result.out)
+    assert_match(/installed extensions/, result.out)
     assert_match(/^\s+mcp\s+.*serve bundles over the Model Context Protocol$/, result.out)
   end
 

@@ -92,7 +92,7 @@ module OKF
       [ :judge, nil ],
       [ :read, nil ],
       [ :graph, nil ],
-      [ :extension, "  installed extensions:" ]
+      [ :extension, "  installed extensions (`okf <verb> --help` for each):" ]
     ].freeze
 
     # Everything the map's grammar column cannot say for itself. A test finds the
@@ -476,12 +476,30 @@ module OKF
     end
 
     def print_group(io, group, heading)
-      rows = self.class.commands.reject(&:hidden?).select { |command| command.group == group }.flat_map(&:help_rows)
+      commands = self.class.commands.reject(&:hidden?).select { |command| command.group == group }
+      rows = group == :extension ? extension_rows(commands) : commands.flat_map(&:help_rows)
       return if rows.empty?
 
       io.puts heading if heading
       rows.each { |left, desc| io.puts "  #{left.to_s.ljust(56)}#{desc}" }
       io.puts
+    end
+
+    # One line per extension, whatever it declares — its FIRST row, which is why
+    # an addon's first row should be its summary.
+    #
+    # Enforced here rather than asked of each addon, because a rule an addon has
+    # to remember is a rule this map cannot rely on. An umbrella verb is a shape
+    # an addon legitimately has — the built-in `registry` has it too — and one
+    # arriving with eight subcommands made this block the longest section on the
+    # page, dwarfing the built-ins above it and burying the single-line addons
+    # beside it.
+    #
+    # A built-in keeps every row: those are this gem's own surface, they are what
+    # the map exists to teach, and there is no second place to read them. An
+    # extension has one — `okf <verb> --help`, which the heading points at.
+    def extension_rows(commands)
+      commands.map { |command| command.help_rows.first }.compact
     end
   end
 end
