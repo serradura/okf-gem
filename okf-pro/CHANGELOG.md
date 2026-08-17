@@ -4,7 +4,7 @@ All notable changes to okf-pro are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this gem uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-08-17
 
 First release. okf-pro begins as a working prototype — a checker carried inside
 a template repository that was cloned to start a knowledge bundle — and becomes
@@ -183,3 +183,5 @@ every use. This surface answers both.
   runs in git hooks and CI steps on machines nobody chose.
 - **The `.bin/okf_pro` binary is gone.** `okf pro` is the only door, which is
   what lets the wrapper refuse anything that is not it.
+
+[1.0.0]: https://github.com/serradura/okf-gem/releases/tag/okf-pro%2Fv1.0.0
