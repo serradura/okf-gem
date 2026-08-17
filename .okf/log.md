@@ -1,6 +1,26 @@
 # Update Log
 
 ## 2026-08-15
+* **Addition**: **[okf-pro](https://github.com/serradura/okf-gem/tree/main/okf-pro)
+  joins the repository as its fourth gem**, cut at 1.0.0 — the
+  [enforcement layer](capabilities/enforcement.md), and the first surface here
+  that writes rather than reads. `okf pro setup` generates an agent's whole
+  knowledge repository (a blank-slate bundle, the Claude Code hooks behind a
+  fail-closed wrapper, a `pre-commit` hook that audits the *staged* tree, a CI
+  workflow, the operating skill), and `okf pro hook` runs one gate against one
+  hook event. It reaches the kernel through the same
+  [extension points](design/extension-points.md) seam and ships **no
+  executable**, which here is load-bearing rather than tidy: the wrapper
+  dispatches to one absolute `okf` and refuses unless that binary identifies
+  itself as the enforcer, and a second entry point would be a second thing to
+  recognise on the one path where being wrong means a gate waves an edit
+  through. The durable lesson is the seam's, not the gem's: **a deferred require
+  moves a load-time failure to call time, and the caller's rescue was written
+  for the code being loaded rather than for the loading** — a `LoadError` out of
+  `require "okf/pro"` is a `ScriptError`, outside every rescue in okf's
+  dispatch, and it exited 1, which the hook protocol reads as *proceed*. Three
+  such holes and one silently skipped lint check are recorded with their
+  measurements in that gem's own `.okf/`.
 * **Addition**: **[okf-tui](https://github.com/serradura/okf-gem/tree/main/okf-tui) joins the
   repository as its third gem**, cut at 1.0.0 — the full-screen terminal UI over
   one bundle or many: six views, the registry and its groups as editable

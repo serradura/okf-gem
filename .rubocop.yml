@@ -20,4 +20,5 @@ AllCops:
     - "okf/**/*"
     - "okf-mcp/**/*"
     - "okf-tui/**/*"
+    - "okf-pro/**/*"
     - "tmp/**/*"

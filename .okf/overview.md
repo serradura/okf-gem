@@ -48,12 +48,16 @@ Over such a bundle the gem gives you seven capabilities behind one
 | [Static render](capabilities/render.md)                  | Can I ship a serverless snapshot? | `render`         |
 | [Library API](capabilities/library-api.md)               | Can my Ruby program use it?       | (in-process)     |
 
-Beside the gem's seven, the first sibling surface: the
-[MCP server](capabilities/mcp-server.md) (`okf-mcp`), which projects the same
-kernel onto the Model Context Protocol so any MCP-capable agent host reads
-these bundles without a terminal — ten read-only tools, concepts as resources a
-host can attach on its own, and the [skill's](capabilities/agent-skill.md)
-playbooks as prompts.
+Beside the gem's seven, the sibling surfaces. The
+[MCP server](capabilities/mcp-server.md) (`okf-mcp`) projects the same kernel
+onto the Model Context Protocol so any MCP-capable agent host reads these
+bundles without a terminal — ten read-only tools, concepts as resources a host
+can attach on its own, and the [skill's](capabilities/agent-skill.md) playbooks
+as prompts. The [enforcement layer](capabilities/enforcement.md) (`okf-pro`)
+goes the other way and is the only surface here that **writes**: it generates an
+agent's knowledge repository — bundle, hooks, pre-commit, CI, skill — and then
+holds it to a few invariants at all three doors, under a contract where a gate
+that cannot check refuses rather than shrugs.
 
 Alongside those, a family of [read views](capabilities/read-views.md) —
 `index`, `catalog`, `files`, `types`, `tags`, `stats`, `graph` — print the bundle at a

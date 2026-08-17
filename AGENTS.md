@@ -7,14 +7,15 @@ and agents both read. The bundled skill (`okf/lib/okf/skill/`) documents the
 format itself; this file documents how to change the code without breaking its
 contracts.
 
-The ecosystem grows as sibling directories — an MCP shell, a TUI, an FTS5
-storage engine — each named for the gem it ships. This file is about the
-baseline; a sibling inherits the working style and the Git rules below, but not
-the 2.4 floor or the dependency limits, which are `okf`'s own. A sibling with
-contracts of its own carries its own `AGENTS.md` beside its code
-([`okf-tui/AGENTS.md`](okf-tui/AGENTS.md) is the one that does) — this file stays
-the general rule and that one is the instance, so the same fact is never stated
-in two places to drift apart.
+The ecosystem grows as sibling directories — an MCP shell, a TUI, an
+enforcement layer, an FTS5 storage engine — each named for the gem it ships.
+This file is about the baseline; a sibling inherits the working style and the
+Git rules below, but not the 2.4 floor or the dependency limits, which are
+`okf`'s own. A sibling with contracts of its own carries its own `AGENTS.md`
+beside its code ([`okf-tui/AGENTS.md`](okf-tui/AGENTS.md) and
+[`okf-pro/AGENTS.md`](okf-pro/AGENTS.md) are the two that do) — this file
+stays the general rule and those are the instances, so the same fact is never
+stated in two places to drift apart.
 
 ## Map
 
@@ -28,6 +29,12 @@ okf-tui/        the terminal UI: six views over one or many bundles, and the
                 registry (floor 2.4 — okf's — deps `okf` + the TTY toolkit; it
                 has its own AGENTS.md, and ships its own `.okf/` in the gem).
                 Like okf-mcp it ships no exe: `okf tui` is the entry point
+okf-pro/      the enforcement layer: `okf pro setup` writes an agent's
+                knowledge repo — bundle, hooks, pre-commit, CI, skill — and
+                `okf pro hook` runs one gate against one hook event (floor
+                2.4 — okf's — deps exactly `okf`; own AGENTS.md, ships its own
+                `.okf/`, no exe). Its `hook` verb is the one place in the repo
+                where exit 1 is *non-blocking* and 2 is the refusal
 plugin/         the Claude Code plugin — generated skill copy, command, curation hook
 .claude-plugin/ the marketplace manifest (the repo doubles as the marketplace)
 .okf/           the project's own knowledge bundle

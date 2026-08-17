@@ -11,9 +11,10 @@ permissions:
   contents: read
 
 # One job per gem, not a gem axis on one matrix: the gems in this repo do not
-# share a Ruby floor (okf runs from 2.4, an MCP shell would start at 2.7, an
-# FTS5 engine at 3.2), so a shared matrix would be mostly exclusions. A sibling
-# gem is a new job block below — copy this one and change two strings.
+# share a Ruby floor (okf, okf-tui and okf-pro run from 2.4, the MCP shell
+# from 2.7, an FTS5 engine would start at 3.2), so a shared matrix would be
+# mostly exclusions. A sibling gem is a new job block below — copy one and
+# change two strings.
 jobs:
   okf:
     name: okf / Ruby ${{ matrix.ruby }}
@@ -122,6 +123,48 @@ jobs:
           # `run:` steps, and this action has to find the Gemfile it caches
           # against.
           working-directory: okf-tui
+      - name: Run the default task
+        run: bundle exec rake
+
+
+  okf-pro:
+    name: okf-pro / Ruby ${{ matrix.ruby }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: okf-pro
+    strategy:
+      fail-fast: false
+      matrix:
+        # okf's own range, because okf-pro takes okf's floor — and needs it
+        # more than either sibling: this code runs inside a git hook and a CI
+        # step on machines nobody chose, and a checker that cannot parse is a
+        # checker that is off. Same image split as the okf job.
+        include:
+          - { ruby: "2.4", os: ubuntu-22.04 }
+          - { ruby: "2.5", os: ubuntu-22.04 }
+          - { ruby: "2.6", os: ubuntu-22.04 }
+          - { ruby: "2.7", os: ubuntu-latest }
+          - { ruby: "3.0", os: ubuntu-latest }
+          - { ruby: "3.1", os: ubuntu-latest }
+          - { ruby: "3.2", os: ubuntu-latest }
+          - { ruby: "3.3", os: ubuntu-latest }
+          - { ruby: "3.4", os: ubuntu-latest }
+          - { ruby: "4.0", os: ubuntu-latest }
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+          # Its own input, not the job default: `defaults.run` only applies to
+          # `run:` steps, and this action has to find the Gemfile it caches
+          # against.
+          working-directory: okf-pro
       - name: Run the default task
         run: bundle exec rake
 
