@@ -1,32 +1,12 @@
 # Authoring OKF well — the craft
 
-The spec ([SPEC.md](SPEC.md)) tells you what is *legal*. This file is what is
-*good* — the modelling judgment that turns a pile of conformant files into
+The spec ([SPEC.md](SPEC.md)) tells you what is *legal*, and
+[spec-map.md](spec-map.md) says which § settles which question. This file is
+what is *good* — the modelling judgment that turns a pile of conformant files into
 knowledge worth consuming. Read it before `produce` or `maintain`, and keep the
 §11 conformance rules in mind (parseable frontmatter, a non-empty `type`, and
 well-formed reserved files — the hard rules in [SKILL.md](../SKILL.md));
 everything else is guidance a consumer must tolerate.
-
-## What each SPEC section governs
-
-Consult the right section on demand instead of re-reading all of [SPEC.md](SPEC.md):
-
-| § | Governs | Reach for it when |
-|---|---------|-------------------|
-| §3 | bundle structure, reserved filenames | laying out directories |
-| §4 | concept documents & frontmatter | writing or validating a concept |
-| §5.1 | provenance — `sources` and its credibility signals | any external or empirical claim |
-| §5.2 / §5.3 | trust — `generated`, `verified`, and the derived tiers | recording who wrote or confirmed content |
-| §5.4 / §5.5 | lifecycle — `status`, `stale_after` | marking drafts, deprecations, expiries |
-| §6 / §6.1 | cross-links; **broken links are tolerated** | linking; judging a "broken" link |
-| §6.2 / §6.3 | path-valued fields; the `references/` convention | pointing at non-concept assets |
-| §7 | the actor convention | filling any `by` |
-| §8 | index files & progressive disclosure | orienting; writing or synthesizing an index |
-| §9 | log files | recording history |
-| §10 | attested computations | a concept that *is* a sanctioned computation |
-| §11 | conformance — the hard gate | what `validate` may and may not reject |
-| §12 | versioning (`okf_version`) | the root index's one allowed field |
-| §13 | changes from v0.1 | migrating a bundle; reading an unmigrated one |
 
 ## Modelling principles
 
@@ -177,7 +157,8 @@ declare it only when it says something. `stale_after` is an absolute
 the day itself. Use it for knowledge with a known shelf life (a quota, a
 migration window); `lint`'s `expired` check reports the ones whose date has
 passed. It is a declared expiry, distinct from the `--stale-after` *flag*,
-which is a reader-supplied age cutoff — see [cli.md](cli.md).
+which is a reader-supplied age cutoff — see [cli/checks.md](cli/checks.md),
+rule `okf-two-clocks`.
 
 ### Capture the non-obvious — not what code already says <!-- rule:okf-non-obvious -->
 A bundle that restates function signatures or config keys goes stale the moment
@@ -237,7 +218,7 @@ verb (search, produce, migrate, maintain, consume, curate, doctor), routed by th
 Commands table in [SKILL.md](../SKILL.md). The Closeout below is their shared
 finishing gate.
 
-## Closeout — the finishing gate
+## Closeout — the finishing gate <!-- rule:okf-closeout-gate -->
 
 `produce` step 6 and `maintain` steps 4–7 both land here: before calling an
 authoring task done, walk this once. It is the repo's "turn every task into a check
