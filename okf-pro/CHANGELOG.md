@@ -4,6 +4,15 @@ All notable changes to okf-pro are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this gem uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The okf floor moves to `>= 2.1, < 3`** — the kernel this gem develops
+  against released 2.1.0, and the floor tracks what the suite proves against
+  (the gemspec drill enforces equality as the normal state). Nothing here calls
+  a 2.1-only surface; the ceiling is unchanged.
+
 ## [1.0.0] - 2026-08-17
 
 First release. okf-pro begins as a working prototype — a checker carried inside
