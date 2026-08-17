@@ -198,6 +198,21 @@ concepts. Templates: [concept](../templates/concept.md),
 nested [index](../templates/index.md), bundle-root
 [root-index](../templates/root-index.md), [log](../templates/log.md).
 
+### The log records what shipped, not how it shipped <!-- rule:okf-log-durable-only -->
+`log.md` carries durable knowledge and shipped behavior — never the process that
+produced them. A bug fixed in a release is an entry; the review rounds that found
+it are not. A capability that shipped is an entry; the iterations it took to
+stabilize it before it shipped are not. When a change taught a lesson, the lesson
+belongs in the concept it is about, stated as a principle, and the log entry
+*points* at that concept instead of re-narrating the rounds — a reader finds it
+where the subject lives, not by reading history.
+
+The bar is what a reader six months out needs: *what changed and why it matters*,
+never *how many passes it took to get there*. Watch for the shape this invites —
+the newest entries sit at the top where every reader lands, so a stretch of work
+stabilized by iteration accretes "round N found M defects" exactly where a durable
+summary belongs.
+
 ## Migrating from v0.1 (§13)
 
 A v0.1 bundle is consumable forever — §13.1 sanctions reading `timestamp` as
@@ -228,7 +243,8 @@ grep can't:
 - **Index enumerations** — every `index.md` that lists what you added, renamed, or
   removed is updated; re-run `okf index` and eyeball each listing against reality.
   Easy to skip, expensive to miss — this is the check that was missing.
-- **`log.md`** — a dated entry, newest first.
+- **`log.md`** — a dated entry, newest first, and durable only (rule
+  `okf-log-durable-only` above).
 - **`generated.at`** bumped on the concepts you touched (and `generated.by` says
   who touched them — you, in §7's spelling).
 - **`validate`** — zero §11 errors.
