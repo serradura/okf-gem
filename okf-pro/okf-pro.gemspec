@@ -100,5 +100,5 @@ Gem::Specification.new do |spec|
   # `Linter::SEVERITIES`, so an okf major that reclassifies a check would change
   # what the gate blocks on. A ceiling turns that into a resolution failure a
   # maintainer sees, instead of a gate that quietly stopped gating.
-  spec.add_dependency "okf", ">= 2.0", "< 3"
+  spec.add_dependency "okf", ">= 2.1", "< 3"
 end
