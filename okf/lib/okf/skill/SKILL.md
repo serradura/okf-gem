@@ -96,11 +96,18 @@ The one trap worth carrying in your head: **the age cutoff is off by default** �
 a plain `okf lint` reports concepts past their own declared `stale_after` (the
 `expired` check reads the clock the CLI supplies), but never judges *age*; pass
 `--stale-after <90d|12w|ISO-date>` when you want anything not touched since then
-flagged too. <!-- check:stale -->
+flagged too — the two mechanisms share a spelling and nothing else
+([cli/checks.md](reference/cli/checks.md), rule `okf-two-clocks`).
+<!-- check:stale -->
 
-Read [cli.md](reference/cli.md) before *interpreting* a verb's output in depth:
-what `validate` may and may not reject, lint's categories and check ids, the JSON
-shapes, the tag-curation views, the server's trust boundary.
+Read [cli.md](reference/cli.md) before *interpreting* a verb's output in depth.
+It is the index and the shared contract — refs, exit codes, `--json`, the
+filters — and its table routes to the one file the verb lives in:
+[checks](reference/cli/checks.md) (what `validate` may and may not reject, lint's
+categories and check ids), [search](reference/cli/search.md),
+[map](reference/cli/map.md) (`index`/`dirs`), [views](reference/cli/views.md)
+(the tag-curation views), [serve](reference/cli/serve.md) (the trust boundary),
+[registry](reference/cli/registry.md), [graph](reference/cli/graph.md).
 
 ## Orient before you touch anything
 
@@ -123,8 +130,9 @@ playbooks (the Commands table below; no `okf` installed? read the root
 `consume` (use it as context) carry the judgment the executable can't — this is
 where the skill earns its keep. Each has a playbook (the Commands table below);
 read the modelling craft in [authoring.md](reference/authoring.md) before
-producing or maintaining, and the verbatim spec [SPEC.md](reference/SPEC.md)
-when you need chapter and verse.
+producing or maintaining. When you need chapter and verse, go through
+[spec-map.md](reference/spec-map.md) — which § settles which question — into the
+verbatim [SPEC.md](reference/SPEC.md).
 
 **No subcommand?** Infer intent: "document this / capture X" → `produce`;
 "convert / migrate / OKFy these existing docs into a bundle" → `migrate`; "the

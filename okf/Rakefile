@@ -15,10 +15,33 @@ def browser_sh(command, env = {})
   Dir.chdir(BROWSER_DIR) { sh(env, command) }
 end
 
+# skill:verify's two primitives. The file list is relative and sorted so two
+# trees compare directly; dotfiles stay out of it on purpose — a stray .DS_Store
+# is not drift, and neither copy is tracked carrying one.
+def skill_file_list(root)
+  Dir.glob(File.join(root, "**", "*"))
+     .select { |path| File.file?(path) }
+     .map { |path| path[(root.length + 1)..-1] }
+     .sort
+end
+
+def skill_checksum(path)
+  require "digest"
+  Digest::SHA256.file(path).hexdigest
+end
+
 # The repo root, one level up: the two things this gem's tasks reach outside
 # itself both live there — the project's own .okf bundle (browser:shots) and the
-# Claude Code plugin the skill is synced into (plugin:sync).
+# generated copies of the skill (skill:sync).
 REPO_ROOT = File.expand_path("..", __dir__)
+
+# The skill's one editable copy, and every copy generated from it. Both
+# destinations are repo-root paths because neither ships in the gem:
+# `plugin/skills/okf` is the Claude Code plugin's, and `skills/` is where a
+# skill installer looks — `npx skills add serradura/okf-gem` finds okf there,
+# and okf-principles beside it. A third destination is a line in this list.
+CANONICAL_SKILL = File.expand_path("lib/okf/skill", __dir__)
+GENERATED_SKILL_COPIES = [ "plugin/skills/okf", "skills/okf" ].freeze
 
 # The README's graph shot, in both themes: boots the server on this repo's own
 # .okf and hands it to shots.mjs, which drives Chromium and writes the two PNGs.
@@ -140,54 +163,88 @@ task :set_integration_coverage_dir do
   ENV["OKF_COVERAGE_NAME"] = "Integration Tests (alone)"
 end
 
-# The Claude Code plugin (../plugin/) carries a copy of the canonical skill and
-# the gem's version in its manifest. This regenerates both from their sources
-# (lib/okf/skill and lib/okf/version.rb); test/plugin/sync_test.rb fails
-# whenever they drift, so the "single editable skill copy" constraint stays
-# auditable in CI.
+# The two generated copies of the skill, and the gem's version in the plugin
+# manifest, all come from sources inside this gem (lib/okf/skill and
+# lib/okf/version.rb). `skill:sync` writes them; `skill:verify` and
+# test/plugin/sync_test.rb both fail when they drift, so the "single editable
+# skill copy" constraint (AGENTS.md constraint 6) stays auditable rather than
+# remembered.
 #
-# The plugin lives at the repo root, not in this gem, but these tasks stay here:
-# both of its inputs are the gem's, and keeping them here is what lets
-# `task build: "plugin:verify"` below stay a plain dependency — the guard that
-# makes a release with a stale manifest impossible rather than a CI failure
-# after the fact.
-namespace :plugin do
-  desc "Regenerate ../plugin/skills/okf from lib/okf/skill and stamp the gem version into plugin.json"
+# Both destinations live at the repo root, not in this gem, but these tasks stay
+# here: every input is the gem's, and keeping them here is what lets
+# `task build: "skill:verify"` below stay a plain dependency — the guard that
+# makes a release with a stale copy impossible rather than a CI failure after
+# the fact.
+namespace :skill do
+  desc "Regenerate every generated copy of lib/okf/skill and stamp the gem version into plugin.json"
   task :sync do
     require "fileutils"
     require "json"
     require_relative "lib/okf/version"
 
-    dest = File.join(REPO_ROOT, "plugin/skills/okf")
-    FileUtils.rm_rf(dest)
-    FileUtils.mkdir_p(dest)
-    FileUtils.cp_r(File.join(File.expand_path("lib/okf/skill", __dir__), "."), dest)
+    # File by file rather than cp_r of the whole directory, so the copies carry
+    # exactly what skill_file_list compares — a macOS .DS_Store beside the skill
+    # would otherwise be copied into both, and a repo-wide `release:guard_clean`
+    # then blocks a release over a file nobody wrote.
+    names = skill_file_list(CANONICAL_SKILL)
+
+    GENERATED_SKILL_COPIES.each do |rel|
+      dest = File.join(REPO_ROOT, rel)
+      FileUtils.rm_rf(dest)
+      names.each do |name|
+        target = File.join(dest, name)
+        FileUtils.mkdir_p(File.dirname(target))
+        FileUtils.cp(File.join(CANONICAL_SKILL, name), target)
+      end
+
+      puts "#{rel} synced (#{names.length} files)"
+    end
 
     manifest_path = File.join(REPO_ROOT, "plugin/.claude-plugin/plugin.json")
     manifest = JSON.parse(File.read(manifest_path))
     manifest["version"] = OKF::VERSION
     File.write(manifest_path, JSON.pretty_generate(manifest) + "\n")
-
-    files = Dir.glob(File.join(dest, "**", "*")).count { |path| File.file?(path) }
-    puts "plugin/skills/okf synced (#{files} files); plugin.json stamped #{OKF::VERSION}"
+    puts "plugin.json stamped #{OKF::VERSION}"
   end
 
-  desc "Fail unless plugin.json carries the gem version"
+  # Both halves of the obligation, in the order they bite: a copy that drifted
+  # from the skill it was generated from, then a manifest a version bump left
+  # behind. The suite checks the same two things, but `build` cannot run the
+  # suite — it runs this.
+  desc "Fail unless every generated skill copy matches lib/okf/skill and plugin.json carries the gem version"
   task :verify do
     require "json"
     require_relative "lib/okf/version"
 
+    canonical = skill_file_list(CANONICAL_SKILL)
+
+    GENERATED_SKILL_COPIES.each do |rel|
+      copy = File.join(REPO_ROOT, rel)
+      abort "#{rel} is missing: run `bundle exec rake skill:sync`" unless File.directory?(copy)
+
+      if skill_file_list(copy) != canonical
+        abort "#{rel} does not carry the same files as lib/okf/skill: run `bundle exec rake skill:sync`"
+      end
+
+      drifted = canonical.reject do |name|
+        skill_checksum(File.join(CANONICAL_SKILL, name)) == skill_checksum(File.join(copy, name))
+      end
+      unless drifted.empty?
+        abort "#{rel} has drifted from lib/okf/skill (#{drifted.join(", ")}): run `bundle exec rake skill:sync`"
+      end
+    end
+
     manifest = JSON.parse(File.read(File.join(REPO_ROOT, "plugin/.claude-plugin/plugin.json")))
     unless manifest["version"] == OKF::VERSION
-      abort "plugin.json is at #{manifest["version"]} but the gem is #{OKF::VERSION}: run `bundle exec rake plugin:sync`"
+      abort "plugin.json is at #{manifest["version"]} but the gem is #{OKF::VERSION}: run `bundle exec rake skill:sync`"
     end
   end
 end
 
-# The plugin versions with the gem. Guarding `build` (which `release` runs
-# first) makes a release with a stale manifest impossible, not just a CI
-# failure after the fact.
-task build: "plugin:verify"
+# Every generated copy versions with the gem. Guarding `build` (which `release`
+# runs first) makes a release with a stale copy or a stale manifest impossible,
+# not just a CI failure after the fact.
+task build: "skill:verify"
 
 # Bundler's `release:guard_clean` runs `git diff` with no pathspec, so it is
 # *repo-wide* regardless of the directory it runs from. In a monorepo that is the

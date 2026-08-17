@@ -64,5 +64,5 @@ Gem::Specification.new do |spec|
   #     this line still admits okf 1.13.0. That is the window open *today*.
   #   test/unit/gemspec_test.rb  fails the suite if okf bumps and this line
   #     does not follow. That is every day after.
-  spec.add_dependency "okf", ">= 2.0", "< 3"
+  spec.add_dependency "okf", ">= 2.1", "< 3"
 end

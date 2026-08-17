@@ -54,7 +54,7 @@ OKF_FLOOR_MUST_EXCEED = "1.13.0"
 # while the broken release is possible. The Gemfile resolves okf from the
 # checkout next door, so no suite here can notice — only the release path can,
 # and this is where it does. Same spirit as the kernel's `task build:
-# "plugin:verify"`: a forgotten obligation stops the release instead of
+# "skill:verify"`: a forgotten obligation stops the release instead of
 # shipping inside one.
 desc "Refuse to build while the declared okf floor admits a kernel lacking the surfaces this shell calls"
 task :verify_okf_floor do

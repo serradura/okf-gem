@@ -56,6 +56,32 @@ class CLIPluginTest < CLIIntegrationCase
     end
   RUBY
 
+  # An addon that declares many rows — an umbrella verb with subcommands, which
+  # is a shape addons legitimately have (the built-in `registry` has it too).
+  SPRAWLING = <<~RUBY
+    module OKF
+      class CLI
+        class Sprawl < Command
+          def self.id
+            :sprawl
+          end
+
+          def self.help_rows
+            [ [ "sprawl    <command>", "the first row is the summary" ],
+              [ "sprawl    one", "second row" ],
+              [ "sprawl    two", "second row again" ] ]
+          end
+
+          def call(_argv)
+            0
+          end
+        end
+
+        register(Sprawl)
+      end
+    end
+  RUBY
+
   # A verb written against 1.12.0's helpers, verbatim: filter_entries took
   # (entries, options) and resolved the `root` alias with no directory set to
   # consult. The base every plugin inherits is a compatibility promise, so the
@@ -109,8 +135,34 @@ class CLIPluginTest < CLIIntegrationCase
 
     map = okf("--help").out
 
-    assert_match(/^\s+installed extensions:/, map, "an installed verb is labelled, so its origin is legible")
+    assert_match(/^\s+installed extensions/, map, "an installed verb is labelled, so its origin is legible")
     assert_match(/^\s+ping\s+<word>\s+say a word back/, map, "and it is listed like any other")
+  end
+
+  # An extension gets ONE line in the map, whatever it declares.
+  #
+  # This is enforced in the renderer rather than asked of each addon, because a
+  # rule an addon has to remember is a rule the map cannot rely on. okf-pro
+  # declares eight subcommands, and when the map printed all of them the
+  # extension block became the longest section on the page — dwarfing the
+  # built-ins above it, and burying the two single-line addons beside it.
+  test "an extension gets one line however many rows it declares" do
+    plugin(SPRAWLING)
+
+    map = okf("--help").out
+    extensions = map.split("installed extensions").last.to_s
+
+    assert_equal 1, extensions.scan(/^\s+sprawl\b/).size,
+      "the map is a map: it says a verb exists, and `okf <verb> --help` is where the verb describes itself"
+    assert_match(/^\s+sprawl\s+<command>\s+the first row is the summary/, extensions)
+    refute_match(/second row/, extensions)
+  end
+
+  test "the extensions heading tells the reader where the detail is" do
+    plugin(PING)
+
+    assert_match(/installed extensions.*--help/, okf("--help").out,
+      "one line per verb is only usable if the map says how to expand it")
   end
 
   test "the map is the built-ins alone when nothing is installed" do
@@ -127,7 +179,7 @@ class CLIPluginTest < CLIIntegrationCase
 
       map = okf("--help").out
 
-      refute_match(/installed extensions:/, map, "a heading with nothing under it is noise")
+      refute_match(/installed extensions/, map, "a heading with nothing under it is noise")
       assert_match(/^\s+lint\s/, map, "the built-in map is untouched")
     end
   end

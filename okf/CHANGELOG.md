@@ -5,6 +5,33 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-08-17
+
+### Changed
+
+- **The skill's CLI reference is an index and seven leaves.** `reference/cli.md`
+  answered every question about every verb in one 46,234-byte file, so an agent
+  asking about `search` paid for `serve`, `registry` and the graph too. The
+  shared contract — refs, exit codes, `--json`, the filters — stays in `cli.md`
+  and routes to one file per surface under `reference/cli/`. Measured on the
+  worst question rather than the mean: 9,084 bytes for a routing question,
+  19,533 for the heaviest leaf. `reference/spec-map.md` is the other half, a
+  pointer from a spec clause to the file that answers it, so the vendored
+  `SPEC.md` keeps its index beside it instead of cut into it.
+- **Cross-file citations in the skill name a `rule:` marker**, not a section
+  anchor: the key travels with the paragraph the next time anything moves.
+- **`okf help` prints one row per extension**, plus a pointer to
+  `okf <verb> --help` for the rest. An addon with an umbrella verb and several
+  subcommands used to dwarf the built-ins the map exists to teach.
+
+### Added
+
+- **The skill teaches what a log records.** `log.md` carries durable knowledge
+  and shipped behavior, never the process that produced them —
+  `rule:okf-log-durable-only` in `reference/authoring.md`, cited by the maintain
+  playbook and the Closeout gate. It was the okf-gem repository's own contract
+  before this, which an agent maintaining any other bundle never reads.
+
 ## [2.0.0] - 2026-08-14
 
 > Major, not minor. The Breaking entries below change public shapes a shipped

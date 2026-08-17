@@ -174,8 +174,9 @@ do not know.
 ## More
 
 The [project README](https://github.com/serradura/okf-gem#readme) carries the
-diagrams, the comparison with `CLAUDE.md`, agent auto-memory and wikis, and the
-Claude Code plugin. The [docs](https://okfgem.com/docs/) are the manual. And the
+diagrams, the comparison with `CLAUDE.md`, agent auto-memory and wikis, the
+Claude Code plugin, and the way to install the skill into any agent without this
+gem (`npx skills add serradura/okf-gem`). The [docs](https://okfgem.com/docs/) are the manual. And the
 repo documents *itself* in OKF — clone it and run `okf server .okf` to read this
 gem's own knowledge as a graph.
 

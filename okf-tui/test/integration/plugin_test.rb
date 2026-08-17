@@ -41,7 +41,7 @@ module Integration
       status, out, = run_okf("--help")
 
       assert_equal 0, status
-      assert_match(/^\s+installed extensions:/, out)
+      assert_match(/^\s+installed extensions/, out)
       assert_match(/^\s+tui\s+.*full-screen terminal UI/, out)
     end
 

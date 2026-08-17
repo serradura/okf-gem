@@ -6,7 +6,7 @@ resource: okf/lib/okf/skill.rb
 tags: [agent, install]
 generated:
   by: human:maintainer
-  at: 2026-07-22T12:00:00Z
+  at: 2026-08-17T12:00:00Z
 sources:
   - title: okf/lib/okf/skill.rb
     resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill.rb
@@ -80,10 +80,10 @@ the gem already puts the skill on the machine, and the skill's CLI reference can
 **never drift** from the executable it was released with. Local installs
 elsewhere are gitignored so they never masquerade as the source.
 
-# A second channel: the Claude Code plugin
+# Two more channels: the Claude Code plugin, and `skills/`
 
 The repository doubles as a plugin marketplace, and the plugin carries a
-**generated** copy of the same skill (`plugin/skills/okf`) — `rake plugin:sync`
+**generated** copy of the same skill (`plugin/skills/okf`) — `rake skill:sync`
 regenerates it after any skill edit or version bump, and a test fails the build
 on drift, so the canonical-copy rule survives the second channel. Around the
 skill the plugin adds a front-door command (`/okf:gem`) that is deliberately a
@@ -94,3 +94,19 @@ where the drift test guards them, instead of in a second copy the test never
 sees. The plugin also carries a PostToolUse hook that runs `okf validate` +
 `okf lint` after every edit inside a bundle and hands the relevant findings
 back as context. Nothing under `plugin/` ships in the gem.
+
+The third channel is the generic one. A skill installer walks a repository's
+`skills/` directory, so `skills/okf` is the same generated copy under the name
+every such tool already looks for — `npx skills add serradura/okf-gem` installs
+it into any of the agents that tool supports, no gem and no Claude Code
+required. It costs one line in `GENERATED_SKILL_COPIES` rather than a second
+task, which is the point: **one canonical tree with N destinations is one
+obligation, and a second task to remember is a second task to forget.** The
+guard scales with it — `rake skill:verify` compares file lists and SHA-256
+checksums for every destination and `build` depends on it, so a copy cannot be
+released stale, whatever channel it feeds.
+
+The channels are not equivalent, and the difference is the version they carry.
+The gem's copy is the release's, pinned to the executable beside it; the plugin's
+follows the marketplace; `skills/` tracks this repository's default branch. A
+consumer who needs the skill and the CLI to agree should take the gem's.

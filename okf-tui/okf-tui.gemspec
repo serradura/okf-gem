@@ -117,7 +117,7 @@ Gem::Specification.new do |spec|
   # OKF::TUI.search_capable? and .spec_capable? still check at boot, because a
   # requirement binds resolution and cannot stop a second okf sitting ahead of
   # the intended one on the load path.
-  spec.add_dependency "okf", ">= 2.0", "< 3"
+  spec.add_dependency "okf", ">= 2.1", "< 3"
 
   # The TTY toolkit, one gem per job and no more. All of these declare >= 2.0,
   # so none of them is what would raise the floor.

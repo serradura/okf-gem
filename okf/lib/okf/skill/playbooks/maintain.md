@@ -25,7 +25,9 @@ lives in [authoring.md](../reference/authoring.md).
    silently deleting the context that explains them.
 4. **Update every enumeration that names what you changed — including `index.md`
    bodies**, not just the concept files: a new, renamed, or removed concept changes
-   its directory's index listing too. Append a dated `log.md` entry. Step 1's map
+   its directory's index listing too. Append a dated `log.md` entry — what changed and why it
+   matters, never the rounds it took (rule `okf-log-durable-only` in
+   [authoring.md](../reference/authoring.md)). Step 1's map
    is how you verify this — re-run `okf index` and confirm each listing matches
    reality.
 5. Run `validate`, then `lint` to catch the curation drift the change introduced —

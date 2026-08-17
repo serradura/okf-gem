@@ -37,6 +37,10 @@ okf-pro/      the enforcement layer: `okf pro setup` writes an agent's
                 where exit 1 is *non-blocking* and 2 is the refusal
 plugin/         the Claude Code plugin — generated skill copy, command, curation hook
 .claude-plugin/ the marketplace manifest (the repo doubles as the marketplace)
+skills/         the skills a generic installer reads (`npx skills add serradura/okf-gem`):
+                a generated copy of okf's, and okf-principles, whose canonical
+                copy this is — it documents a way of structuring instructions,
+                not okf's code, so it belongs to no gem
 .okf/           the project's own knowledge bundle
 Dockerfile      builds okf/ — from a root context, because the gemspec needs .git
 Rakefile        a delegator: `rake` runs every gem's default task
@@ -102,19 +106,30 @@ The core/shell split is _enforced_: `test/unit/boundary_test.rb` fails if a pure
 file names a shell class or touches `File`/`Dir`/`FileUtils`/stdio. Put new I/O
 in the shell; put new logic in the core, pure.
 
-Outside the gem, `plugin/` and `.claude-plugin/` are the Claude Code plugin and
-its marketplace manifest (the repo doubles as the marketplace): one thin command
+Outside the gem, `plugin/`, `.claude-plugin/` and `skills/` are the three
+distribution surfaces the repo carries for a tree that lives inside it. The first
+two are the Claude Code plugin and its marketplace manifest (the repo doubles as
+the marketplace): one thin command
 that routes to the skill's playbooks (`lib/okf/skill/playbooks/`) or to the
 skill itself, a PostToolUse curation hook (`plugin/hooks/scripts/curate.rb`,
 plain Ruby on the stdlib, same 2.4 floor), and a generated copy of the skill.
 Neither ships in the gem — and neither needs a gemspec reject any more, because
 `git ls-files` runs with `chdir:` into `okf/` and never sees them.
 
-They stay at the repo root and `rake plugin:sync` stays in the *gem's* Rakefile
-pointing up at `../plugin`. Both of its inputs are the gem's — the skill tree
-and the version — and keeping the task there is what lets `task build:
-"plugin:verify"` remain a plain dependency, the guard that makes a release with
-a stale manifest impossible rather than a CI failure after the fact.
+They stay at the repo root and `rake skill:sync` stays in the *gem's* Rakefile
+pointing up at them. Every input is the gem's — the skill tree and the version —
+and keeping the task there is what lets `task build: "skill:verify"` remain a
+plain dependency, the guard that makes a release with a stale copy impossible
+rather than a CI failure after the fact.
+
+The task writes **both** generated copies, `plugin/skills/okf` and `skills/okf`,
+because one canonical tree with two destinations is one obligation, not two: a
+second task to remember is a second task to forget. `skills/` is the only one of
+the two a stranger installs from — the CLI at
+[skills.sh](https://skills.sh) walks `skills/` in any git repository — so a
+drifted copy there is a skill shipped to somebody at a version nobody edited.
+`skill:verify` compares file lists and SHA-256 checksums for every destination
+and aborts the build; `test/plugin/sync_test.rb` asserts the same thing in CI.
 
 The root `Rakefile` runs plain `rake`, not `bundle exec rake`: there is no root
 Gemfile, because the gems here do not share a Ruby floor and one lockfile could
@@ -188,16 +203,19 @@ you touch what `require "okf"` pulls in.
    `DOMPurify.sanitize(marked.parse(...))` before it reaches `innerHTML`. Keep
    both — a new render path that skips the sanitizer reopens the hole.
 6. **The skill ships only from `lib/okf/skill/**`** — that tree is the single
-canonical copy (`okf skill <dest>`installs from it), so edit it there and
-nowhere else. Local installs (e.g.`.agents/`, `.claude/`) are gitignored.
-`plugin/skills/okf`is a *generated* copy for the Claude Code plugin, so
-never edit it there: run`bundle exec rake plugin:sync`after touching the
-skill or bumping the version (the task also stamps`plugin/.claude-plugin/plugin.json`), and `test/plugin/sync_test.rb`fails on any drift (file lists and SHA-256 checksums). Signature guidance
-lines carry stable markers —`<!-- check:<lint-check-id> -->`when a
-deterministic check enforces the point,`<!-- rule:okf-<slug> -->` for
-   pure-judgment craft — as anchors for eval pinning and citation. They render
-   invisibly and sync verbatim into the plugin copy, so keep them on the line
-   they annotate when you edit it.
+   canonical copy (`okf skill <dest>` installs from it), so edit it there and
+   nowhere else. Local installs (e.g. `.agents/`, `.claude/`) are gitignored.
+   `plugin/skills/okf` and `skills/okf` are *generated* copies — the Claude Code
+   plugin's and the one a skill installer reads — so never edit either: run
+   `bundle exec rake skill:sync` after touching the skill or bumping the version
+   (the task also stamps `plugin/.claude-plugin/plugin.json`). Two guards fail on
+   drift, both by file list and SHA-256 checksum: `rake skill:verify`, which
+   `build` depends on, and `test/plugin/sync_test.rb`. Signature guidance lines
+   carry stable markers — `<!-- check:<lint-check-id> -->` when a deterministic
+   check enforces the point, `<!-- rule:okf-<slug> -->` for pure-judgment craft —
+   as anchors for eval pinning and citation. They render invisibly and sync
+   verbatim into every copy, so keep them on the line they annotate when you edit
+   it.
 7. **Tests use `OKF::TestCase`** (`test/test_helper.rb`): plain Minitest plus
    `test "..."` / block `setup`/`teardown` sugar. The tests run on 2.4 too, so
    the API constraints above apply to `test/` as well.
@@ -348,7 +366,7 @@ bundle exec rake browser:ui        # the same suite, interactive — pick specs 
 bundle exec rake serve             # the browser fixture bundle, served for poking by hand
 ruby -Ilib exe/okf <cmd> <dir>     # the CLI from the checkout, no install
 ruby -Ilib exe/okf server <dir>    # boot the graph server locally
-bundle exec rake plugin:sync       # regenerate the plugin's skill copy + version stamp
+bundle exec rake skill:sync        # regenerate every generated skill copy + version stamp
 ```
 
 `bundle exec rake` at the root fails with "Could not locate Gemfile", and that
@@ -501,14 +519,13 @@ in the concept it is about, stated as a principle, in the same commit as the cod
 
 `.okf/log.md` is held to one rule that outranks the reflex to write down what
 happened: **it records durable knowledge and shipped behavior, not the process
-that produced them.** A bug fixed in a release is a log entry; the review rounds
-that found it are not. A capability that shipped is an entry; the iterations it
-took to stabilize an unreleased branch are not. When a change taught a lesson,
-the lesson lives in the concept, and the log entry *points* at the concept — it
-does not re-narrate the rounds. The test is what a reader six months out needs:
-*what changed and why it matters*, never *how many passes it took to get there*.
+that produced them.** The rule is general OKF craft rather than a fact about this
+repository, so it is stated once where it travels — `rule:okf-log-durable-only`
+in the skill's [authoring.md](okf/lib/okf/skill/reference/authoring.md), cited by
+the maintain playbook and the Closeout gate. Read it there; what follows is the
+instance that earned it.
 
-The failure this closes has a shape worth recognizing, because the log invites
+The failure it closes has a shape worth recognizing, because the log invites
 it: the newest entries sit at the top where every reader lands, so a branch
 stabilized by iteration accretes a diary of "review round N found M defects"
 exactly where a durable summary should be. okf-mcp's first release was that —
@@ -600,8 +617,8 @@ The skeleton above, pinned at three points:
   YYYY-MM-DD`. The PR argues the release, the CHANGELOG itemizes it, so the lead
   says what the version is *for* and never re-lists the entries.
 - **Verification names the release checks**: `rake`, the 2.4 Docker floor,
-  `plugin:verify` (gem and manifest at the same version), `gem build`, and
-  `validate`/`lint` on the repo's own `.okf`.
+  `skill:verify` (every generated copy in sync, gem and manifest at the same
+  version), `gem build`, and `validate`/`lint` on the repo's own `.okf`.
 - **The closing line, verbatim**: `` `rake release` (tag, push, RubyGems with
   MFA) is deliberately not run here. `` — the PR is the gate, the human pushes
   the gem.
@@ -618,14 +635,15 @@ A release is cut **from the gem's own directory** — `cd okf` first. Bundler re
 the gemspec in its working directory and derives the tag from it, so the root
 `rake release` refuses rather than doing something plausible.
 
-1. Bump `lib/okf/version.rb`, then `bundle exec rake plugin:sync` — the plugin
+1. Bump `lib/okf/version.rb`, then `bundle exec rake skill:sync` — the plugin
    versions with the gem, so `plugin/.claude-plugin/plugin.json` must follow
-   every bump. Move the `Unreleased` notes in `CHANGELOG.md` under the new
+   every bump, and both generated skill copies with it. Move the `Unreleased` notes in `CHANGELOG.md` under the new
    version.
 2. `bundle exec rake release` — tags `vX.Y.Z`, pushes commits + tag, pushes the
    gem to RubyGems (MFA required). `release` runs `build`, and `build` aborts
-   if the plugin manifest lags the gem version (`rake plugin:verify`), so a
-   forgotten sync stops the release instead of shipping.
+   if a generated skill copy has drifted or the plugin manifest lags the gem
+   version (`rake skill:verify`), so a forgotten sync stops the release instead
+   of shipping.
 
 `release:guard_clean` is **repo-wide** — Bundler runs `git diff` with no pathspec,
 so a half-finished sibling gem or an edited file two levels up blocks a release of

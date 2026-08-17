@@ -4,7 +4,8 @@ The craft that makes these steps land well — granularity, choosing `type`, tag
 vocabulary, topology, links, sources — lives in
 [authoring.md](../reference/authoring.md). Read it before a non-trivial produce.
 
-1. Read [SPEC.md](../reference/SPEC.md) if you are unsure of any rule.
+1. Unsure of a rule? [spec-map.md](../reference/spec-map.md) names the § that
+   settles it; read that section of [SPEC.md](../reference/SPEC.md).
 2. Pick the source(s): **code** (derive concepts from source, READMEs, docstrings,
    config), **docs/wiki** (distill pages into concepts; record the originals in
    `sources:` and key claims with `[^id]` footnotes), **manual** (decisions,
@@ -27,5 +28,6 @@ vocabulary, topology, links, sources — lives in
    `okf_version: "0.2"`. Append a dated entry to `log.md`.
 6. **Close out** — walk the
    [Closeout gate](../reference/authoring.md#closeout--the-finishing-gate)
-   (`validate` + `lint` are part of it, see [cli.md](../reference/cli.md))
+   (`validate` + `lint` are part of it, see
+   [cli/checks.md](../reference/cli/checks.md))
    before finishing.

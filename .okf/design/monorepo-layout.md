@@ -40,6 +40,10 @@ Everything that is not a gem, and one thing that is not obvious:
 - `plugin/` and `.claude-plugin/` — the Claude Code plugin and the marketplace
   manifest that names `./plugin`. That path is published; moving it would break
   installs to no end.
+- `skills/` — the name every generic skill installer walks. It carries a
+  generated copy of okf's skill ([agent skill](../capabilities/agent-skill.md))
+  and okf-principles, whose canonical copy this is: that one describes how to
+  structure instructions, not how okf works, so it belongs to no gem.
 - `.okf/` — this bundle. It documents the *project*, not the gem, and it grows
   to cover the siblings.
 - `Dockerfile` — because its build context must be the repository root. The
