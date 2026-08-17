@@ -380,6 +380,20 @@ okf skill .agents     # agent-agnostic   -> .agents/skills/okf
 The resolved directory must be empty unless you pass `--force`, so a customized
 skill is never clobbered.
 
+**Without the gem**, any agent that reads `SKILL.md` installs it straight from
+this repository:
+
+```bash
+npx skills add serradura/okf-gem                          # choose from the list
+npx skills add serradura/okf-gem --skill okf -a codex     # or name skill and agent
+```
+
+That path installs a generated copy — `rake skill:sync` writes it from the same
+canonical tree the gem ships, and the build fails on any drift — so it tracks
+this repository rather than the `okf` on your machine. `okf-principles` sits
+beside it: the five structural principles the format implies, written to be
+pointed at any instruction artifact rather than at a bundle.
+
 ## Claude Code plugin
 
 This repository doubles as a Claude Code plugin marketplace, so the whole

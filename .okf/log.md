@@ -1,5 +1,26 @@
 # Update Log
 
+## 2026-08-17
+* **Update**: **the skill's CLI reference is an index and seven leaves, and the
+  skill gained a third channel** — [agent skill](capabilities/agent-skill.md).
+  A question about one verb used to load all of `reference/cli.md`: 46,234 bytes
+  for anything becomes 9,084 for a routing question and 19,533 for the heaviest
+  leaf, and cross-file citations now name a `rule:` marker instead of a section
+  anchor, so a key survives the next move. The same tree is generated into
+  `skills/` as well as into the plugin, which is what lets a generic installer
+  (`npx skills add serradura/okf-gem`) reach it with no gem and no Claude Code;
+  one task writes every copy, and `rake skill:verify` fails the build on drift.
+* **Addition**: **the log's own rule now ships with the skill** — durable
+  knowledge and shipped behavior, never the process that produced them, as
+  `rule:okf-log-durable-only` in the skill's authoring reference. It had been
+  this repository's contract alone, which an agent maintaining anyone else's
+  bundle never reads.
+* **Addition**: **okf-principles enters the repository as its own skill** —
+  index first, keyed identity, permissive reading, no tooling required, kind
+  over location: the five structural principles the format implies, written to
+  be pointed at any instruction artifact. Its own shape is the argument, and it
+  is what the CLI reference split above was an application of.
+
 ## 2026-08-15
 * **Addition**: **[okf-tui](https://github.com/serradura/okf-gem/tree/main/okf-tui) joins the
   repository as its third gem**, cut at 1.0.0 — the full-screen terminal UI over
