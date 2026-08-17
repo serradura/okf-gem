@@ -1,0 +1,21 @@
+# The okf-pro gem's own ignores, anchored to this directory (the same rule as
+# okf/.gitignore and okf-tui/.gitignore: they follow the gem wherever it sits).
+
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/vendor/
+
+# The gem is tested against many Rubies; each resolves its own dependency set,
+# and the Gemfile points okf at the checkout next door — an absolute path that
+# is true on one machine. The gemspec is the contract; the lock is local.
+Gemfile.lock
+
+# The scratch Gemfile that resolves the *released* okf instead of the checkout
+# (see AGENTS.md), and the lock it writes beside itself.
+/Gemfile.ci-check
+/Gemfile.ci-check.lock

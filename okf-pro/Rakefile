@@ -1,0 +1,48 @@
+# frozen_string_literal: true
+
+require "bundler/gem_helper"
+
+# The bare `v*` tag series belongs to the baseline gem; a sibling tags
+# `okf-pro/vX.Y.Z` (../AGENTS.md). Bundler's GemHelper defaults the prefix to
+# "", so `rake release` here would otherwise push a bare `vX.Y.Z` — which the
+# Docker workflow's `v*` trigger matches, rebuilding and republishing the *okf*
+# image (including `:latest`) from a release that ships something else. A glob
+# does not match across `/`, which is the whole reason for the prefix.
+helper = Bundler::GemHelper.new(__dir__)
+
+if helper.respond_to?(:tag_prefix=)
+  helper.tag_prefix = "okf-pro/"
+  helper.install
+else
+  # `tag_prefix` is not in every Bundler this gem's matrix runs on — the one
+  # Ruby 2.4 ships has no such accessor, and a Rakefile that raised NoMethodError
+  # on load would take `rake test` down there before a single test ran. The old
+  # floor is a Ruby to *test* on, never one to release from, so the release tasks
+  # are absent there rather than present with the wrong tag.
+  desc "Refuse to release: this Bundler cannot set the okf-pro/ tag prefix"
+  task :release do
+    abort "this Bundler has no GemHelper#tag_prefix=, so `rake release` here would push a bare " \
+          "vX.Y.Z tag and trigger the okf image build. Release from a Ruby with a current Bundler."
+  end
+end
+
+# rake/testtask (not minitest/test_task) so `rake test` runs on every supported
+# Ruby — minitest's own task class needs minitest 5.16+, which needs Ruby 2.6.
+require "rake/testtask"
+
+Rake::TestTask.new(:test) do |t|
+  t.libs << "test" << "lib"
+  t.test_files = FileList["test/**/*_test.rb"]
+  t.warning = false
+end
+
+# RuboCop only installs on newer Rubies (see Gemfile); the default task degrades
+# to test-only where it is absent, so the floor run is not taken down by a tool
+# that cannot be installed on it.
+begin
+  require "rubocop/rake_task"
+  RuboCop::RakeTask.new
+  task default: %i[test rubocop]
+rescue LoadError
+  task default: %i[test]
+end

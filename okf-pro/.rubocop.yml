@@ -1,0 +1,93 @@
+AllCops:
+  # The gem runs on every Ruby back to 2.4 (rack's own floor) — RuboCop parses
+  # with that version and flags newer-only syntax. CI's oldest job is the real
+  # arbiter; this is the fast local check.
+  TargetRubyVersion: 2.4
+  NewCops: enable
+  SuggestExtensions: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+# House style: literal arrays read with breathing room — [ 1, 2 ].
+Layout/SpaceInsideArrayLiteralBrackets:
+  EnforcedStyle: space
+
+Layout/LineLength:
+  Max: 160
+
+# The codebase prefers explicit code over these opinions: prose-length methods
+# in the CLI/linter, `+` concatenation, compact test-class names, and modifier
+# ifs written out when the guard matters.
+Metrics/AbcSize:
+  Enabled: false
+Metrics/ClassLength:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Metrics/MethodLength:
+  Enabled: false
+Metrics/ParameterLists:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+Style/Documentation:
+  Enabled: false
+Style/IfUnlessModifier:
+  Enabled: false
+Style/MultilineBlockChain:
+  Enabled: false
+Style/RegexpLiteral:
+  Enabled: false
+Style/Semicolon:
+  Enabled: false
+Style/StringConcatenation:
+  Enabled: false
+
+Lint/AmbiguousBlockAssociation:
+  Exclude:
+    - "test/**/*"
+
+# A test file is a list of scenarios: length there is coverage, not complexity.
+# inherit_mode keeps the cop's own defaults (gemspecs, Rakefiles) instead of
+# replacing them — without it, excluding test/ would silently re-enable the cop
+# on okf-pro.gemspec.
+Metrics/BlockLength:
+  inherit_mode:
+    merge:
+      - Exclude
+  Exclude:
+    - "test/**/*"
+
+# ── okf-pro additions ─────────────────────────────────────────────────────
+
+# One module per question — where the bundle is, what the board says, what the
+# board and the work owe each other — and the length is the surface of the
+# question, not complexity inside it. Splitting `Pairing` in two to satisfy a
+# line count would put the forward and reverse halves of one invariant in
+# different files, which is precisely the drift the module exists to prevent.
+# Same reason ClassLength is off in the inherited config.
+Metrics/ModuleLength:
+  Enabled: false
+
+# `$?` after a deliberate shell-out, in three places that each explain why they
+# read it. `$CHILD_STATUS` needs `require "English"` — a stdlib require carried
+# into a gem that runs inside a git hook, to alias one variable that every Ruby
+# programmer already reads at a glance.
+Style/SpecialGlobalVars:
+  Enabled: false
+
+# The fixture binder is `b` — `with_bundle { |b| … }` appears in nearly every
+# test in the suite, and a helper that takes one names it the same thing. A
+# three-character minimum would rename it in the helpers and nowhere else.
+Naming/MethodParameterName:
+  Enabled: false

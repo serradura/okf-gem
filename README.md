@@ -538,9 +538,12 @@ the two things no checker can compute — contradictions, and *semantic* stalene
 Publish a gem named `okf-*` carrying an `okf/plugin.rb` and installing it is the
 whole installation: your verb answers to `okf` and behaves like a built-in.
 Nothing an addon registers can displace one, and a broken addon is skipped rather
-than taking the CLI down. Two ship here: `okf-mcp` adds `okf mcp`, the MCP server
-any agent host can read a bundle through, and `okf-tui` adds `okf tui`, the
-full-screen terminal UI. Neither needs a line of the baseline to know it exists.
+than taking the CLI down. Three ship here: `okf-mcp` adds `okf mcp`, the MCP
+server any agent host can read a bundle through; `okf-tui` adds `okf tui`, the
+full-screen terminal UI; and `okf-pro` adds `okf pro`, which writes an
+agent's knowledge repository — bundle, hooks, pre-commit, CI, skill — and then
+enforces it at all three doors. None of them needs a line of the baseline to
+know it exists.
 Contract and threat model:
 [extension points](.okf/design/extension-points.md).
 
@@ -561,6 +564,7 @@ beside it.
 okf/              the okf gem: skill, CLI, library, graph      → okf/README.md
 okf-mcp/          the MCP server over the same kernel          → okf-mcp/README.md
 okf-tui/          the terminal UI over the same kernel         → okf-tui/README.md
+okf-pro/        the scaffold and the gates over the same kernel → okf-pro/README.md
 plugin/           the Claude Code plugin (this repo is its marketplace)
 .okf/             this project's own knowledge, as an OKF bundle
 Dockerfile        builds the published image from okf/
@@ -577,8 +581,9 @@ rake okf          # validate + lint every .okf bundle in the repo
 rake serve        # browse this project's own bundle as a graph
 ```
 
-From any gem's directory, for work on that gem — `cd okf-mcp` or `cd okf-tui`
-follows the same three commands, and each has its own README and CI job. From
+From any gem's directory, for work on that gem — `cd okf-mcp`, `cd okf-tui` or
+`cd okf-pro` follows the same three commands, and each has its own README and
+CI job. From
 `okf/`, for work on the baseline itself:
 
 ```bash

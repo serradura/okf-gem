@@ -20,7 +20,8 @@ sources:
 
 The repository holds more than one gem. `okf/` is the baseline — the all-in-one
 that reads, validates, lints, searches and serves bundles — and the ecosystem
-grows beside it as siblings: an MCP shell, a TUI, an FTS5 storage engine.
+grows beside it as siblings: an MCP shell, a TUI, an enforcement layer, an FTS5
+storage engine.
 
 The rule is that **a directory is named for the gem it ships**. `okf/` builds
 `okf`, `okf-mcp/` builds `okf-mcp`. Nothing has to be mapped or remembered: a
