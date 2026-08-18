@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-18
+
 ### Added
 
 - **`OKF::MCP.app` — the Rack seam.** The same server definition and
@@ -342,6 +344,7 @@ rather than pretending to be changes somebody could have seen.
 
 The name reservation on RubyGems: an empty gem, no functionality.
 
+[1.2.0]: https://github.com/serradura/okf-gem/compare/okf-mcp/v1.1.0...okf-mcp/v1.2.0
 [1.1.0]: https://github.com/serradura/okf-gem/compare/okf-mcp/v1.0.0...okf-mcp/v1.1.0
 [1.0.0]: https://github.com/serradura/okf-gem/releases/tag/okf-mcp/v1.0.0
 [0.0.0]: https://rubygems.org/gems/okf-mcp/versions/0.0.0
