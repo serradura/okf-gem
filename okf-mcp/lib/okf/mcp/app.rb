@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "json"
+
 require_relative "server"
 
 module OKF
@@ -20,6 +22,39 @@ module OKF
       # StreamableHTTPTransport default.
       MAX_REQUEST_BYTES = 4 * 1024 * 1024
 
+      # The MCP endpoint is the root and nothing else. The SDK transport
+      # routes on method alone, so handed every path it answers a connecting
+      # host's OAuth discovery probes (GET /.well-known/*, POST /register —
+      # Claude Desktop sends both) with a 405 or a 200-wrapped JSON-RPC parse
+      # error: a *broken* sign-in service instead of an absent one, and the
+      # host refuses the connector on it. The WEBrick bridge scopes in its
+      # own #handle; this wrapper is the same refusal for a config.ru host.
+      class Scope
+        def initialize(transport)
+          @transport = transport
+        end
+
+        def call(env)
+          path = env["PATH_INFO"].to_s
+          # "" is the mounted spelling: `map "/mcp"` hands the mount point
+          # itself an empty PATH_INFO.
+          return not_found unless path.empty? || path == "/"
+
+          @transport.call(env)
+        end
+
+        def close
+          @transport.close
+        end
+
+        private
+
+        def not_found
+          [ 404, { "content-type" => "application/json" },
+            [ JSON.generate(error: "not found: the MCP endpoint is /") ] ]
+        end
+      end
+
       module_function
 
       # +refs+ are argv-shaped bundle names — directories and @slugs, exactly
@@ -32,15 +67,21 @@ module OKF
       def build(refs = [], engine: nil, allowed_hosts: nil, allowed_origins: nil)
         registry = Array(refs).empty? ? Registry.from_kernel : Registry.from_argv(Array(refs))
         server = Server.build(registry, engine: engine || Backend.detect)
-        options = { stateless: true, enable_json_response: true, max_request_bytes: MAX_REQUEST_BYTES }
-        options[:allowed_hosts] = Array(allowed_hosts) if allowed_hosts && !Array(allowed_hosts).empty?
-        options[:allowed_origins] = Array(allowed_origins) if allowed_origins && !Array(allowed_origins).empty?
-        transport(server, options)
+        Scope.new(transport(server, allowed_hosts: allowed_hosts, allowed_origins: allowed_origins))
       end
 
-      # Wires one transport to one server definition — the single site that
-      # names the SDK class, shared with the WEBrick bridge.
-      def transport(server, options)
+      # Wires one transport to one server definition. Every construction site
+      # — this seam and the WEBrick bridge — goes through here, so the shared
+      # posture (stateless, JSON responses, the body cap, the blank-allowlist
+      # guard) is stated once and cannot drift between the two; a caller
+      # passes only what is its own (the bridge: its listen cap).
+      def transport(server, allowed_hosts: nil, allowed_origins: nil, **options)
+        options = { stateless: true, enable_json_response: true,
+                    max_request_bytes: MAX_REQUEST_BYTES }.merge(options)
+        hosts = Array(allowed_hosts)
+        options[:allowed_hosts] = hosts unless hosts.empty?
+        origins = Array(allowed_origins)
+        options[:allowed_origins] = origins unless origins.empty?
         app = ::MCP::Server::Transports::StreamableHTTPTransport.new(server, **options)
         server.transport = app
         app

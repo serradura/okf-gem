@@ -107,9 +107,12 @@ must never swallow it.
 ## Testing
 
 Integration-first, the root's rule applied to this gem's surfaces: the tool
-files drive real JSON-RPC frames through `handle_json`; `cli_test.rb` and
-`http_test.rb` prove the two transports end-to-end (a spawned exe, a real
-socket). The HTTP files share one harness (`test/integration/http_harness.rb`)
+files drive real JSON-RPC frames through `handle_json`; `cli_plugin_test.rb`
+and `http_test.rb` prove the process end-to-end (`okf mcp` spawned as a real
+process, WEBrick on a real socket), while `cli_test.rb` drives the argv shell
+in-process and deliberately spawns nothing — a claim about argv is proven
+once, cheaply, there, and a claim about the process is proven once, in the
+spawning files. The HTTP files share one harness (`test/integration/http_harness.rb`)
 so the three cannot drift in how they compose the bridge. SSE tests read the
 wire with a raw `TCPSocket` — Net::HTTP holds a chunked body until EOF, so a
 stream that stays open would read as a hang — and sequential reads must thread

@@ -54,6 +54,20 @@ class AppTest < MCPIntegrationCase
     end
   end
 
+  # The SDK transport routes on method alone, so handed every path it answers
+  # a connecting host's OAuth discovery probes (GET /.well-known/*,
+  # POST /register) with a 405 or a 200-wrapped parse error — a *broken*
+  # sign-in service instead of an absent one, the exact refusal the WEBrick
+  # bridge already fixed one layer up. The seam must scope the same way.
+  test "only the root answers — discovery probes read as absent, not broken" do
+    app = OKF::MCP.app([ fixture("knowledge") ], engine: OKF::MCP::MemoryBackend.new)
+    status, = app.call(get_env("/.well-known/oauth-protected-resource"))
+    assert_equal 404, status, "a discovery probe must read as absence"
+
+    status, = app.call(env_for({ anything: true }, path: "/register"))
+    assert_equal 404, status, "a registration probe must read as absence"
+  end
+
   test "allowed_hosts admits the proxy Host that is refused without it" do
     request = { jsonrpc: "2.0", id: 3, method: "initialize",
                 params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "0" } } }
@@ -88,14 +102,30 @@ class AppTest < MCPIntegrationCase
 
   private
 
+  def get_env(path, host: "127.0.0.1")
+    {
+      "REQUEST_METHOD" => "GET",
+      "SCRIPT_NAME" => "",
+      "PATH_INFO" => path,
+      "QUERY_STRING" => "",
+      "SERVER_NAME" => host,
+      "SERVER_PORT" => "80",
+      "rack.url_scheme" => "http",
+      "rack.input" => StringIO.new(""),
+      "rack.errors" => $stderr,
+      "HTTP_HOST" => host,
+      "HTTP_ACCEPT" => "application/json, text/event-stream"
+    }
+  end
+
   # The env a Rack server hands the transport for one JSON POST — the same
   # keys the WEBrick bridge's env_for builds.
-  def env_for(payload, host: "127.0.0.1", headers: {})
+  def env_for(payload, host: "127.0.0.1", path: "/", headers: {})
     body = JSON.generate(payload)
     {
       "REQUEST_METHOD" => "POST",
       "SCRIPT_NAME" => "",
-      "PATH_INFO" => "/",
+      "PATH_INFO" => path,
       "QUERY_STRING" => "",
       "SERVER_NAME" => host,
       "SERVER_PORT" => "80",

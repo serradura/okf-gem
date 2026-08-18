@@ -81,6 +81,31 @@ class HTTPTest < MCPIntegrationCase
     end
   end
 
+  # The trap hands one signal to one stop; a refusal out of the transport's
+  # close must not eat it. Without an ensure, an exception there dies with
+  # the detached trap thread, WEBrick never shuts down, and Ctrl-C appears
+  # to do nothing — the server only dies to SIGKILL.
+  test "stop shuts WEBrick down even when the transport's close raises" do
+    registry = OKF::MCP::Registry.from_argv([ fixture("knowledge") ])
+    server = OKF::MCP::Server.build(registry, engine: OKF::MCP::MemoryBackend.new)
+    app = OKF::MCP::HTTP.app_for(server, bind: "127.0.0.1")
+    httpd = OKF::MCP::HTTP.build(app, bind: "127.0.0.1", port: 0)
+    thread = Thread.new { httpd.start }
+    # Shutdown before the accept loop is up records nothing; wait for it.
+    Thread.pass until httpd.status == :Running
+
+    def app.close
+      raise "transport refused to close"
+    end
+
+    error = assert_raises(RuntimeError) { OKF::MCP::HTTP.stop(httpd, app) }
+    assert_equal "transport refused to close", error.message
+    assert thread.join(5), "shutdown never ran after close raised — the signal was eaten"
+  ensure
+    thread&.kill
+    httpd&.shutdown
+  end
+
   # The boot line is diagnostics, and diagnostics are best-effort: stderr
   # belongs to whoever spawned the process, and a collector that died must not
   # take a bound, healthy server down with it. An EPIPE out of the announce
