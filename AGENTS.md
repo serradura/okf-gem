@@ -12,8 +12,9 @@ enforcement layer, an FTS5 storage engine — each named for the gem it ships.
 This file is about the baseline; a sibling inherits the working style and the
 Git rules below, but not the 2.4 floor or the dependency limits, which are
 `okf`'s own. A sibling with contracts of its own carries its own `AGENTS.md`
-beside its code ([`okf-tui/AGENTS.md`](okf-tui/AGENTS.md) and
-[`okf-pro/AGENTS.md`](okf-pro/AGENTS.md) are the two that do) — this file
+beside its code ([`okf-mcp/AGENTS.md`](okf-mcp/AGENTS.md),
+[`okf-tui/AGENTS.md`](okf-tui/AGENTS.md) and
+[`okf-pro/AGENTS.md`](okf-pro/AGENTS.md) are the three that do) — this file
 stays the general rule and those are the instances, so the same fact is never
 stated in two places to drift apart.
 
@@ -24,7 +25,8 @@ The repository — one directory per gem, plus what is not a gem:
 ```
 okf/            the baseline gem; everything below lives inside it
 okf-mcp/        the MCP shell: the kernel's capabilities as MCP tools + prompts
-                (floor 2.7 — the `mcp` SDK's — and deps exactly `mcp` + `okf`)
+                (floor 2.7 — the `mcp` SDK's — deps exactly `mcp` + `okf`;
+                own AGENTS.md)
 okf-tui/        the terminal UI: six views over one or many bundles, and the
                 registry (floor 2.4 — okf's — deps `okf` + the TTY toolkit; it
                 has its own AGENTS.md, and ships its own `.okf/` in the gem).

@@ -8,8 +8,8 @@ require "json"
 # MCP::Server definition through real JSON-RPC frames — the exact strings a
 # transport feeds `handle_json` — asserting on the tool result the way a host
 # sees it: `isError`, the content text, the parsed payload. The transports
-# themselves are proven end-to-end in cli_test.rb (a spawned exe over stdio)
-# and http_test.rb (WEBrick on a real socket); everything else runs in-process
+# themselves are proven end-to-end in cli_plugin_test.rb (a spawned process
+# over stdio) and http_test.rb (WEBrick on a real socket); everything else runs in-process
 # so the integration coverage report counts it.
 #
 # This file is not named *_test.rb, so the test task loads it only via the

@@ -16,5 +16,13 @@ module OKF
   # so an embedding app never pays for the protocol machinery.
   module MCP
     class Error < StandardError; end
+
+    # The Rack seam — the same server definition and stateless transport
+    # `--http` serves, as the app a config.ru runs (`run OKF::MCP.app`).
+    # Lazy, so requiring this file never pays for the protocol machinery.
+    def self.app(refs = [], **options)
+      require_relative "mcp/app"
+      App.build(refs, **options)
+    end
   end
 end

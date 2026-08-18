@@ -28,6 +28,21 @@ class PackagingTest < OKF::TestCase
     end
   end
 
+  # `CLAUDE.md` is one line — `@AGENTS.md` — and `AGENTS.md` is rejected from the
+  # gem. Shipping the pointer without its target puts a reference to nothing
+  # inside the published gem, where the reader has no checkout to resolve it in.
+  #
+  # It is not hypothetical tidiness: a new top-level file inside a gem directory
+  # ships unless the gemspec rejects it, and this one arrived after the reject
+  # list was last read.
+  test "CLAUDE.md does not ship — it points at an AGENTS.md the gem does not carry" do
+    assert File.file?(File.join(GEM_ROOT, "CLAUDE.md")), "the pointer is missing from the checkout"
+    refute_includes spec.files, "CLAUDE.md",
+      "CLAUDE.md is in spec.files while AGENTS.md is rejected, so the published gem carries a " \
+      "pointer to a file that is not there. Reject both, or ship both."
+    refute_includes spec.files, "AGENTS.md"
+  end
+
   private
 
   def spec

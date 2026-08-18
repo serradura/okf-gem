@@ -7,8 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`OKF::MCP.app` — the Rack seam.** The same server definition and
+  stateless transport `okf mcp --http` serves, as the app a `config.ru`
+  runs: `run OKF::MCP.app` serves the registered bundles under puma,
+  unicorn, or any Rack 3 server, with argv-shaped refs and
+  `allowed_hosts:`/`allowed_origins:` for a reverse proxy. The server you
+  mount it under is your dependency, not this gem's — the no-rackup
+  position holds, and `--http` on the kernel's WEBrick stays the
+  zero-config default. The entry is lazy and a loading test pins it:
+  `require "okf/mcp"` still loads neither the SDK nor WEBrick.
+
+- **Every tool carries a `title`** — the human name a host displays where it
+  lists tools ("Search concepts", "Validate conformance"), beside the wire
+  name an agent calls. All fourteen or none, and a capabilities test pins
+  all fourteen: a mix of titled and untitled tools reads as a half-finished
+  server in a Desktop listing.
+
+### Fixed
+
+- **`subscriptions/listen` streams through the WEBrick bridge** instead of
+  crashing it. The SDK answers the modern lifecycle's listen with a Rack
+  streaming body — a callable, not an enumerable — and the bridge's buffering
+  loop raised `NoMethodError`, handing the client WEBrick's HTML 500 page
+  with the exception text in it: a broken server where the spec's
+  notification stream should open. The bridge now serves callable bodies over
+  a chunked response, parking the handler thread until the SDK ends the
+  stream (a dead peer's `EPIPE`, or the transport's close at shutdown — which
+  now runs before WEBrick's, whose thread-join would otherwise hang on an
+  open stream). Concurrent listens are capped at 32 on this bridge — each one
+  holds a WEBrick thread and connection token, unlike under a Rack 3 server —
+  and since this server declares no `listChanged` or `subscribe` capability,
+  the acknowledged filter is always empty: a stream carries keepalives, never
+  a notification, and that is the conformant answer.
+
 ### Changed
 
+- **The mcp floor moves to `~> 1.2`** — the SDK this shell rides released
+  1.2.0, completing the SEP-2575 stateless modern lifecycle of the
+  2026-07-28 protocol, and the suite now proves wire behavior (the modern
+  envelope, `server/discover`, the streamed `subscriptions/listen`) that
+  1.0 and 1.1 never served. The floor tracks what the suite proves, and a
+  new unit guard pins it the same way the okf floor is pinned: a lockfile
+  that resolves past the floor fails the suite until the gemspec follows.
 - **The okf floor moves to `>= 2.1, < 3`** — the kernel this gem develops
   against released 2.1.0, and the floor tracks what the suite proves against
   (the gemspec drill enforces equality as the normal state). Nothing here calls

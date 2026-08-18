@@ -4,7 +4,7 @@ require "socket"
 require "stringio"
 require "webrick"
 
-require_relative "server"
+require_relative "app"
 
 module OKF
   module MCP
@@ -25,10 +25,111 @@ module OKF
       # Binds that mean "every interface" rather than one address.
       WILDCARD_BINDS = %w[0.0.0.0 :: *].freeze
 
-      # The largest request body the bridge will hand the transport, matching
-      # the SDK's own StreamableHTTPTransport default. Anything past it is 413
-      # before it is allocated (see #read_body).
-      MAX_REQUEST_BYTES = 4 * 1024 * 1024
+      # The largest request body the bridge will hand the transport — the
+      # Rack seam's constant, aliased because #read_body enforces it here too:
+      # anything past it is 413 before it is allocated.
+      MAX_REQUEST_BYTES = App::MAX_REQUEST_BYTES
+
+      # Cap on concurrent `subscriptions/listen` streams, far below the SDK's
+      # 1000 default because the costs differ in kind: under a Rack 3 server a
+      # stream holds no thread, but on this bridge each one parks a WEBrick
+      # handler thread *and* occupies one of WEBrick's 100 connection tokens —
+      # at the SDK default the tokens exhaust at 100 and every tool call
+      # queues behind held streams. 32 leaves two-thirds of the tokens for
+      # request traffic. A constant, not a flag: zero-config is this mode's
+      # posture, and an operator who needs more has the Rack seam.
+      MAX_LISTEN_STREAMS = 32
+
+      # What the SDK writes SSE frames to, adapting its stream contract to
+      # WEBrick's proc-body one. The SDK expects write/flush per frame, EPIPE
+      # out of write to mean the peer is gone, and close to end the stream;
+      # WEBrick ends the response when the body proc returns. So the proc
+      # parks in #wait until the SDK — its keepalive thread on a dead peer, or
+      # the transport's own close — calls #close, and only then hands the
+      # thread back (see #stream_response).
+      class Stream
+        def initialize(wire)
+          @wire = wire
+          @state = Mutex.new
+          @wire_lock = Mutex.new
+          @done = ConditionVariable.new
+          @closed = false
+        end
+
+        # One frame, one chunk. A dead peer raises EPIPE/ECONNRESET straight
+        # out of the socket write — exactly the signal the SDK's stream
+        # cleanup keys on, so it must never be swallowed here.
+        #
+        # The wire has its own lock, deliberately separate from the state's:
+        # a *stalled* peer (alive, not reading, send buffer full) parks the
+        # write with no EPIPE to raise, and #close belongs to shutdown — it
+        # must never queue behind a peer's buffer, so it takes only the state
+        # lock. A write racing close lands on a socket that is closing
+        # anyway; the resulting IOError/EPIPE is the SDK's cleanup signal.
+        def write(data)
+          @state.synchronize do
+            raise IOError, "stream is closed" if @closed
+          end
+          @wire_lock.synchronize { @wire.write(data) }
+        end
+
+        # WEBrick's ChunkedWrapper has no flush; each write already reaches
+        # the socket as a complete chunk.
+        def flush
+          @wire.flush if @wire.respond_to?(:flush)
+          nil
+        end
+
+        def close
+          @state.synchronize do
+            @closed = true
+            @done.broadcast
+          end
+        end
+
+        def wait
+          @state.synchronize { @done.wait(@state) until @closed }
+        end
+      end
+
+      # The bridge's own ledger of parked streams, one per WEBrick server.
+      # The SDK closes the streams it knows about, but a listen that races
+      # the transport's close registers *after* that sweep and would park
+      # forever — and a supervisor sends exactly one signal, so "the second
+      # TERM re-sweeps" is termination lost. The latch closes the race: once
+      # #close_all has run, an admitted stream is closed on the spot and its
+      # handler thread parks for no time at all.
+      class Streams
+        def initialize
+          @lock = Mutex.new
+          @streams = []
+          @closed = false
+        end
+
+        def admit(stream)
+          late = @lock.synchronize do
+            if @closed
+              true
+            else
+              @streams << stream
+              false
+            end
+          end
+          stream.close if late
+        end
+
+        def discard(stream)
+          @lock.synchronize { @streams.delete(stream) }
+        end
+
+        def close_all
+          parked = @lock.synchronize do
+            @closed = true
+            @streams.dup
+          end
+          parked.each(&:close)
+        end
+      end
 
       # Everything before accepting — the bind (where EADDRINUSE, the boot
       # failure that actually happens, raises), the traps and the boot line —
@@ -38,21 +139,40 @@ module OKF
       def prepare(server, bind:, port:, allow_hosts: [], out: $stderr)
         app = app_for(server, bind: bind, allowed_hosts: allowed_hosts_for(bind, extra: allow_hosts))
         httpd = build(app, bind: bind, port: port)
-        %w[INT TERM].each { |signal| trap(signal) { httpd.shutdown } }
+        # The trap spawns a thread because #stop takes the transport's mutex,
+        # and a mutex inside trap context is ThreadError on Ruby 2.7.
+        %w[INT TERM].each { |signal| trap(signal) { Thread.new { stop(httpd, app) } } }
         announce(httpd, bind: bind, out: out)
         httpd
+      end
+
+      # Teardown in the only order that terminates: the transport first, so
+      # every open listen stream is closed and its parked handler thread
+      # returns (see #stream_response) — WEBrick's own shutdown *joins* the
+      # connection threads, so closing it first would hang on any open stream.
+      #
+      # The ensure is the signal's guarantee: a supervisor sends exactly one
+      # TERM, so whatever the transport's close raises, the stream latch still
+      # trips (a listen racing the close is closed on admission, never parked)
+      # and WEBrick still comes down. One signal, one dead server, always.
+      def stop(httpd, app)
+        app.close
+      ensure
+        httpd.config[:okf_mcp_streams]&.close_all
+        httpd.shutdown
       end
 
       # The SDK transport wired to the server, in stateless JSON mode. A
       # non-loopback bind (e.g. 0.0.0.0) is refused by the SDK's DNS-rebinding
       # guard unless its Host is allowlisted; loopback binds keep the SDK
       # defaults. Protection itself stays on either way.
-      def app_for(server, bind:, allowed_hosts: allowed_hosts_for(bind))
-        options = { stateless: true, enable_json_response: true, max_request_bytes: MAX_REQUEST_BYTES }
-        options[:allowed_hosts] = allowed_hosts if allowed_hosts && !allowed_hosts.empty?
-        app = ::MCP::Server::Transports::StreamableHTTPTransport.new(server, **options)
-        server.transport = app
-        app
+      # +listen_options+ passes `max_listen_subscriptions:` /
+      # `listen_keepalive_interval:` through to the SDK — real configuration
+      # for a caller composing the bridge directly; the CLI keeps the
+      # defaults above.
+      def app_for(server, bind:, allowed_hosts: allowed_hosts_for(bind), **listen_options)
+        App.transport(server, allowed_hosts: allowed_hosts,
+          max_listen_subscriptions: MAX_LISTEN_STREAMS, **listen_options)
       end
 
       # The Host allowlist a bind address needs: nil for loopback, which the
@@ -120,19 +240,24 @@ module OKF
         []
       end
 
-      # Returns an unstarted server so tests can drive an ephemeral port.
+      # Returns an unstarted server so tests can drive an ephemeral port. The
+      # stream ledger rides the server instance — one per bridge, reachable
+      # from #stop — because the module itself serves many servers at once
+      # under the test suite.
       def build(app, bind:, port:)
+        streams = Streams.new
         httpd = WEBrick::HTTPServer.new(
           BindAddress: bind,
           Port: port,
           Logger: WEBrick::Log.new($stderr, WEBrick::Log::WARN),
           AccessLog: []
         )
-        httpd.mount_proc("/") { |request, response| handle(app, request, response) }
+        httpd.config[:okf_mcp_streams] = streams
+        httpd.mount_proc("/") { |request, response| handle(app, request, response, streams) }
         httpd
       end
 
-      def handle(app, request, response)
+      def handle(app, request, response, streams = nil)
         # The MCP endpoint is the root and nothing else. The SDK transport
         # routes on method alone, so handing it every path answered the OAuth
         # discovery probes a connecting host sends first (GET /.well-known/*,
@@ -154,11 +279,52 @@ module OKF
         status, headers, out = app.call(env_for(request, body))
         response.status = status
         headers.each { |name, value| response[name] = value }
-        buffer = String.new
-        out.each { |chunk| buffer << chunk }
-        response.body = buffer
-      ensure
-        out.close if out.respond_to?(:close)
+        # A callable body is the Rack 3 streaming shape — the SDK's
+        # `subscriptions/listen` answers with one — and buffering it here
+        # would block forever on a stream that only ends when the peer goes.
+        # The close is per-branch, not a method-level ensure: WEBrick invokes
+        # a streaming body only after this method returns, and a callable
+        # that also responds to close (a shape Rack 3 sanctions) must not be
+        # closed before it is served.
+        if out.respond_to?(:call)
+          stream_response(response, out, streams)
+        else
+          begin
+            buffer = String.new
+            out.each { |chunk| buffer << chunk }
+            response.body = buffer
+          ensure
+            out.close if out.respond_to?(:close)
+          end
+        end
+      end
+
+      # Serves a Rack streaming body through WEBrick's proc-body path: with
+      # `chunked = true`, WEBrick calls the proc with a ChunkedWrapper after
+      # the headers are out, and finalizes the response when it returns. The
+      # SDK's callable returns immediately (it registers the stream, writes
+      # the acknowledgement, and starts its keepalive thread), so the proc
+      # parks this handler thread in Stream#wait until the SDK ends the
+      # stream — a dead peer's EPIPE out of a keepalive write, or the
+      # transport's close on shutdown.
+      def stream_response(response, body, streams = nil)
+        response.keep_alive = false # an SSE stream ends with its connection
+        response.chunked = true
+        response.body = lambda do |wire|
+          stream = Stream.new(wire)
+          # Admitted before the SDK sees it: a stream arriving after the stop
+          # latch tripped is closed here and now, so the SDK's first write
+          # raises IOError into its own cleanup and this thread never parks.
+          streams.admit(stream) if streams
+          begin
+            body.call(stream)
+            stream.wait
+          ensure
+            stream.close # idempotent; covers a body that raised
+            streams.discard(stream) if streams
+            body.close if body.respond_to?(:close)
+          end
+        end
       end
 
       # The request body, or nil when it exceeds MAX_REQUEST_BYTES. A declared

@@ -31,11 +31,16 @@ Gem::Specification.new do |spec|
 
   # `git ls-files` with `chdir:` into this gem's directory: paths outside the
   # gem are invisible, so only this gem's own development files need rejecting.
+  #
+  # `CLAUDE.md` is rejected alongside `AGENTS.md`, and only reads as a stylistic
+  # choice: it is one line, `@AGENTS.md`, so shipping it without its target puts
+  # a pointer to nothing inside the published gem. The two go together or
+  # neither goes. `test/unit/packaging_test.rb` pins that.
   gemspec = File.basename(__FILE__)
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).reject do |f|
       (f == gemspec) ||
-        f.start_with?(*%w[bin/ Gemfile Rakefile test/ .rubocop.yml .gitignore])
+        f.start_with?(*%w[bin/ Gemfile Rakefile test/ .rubocop.yml .gitignore AGENTS.md CLAUDE.md])
     end
   end
   # No executable. This gem's entry point is the `okf mcp` verb it registers
@@ -43,7 +48,11 @@ Gem::Specification.new do |spec|
   # only aliased it was one more name to install, document and keep working.
   spec.require_paths = [ "lib" ]
 
-  spec.add_dependency "mcp", "~> 1.0"
+  # The floor tracks what the suite proves (test/unit/gemspec_test.rb pins
+  # it): the listen and modern-path tests exercise the SEP-2575 wire, which
+  # 1.0 and 1.1 never served — against them the tests fail, so the floor
+  # cannot admit them.
+  spec.add_dependency "mcp", "~> 1.2"
   # The kernel version that ships Search.prepare/with/across, registry groups
   # and project-local discovery, `dirs`, `Bundle#directories` (the one source
   # the dir refusal consults), and the slug grammar this shell rides. 1.12
