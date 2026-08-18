@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`subscriptions/listen` streams through the WEBrick bridge** instead of
+  crashing it. The SDK answers the modern lifecycle's listen with a Rack
+  streaming body — a callable, not an enumerable — and the bridge's buffering
+  loop raised `NoMethodError`, handing the client WEBrick's HTML 500 page
+  with the exception text in it: a broken server where the spec's
+  notification stream should open. The bridge now serves callable bodies over
+  a chunked response, parking the handler thread until the SDK ends the
+  stream (a dead peer's `EPIPE`, or the transport's close at shutdown — which
+  now runs before WEBrick's, whose thread-join would otherwise hang on an
+  open stream). Concurrent listens are capped at 32 on this bridge — each one
+  holds a WEBrick thread and connection token, unlike under a Rack 3 server —
+  and since this server declares no `listChanged` or `subscribe` capability,
+  the acknowledged filter is always empty: a stream carries keepalives, never
+  a notification, and that is the conformant answer.
+
 ### Changed
 
 - **The mcp floor moves to `~> 1.2`** — the SDK this shell rides released

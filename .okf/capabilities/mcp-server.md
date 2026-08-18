@@ -354,6 +354,28 @@ One server definition, two transports: stdio (default — each host spawns its
 own process, boot line on stderr) and `--http` — Streamable HTTP in stateless
 JSON mode on the WEBrick the kernel already ships.
 
+**The one response WEBrick cannot buffer.** The SDK answers the modern
+lifecycle's `subscriptions/listen` with a Rack streaming body — a callable
+that writes SSE frames as they happen and *returns immediately*, having
+registered the stream and started its keepalive thread. WEBrick's proc-body
+path ends the response the moment the proc returns, so the bridge adapts by
+parking: the handler thread waits inside the stream object until the SDK ends
+the stream — a dead peer's `EPIPE` out of a keepalive write, or the
+transport's close at shutdown. Two consequences are load-bearing. Teardown
+must close the transport *before* WEBrick, because WEBrick's shutdown joins
+its connection threads and would hang on any open stream (and on Ruby 2.7 a
+signal trap may not take the transport's mutex, so the trap hands teardown to
+a thread). And the stream cap is this bridge's own — 32, far under the SDK's
+1000 default — because here every stream parks a thread *and* holds one of
+WEBrick's 100 connection tokens; at the SDK default, tool calls would queue
+behind held streams. A constant, not a flag: zero-config is this mode's
+posture, and an operator who needs more streams has a Rack server, where they
+cost no thread. With no `listChanged` and no `subscribe` among the declared
+capabilities, the honored filter is always empty — a listen stream here
+carries its acknowledgement and keepalives, never a notification, and the
+tests pin that as the conformant answer rather than treating it as a reason
+to refuse the method.
+
 **What the Host allowlist is, and is not.** It feeds the SDK's DNS-rebinding
 protection: a browser walked into this port by a page the reader never meant to
 give it to. It is *not* access control, because a client that is not a browser

@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
 require_relative "mcp_integration_case"
-require "okf/mcp/http"
-require "net/http"
+require_relative "http_harness"
 require "socket"
 
 # The same server definition over Streamable HTTP: a real WEBrick on a real
 # socket, stateless JSON mode — one POST in, one JSON object out — and the
 # SDK's DNS-rebinding protection observed from the outside.
 class HTTPTest < MCPIntegrationCase
+  include HTTPHarness
+
   test "serves initialize and a tool call over one warm process" do
     with_http_server do |port|
       response = post(port, { jsonrpc: "2.0", id: 1, method: "initialize",
@@ -226,26 +227,6 @@ class HTTPTest < MCPIntegrationCase
 
   private
 
-  # The composition #serve performs, on an ephemeral port a test can own:
-  # the wired transport, the WEBrick bridge, a thread to run it.
-  def with_http_server
-    registry = OKF::MCP::Registry.from_argv([ fixture("knowledge") ])
-    server = OKF::MCP::Server.build(registry, engine: OKF::MCP::MemoryBackend.new)
-    app = OKF::MCP::HTTP.app_for(server, bind: "127.0.0.1")
-    httpd = OKF::MCP::HTTP.build(app, bind: "127.0.0.1", port: 0)
-    thread = Thread.new { httpd.start }
-    port = httpd.listeners.first.addr[1]
-    begin
-      yield port
-    ensure
-      # shutdown wakes WEBrick's select through its shutdown pipe — usually.
-      # A bounded join with a kill fallback keeps a wedged accept loop from
-      # hanging the whole suite and swallowing the assertion that failed.
-      httpd.shutdown
-      thread.kill unless thread.join(5)
-    end
-  end
-
   # A raw chunked POST — Net::HTTP always sets Content-Length for a String
   # body, so the header this exercises the absence of has to be hand-written.
   # Returns [ status, body ].
@@ -257,17 +238,5 @@ class HTTPTest < MCPIntegrationCase
     response = socket.read.to_s
     socket.close
     [ response[%r{\AHTTP/1\.\d (\d+)}, 1], response ]
-  end
-
-  # A Hash payload is encoded; a String is sent as-is, which is how the
-  # oversized-body test gets bytes past the JSON generator.
-  def post(port, payload, host: nil, path: "/")
-    http = Net::HTTP.new("127.0.0.1", port)
-    http.open_timeout = 10
-    http.read_timeout = 10
-    request = Net::HTTP::Post.new(path, "Content-Type" => "application/json", "Accept" => "application/json, text/event-stream")
-    request["Host"] = host if host
-    request.body = payload.is_a?(String) ? payload : JSON.generate(payload)
-    http.request(request)
   end
 end
