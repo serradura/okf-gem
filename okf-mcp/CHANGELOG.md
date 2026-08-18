@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   zero-config default. The entry is lazy and a loading test pins it:
   `require "okf/mcp"` still loads neither the SDK nor WEBrick.
 
+- **Every tool carries a `title`** — the human name a host displays where it
+  lists tools ("Search concepts", "Validate conformance"), beside the wire
+  name an agent calls. All fourteen or none, and a capabilities test pins
+  all fourteen: a mix of titled and untitled tools reads as a half-finished
+  server in a Desktop listing.
+
 ### Fixed
 
 - **`subscriptions/listen` streams through the WEBrick bridge** instead of

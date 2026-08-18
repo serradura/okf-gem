@@ -396,7 +396,8 @@ refuses for the `okf-*` prefix — the false confidence is worse than no rule.
 Binding publicly is nonetheless allowed, matching the
 [graph server](graph-server.md): its read surface follows any bind too, and
 only the *write* surface refuses, with **no flag that says otherwise**. The
-first release is read-only by construction (`readOnlyHint` on all ten tools),
+first release is read-only by construction (`readOnlyHint` on all fourteen
+tools),
 so it sits entirely on the permitted side of that line. The capture write-back
 — one narrow tool through the kernel's validating writer, opt-in per bundle —
 inherits the refusal verbatim when it lands: **loopback only, no override.**

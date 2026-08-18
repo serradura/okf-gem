@@ -253,6 +253,7 @@ module OKF
         def tags_tool(context)
           define_tool(
             name: "tags",
+            title: "Tag index",
             description: "The tag index: every tag with its count and concepts, ordered by count. " \
                          "`by: \"dir\"` or `by: \"type\"` regroups per concept dimension for vocabulary " \
                          "curation — each tag then carries `count` (within the group) beside `total` " \
@@ -285,6 +286,7 @@ module OKF
         def types_tool(context)
           define_tool(
             name: "types",
+            title: "Type index",
             description: "The type index: every type with its count and concepts, ordered by count. " \
                          "§4.1's vocabulary is open — this is how you learn what a bundle's producer " \
                          "meant by its types before filtering the catalog on one.",
@@ -309,6 +311,7 @@ module OKF
         def stats_tool(context)
           define_tool(
             name: "stats",
+            title: "Bundle stats",
             description: "Bundle rollups in one answer: concepts, dirs, types, cross-links, distinct " \
                          "tags, and the by_type/by_dir/by_top_dir distributions — \"how big is what I am " \
                          "about to read\". by_dir counts the file's directory (a dir holding nothing " \
@@ -378,6 +381,7 @@ module OKF
         def list_bundles_tool(context)
           define_tool(
             name: "list_bundles",
+            title: "List bundles",
             description: "What exists: every OKF bundle this server knows — slug, title, root, concept " \
                          "count, type/tag rollups (top #{ROLLUP_LIMIT} each, with other_types/other_tags remainder " \
                          "counts), which is the default, and whether its directory is missing — plus the " \
@@ -402,6 +406,7 @@ module OKF
         def dirs_tool(context)
           define_tool(
             name: "dirs",
+            title: "Directory tree",
             description: "The first move: a bundle's shape as one row per directory — `count` is the " \
                          "concepts living directly there, `subtree` the weight at or below it, `subdirs` " \
                          "its children. Orient here before anything else; it scales with the tree, not " \
@@ -429,6 +434,7 @@ module OKF
         def index_tool(context)
           define_tool(
             name: "index",
+            title: "Bundle index",
             description: "The bundle's index map, one directory at a time: the authored index.md body " \
                          "(or `synthesized: true` where none exists), type/tag rollups, subdirectories, " \
                          "and the concept listing an index there would enumerate — the view that surfaces " \
@@ -461,6 +467,7 @@ module OKF
         def search_tool(context)
           define_tool(
             name: "search",
+            title: "Search concepts",
             description: "Find concepts: every term must match (AND) across title, id, tags, type, " \
                          "description, and body. Returns scored rows — each carrying its `bundle` and the " \
                          "fields it `matched`, so results stay citable — with ids for read_concept. Omit " \
@@ -511,6 +518,7 @@ module OKF
         def read_concept_tool(context)
           define_tool(
             name: "read_concept",
+            title: "Read a concept",
             description: "Read one concept's full markdown (frontmatter and body), live from disk — the " \
                          "canonical copy. Ids are exact: take them from search, index, or catalog results.",
             input_schema: {
@@ -545,6 +553,7 @@ module OKF
         def catalog_tool(context)
           define_tool(
             name: "catalog",
+            title: "Catalog",
             description: "Per-concept metadata for a whole bundle — #{CATALOG_FIELDS.join(", ")} — " \
                          "filterable by type, dir (prefix: a dir names itself and everything beneath " \
                          "it), tag, status (effective: absent reads stable) and trust tier. Use it for " \
@@ -586,6 +595,7 @@ module OKF
         def log_tool(context)
           define_tool(
             name: "log",
+            title: "Update log",
             description: "Read a bundle's append-only history — every log.md, root scope first, content " \
                          "live from disk. Returns the newest #{LOG_LIMIT} date-grouped entries per file; " \
                          "each file's `total` is how many it holds and `returned` how many came back, so " \
@@ -611,6 +621,7 @@ module OKF
         def validate_tool(context)
           define_tool(
             name: "validate",
+            title: "Validate conformance",
             description: "The spec §11 conformance verdict: `conformant` (hard errors empty), every error " \
                          "and soft warning with its file and why — unopenable files included. Read-only: " \
                          "you may flag what it finds; fixing it belongs to the okf skill and CLI. " \
@@ -636,6 +647,7 @@ module OKF
         def lint_tool(context)
           define_tool(
             name: "lint",
+            title: "Lint curation",
             description: "The curation-quality report — reachability, backlog, completeness, freshness, " \
                          "provenance, attestation, migration, hygiene — as warnings and infos that never " \
                          "reject (conformance is validate's question). `only`/`except` select by check id " \
@@ -667,6 +679,7 @@ module OKF
         def graph_tool(context)
           define_tool(
             name: "graph",
+            title: "Concept graph",
             description: "The knowledge graph, in three bounded views — never with concept bodies. " \
                          "\"minimal\" (default): id/title nodes, edges, and the type/tag indexes — the " \
                          "shape for planning a traversal. \"hubs\": concepts ranked by inbound links with " \
@@ -693,6 +706,7 @@ module OKF
         def references_tool(context)
           define_tool(
             name: "references",
+            title: "References inventory",
             description: "Inventory the bundle's references/ tree (§6.3): every file — the .py attesters " \
                          "and .sql computations no other tool can see included — with the concepts citing " \
                          "each through the §6.2 path-valued fields (resource, sources[].resource, " \
@@ -1000,9 +1014,10 @@ module OKF
         # rescue turns domain failures into tool errors an agent can act on
         # instead of opaque JSON-RPC internal errors — carrying the kernel's
         # own sentences, never re-judged here.
-        def define_tool(name:, description:, input_schema:, &body)
+        def define_tool(name:, title:, description:, input_schema:, &body)
           ::MCP::Tool.define(
             name: name,
+            title: title,
             description: description,
             # Looked up rather than passed, so a tool cannot ship without its
             # shape being a deliberate omission — read_concept is the one

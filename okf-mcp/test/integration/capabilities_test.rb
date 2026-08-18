@@ -30,6 +30,17 @@ class CapabilitiesTest < MCPIntegrationCase
     end
   end
 
+  # Hosts display titles where they list tools; a tool without one shows its
+  # wire name instead, and a mix of the two reads as a half-finished server.
+  # All fourteen or none — this pins all fourteen.
+  test "every tool on the wire carries a title" do
+    server = mcp_server(fixture("knowledge"))
+    tools = rpc(server, "tools/list").dig("result", "tools")
+    tools.each do |tool|
+      refute OKF.blank?(tool["title"]), "#{tool["name"]} ships without a title"
+    end
+  end
+
   # The general rule, stated so a regression of the same class fails here
   # rather than in a host: nothing may be declared that answers empty.
   test "every declared capability answers with something" do
