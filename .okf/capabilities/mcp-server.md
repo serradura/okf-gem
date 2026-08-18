@@ -352,7 +352,14 @@ installed where a filesystem and the CLI actually are.
 
 One server definition, two transports: stdio (default — each host spawns its
 own process, boot line on stderr) and `--http` — Streamable HTTP in stateless
-JSON mode on the WEBrick the kernel already ships.
+JSON mode on the WEBrick the kernel already ships. A third hosting, not a
+third transport: `OKF::MCP.app` hands the same definition and stateless
+transport to any Rack server a `config.ru` names — the server is the
+reader's dependency, never this gem's, so the no-rackup position holds while
+puma and its kin stop being closed doors. The seam inherits this section's
+whole posture verbatim: the allowlist arguments feed the same DNS-rebinding
+guard, and a Rack server bound beyond loopback publishes every served bundle
+with no authentication, exactly as `--bind` does.
 
 **The one response WEBrick cannot buffer.** The SDK answers the modern
 lifecycle's `subscriptions/listen` with a Rack streaming body — a callable

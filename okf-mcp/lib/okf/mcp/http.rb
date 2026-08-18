@@ -4,7 +4,7 @@ require "socket"
 require "stringio"
 require "webrick"
 
-require_relative "server"
+require_relative "app"
 
 module OKF
   module MCP
@@ -25,10 +25,10 @@ module OKF
       # Binds that mean "every interface" rather than one address.
       WILDCARD_BINDS = %w[0.0.0.0 :: *].freeze
 
-      # The largest request body the bridge will hand the transport, matching
-      # the SDK's own StreamableHTTPTransport default. Anything past it is 413
-      # before it is allocated (see #read_body).
-      MAX_REQUEST_BYTES = 4 * 1024 * 1024
+      # The largest request body the bridge will hand the transport — the
+      # Rack seam's constant, aliased because #read_body enforces it here too:
+      # anything past it is 413 before it is allocated.
+      MAX_REQUEST_BYTES = App::MAX_REQUEST_BYTES
 
       # Cap on concurrent `subscriptions/listen` streams, far below the SDK's
       # 1000 default because the costs differ in kind: under a Rack 3 server a
@@ -124,9 +124,7 @@ module OKF
         options = { stateless: true, enable_json_response: true, max_request_bytes: MAX_REQUEST_BYTES,
                     max_listen_subscriptions: MAX_LISTEN_STREAMS }.merge(listen_options)
         options[:allowed_hosts] = allowed_hosts if allowed_hosts && !allowed_hosts.empty?
-        app = ::MCP::Server::Transports::StreamableHTTPTransport.new(server, **options)
-        server.transport = app
-        app
+        App.transport(server, options)
       end
 
       # The Host allowlist a bind address needs: nil for loopback, which the

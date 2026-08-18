@@ -51,6 +51,26 @@ not access control, and it cannot be — a client that is not a browser sets
 `Host` to whatever it likes. Treat a non-loopback bind the way you would treat
 serving your notes directory over HTTP, because that is what it is.
 
+`--http` runs on the WEBrick the okf kernel already ships — zero configuration,
+no extra dependency. To host the same server under puma, unicorn, or any other
+Rack server instead, `OKF::MCP.app` is the same definition and stateless
+transport as a Rack app, ready for a `config.ru`:
+
+```ruby
+# config.ru — run with: bundle exec puma
+require "okf/mcp"
+
+run OKF::MCP.app                                          # no args: the registered bundles
+# run OKF::MCP.app([ "@handbook", "./docs" ])             # or exactly these
+# run OKF::MCP.app(allowed_hosts: [ "mcp.example.com" ])  # behind a proxy or DNS name
+```
+
+The server you run it under is your dependency, not this gem's, and it needs
+the Rack 3 SPEC (the `subscriptions/listen` notification stream is a Rack 3
+streaming body). Everything above about non-loopback binds applies verbatim:
+a Rack server reachable beyond loopback publishes every served bundle, with
+no authentication.
+
 Whatever argv names is the whole served set. A registry ref is resolved once, at
 boot; no tool argument can widen the set afterwards, so a group slug reaches
 bundles only when the registry itself is what is being served.

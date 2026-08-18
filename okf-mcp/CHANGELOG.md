@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`OKF::MCP.app` — the Rack seam.** The same server definition and
+  stateless transport `okf mcp --http` serves, as the app a `config.ru`
+  runs: `run OKF::MCP.app` serves the registered bundles under puma,
+  unicorn, or any Rack 3 server, with argv-shaped refs and
+  `allowed_hosts:`/`allowed_origins:` for a reverse proxy. The server you
+  mount it under is your dependency, not this gem's — the no-rackup
+  position holds, and `--http` on the kernel's WEBrick stays the
+  zero-config default. The entry is lazy and a loading test pins it:
+  `require "okf/mcp"` still loads neither the SDK nor WEBrick.
+
 ### Fixed
 
 - **`subscriptions/listen` streams through the WEBrick bridge** instead of
