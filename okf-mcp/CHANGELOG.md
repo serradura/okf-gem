@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The mcp floor moves to `~> 1.2`** — the SDK this shell rides released
+  1.2.0, completing the SEP-2575 stateless modern lifecycle of the
+  2026-07-28 protocol, and the suite now proves wire behavior (the modern
+  envelope, `server/discover`, the streamed `subscriptions/listen`) that
+  1.0 and 1.1 never served. The floor tracks what the suite proves, and a
+  new unit guard pins it the same way the okf floor is pinned: a lockfile
+  that resolves past the floor fails the suite until the gemspec follows.
 - **The okf floor moves to `>= 2.1, < 3`** — the kernel this gem develops
   against released 2.1.0, and the floor tracks what the suite proves against
   (the gemspec drill enforces equality as the normal state). Nothing here calls

@@ -43,7 +43,11 @@ Gem::Specification.new do |spec|
   # only aliased it was one more name to install, document and keep working.
   spec.require_paths = [ "lib" ]
 
-  spec.add_dependency "mcp", "~> 1.0"
+  # The floor tracks what the suite proves (test/unit/gemspec_test.rb pins
+  # it): the listen and modern-path tests exercise the SEP-2575 wire, which
+  # 1.0 and 1.1 never served — against them the tests fail, so the floor
+  # cannot admit them.
+  spec.add_dependency "mcp", "~> 1.2"
   # The kernel version that ships Search.prepare/with/across, registry groups
   # and project-local discovery, `dirs`, `Bundle#directories` (the one source
   # the dir refusal consults), and the slug grammar this shell rides. 1.12
