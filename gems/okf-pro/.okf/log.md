@@ -1,5 +1,20 @@
 # Update Log
 
+## 2026-08-19
+
+* **The structure and the catalogue moved into this bundle, and a test holds
+  them to the code.** `AGENTS.md` carried a hand-maintained Map of `lib/**` that
+  nothing checked, so a file could arrive, move or leave and the Map would keep
+  reading plausibly. [Structure](/structure/) now owns it — one concept per
+  layer, naming every file — and [Capabilities](/capabilities/) owns the
+  catalogue of what the sixteen verbs and nine checks already answer, which is
+  the list an agent has to read before writing a seventeenth.
+  `test/unit/bundle_catalog_test.rb` is the pin, and it bites in both
+  directions: a file no concept names, a concept naming a file that is gone, or
+  a catalogue that disagrees with `CLI::USAGE` or `CLI::HOOK_NAMES`.
+  [testing/adding-a-verb](/testing/adding-a-verb.md) is the walk a new surface
+  owes, ending at the catalogue entry the pin will demand.
+
 ## 2026-08-17
 
 * **okf-pro 1.0.0.** The prototype checker — carried inside a template

@@ -376,7 +376,11 @@ your day; two people sharing one board is not a supported arrangement.
 Its own knowledge bundle ships inside the gem, at `.okf/` — the non-obvious
 parts, written down: the three ways the plugin seam let an unchecked edit
 through, the check the gate skipped in silence, and why a stray binary on
-`PATH` cannot be caught by reading an exit code.
+`PATH` cannot be caught by reading an exit code. It is also this gem's
+structural documentation and its catalogue of what the verbs and checks already
+answer, so `okf server .okf` inside an installed copy is a working map of the
+code. Which is the format arguing for itself: the bundle you are being handed
+is one the gem reads with its own tools.
 
 ## Licence
 

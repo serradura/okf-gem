@@ -6,6 +6,23 @@ All notable changes to okf-pro are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **The bundle carries the structure and the catalogue, and a test pins them.**
+  `.okf/structure/` names every file under `lib/`, grouped by the layer that
+  owns it; `.okf/capabilities/` is the catalogue of the sixteen verbs and nine
+  checks this gem already answers; `.okf/testing/adding-a-verb.md` is the walk a
+  new one owes. `test/unit/bundle_catalog_test.rb` fails when a file under
+  `lib/` is named by no concept, when a concept names a file that is gone, or
+  when either catalogue disagrees with `CLI::USAGE` or `CLI::HOOK_NAMES`.
+  `AGENTS.md` kept the contract and the commands and now routes here for the
+  rest — its hand-maintained Map of `lib/**` was the thing nothing checked.
+
+### Fixed
+
+- **`AGENTS.md`'s 2.4 floor command pointed at a directory that no longer
+  exists** — `cd /build/okf-pro`, from before the gems moved under `gems/`.
+
 ### Changed
 
 - **The okf floor moves to `>= 2.1, < 3`** — the kernel this gem develops
