@@ -85,15 +85,26 @@ module OKF
       # other way to say which registry it means. The `home` it still yields is
       # for the library API (App/Workspace take `home:`), which an embedding app
       # reaches without mutating a process-global.
+      #
+      # OKF_NO_DISCOVERY goes with it, because $OKF_HOME alone does not name a
+      # registry — it names where the *global* one lives, and deliberately does
+      # not veto a nearer project-local `.okf-registry.json` on the path up from
+      # cwd. The suite runs from okf-tui/, which sits inside a repository that
+      # commits one, so without this the run resolves to the maintainer's tree
+      # rather than to `home`. This helper means the global registry; the local
+      # one has its own helper below, which is where discovery is left on.
       def with_registry(*names)
         home = Dir.mktmpdir("okf-tui-home")
         was = ENV.fetch("OKF_HOME", nil)
+        discovery_was = ENV.fetch("OKF_NO_DISCOVERY", nil)
         ENV["OKF_HOME"] = home
+        ENV["OKF_NO_DISCOVERY"] = "1"
         registry = OKF::Registry.load(home: home)
         names.each { |name| registry.add(fixture(name)) }
         yield home, registry
       ensure
         was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = was
+        discovery_was.nil? ? ENV.delete("OKF_NO_DISCOVERY") : ENV["OKF_NO_DISCOVERY"] = discovery_was
         FileUtils.remove_entry(home) if home && File.directory?(home)
       end
 
@@ -124,13 +135,18 @@ module OKF
 
       # A temporary $OKF_HOME with nothing in it — the "you have registered
       # nothing" path, which needs an empty registry rather than no registry.
+      # OKF_NO_DISCOVERY for the reason #with_registry gives: empty means empty,
+      # and a project registry above the checkout would fill it.
       def with_empty_registry
         home = Dir.mktmpdir("okf-tui-empty")
         was = ENV.fetch("OKF_HOME", nil)
+        discovery_was = ENV.fetch("OKF_NO_DISCOVERY", nil)
         ENV["OKF_HOME"] = home
+        ENV["OKF_NO_DISCOVERY"] = "1"
         yield home
       ensure
         was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = was
+        discovery_was.nil? ? ENV.delete("OKF_NO_DISCOVERY") : ENV["OKF_NO_DISCOVERY"] = discovery_was
         FileUtils.remove_entry(home) if home && File.directory?(home)
       end
 

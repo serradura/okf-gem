@@ -6,20 +6,29 @@ require "okf/cli"
 require "stringio"
 
 class OKF::CLITest < OKF::TestCase
-  # $OKF_HOME is the CLI's only lever on the registry, so it is pinned for every
-  # test, not just the registry ones: a verb that reaches the registry must never
-  # be one missed stub away from reading or writing the real ~/.okf.
+  # $OKF_HOME and cwd are the two levers the CLI offers on the registry, so both
+  # are pinned for every test, not just the registry ones: a verb that reaches
+  # the registry must never be one missed stub away from reading or writing the
+  # real ~/.okf — or, since these tests run from the gem directory and discovery
+  # walks *up*, this repository's own committed .okf-registry.json. $OKF_HOME
+  # alone does not close that: it names where the global registry lives and
+  # deliberately does not veto a nearer local one, so a project registry anywhere
+  # above the checkout wins over it. OKF_NO_DISCOVERY is the lever that does,
+  # and it is the same one the integration base sets for the same reason.
   setup do
     @tmpdir = Dir.mktmpdir("okf-cli-test")
     @home = Dir.mktmpdir("okf-cli-home")
     @okf_home_was = ENV.fetch("OKF_HOME", nil)
+    @no_discovery_was = ENV.fetch("OKF_NO_DISCOVERY", nil)
     ENV["OKF_HOME"] = @home
+    ENV["OKF_NO_DISCOVERY"] = "1"
     @out = StringIO.new
     @err = StringIO.new
   end
 
   teardown do
     @okf_home_was.nil? ? ENV.delete("OKF_HOME") : ENV["OKF_HOME"] = @okf_home_was
+    @no_discovery_was.nil? ? ENV.delete("OKF_NO_DISCOVERY") : ENV["OKF_NO_DISCOVERY"] = @no_discovery_was
     FileUtils.rm_rf(@tmpdir)
     FileUtils.rm_rf(@home)
   end
