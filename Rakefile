@@ -10,6 +10,8 @@
 # start at 3.2 — so a single lockfile could never resolve for all of them, and a
 # root bundle would only be a second context to keep in sync for no gain.
 
+require "json"
+
 # Adding a gem to the repo is adding it here.
 GEMS = %w[okf okf-mcp okf-tui okf-pro].freeze
 
@@ -68,16 +70,28 @@ task :rubocop do
   end
 end
 
-# Every OKF bundle the repository carries: this project's, and any a gem ships
-# inside itself (okf-tui's `.okf/` is in its `spec.files`, so a broken one would
-# be published rather than merely committed).
-BUNDLES = [ ".okf", "okf-tui/.okf", "okf-pro/.okf" ].freeze
+# Every OKF bundle the repository carries is named once, in the committed
+# .okf-registry.json — this project's own, and any a gem ships inside itself
+# (okf-tui's `.okf/` is in its `spec.files`, so a broken one would be published
+# rather than merely committed). A hardcoded list here was a second place to
+# remember; adding a bundle is now `okf registry set`, and this reads it.
+#
+# The file stores every path *relative to itself*, which is what lets the
+# checkout be cloned, copied or bind-mounted anywhere and still resolve — so
+# this reads slugs and passes `@slug` refs, letting the CLI's own discovery
+# (walk up from cwd) do the resolving rather than rebuilding paths here.
+def registered_slugs
+  file = File.join(ROOT, ".okf-registry.json")
+  abort "no #{file} — run `okf registry init` and `okf registry set` first" unless File.file?(file)
 
-desc "Validate and lint every .okf bundle in the repo with the checkout's CLI"
+  JSON.parse(File.read(file)).fetch("bundles").map { |bundle| bundle.fetch("slug") }
+end
+
+desc "Validate and lint every registered .okf bundle with the checkout's CLI"
 task :okf do
-  BUNDLES.each do |bundle|
-    okf "validate", "#{ROOT}/#{bundle}"
-    okf "lint", "#{ROOT}/#{bundle}"
+  registered_slugs.each do |slug|
+    okf "validate", "@#{slug}"
+    okf "lint", "@#{slug}"
   end
 end
 

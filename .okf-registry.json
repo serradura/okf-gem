@@ -1,0 +1,20 @@
+{
+  "bundles": [
+    {
+      "slug": "okf",
+      "path": ".okf",
+      "title": "okf"
+    },
+    {
+      "slug": "okf-tui",
+      "path": "okf-tui/.okf",
+      "title": "okf-tui"
+    },
+    {
+      "slug": "okf-pro",
+      "path": "okf-pro/.okf",
+      "title": "okf-pro"
+    }
+  ],
+  "groups": []
+}

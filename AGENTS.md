@@ -44,6 +44,10 @@ skills/         the skills a generic installer reads (`npx skills add serradura/
                 copy this is — it documents a way of structuring instructions,
                 not okf's code, so it belongs to no gem
 .okf/           the project's own knowledge bundle
+.okf-registry.json
+                every bundle in the tree, addressable as `@slug` — and while you
+                stand anywhere under this root it *replaces* your global
+                $OKF_HOME registry outright, rather than adding to it
 Dockerfile      builds okf/ — from a root context, because the gemspec needs .git
 Rakefile        a delegator: `rake` runs every gem's default task
 ```
