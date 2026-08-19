@@ -1,0 +1,46 @@
+# Validate and lint this repository's OKF bundles, on every push and every pull
+# request. Exactly one line below is repository-specific: BUNDLES.
+#
+# The job runs the published okf image, so it installs nothing on the runner —
+# no Ruby, no gem, no bundler cache. ubuntu-latest already has Docker.
+#
+# The two commands are `okf validate` (v0.2 conformance — hard errors, exit 1 on
+# a broken bundle) and `okf lint` (curation quality — never rejects). They are
+# separate on purpose; see https://okfgem.com/docs/ for both.
+name: okf
+
+on:
+  push:
+    branches: [ main ]
+
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  bundles:
+    name: validate + lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # Deliberately NOT `container: ghcr.io/serradura/okf:latest` on the job.
+      # `container:` runs every step inside the image, and actions/checkout is a
+      # Node action — the image is ruby:4.0-alpine and ships no node, so the
+      # checkout fails before this step is reached. A plain `docker run` against
+      # the checkout is the form the image is shaped for: WORKDIR /data,
+      # ENTRYPOINT ["okf"]. It runs as a non-root user (uid 1000) and reads the
+      # runner's checkout through the mount.
+      - name: Validate and lint every bundle
+        env:
+          # ─── the one repository-specific line ───────────────────────────────
+          BUNDLES: ".okf okf-tui/.okf okf-pro/.okf"
+        run: |
+          for bundle in $BUNDLES; do
+            docker run --rm -v "$PWD":/data ghcr.io/serradura/okf:latest validate "$bundle"
+            docker run --rm -v "$PWD":/data ghcr.io/serradura/okf:latest lint "$bundle"
+          done
