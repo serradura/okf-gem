@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **The gem ships its own knowledge bundle, at `.okf/`.** It is the gem's
+  structural documentation rather than a sample: `structure/` names every one of
+  the fifty files under `lib/`, grouped by the layer that owns it;
+  `capabilities/` catalogues the seventeen verbs, the eight `registry`
+  subcommands and the library surface; `testing/` carries the integration-first
+  doctrine, how to read the coverage map, the walk a new verb owes, and the
+  browser obligation. An installed okf now carries a real bundle — its own — for
+  a reader to open with the tool they just installed.
+
+  `test/unit/bundle_catalog_test.rb` pins it: a file under `lib/` named by no
+  concept, a concept naming a file that is gone, or a verb catalogue that
+  disagrees with `OKF::CLI.builtins` all fail the suite.
+  `test/unit/packaging_test.rb` pins that the bundle actually ships.
+
 ## [2.1.0] - 2026-08-17
 
 ### Changed

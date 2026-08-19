@@ -1,14 +1,29 @@
 # Update Log
 
 ## 2026-08-19
-* **Addition**: **okf-mcp carries its own bundle, and its `AGENTS.md` relies on
-  it** — the first gem whose *structural* documentation is a bundle rather than
-  a section of a maintainer guide. Every file under `lib/` is named by exactly
-  one concept, the fourteen tools have a catalog an agent reads before writing
-  a fifteenth, and the whole thing is pinned: a file no concept names, a
-  concept naming a file that is gone, or a catalog out of step with the code is
-  a red suite. The Map it replaces lived where nothing checked it. Registered
-  as `@okf-mcp`, and it ships inside the gem the way okf-tui's does.
+* **Addition**: **every gem's structural documentation is now its own bundle,
+  pinned by its own test.** A maintainer guide's hand-written Map of `lib/**` is
+  the documentation most likely to be wrong and least likely to be checked: a
+  file can arrive, move or leave and the Map keeps reading plausibly. All four
+  gems now carry that Map in `.okf/structure/`, one concept per layer naming
+  every file, beside a `.okf/capabilities/` catalogue of what the gem already
+  answers — the fourteen MCP tools, the seventeen `okf` verbs, okf-pro's sixteen
+  verbs and nine checks, okf-tui's six views. Each gem's
+  `test/unit/bundle_catalog_test.rb` fails on a file no concept names, a concept
+  naming a file that is gone, or a catalogue out of step with the constant it
+  claims to mirror.
+
+  The catalogue is the half that pays for itself daily: it is the list an agent
+  reads *before* building the fifteenth tool or the eighteenth verb, which is
+  the rediscovery this format exists to stop. Each gem's `AGENTS.md` keeps the
+  contract, the commands and the obligations a reviewer checks, and routes there
+  for the rest — including this file, which is `okf`'s own maintainer guide as
+  well as the repository's.
+
+  Five bundles now: `@okf` is the repository's (the format, the layout, the
+  seams), and `@okf-kernel`, `@okf-mcp`, `@okf-tui` and `@okf-pro` are the gems'.
+  All four ship inside their gem, so an installed copy carries a real bundle —
+  its own — for a reader to open with the tool they just installed.
 * **Update**: **the root README is the menu, not the manual** — every top-level
   name is a boundary and gets one row, and the eight sections that explained how
   the `okf` gem works moved into

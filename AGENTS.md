@@ -28,7 +28,10 @@ including the rejection it reverses, is in
 [.okf/design/monorepo-layout.md](.okf/design/monorepo-layout.md).
 
 ```
-gems/okf/       the baseline gem; everything below lives inside it
+gems/okf/       the baseline gem; everything below lives inside it. Like the
+                three siblings it ships its own `.okf/` in the gem — its
+                structure, its catalogue and its testing doctrine, registered
+                as `@okf-kernel` because `@okf` is the repository's bundle
 gems/okf-mcp/   the MCP shell: the kernel's capabilities as MCP tools + prompts
                 (floor 2.7 — the `mcp` SDK's — deps exactly `mcp` + `okf`; own
                 AGENTS.md, and it ships its own `.okf/` in the gem)
@@ -48,7 +51,9 @@ skills/         the skills a generic installer reads (`npx skills add serradura/
                 a generated copy of okf's, and okf-principles, whose canonical
                 copy this is — it documents a way of structuring instructions,
                 not okf's code, so it belongs to no gem
-.okf/           the project's own knowledge bundle
+.okf/           the project's own knowledge bundle — the format, the layout
+                decisions, and the seam every sibling arrives through. Each gem's
+                own knowledge is in its own `.okf/`, beside its code
 .okf-registry.json
                 every bundle in the tree, addressable as `@slug` — and while you
                 stand anywhere under this root it *replaces* your global
@@ -58,65 +63,40 @@ Dockerfile      builds gems/okf/ — from a root context, because the gemspec
 Rakefile        a delegator: `rake` runs every gem's default task
 ```
 
-Inside the baseline. **Paths below are relative to `gems/okf/`** unless they begin
-with `plugin/`, `.claude-plugin/`, `.okf/` or `.github/`:
+### Inside the baseline: read its bundle first
 
-```
-lib/okf/
-  path.rb                 pure   path normalization + root-escape guard
-  markdown/               pure   format layer: frontmatter (§4), links (§5), citations (§8)
-  concept.rb  bundle.rb   pure   the in-memory model (no disk, no stdio)
-  bundle/graph.rb         pure   nodes/edges + type/tag indexes
-  bundle/search.rb        pure   facade: owns the row/snippet/sort + the engine registry
-  bundle/search/{index,scan}.rb  pure   the engines — raw-text scan (default), minifts BM25+
-  bundle/validator*.rb    pure   spec §9 conformance (hard errors + soft warnings)
-  bundle/linter*.rb       pure   curation-quality report (never rejects)
-  concept/file.rb         shell  one-file on-disk handle
-  bundle/reader|writer|folder.rb  shell  directory <-> Bundle (writer is atomic, validates before publish)
-  render/graph.rb + graph/template.html.erb  shell  the whole UI in one self-contained ERB file — `okf render` bakes it (.static), the server serves the same
-  server/app.rb           shell  Rack app: / (page), /node, /node/meta, /catalog, /tags, /types, /index, /log
-  server/hub.rb           shell  N bundles at /b/<slug>/, plus the routes only a set can answer:
-                                 GET /search (cross-bundle), GET /b/ (the bundles list),
-                                 POST /registry/{default,rename,remove,add} — the only writes in the server
-  server/runner.rb        shell  built-in WEBrick <-> Rack bridge (replaces any rackup need)
-  skill.rb + skill/       shell  the companion agent skill + its installer
-  cli.rb                  shell  the command registry, the dispatcher, and `okf help`
-  cli/command.rb          shell  the base every verb inherits: streams, refs, shared flags, printers
-  cli/<verb>.rb           shell  one file per verb, each registering itself at load
-```
+**`gems/okf/.okf/` is the gem's structural documentation, and this file no
+longer restates it.** What the code is, where each responsibility lives, what
+every verb already answers, and how a change is proven all live there — once, in
+the concept that owns them:
 
-The CLI is the only layer that parses argv, prints, and exits. A verb is a
-`CLI::Command` subclass answering four questions about itself (`.id`, `.group`,
-`.help_rows`, `.hidden?`) and one about a run (`#call(argv)`, returning the exit
-status). Privacy is the boundary: `#call` is the whole public surface, so a
-helper cannot become a verb by accident.
+| you want | read |
+| --- | --- |
+| the shape of the whole thing | [`gems/okf/.okf/overview.md`](gems/okf/.okf/overview.md) |
+| what a file under `lib/` does | [`gems/okf/.okf/structure/`](gems/okf/.okf/structure/) — one concept per layer, and it names every one of the fifty files |
+| whether a capability already exists | [`gems/okf/.okf/capabilities/`](gems/okf/.okf/capabilities/) — the verbs, the subcommands, and the library surface |
+| how a change is proven | [`gems/okf/.okf/testing/`](gems/okf/.okf/testing/) — the layers, how to read coverage, and the walk a new verb owes |
 
-`CLI.register` is deliberately the same shape as `Search.register` — append-only,
-idempotent by id, duck type checked at registration. **The require block at the
-bottom of `cli.rb` IS the order `okf help` lists the verbs in**; a test pins it.
+`okf server @okf-kernel` reads it as a graph; `okf search @okf-kernel <term>`
+searches it from anywhere in the checkout.
 
-That registry is also the extension point. Any gem with `okf/plugin.rb` on its
-load path can register a verb, and `okf` finds it — no edit here, no list of
-known addons (a test greps `cli.rb` to keep it that way). Discovery is **lazy**:
-a built-in never scans, so only an unknown verb or `okf help` pays the ~11ms.
-A plugin that raises is skipped and reported on stderr, never fatal.
+The split used to run the other way: this file carried a hand-written Map of
+`lib/**` and a full account of the test layers, and nothing checked either.
+`gems/okf/test/unit/bundle_catalog_test.rb` now fails when a file under `lib/`
+is named by no concept, when a concept names a file that is gone, or when the
+verb catalogue and `OKF::CLI.builtins` disagree — so the structural layer is
+pinned where it lives, rather than trusted where nobody looks.
 
-**Only gems named `okf-*` are loaded** — a naming convention, the one Jekyll
-(`jekyll-*`) and Vagrant (`vagrant-*`) use for the same job, which doubles as a
-mild guard since `require` runs whatever it loads. Argue it as a convention if it
-is ever revisited: the threat it closes is thin, and overselling it invites the
-false confidence that is worse than no rule at all.
+Two things stay here rather than moving. The **hard constraints** below are the
+contract, and three of the four gems cite them across a directory boundary. And
+the **format** — what a citation is, what §5 declares — is
+[`.okf/`](.okf/)'s, the repository's own bundle, because the skill, the plugin
+and every future non-Ruby implementation speak it.
 
-One rule underneath it *is* load-bearing: **naming a gem must never load it.**
-`plugin_gem_name` reads the spec's `full_gem_path` and requires nothing, because
-a refusal that happens after the `require` is not a refusal; a test pins it. A
-path belonging to no gem stays trusted (`ruby -I`, a Gemfile `path:`, a checkout
-— someone put it there). Threat model in
-[.okf/design/extension-points.md](.okf/design/extension-points.md).
-
-The core/shell split is _enforced_: `test/unit/boundary_test.rb` fails if a pure
-file names a shell class or touches `File`/`Dir`/`FileUtils`/stdio. Put new I/O
-in the shell; put new logic in the core, pure.
+The threat model for the plugin seam is
+[.okf/design/extension-points.md](.okf/design/extension-points.md), which stays
+at the root for the same reason: it is about the seam every sibling arrives
+through, not about the kernel.
 
 Outside the gem, `plugin/`, `.claude-plugin/` and `skills/` are the three
 distribution surfaces the repo carries for a tree that lives inside it. The first
@@ -155,13 +135,6 @@ the tag from it, so a release is cut from the gem's own directory.
 The repo-level Ruby — the root Rakefile and the curation hook — sits outside
 every gem, so no gem's `rake rubocop` reaches it. The root `.rubocop.yml`
 inherits the gem's and covers exactly those two files.
-
-`require "okf"` loads the library only — the model, the analyzers, and the
-on-disk handles. The two argv-facing shells, `cli.rb` (and its `optparse`) and
-`skill.rb`, load on demand: `exe/okf` requires them, and so must any test that
-drives them. An embedding app never pays for the command-line machinery.
-`test/unit/loading_test.rb` guards this in a clean subprocess; keep it green when
-you touch what `require "okf"` pulls in.
 
 ## Hard constraints
 
@@ -260,101 +233,40 @@ you touch what `require "okf"` pulls in.
 
 ## Testing: integration first
 
-**Every command and subcommand gets its own file**, named for it —
-`cli_catalog_test.rb`, `cli_registry_set_test.rb`. Not one file per topic, and
-not one file for a verb family: `registry list`/`set`/`del`/`default`/`rename`
-are five files, because each is a surface a user invokes on its own. A new verb
-or subcommand ships with its file or it is not done.
+`gems/okf/test/integration/cli/` is the critical layer: real argv, real streams,
+real exit codes, real files. A unit test proves a method behaves; an integration
+test proves the *product* behaves, so when the two compete for effort,
+integration wins.
 
-**The folders are the three ways a user names a bundle**, and a command is
-proven in each one it has:
+How that layer is organised — one file per command and subcommand, three folders
+for the three ways a user names a bundle, and what `across_bundles/` obliges
+even for the verbs that take one — is
+[`gems/okf/.okf/testing/layers.md`](gems/okf/.okf/testing/layers.md), together
+with how to read the integration coverage map and the three shapes that hide in
+it. The step-by-step walk a new verb owes is
+[`gems/okf/.okf/testing/adding-a-verb.md`](gems/okf/.okf/testing/adding-a-verb.md).
 
-```
-test/integration/cli/
-  cli_integration_case.rb   the shared base: okf(), with_registry(), okf_server()
-  fixtures/                 bundles used by more than one group
-  by_dir/                   `okf lint ./docs`      — named by path
-  by_registry/              `okf lint @handbook`   — named through the registry
-  across_bundles/           `okf search @a @b`     — several at once
-  cli_help_test.rb …        the commands that name no bundle (help, version, skill)
-  cli_plugin_test.rb        the extension seam — a plugin on the load path
-```
+Four obligations stay here, because a reviewer checks them:
 
-Same command, same flags, three identities — because the identity is where the
-CLI decides what to answer about, and a verb that works by path can still be
-broken by ref. `across_bundles/` covers **every** bundle-taking verb, not just
-the two that merge: for the eleven with no multi-bundle form, the test proves a
-second bundle is *rejected* (exit 2). That boundary was a real silent-wrong-answer
-bug — `okf lint a b` once linted `a`, ignored `b`, and exited 0 — so it is
-guarded, not assumed. Classes are namespaced per folder (`module ByDir`,
-`module ByRegistry`, `module AcrossBundles`) so three files can share a name.
+- **Test first, and at this level.** A change starts with a failing integration
+  test, not with the fix. Run it and read the failure: it must fail for the
+  reason you predicted, not because a fixture is missing or a regex has a typo.
+  Then write the code and re-run; the same test passes, **unedited**. A test
+  written after the fix certifies only the code it was read off, and editing test
+  and code together in one pass is how a bug and its test come to agree with each
+  other and stay wrong together. A bug report earns a red test before a patch.
+- **Pure refactors are the exception, not a licence.** They change no behavior,
+  so the existing suite is the test and a green run is the proof. If a change is
+  too small to fail visibly first, say so — never skip the step quietly.
+- **Assertions must be able to fail for a real reason.** Run the CLI, read what
+  it actually prints, then assert *that*. Never assert what you assume the code
+  does — that is how a green suite certifies a bug.
+- **Do not skimp on fixtures.** When a path is unreachable from the existing
+  ones, add the fixture; never bend a test toward what the fixtures happen to
+  make easy. A branch no fixture can reach is a branch nobody has ever proven.
 
-**Fixtures follow common closure**: a bundle used by one group lives under that
-group; one used by several lives in the shared `fixtures/`. Keep them where the
-tests that change with them are.
-
-**Exercise the whole surface, not the happy path** — and do it *in every folder
-the command appears in*, not once and cited from the others. For each command:
-every flag at least once, every output format it offers (human, `--json`,
-`--pretty`, `--fields`/`--except`), every filter, every exit code it can return
-(`0`/`1`/`2`), and the combinations that actually interact (a filter plus a
-projection, `@all` plus a named ref). The CLI is the agent's whole world; an
-untested flag is a promise nobody checked.
-
-**Coverage is measured on integration alone**, because the full suite's number
-is flattering — unit tests call classes directly and reach code no user can:
-
-```bash
-bundle exec rake test:integration   # integration only + coverage/integration/
-```
-
-Read the result as a map, not a score. Low coverage in `bundle/writer.rb` or
-`concept/file.rb` is *expected* — no CLI verb writes a bundle, so those are the
-library API's to prove. Low coverage in `cli/`, `registry.rb`, or `server/` is
-a **hole**: it means a path a user can reach that no user-shaped test walks.
-Chase those, and let the residue tell you honestly which code the CLI cannot
-reach at all.
-
-**Prove that completeness by reading the uncovered lines, not by judgment.** A
-green integration run and a flattering aggregate hide the same thing — a branch
-only the unit tests reach — so after a feature, diff
-`coverage/integration/.resultset.json` for the *uncovered lines in the files you
-changed*: each one in a user-reachable file (`cli/`, `registry.rb`, `server/`) is
-a missing integration test, however many you already wrote. Three shapes hide
-there by habit, because a unit test walked them first: the *second* output format
-(the human listing when only `--json` was asserted, or the reverse), an *error*
-branch and the exit code it carries, and *malformed-input* robustness (a
-hand-edited registry — a cycle, an unnormalized slug, a missing field). Registry
-groups shipped with nine integration tests that read as exhaustive and left six
-such branches — a whole human-rendering path among them — proven only by unit
-tests until the resultset named them.
-
-**Do not skimp on fixtures.** They are the substrate the whole layer stands on; a
-bundle committed there is cheaper than a mock and far more honest, and reviewers
-can read it. When a path is unreachable from the existing fixtures — a tagged
-root-level concept, a registry entry pointing at a deleted directory — **add the
-fixture**. Never bend a test toward what the fixtures happen to make easy, and
-never let an untestable path stay untested because building the world for it felt
-like work. Fixtures are the cheap part. (`rooted` exists because `tags --by area`'s
-`(root)` label was unreachable from all twelve fixtures that preceded it — a
-branch no fixture can reach is a branch nobody has ever proven.)
-
-**Test first, and at this level.** A change starts with a failing integration
-test, not with the fix. Write it in `test/integration/cli/`, run it, and read the
-failure: it must fail for the reason you predicted, not because a fixture is
-missing or a regex has a typo — those prove nothing about the bug. Then write the
-code and re-run; the same test passes, unedited. A test written *after* the fix
-only certifies the code it was read off, and editing test and code together in one
-pass is how a bug and its test come to agree with each other and stay wrong
-together. A bug report earns a red test before it earns a patch.
-
-Pure refactors are the exception, not a licence: they change no behavior, so the
-existing suite is the test and a green run is the proof the contract held. If a
-change is too small to fail visibly first, say so — never skip the step quietly.
-
-Assertions must be able to fail for a real reason: run the CLI, read what it
-actually prints, then assert *that*. Never assert what you assume the code does
-— that is how a green suite certifies a bug.
+Tests use `OKF::TestCase` (`test/test_helper.rb`) and run on 2.4 too, so the API
+constraints above apply to `test/` as well.
 
 ## Commands
 
@@ -401,54 +313,20 @@ A change is not done until both are green.
 
 ## Testing the graph page
 
-`lib/okf/render/graph/template.html.erb` is ~1,300 lines of inline JS and CSS,
-and its regressions are the kind a string assertion cannot see: a view that
-returns with a canvas Cytoscape measured at 0×0, a filter that stops composing
-with the search box, the ≤768px block folding the wrong element, a handler
-that throws where the DOM still looks plausible. `test/integration/render/`
-proves the page is *emitted* correctly; it cannot prove the page *works*.
+`gems/okf/lib/okf/render/graph/template.html.erb` is ~1,300 lines of inline JS
+and CSS, and its regressions are the kind a string assertion cannot see.
+`test/integration/render/` proves the page is *emitted* correctly;
+`test/browser/` — Playwright driving real Chromium, every spec run twice — is
+what proves it *works*.
 
-`test/browser/` does — Playwright driving real Chromium, asserting DOM state
-and computed CSS at real viewport widths, and failing any test where the page
-threw. **Every spec runs twice**, once against `okf server` and once against a
-`file://` static `okf render`, because the two modes diverge (fetched
-endpoints vs. baked `EMBED`) and a pass in one proves nothing about the other.
+It does not run in CI, deliberately and on the evidence, so the obligation is
+unhedged: **a change to the template is not done until `rake test:browser` is
+green**, and a bug in the page earns a red spec there before it earns a patch.
+Nothing enforces it. Run it and say what it said.
 
-It is deliberately outside the default `rake` task: it needs node and a ~120MB
-Chromium, neither of which belongs on the 2.4 matrix, and the gem takes on no
-dependency from it. **It does not run in CI at all**, and that is the whole of
-the arrangement: it is a local obligation.
-
-It used to run as a non-blocking job, on the argument that a red-but-passing
-check made a regression visible without gating a merge on someone else's CDN.
-That argument lost on the evidence. The job failed **5 of its last 7 runs** while
-the Ruby matrix stayed green, almost all of it jsdelivr rather than the page —
-and the file this section already carried the verdict: *a red browser job that
-nobody reads is worth nothing.* A check that is usually red teaches its readers
-to ignore it, and a visitor to the repository reads the ✗ as "the gem is broken"
-rather than "a CDN was slow". Both costs are real and the signal was not.
-
-So the obligation is unmoved and now unhedged: **a change to the template is not
-done until `rake test:browser` is green**, and a bug in the page earns a red spec
-there before it earns a patch — the same rule `test/integration/cli/` already
-carries. Nothing enforces it, exactly as nothing enforces the PR shape or the
-2.4 Docker run. Run it and say what it said.
-
-Both halves of the template open with a section map, and the JS one also names
-the three seams that actually couple the sections (`applyGraphFilter`,
-`setView`, the lazy caches). Read it before editing; `grep -n '── '` on the
-template prints the same list with live line numbers.
-
-The page's CDN libraries are served from a gitignored `test/browser/vendor/` by
-`vendor-cache.js` — a read-through cache keyed on the request URL, so a version
-bump is a miss rather than a stale hit. A warm run needs no network;
-`OKF_NO_VENDOR_CACHE=1` bypasses it, which is how you check the pins still
-resolve. It buys robustness, not speed: measured at one worker it is 28.7s
-without and 29.0s with, because the suite is CPU-bound and Chromium already
-reused those files across contexts.
-
-`test/browser/README.md` covers the fixture, the console-error watch, the
-assertion mistakes the suite's first run shook out, and the cache in full.
+The argument, the two modes, the vendor cache and what to read before editing
+the template are
+[`gems/okf/.okf/testing/the-graph-page.md`](gems/okf/.okf/testing/the-graph-page.md).
 
 ## The READMEs
 
@@ -536,10 +414,18 @@ as commits applies (see [Git](#git)).
 
 ## The `.okf` bundle and its log
 
-This repo carries its own OKF bundle in `.okf/`, and maintaining it is part of
-finishing a change, not a separate chore — a durable lesson a change taught goes
+This repo carries **five** OKF bundles — `.okf/` at the root for the project
+itself, and one inside each gem — and maintaining the right one is part of
+finishing a change, not a separate chore. A durable lesson a change taught goes
 in the concept it is about, stated as a principle, in the same commit as the code
 (the concept is the home; the reader finds it there, not by reading history).
+
+Which bundle: **a gem's own** for anything about that gem's code, structure,
+catalogue or tests; **the root's** for the format, the layout, and the seams
+between gems. `rake okf` validates and lints all five, reading the slugs from
+`.okf-registry.json` rather than a list. Each gem's structural half is pinned by
+its own `bundle_catalog_test.rb`, so a file that arrives under `lib/` without a
+line in the concept that owns its layer is a red suite, not a stale document.
 
 `.okf/log.md` is held to one rule that outranks the reflex to write down what
 happened: **it records durable knowledge and shipped behavior, not the process

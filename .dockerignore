@@ -11,9 +11,15 @@
 # gems/okf/.gitignore, which stay in the context deliberately. Handing the builder
 # a file the gem does not carry costs nothing; the reverse breaks the build.
 #
-# Paths outside gems/okf/ (.okf, plugin/, .github…) need no pairing at all: the
-# gemspec runs `git ls-files` with chdir into gems/okf/ and never sees them. They
-# are here only to keep the context small.
+# Paths outside gems/okf/ (the ROOT .okf, plugin/, .github…) need no pairing at
+# all: the gemspec runs `git ls-files` with chdir into gems/okf/ and never sees
+# them. They are here only to keep the context small.
+#
+# Read the `.okf` entry below as exactly what it says: Docker anchors a pattern
+# with no `**` at the context root, so it drops the repository's own bundle and
+# leaves `gems/okf/.okf` alone. That is deliberate — the kernel's bundle ships
+# inside the gem, as the three siblings' do, so excluding it here would break
+# `gem build` on a file `git ls-files` still lists.
 node_modules
 tmp
 *.gem

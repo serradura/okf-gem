@@ -57,6 +57,13 @@ Gem::Specification.new do |spec|
   # `gem build` fails on it. The converse does not hold and must not be
   # "restored" — bin/, Gemfile and Rakefile are rejected here and deliberately
   # left in the context, because nothing breaks by shipping them to the builder.
+  #
+  # `.okf/` is deliberately *not* rejected: this gem's own knowledge bundle ships
+  # inside it, as the three siblings' do, so an installed okf carries a real
+  # bundle — its own — for a reader to open with the very tool it just installed.
+  # Note that .dockerignore's `.okf` entry drops the *repository's* bundle and
+  # not this one: Docker anchors a pattern with no `**` at the context root.
+  # `test/unit/packaging_test.rb` pins that it ships.
   gemspec = File.basename(__FILE__)
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).reject do |f|
