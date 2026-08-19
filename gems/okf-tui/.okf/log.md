@@ -1,5 +1,19 @@
 # Update Log
 
+## 2026-08-19
+
+* **The structure and the catalogue moved into this bundle, and a test holds
+  them to the code.** `AGENTS.md` carried a hand-maintained Map of `lib/**` that
+  nothing checked, so a file could arrive, move or leave and the Map would keep
+  reading plausibly. [Structure](/structure/) now owns it — four concepts over
+  ten files — and [Capabilities](/capabilities/) owns the catalogue of the six
+  views and the kernel surface behind them, which is the list to read before
+  building a seventh. `test/unit/bundle_catalog_test.rb` is the pin, and it
+  bites in both directions: a file no concept names, a concept naming a file
+  that is gone, or a view catalogue that disagrees with `App::TABS`. The test
+  suite's own map moved too, to [the-suite](/testing/the-suite.md), and
+  [adding-a-view](/testing/adding-a-view.md) is the walk a new screen owes.
+
 ## 2026-08-15
 
 * **Release**: **1.0.0**, the first. Six views over one bundle or many —

@@ -189,6 +189,11 @@ silently rather than loudly.
 the verb resolves the same way it does for a user. See [AGENTS.md](AGENTS.md)
 for the contracts a change has to keep.
 
+This gem ships its own knowledge bundle at `.okf/`, and it is the gem's own
+documentation rather than a sample: what every file under `lib/` does, what each
+of the six views answers, and why the interaction model is what it is. `okf tui
+.okf` reads it in this program, which is the shortest honest demo there is.
+
 ## License
 
 Apache-2.0.

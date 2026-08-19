@@ -14,58 +14,56 @@ release-title convention, the Git attribution rule. What is here is okf-tui's
 own: its floor, its dependency limits, its rendering and interaction contracts.
 Where the two overlap, the root is the general rule and this is the instance.
 
-## Map
+## Read the bundle first
 
-```
-lib/okf/tui/
-  ui.rb          pure   layout primitives: width, clipping, wrapping, boxes
-  model.rb       pure   one bundle, and every answer about it (memoized)
-  workspace.rb   shell  the bundles a session can see; the only registry writes
-  views.rb       pure   the six screens — row builders, no terminal I/O
-  app.rb         shell  state, key loop, frame painting
-  cli.rb         shell  the only layer that parses argv, prints, and exits
-  refs.rb        shell  argv → bundle dirs, through okf's own ref grammar
-lib/okf/plugin.rb  the okf extension seam — registers `okf tui`, and the
-                   gem's only entry point: there is no exe/
-```
+**`.okf/` is this gem's structural documentation and its catalogue, and this
+file no longer restates them.** What the code is, where each responsibility
+lives, what the six views answer, which kernel calls back them, and how to add
+one all live there — once, in the concept that owns them:
 
-`require "okf/tui"` loads the library only. The argv-facing shell (`cli.rb`)
-loads on demand: the plugin's `#call` requires it, and so must any test that
-drives it.
+| you want | read |
+| --- | --- |
+| what a file under `lib/` does | [`.okf/structure/`](.okf/structure/) — one concept per layer, and it names every file |
+| whether a capability already exists | [`.okf/capabilities/`](.okf/capabilities/) — the six views and the okf surface, before you build a seventh |
+| why a rule is a rule | [`.okf/decisions/`](.okf/decisions/), [`.okf/interaction/`](.okf/interaction/), [`.okf/rendering/`](.okf/rendering/) |
+| how to add a view, a key or a panel | [`.okf/testing/adding-a-view.md`](.okf/testing/adding-a-view.md) |
 
-**One door.** This gem ships **no executable**. `lib/okf/plugin.rb` registers a
-`tui` command with okf's command registry, and `okf tui` is how a user gets here
-— there is no second name to install, document and keep working, and no second
-argument grammar to drift. There was an `exe/okf-tui` that did nothing but call
-the same `CLI.run`; it went before the first release, while removing a name still
-cost nobody anything, which is the same call okf-mcp made for the same reason.
-Adding one back needs an argument stronger than symmetry with other gems.
+`okf server .okf` from this directory reads it as a graph; `okf search @okf-tui
+<term>` searches it from anywhere in the checkout.
 
-The consequence to hold on to: **the dispatcher must add nothing but argv and
-the streams.** `plugin_test.rb` pins it by driving the same run both through
-`OKF::CLI.start` and straight into `OKF::TUI::CLI.run` and comparing the exit
-code and the message. That grammar is not written here either:
-`refs.rb` subclasses `OKF::CLI::Command` so a `@slug`, a bare `@`, an `@group`
-and the refusal of `@all` all mean exactly what they mean to `okf server`,
-including the messages and the exit codes. It reaches a *private* helper
-(`resolve_ref_expanding`), which is a deliberate trade — one copy of the grammar,
-at the cost of a coupling — and `refs_test.rb` pins the seam by name so okf moving
-it fails loudly rather than quietly restoring "not a directory". The same call is
-what opts the TUI into registry discovery, since okf's `open_registry` is
-`Registry.load(cwd: Dir.pwd)`.
+The split used to run the other way: this file carried a hand-written Map of
+`lib/**` and nothing checked it. `test/unit/bundle_catalog_test.rb` now fails
+when a file under `lib/` is named by no concept, when a concept names a file
+that is gone, or when the view catalogue and `App::TABS` disagree — so the
+structural layer is pinned where it lives, rather than trusted where nobody
+looks.
 
-okf reads `plugin.rb` whenever a verb misses or `okf help` runs, so it must stay
-cheap: it registers a class and nothing else, and the TTY toolkit is required
-inside `#call`. A subprocess test asserts that loading the plugin leaves
-`TTY::Box` undefined.
+## One door
 
-**Keep the advertisement and the behaviour in step.** `help_rows` is what `okf
-help` prints, and it is a promise: it read `tui [DIR|@slug…]` for a release while
-the CLI rejected every `@slug` as "not a directory". `plugin_test.rb` now asserts
-the advertised form actually resolves. The plugin tests no longer skip — they used
-to, when the registry seam was newer than any okf release, and that skip was
-deleted on its own instruction once the floor could name the okf that ships
-`OKF::CLI.register` (1.10.0).
+This gem ships **no executable**. `lib/okf/plugin.rb` registers a `tui` command
+with okf's command registry, and `okf tui` is how a user gets here — there is no
+second name to install, document and keep working, and no second argument
+grammar to drift. There was an `exe/okf-tui` that did nothing but call the same
+`CLI.run`; it went before the first release, while removing a name still cost
+nobody anything, which is the same call okf-mcp made for the same reason. Adding
+one back needs an argument stronger than symmetry with other gems.
+
+Three consequences a reviewer checks, all of them pinned:
+
+* **The dispatcher adds nothing but argv and the streams.** `plugin_test.rb`
+  drives the same run through `OKF::CLI.start` and straight into
+  `OKF::TUI::CLI.run` and compares the exit code and the message.
+* **`plugin.rb` stays cheap.** okf reads it whenever a verb misses or `okf help`
+  runs, so it registers a class and nothing else; the TTY toolkit is required
+  inside `#call`, and a subprocess test asserts that loading the plugin leaves
+  `TTY::Box` undefined.
+* **The advertisement and the behaviour stay in step.** `help_rows` read
+  `tui [DIR|@slug…]` for a whole release while the CLI rejected every `@slug` as
+  "not a directory"; the test now asserts the advertised form resolves.
+
+How the seam is put together — the borrowed ref grammar, the private helper it
+reaches, what loads when — is
+[`.okf/structure/doors.md`](.okf/structure/doors.md).
 
 ## Hard constraints
 
@@ -120,7 +118,7 @@ deleted on its own instruction once the floor could name the okf that ships
 
    ```bash
    docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
-     "cp -a /src /build && cd /build/okf-tui && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
+     "cp -a /src /build && cd /build/gems/okf-tui && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
    ```
 
 3. **No version ceilings for the floor's sake.** `kramdown` and `rouge` have
@@ -259,111 +257,33 @@ deleted on its own instruction once the floor could name the okf that ships
 
 **Integration first.** `test/integration/` is the critical layer: it drives the
 app the way a user does — real keys, real frames, real exit codes. A unit test
-proves a method behaves; an integration test proves the *product* behaves.
+proves a method behaves; an integration test proves the *product* behaves. A
+change starts with a failing test there, red for the reason you predicted, then
+the code, then the same test green and unedited.
 
-```
-test/
-  test_helper.rb              OKF::TUI::TestCase: app_for, render, with_registry,
-                              with_local_registry
-  fixtures/                   bundles chosen for their standing, not their size
-    nested/                   the only one whose directories nest — see below
-    provenance/               the only v0.2 one, §5 declared and withheld — below
-  integration/
-    geometry_test.rb          every row is exactly the terminal width
-    browse_test.rb            reading order, rendering, find-in-body
-    search_test.rb            deferred search, focus, escalation, the held corpus
-    graph_test.rb             facets, and following a concept out
-    dirs_test.rb              okf's directory set, and the dir facet
-    structure_test.rb         hubs and dir traffic, against okf's own numbers,
-                              and health's two panes
-    groups_test.rb            registry groups, and scoping a search to one
-    refs_test.rb              @slug / @group, and which registry resolves them
-    provenance_test.rb        §5 on screen, and what a v0.1 bundle is spared
-    signals_test.rb           health colours, the tab flag, the filters
-    cli_test.rb               argv, streams, exit codes — CLI.run driven straight
-    plugin_test.rb            `okf tui` through okf's registry, and that the
-                              dispatcher adds nothing but the streams
-    terminal_test.rb          `okf tui` in a real process, through a real pty —
-                              the only test that walks process boot + discovery
-  unit/                       the two claims no integration test can reach,
-                              because they are about the *package*, not the app
-    gemspec_test.rb           the declared okf floor tracks the kernel next door
-    packaging_test.rb         LICENSE.txt and NOTICE ship, real files, unchanged
-```
+What each file proves, the two fixtures built to reach a branch nothing else
+could, why the render sweep runs with colour *on*, and the two assertion traps
+this suite has already hit are all in
+[`.okf/testing/the-suite.md`](.okf/testing/the-suite.md). The walk a new view,
+key or panel owes is
+[`.okf/testing/adding-a-view.md`](.okf/testing/adding-a-view.md).
 
-**`fixtures/nested` exists because every other fixture is one level deep**, and at
-one level `dir` and `top_dir` are the same string — so an assertion against them
-passes whichever field the code reads, which is exactly how the `area` break
-survived. It carries a real tree, an intermediate directory holding no concepts of
-its own (`platform/`), and a directory whose only file is a `log.md` (`history/`) —
-the two shapes okf 1.13.0 had to fix its own directory set for. Six directories
-against three top-level ones: reach for it for anything about `dir`, depth, or
-traffic. Keep it conformant and lint-clean, so it stays usable by the health
-tests.
+Three obligations that are this file's, because a reviewer checks them:
 
-**`fixtures/provenance` is the only v0.2 bundle**, and it carries a concept that
-declares no §5 family (`untouched.md`) beside four that do — deliberately, so the
-suppression rule is a property of the *concept* rather than of the fixture, and one
-test can assert both halves against one bundle. Its numbers are chosen to bite:
-three of its four `unverified` concepts are claimable, so a trust facet counting
-the whole tally would say 4 and narrow to 3. Reach for it for anything about
-trust, status, `generated`, `stale_after` or `sources`; reach for a v0.1 fixture to
-prove the same surface stays *absent*. Keep it conformant and lint-clean — its one
-`info` is the legacy `timestamp:` on `untouched.md`, which is the §13.1 lift under
-test.
+- **Prove the check can fail.** Break the code on purpose and watch the test
+  report it. A green suite that cannot go red is not verification.
+- **Run against the *published* okf before pushing anything that reads okf's
+  analysis, and before a release.** No suite here does by default — the Gemfile
+  resolves the checkout next door — and a released kernel resolves different
+  analysis output, which is a difference no floor expresses.
 
-**Run with colour on, not just off.** Pastel disables colour when stdout is not
-a terminal, so a piped test exercises none of the ANSI-aware width, clipping and
-wrapping code — the paths most likely to be wrong are exactly the ones a naive
-capture cannot see. `geometry_test` runs both modes; `browse_test` forces colour
-for the render sweep. That is not thoroughness for its own sake: the
-`IndexError` in constraint 6 rendered perfectly in every uncoloured test.
-
-**No suite here runs the okf a user gets.** The `Gemfile` resolves okf from
-`../okf`, and in the monorepo that checkout is always there — so the local run,
-CI, and the 2.4 container (which copies the whole repo) all exercise *unreleased*
-okf. That is the right default: it is what lets a change to the kernel be driven
-from the UI without a release, and it is the arrangement okf-mcp has. It also
-leaves a checkout-versus-RubyGems gap, with nothing crossing it by default.
-
-Two things stand in that gap, and they cover different halves.
-`test/unit/gemspec_test.rb` is the standing one: it fails the moment okf bumps
-and the gemspec floor does not follow, so the floor can never quietly come to
-admit a kernel this code has outgrown. And a run against the *published* okf is
-the one that catches the rest — a released kernel resolves different analysis
-output, which is a difference no floor expresses:
-
-```bash
-sed '/gem "okf", path:/d' Gemfile > Gemfile.ci-check
-BUNDLE_GEMFILE=Gemfile.ci-check bundle install && BUNDLE_GEMFILE=Gemfile.ci-check bundle exec rake
-```
-
-The disagreement it catches is silent: okf's lint findings on `fixtures/okf-docs`
-have changed between releases before, which is enough to change how many rows the
-health view has. **A test whose premise depends on okf's analysis output can pass
-here and fail there** — the health scroll tests did exactly that, proving a pane
-overflowed by leaning on a lint count. Prove a rendering property from geometry (a
-terminal too short to fit) and let the agreement tests be the place okf's numbers
-are asserted. Run the block above before pushing anything that reads okf's
-analysis, and before a release.
-
-For the 2.4 container in constraint 2, **read its output, not its exit status.**
-Piping it through `tail` returns `tail`'s status, which is zero however the run
-went.
-
-**Assert what fails for a real reason.** Two traps this suite has already hit,
-both worth remembering:
-
-- **A check that crashes tells you less than one that fails.** When an
-  assertion's subject can be nil because the thing under test broke, report that
-  and skip the dependents rather than raising `NoMethodError` from the middle.
-- **Judge a rendered offset against the window the view actually used.** An
-  earlier version compared a scroll against a different window size and reported
-  a failure that was not one.
-
-**Name things, do not count them.** The browse list holds reserved files as well
-as concepts, so `<down><down><down>` is a guess about ordering. `open_concept("overview")`
-is a statement about which concept is open.
+  ```bash
+  sed '/gem "okf", path:/d' Gemfile > Gemfile.ci-check
+  BUNDLE_GEMFILE=Gemfile.ci-check bundle install && BUNDLE_GEMFILE=Gemfile.ci-check bundle exec rake
+  ```
+- **A new file under `lib/` earns its line in `.okf/structure/`, and a new view
+  its row in `.okf/capabilities/views.md`.** `bundle_catalog_test.rb` fails
+  otherwise — the documentation is pinned, not trusted.
 
 ## Commands
 
@@ -389,13 +309,13 @@ From the repo root, `rake` runs every gem's default task including this one, and
 
 CI (`../../.github/workflows/main.yml`) runs this gem's default task on every
 supported Ruby, 2.4 through the current stable, as its own `okf-tui` job with
-`working-directory: okf-tui`. It is one job per gem rather than a gem axis on one
+`working-directory: gems/okf-tui`. It is one job per gem rather than a gem axis on one
 matrix, because the floors diverge. A change is not done until that matrix is
 green.
 
 ## Releasing
 
-A release is cut **from this directory** — `cd okf-tui` first. Bundler reads the
+A release is cut **from this directory** — `cd gems/okf-tui` first. Bundler reads the
 gemspec in its working directory and derives the tag from it, so the root `rake
 release` refuses rather than doing something plausible.
 

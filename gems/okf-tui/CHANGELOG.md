@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The bundle carries the structure and the catalogue, and a test pins them.**
+  `.okf/structure/` names every file under `lib/`, grouped by the layer that
+  owns it; `.okf/capabilities/` is the catalogue of the six views and the kernel
+  surface behind them; `.okf/testing/the-suite.md` is what each test file proves
+  and why the two special fixtures exist; `.okf/testing/adding-a-view.md` is the
+  walk a new screen owes. `test/unit/bundle_catalog_test.rb` fails when a file
+  under `lib/` is named by no concept, when a concept names a file that is gone,
+  or when the view catalogue and `App::TABS` disagree. `AGENTS.md` kept the
+  contracts and the commands and now routes here for the rest — its
+  hand-maintained Map of `lib/**` was the thing nothing checked.
+
+### Fixed
+
+- **Three `AGENTS.md` paths pointed at directories that no longer exist** —
+  `cd /build/okf-tui`, `cd okf-tui`, and `working-directory: okf-tui`, all from
+  before the gems moved under `gems/`.
+
 ### Changed
 
 - **The okf floor moves to `>= 2.1, < 3`** — the kernel this gem develops
