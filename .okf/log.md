@@ -2,6 +2,22 @@
 
 ## 2026-08-19
 
+* **Governance**: **an `AGENTS.md` is context, routing and reference — the
+  bundles are the harness.** The line that decides what stays: a guide keeps
+  what a contributor must obey *unprompted* and routes everything they would
+  *look up*. You cannot route to a rule you do not know you are about to break,
+  so the test-first rule, the attribution rule and each gem's contract stay as
+  one-line imperatives; the argument behind every one of them is a link. Five
+  concepts were written for facts that had been sitting in a guide only because
+  no concept owned them — [the root is not a
+  gem](decisions/the-root-is-not-a-gem.md), [how a change is
+  proven](design/how-a-change-is-proven.md), and okf's test harness, packaging
+  and okf-tui's fit-or-say-so rule in their own bundles.
+
+  Across the five guides: **77,828 → 29,206 bytes**. What an agent loads before
+  reading any code fell 67–82% depending on where it stands, worst case 59,236 →
+  12,879.
+
 * **Governance**: **an `AGENTS.md` routes; it no longer restates.** Every rule
   whose argument a concept already carried was cut to the one or two sentences a
   reviewer checks against, plus the link. The root's guide dropped the baseline

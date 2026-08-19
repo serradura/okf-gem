@@ -14,3 +14,4 @@ monorepo layout (`@okf-eco decisions/monorepo-layout`).
 * [Runtime dependencies](runtime-dependencies.md) - Exactly three, and a fourth needs an argument as strong as the third's.
 * [Search engines](search-engines.md) - One facade, two engines, chosen by what the query needs rather than by name.
 * [The server trust boundary](server-trust-boundary.md) - What the server will answer for, and what it refuses regardless of flags.
+* [What ships, and the two ways it has gone wrong](packaging.md) - `spec.files` is subtractive, `.dockerignore` implies the reject list one way only, and a symlink installs dangling on the old half of the matrix.

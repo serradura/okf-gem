@@ -1,44 +1,13 @@
 # AGENTS.md
 
-Maintainer guide for okf-pro — `okf-pro` on RubyGems. It turns an
-[Open Knowledge Format](https://github.com/serradura/okf-gem) bundle into a
-working memory an agent is held to: `okf pro setup` writes the bundle and the
-governance around it, and `okf pro hook` runs one gate against one hook event.
-This file documents how to change the code without breaking its contracts.
+okf-pro — the enforcement layer. It turns an OKF bundle into a working memory an
+agent is held to: `okf pro setup` writes the bundle and the governance around it,
+`okf pro hook` runs one gate against one hook event. A sibling in the okf-gem
+monorepo, beside the baseline `gems/okf/` it depends on.
 
-This gem is a sibling in the okf-gem monorepo, one directory per gem under
-`gems/`, beside the baseline `gems/okf/` it depends on.
-[`../../AGENTS.md`](../../AGENTS.md) is the repo-level
-guide and owns everything above a single gem — the layout, the shared testing
-obligations, the PR shape, the release-title convention, the Git attribution
-rule and the working style. What is here is okf-pro's own: the contract, the
-exit codes, the seam, and the scaffold. Where the two overlap, the root is the
-general rule and this is the instance.
-
-## Read the bundle first
-
-**`.okf/` is this gem's structural documentation and its catalogue, and this
-file no longer restates them.** What the code is, where each responsibility
-lives, what every verb and check already answers, and how to add one all live
-there — once, in the concept that owns them:
-
-| you want | read |
-| --- | --- |
-| what a file under `lib/` does | [`.okf/structure/`](.okf/structure/) — one concept per layer, and it names every file |
-| whether a capability already exists | [`.okf/capabilities/`](.okf/capabilities/) — sixteen verbs and nine checks, before you write a seventeenth |
-| why a rule is a rule | [`.okf/design/`](.okf/design/) and [`.okf/contract/`](.okf/contract/) |
-| how to add a verb or a check | [`.okf/testing/adding-a-verb.md`](.okf/testing/adding-a-verb.md) |
-| what `setup` writes and who owns it | [`.okf/scaffold/`](.okf/scaffold/) |
-
-`okf server .okf` from this directory reads it as a graph; `okf search @okf-pro
-<term>` searches it from anywhere in the checkout.
-
-The split used to run the other way: this file carried a hand-written Map of
-`lib/**` and nothing checked it. `test/unit/bundle_catalog_test.rb` now fails
-when a file under `lib/` is named by no concept, when a concept names a file
-that is gone, or when either catalogue disagrees with `CLI::USAGE` and
-`CLI::HOOK_NAMES` — so the structural layer is pinned where it lives, rather
-than trusted where nobody looks.
+**This file is context, routing and reference.** [`../../AGENTS.md`](../../AGENTS.md)
+binds every change in the repo; what is below is okf-pro's own, and every
+argument for it is in `.okf/` rather than here.
 
 ## The contract, which outranks everything below it
 
@@ -52,120 +21,79 @@ than trusted where nobody looks.
 > confess converts "unchecked" into "checked and fine", which is worse than
 > having no gate at all.
 
-Every defect this gem has ever had failed in the direction of silence. A gate
-that cannot run, a check that was skipped, a shim on `PATH`, a status code the
-protocol reads as "proceed" — each produces an unchecked bundle that is
-indistinguishable from a clean one. When you change anything here, the question
-to ask is not "is this correct?" but "what does it do when it cannot answer?"
+Every defect this gem has ever had failed in the direction of silence. When you
+change anything here, the question to ask is not "is this correct?" but "what
+does it do when it cannot answer?" The failures behind each clause are
+[`.okf/contract/the-contract.md`](.okf/contract/the-contract.md).
 
-The argument in full, and the failures behind each clause, is in
-[`.okf/contract/`](.okf/contract/the-contract.md).
+## Where to read
 
-## One door
+| you want | read |
+| --- | --- |
+| what a file under `lib/` does | [`.okf/structure/`](.okf/structure/) — one concept per layer, naming every file |
+| whether a verb or check already exists | [`.okf/capabilities/`](.okf/capabilities/) — sixteen verbs, nine checks |
+| why a rule is a rule | [`.okf/contract/`](.okf/contract/), [`.okf/design/`](.okf/design/), [`.okf/seam/`](.okf/seam/) |
+| what `setup` writes and who owns it | [`.okf/scaffold/`](.okf/scaffold/) |
+| how to add a verb or a check | [`.okf/testing/adding-a-verb.md`](.okf/testing/adding-a-verb.md) |
 
-This gem ships **no executable**. `lib/okf/plugin.rb` registers a `pro` command
-with okf's registry, and `okf pro` is how a user gets here. That is load-bearing
-rather than tidy, and more so than for the siblings that made the same call: the
-scaffold's wrapper dispatches to **one** absolute `okf` and refuses unless that
-binary identifies itself as the enforcer. A second entry point would be a second
-thing for the wrapper to recognise, on the one code path where being wrong means
-a gate waves an edit through. The seam is
-[`.okf/structure/doors.md`](.okf/structure/doors.md).
+`okf server .okf` reads it as a graph; `okf search @okf-pro <term>` from anywhere
+in the checkout.
 
 ## Hard constraints
 
-Twelve rules. Where a concept carries the argument, this is the short form a
-reviewer checks against and the link is the rest.
+Twelve rules. Each line is the whole of what you must hold; the link is why.
 
-1. **Ruby >= 2.4**, okf's own floor. It matters more here than anywhere else in
-   the repo: this code runs inside a git hook and a CI step on machines nobody
-   chose, and a checker that cannot parse is a checker that is off. The
-   forbidden-API list, broken out by the version that introduced each name, is
-   `@okf design/ruby-floor`; the ones this port had to undo were `filter_map`
-   (2.7) and endless ranges (2.6). The floor is checked twice — in the gemspec,
-   and at the top of `lib/okf/pro.rb`, which refuses with `exit 2` — and
-   `test/unit/pro_test.rb` pins that the two agree.
-2. **Runtime dependencies are exactly `okf`.** Everything else is stdlib. A gate
-   with a dependency tree is a gate that fails to install on the machine that
-   needed it most.
-3. **`hook`'s exit codes are the protocol's, not this repo's.** `0` passes, `2`
-   blocks, and **every other code — including `1` — is non-blocking**, so `hook`
-   never returns 1. Every other verb keeps the repo's 0/1/2 convention, and
-   `audit` reserves 1 for *findings* and spells "the checker broke" as 2.
+1. **Ruby >= 2.4**, okf's floor, and it matters more here: this runs inside a git
+   hook on machines nobody chose, and a checker that cannot parse is off. The
+   list is `@okf design/ruby-floor`; the floor is checked in the gemspec *and* at
+   the top of `lib/okf/pro.rb`, and `test/unit/pro_test.rb` pins they agree.
+2. **Runtime dependencies are exactly `okf`.** A gate with a dependency tree
+   fails to install on the machine that needed it most.
+3. **`hook`'s exit codes are the protocol's**: `0` passes, `2` blocks, every
+   other code including `1` is non-blocking, so `hook` never returns 1 —
    [`.okf/contract/exit-codes.md`](.okf/contract/exit-codes.md).
-
-   Which is why **every verb in `CLI::READERS` routes through `parse_flags`**,
-   listed in `FLAGS` or not: absence from that table means "accepts none", and a
-   verb that skips the parser hands its undeclared flag to `BundleRoot.resolve`
-   as a directory and reports "holds no OKF bundle" — a pipeline's own typo,
-   spelled as a broken bundle. `test/integration/cli_test.rb` pins it over
-   `READERS`, which is the invariant and the whole of it.
-4. **The seam is where the contract's last Ruby line lives.** `plugin.rb` holds
-   a `rescue Exception` that re-raises `SystemExit`, with the cop disabled and
-   the reason beside it, and it must sit **outside** the `require "okf/pro"` it
-   guards. [`.okf/seam/three-fail-opens.md`](.okf/seam/three-fail-opens.md).
-5. **A `SyntaxError` in `plugin.rb` is unreachable from Ruby.** Discovery
-   rescues `LoadError, StandardError`; a `SyntaxError` is neither, and *no gem
-   code runs at all*. Only the scaffold's `.claude/hooks/run` can catch it,
-   which is why that wrapper no longer `exec`s. If you make it `exec` again, you
-   have reopened this.
-6. **`hook` whitelists its argument.** `Pro::CLI.run` dispatches the CI verbs
-   off the same first argv element a check name arrives in, so an adapter that
-   only stripped `hook` would make `okf pro hook audit` run a CI verb —
-   status 0, "clean.", reading no stdin and never blocking. The whitelist is
-   `Pro::CLI::HOOK_NAMES`, read from the library rather than copied.
-7. **The gate leaves no check silently unrun.** `Linter.call` with no options
-   skips `expired` and `stale` and still reports `healthy?`. Supply what a check
-   needs, or exclude it in source with its reason; never let
-   `stats[:skipped_checks]` come back non-empty and be discarded.
-   [`.okf/contract/silent-skips.md`](.okf/contract/silent-skips.md), pinned by
-   `test/integration/conformance_test.rb`.
-8. **A write verb is additive and targeted, never regenerative**, and that is
-   enforced rather than promised: each computes its new text purely, declares
-   the delta it intends, and `Conserve` refuses with exit 2 — nothing written —
-   if the actual delta differs in either direction. No verb writes a concept
-   body or sets `verified:`; a verb **refuses a missing file rather than writing
-   one**; and a name the caller supplies is contained twice over, because
-   `projects/<slug>` can be a symlink out.
-   [`.okf/design/derivation-that-writes.md`](.okf/design/derivation-that-writes.md)
-   and [`.okf/contract/containment-directions.md`](.okf/contract/containment-directions.md).
-9. **Friction is recorded at paths that already run, and never at a new hook
-   event** — `.claude/settings.json` is seeded, so a registration added there
-   would never reach an adopter through `upgrade`. The recorder refuses nothing
-   and blocks nothing, and still may not report a zero it did not count, nor ask
-   for a verb nothing is missing.
-   [`.okf/contract/telemetry-does-not-lie.md`](.okf/contract/telemetry-does-not-lie.md).
-10. **The scaffold splits by ownership, not by subject.** `upgrade` rewrites the
-    four gem-owned files and never touches a seeded one. Reclassifying
-    `CLAUDE.md`, `.gitignore` or `settings.json` as machinery makes `upgrade`
-    destroy exactly the hand-merge `setup` told the adopter to perform.
+4. **Every verb in `CLI::READERS` routes through `parse_flags`**, listed in
+   `FLAGS` or not — otherwise an undeclared flag reaches `BundleRoot.resolve` as
+   a directory and a pipeline's typo is reported as a broken bundle.
+   `test/integration/cli_test.rb` pins it over `READERS`.
+5. **The seam holds the contract's last Ruby line.** `plugin.rb`'s
+   `rescue Exception` must sit **outside** the `require "okf/pro"` it guards —
+   [`.okf/seam/three-fail-opens.md`](.okf/seam/three-fail-opens.md).
+6. **A `SyntaxError` in `plugin.rb` is unreachable from Ruby**, so only the
+   scaffold's `.claude/hooks/run` can catch it — which is why that wrapper no
+   longer `exec`s. Make it `exec` again and you have reopened this.
+7. **`hook` whitelists its argument** from `Pro::CLI::HOOK_NAMES`, read from the
+   library rather than copied — otherwise `okf pro hook audit` runs a CI verb and
+   reports "clean." without reading stdin.
+8. **The gate leaves no check silently unrun.** Never let
+   `stats[:skipped_checks]` come back non-empty and be discarded —
+   [`.okf/contract/silent-skips.md`](.okf/contract/silent-skips.md).
+9. **A write verb is additive and targeted, never regenerative**, enforced by
+   `Conserve` refusing with exit 2 when the actual delta differs from the
+   declared one. A verb refuses a missing file rather than writing one, and a
+   caller-supplied name is contained twice over —
+   [`.okf/design/derivation-that-writes.md`](.okf/design/derivation-that-writes.md),
+   [`.okf/contract/containment-directions.md`](.okf/contract/containment-directions.md).
+10. **Friction is recorded at paths that already run, never at a new hook
+    event**, and the recorder may not report a zero it did not count —
+    [`.okf/contract/telemetry-does-not-lie.md`](.okf/contract/telemetry-does-not-lie.md).
+11. **The scaffold splits by ownership, not by subject.** `upgrade` rewrites the
+    four gem-owned files and never touches a seeded one —
     [`.okf/scaffold/ownership-not-subject.md`](.okf/scaffold/ownership-not-subject.md).
-11. **No date ships in the generated bundle**, outside a code span. The
-    exemption is required rather than cosmetic, and both directions of that
-    coupling are pinned by `test/unit/closure_grammar_test.rb`.
+12. **No date ships in the generated bundle** outside a code span, and
+    `lib/okf/pro/template/**` is what `setup` writes and must ship —
     [`.okf/scaffold/no-date-ships.md`](.okf/scaffold/no-date-ships.md).
-12. **`lib/okf/pro/template/**` is what `setup` writes**, and it ships:
-    `test/integration/scaffold_test.rb` compares the generated list against
-    `spec.files`, *not* against a glob of the template, because a glob-versus-glob
-    comparison ignores `.gitignore` on both sides and would pass in a checkout
-    while the installed gem was short files. The `.gitignore` template is stored
-    as `gitignore`, without the dot, for the same class of reason.
 
-## Testing: drills first
+**This gem ships no executable**, and here that is a safety property rather than
+tidiness: the scaffold's wrapper dispatches to **one** absolute `okf` and refuses
+unless that binary identifies itself as the enforcer —
+[`.okf/structure/doors.md`](.okf/structure/doors.md).
 
-The critical layer is `test/integration/wrapper_test.rb`, and it is unusual
-enough to state plainly: **it runs the wrapper as a subprocess**, with a real
-`PATH`, a real event on stdin, and the process's real exit status read back —
-because the statements being tested are statements *about a process*, and none
-of them is observable from inside one interpreter with injected streams. Every
-drill there names a way the seam was found to break, and every one of them was a
-gate that **passed**. The list, and why half the drills assert a *pass*, is
-[`.okf/testing/drills-over-units.md`](.okf/testing/drills-over-units.md).
-
-Beyond that the root guide's obligations apply unchanged, plus one file per verb
-and subcommand and real fixtures rather than mocks. The step-by-step walk a new
-verb or check owes is
-[`.okf/testing/adding-a-verb.md`](.okf/testing/adding-a-verb.md).
+**The critical layer is `test/integration/wrapper_test.rb`, and it runs the
+wrapper as a subprocess** — real `PATH`, real event on stdin, real exit status
+read back, because the statements under test are statements *about a process*.
+Every drill names a way the seam broke, and every one of them was a gate that
+**passed** — [`.okf/testing/drills-over-units.md`](.okf/testing/drills-over-units.md).
 
 ## Commands
 
@@ -174,24 +102,15 @@ bin/setup                          # install dependencies
 bundle exec rake                   # test + rubocop — the default task, what CI runs
 bundle exec rake test              # just the suite (SimpleCov report in coverage/)
 ruby -Ilib -I../okf/lib ../okf/exe/okf pro audit .   # the CLI from the checkout
-```
 
-The Gemfile points `okf` at the checkout next door, so every run here — local,
-CI, the floor container — resolves the checkout and nothing crosses to RubyGems
-by default. Two things stand in that gap. `test/unit/gemspec_test.rb` is the
-standing one: it fails the moment okf bumps and the declared floor does not
-follow. And a run against the **published** kernel is the one that catches the
-rest — this gem pins a frozen snapshot of okf's `Linter::SEVERITIES`, so a
-released kernel that reclassified a check changes what the gate blocks on, which
-is a difference no floor expresses:
-
-```sh
+# against the published kernel — this gem pins a frozen snapshot of okf's
+# Linter::SEVERITIES, so a released kernel that reclassified a check changes
+# what the gate blocks on, which is a difference no floor expresses
 sed '/gem "okf", path:/d' Gemfile > Gemfile.ci-check
 BUNDLE_GEMFILE=Gemfile.ci-check bundle install && BUNDLE_GEMFILE=Gemfile.ci-check bundle exec rake
 ```
 
-The 2.4 floor is proven the way the repo's is, from the root, stepping into this
-gem:
+The 2.4 floor, from the repo root:
 
 ```sh
 docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
@@ -200,13 +119,10 @@ docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
 
 ## Its own bundle
 
-`.okf/` ships inside the gem, and `rake okf` at the repo root validates and
-lints it. It carries two things the code cannot say for itself. The first is the
-argument — the three fail-opens in the seam, the check the gate skipped in
-silence, why identity is not existence, what the ownership split in the scaffold
-is protecting. The second is the structure and the catalogue, which used to live
-in this file and now live where a test can hold them to the code.
+`.okf/` ships inside the gem and `rake okf` at the repo root keeps it clean. It
+carries the argument — the three fail-opens in the seam, the check the gate
+skipped in silence, why identity is not existence — and the structure and
+catalogue a test holds to the code.
 
-Maintain it in the same commit as the code it documents. A new file under `lib/`
-without a line in the concept that owns its layer is a red suite, not a stale
-document — and so is a verb added to `USAGE` without its row in the catalogue.
+Maintain it in the same commit as the code. A file under `lib/` with no concept
+naming it is a red suite, and so is a verb in `USAGE` with no catalogue row.

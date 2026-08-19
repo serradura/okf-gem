@@ -11,3 +11,4 @@ starts from the argument rather than from scratch.
 * [One door per sibling](one-door-per-sibling.md) - Three gems ship no executable and arrive as an `okf` verb; adding a binary back needs an argument stronger than symmetry.
 * [Releases and tags](release-and-tags.md) - The bare `v*` series belongs to the baseline and a sibling qualifies itself, because a glob does not match across `/`.
 * [A gem's structure is a bundle](structure-is-a-bundle.md) - The `lib/**` map moved out of every maintainer guide and into a bundle a test can hold to the tree.
+* [The root is not a gem](the-root-is-not-a-gem.md) - There is no root Gemfile, which decides how `rake` delegates, why a release refuses at the root, and why the repo-level Ruby needed its own CI job.
