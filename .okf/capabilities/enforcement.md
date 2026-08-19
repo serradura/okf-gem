@@ -2,7 +2,7 @@
 type: Capability
 title: Enforcement layer (okf-pro)
 description: A sibling gem that writes an agent's knowledge repository — bundle, hooks, pre-commit, CI, skill — and then holds it to a handful of invariants at all three doors, under a contract that refuses rather than shrugs.
-resource: okf-pro/lib/okf/pro/cli.rb
+resource: gems/okf-pro/lib/okf/pro/cli.rb
 tags: [enforcement, agent, hooks, scaffold, trust]
 generated:
   by: human:maintainer

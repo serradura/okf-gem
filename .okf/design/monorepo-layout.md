@@ -1,7 +1,7 @@
 ---
 type: Constraint
 title: The monorepo layout
-description: One directory per gem, named for the gem; everything that is not a gem stays at the root.
+description: Every gem under gems/, each directory named for the gem it ships; everything that is not a gem stays at the root.
 tags: [packaging, repo, portability]
 generated:
   by: human:maintainer
@@ -10,28 +10,33 @@ resource: Rakefile
 sources:
   - title: Rakefile
     resource: https://github.com/serradura/okf-gem/blob/main/Rakefile
-  - title: okf/okf.gemspec
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/okf.gemspec
-  - title: okf/test/unit/packaging_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/unit/packaging_test.rb
+  - title: gems/okf/okf.gemspec
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/okf.gemspec
+  - title: gems/okf/test/unit/packaging_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/packaging_test.rb
 ---
 
 # Overview
 
-The repository holds more than one gem. `okf/` is the baseline — the all-in-one
-that reads, validates, lints, searches and serves bundles — and the ecosystem
-grows beside it as siblings: an MCP shell, a TUI, an enforcement layer, an FTS5
-storage engine.
+The repository holds more than one gem. **Every gem lives under `gems/`**, and
+`gems/okf` is the baseline — the all-in-one that reads, validates, lints,
+searches and serves bundles — with the ecosystem beside it as siblings: an MCP
+shell, a TUI, an enforcement layer, an FTS5 storage engine.
 
-The rule is that **a directory is named for the gem it ships**. `okf/` builds
-`okf`, `okf-mcp/` builds `okf-mcp`. Nothing has to be mapped or remembered: a
-gem's directory, its release-tag prefix, its CI job name and its `require` path
-are all the same word. It is the layout Rails uses for the same reason.
+The rule is that **a directory is named for the gem it ships**. `gems/okf`
+builds `okf`, `gems/okf-mcp` builds `okf-mcp`. Nothing has to be mapped or
+remembered: a gem's directory, its release-tag prefix, its CI job name and its
+`require` path are all the same word. The container names *where gems live*; it
+never names *which gem this is*, which is what lets it sit above the rule
+without touching it.
 
 The counter-proposal was a role name — `base/`, `kernel/` — which reads better in
-a tree and then costs a mapping at every one of those four places. A `gems/`
-container was the other, and it buys separation the root does not yet need at
-this size while adding a path segment to every CI path, doc link and citation.
+a tree and then costs a mapping at every one of those four places. That one is
+still rejected.
+
+The tree's asymmetry is information: unprefixed is the host command, prefixed is
+a plugin on its seam. `gems/okf` beside `gems/okf-mcp` is the identical
+asymmetry one segment deeper, which is why the move renamed nothing.
 
 # What stays at the root
 
@@ -48,11 +53,45 @@ Everything that is not a gem, and one thing that is not obvious:
   to cover the siblings.
 - `Dockerfile` — because its build context must be the repository root. The
   gemspec derives `spec.files` from `git ls-files`, which needs the `.git` only
-  the root has, so the image builds `okf/` from a root context rather than
+  the root has, so the image builds `gems/okf/` from a root context rather than
   living inside it.
+- `resources/` — the bucket for what is neither a gem nor a distribution
+  channel, nested kind-then-platform (`resources/ci/github/`).
+- `.okf-registry.json` — every bundle in the tree, addressable as `@slug`.
+
+**A top-level name is either forced by an external consumer, or it goes in
+`resources/`.** `plugin/`, `.claude-plugin/` and `skills/` are forced — a
+published marketplace path, an installer's discovery walk. Without that rule
+every new kind of artifact argues for its own root entry in its own PR, which is
+how a root grows to twenty lines and stops being a map.
 
 The [extension points](extension-points.md) convention is what makes the sibling
 gems possible at all; this concept is only about where they sit.
+
+# `gems/` reverses a rejection this concept recorded
+
+This file used to reject the container outright: *a `gems/` container buys
+separation the root does not yet need **at this size** while adding a path
+segment to every CI path, doc link and citation.* Both halves moved, and the
+clause that dated it was *at this size*.
+
+The size is no longer four directories. It is four gems, three root-level
+distribution surfaces that are not gems (`plugin/`, `.claude-plugin/`,
+`skills/`), a fourth in `resources/`, and a bundle that is the map of the rest.
+At that count the root's job stops being "hold the gems" and becomes "hold
+everything that is not one" — and the gems are the crowd. The tree is also read
+by whoever does not read prose: an agent cloning this repository sees
+directories before it sees a paragraph, and a flat root said *one gem plus three
+hangers-on*.
+
+The path segment is the real cost and it is paid, not avoided: every CI path,
+every `working-directory:`, four `changelog_uri`s and 52 citation URLs gained a
+segment in one pass.
+
+The judgement did not turn out wrong. It turned out **conditional, with the
+condition written into it**, which is the only reason reversing it is a reshape
+rather than a contradiction — and it is the reason to keep writing decisions
+that way. A decision worth keeping says what would change it.
 
 # Four mechanisms resolved paths from the root, and three failed quietly
 
@@ -121,8 +160,8 @@ safe rather than merely conventional.
 
 # The bare tag series stays with the base gem
 
-`rake release` from `okf/` tags `vX.Y.Z`, unprefixed, continuing the series the
-gem has published since 1.0. A sibling tags `okf-mcp/vX.Y.Z`.
+`rake release` from `gems/okf/` tags `vX.Y.Z`, unprefixed, continuing the series
+the gem has published since 1.0. A sibling tags `okf-mcp/vX.Y.Z`.
 
 The asymmetry is deliberate and it pays for itself once: the Docker workflow
 triggers on `v*`, and a glob does not match across `/`, so a sibling's release
@@ -165,13 +204,15 @@ load-bearing rather than tidy:
   which the section above explains and each gem's packaging test pins. The rule
   admits no locally reworded variant, however defensible: the point is that the
   copies cannot drift, and an exception is a drift with a reason attached.
-- **The root's `.rubocop.yml` `Exclude` list has to grow with each sibling**, and
-  nothing enforces that it does. The list is how "every gem lints itself through
-  its own config" is actually implemented, and it silently failed to hold:
-  `okf-mcp/` was absent from it from the day it landed, so the repo-level lint
-  had been re-checking that gem's whole tree against okf's 2.4 target the entire
-  time. It passed, which is why nobody noticed — a rule enforced by an
-  enumeration is only as true as the last person to remember the enumeration.
+- **The root's `.rubocop.yml` excludes every gem**, which is how "every gem
+  lints itself through its own config" is actually implemented. It used to be a
+  four-entry enumeration, and it silently failed to hold: `okf-mcp/` was absent
+  from it from the day it landed, so the repo-level lint had been re-checking
+  that gem's whole tree against okf's 2.4 target the entire time. It passed,
+  which is why nobody noticed. Under `gems/` the enumeration collapses to one
+  `gems/**/*` entry and a fifth gem excludes itself — a rule enforced by an
+  enumeration is only as true as the last person to remember it, so the fix is
+  to stop enumerating rather than to remember harder.
 
 The Gemfile's path source is the fourth. A sibling names the kernel checkout
 unconditionally — `gem "okf", path: "../okf"` — because here the checkout is

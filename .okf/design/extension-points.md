@@ -2,16 +2,16 @@
 type: Constraint
 title: Three extension points, one idiom
 description: Linter checks, search engines and CLI verbs all register the same way — append-only, idempotent by id — and CLI discovery loads only okf-* gems, a namespacing convention first and a mild guard second.
-resource: okf/lib/okf/cli.rb
+resource: gems/okf/lib/okf/cli.rb
 tags: [architecture, cli, extensibility, search, registry, security]
 generated:
   by: human:maintainer
   at: 2026-07-20T12:00:00Z
 sources:
-  - title: okf/lib/okf/cli.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli.rb
-  - title: okf/lib/okf/bundle/search.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb
+  - title: gems/okf/lib/okf/cli.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/cli.rb
+  - title: gems/okf/lib/okf/bundle/search.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/search.rb
 ---
 
 # Overview

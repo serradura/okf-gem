@@ -2,16 +2,16 @@
 type: Format
 title: Sources (spec §5.1)
 description: The provenance family that ties empirical claims in a concept back to their sources, and the legacy body list it replaced.
-resource: okf/lib/okf/markdown/citations.rb
+resource: gems/okf/lib/okf/markdown/citations.rb
 tags: [provenance]
 generated:
   by: human:maintainer
   at: 2026-08-13T12:00:00Z
 sources:
-  - title: okf/lib/okf/markdown/citations.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/markdown/citations.rb
+  - title: gems/okf/lib/okf/markdown/citations.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/markdown/citations.rb
   - title: SPEC.md §5.1
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill/reference/SPEC.md
 ---
 
 # Overview

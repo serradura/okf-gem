@@ -2,18 +2,18 @@
 type: Capability
 title: Bundles list (the hub's /b/ page)
 description: The hub's /b/ page — every bundle it knows about with its size, health and default marker — and the four POST routes that change the registry, which the graph page's Bundles panel drives.
-resource: okf/lib/okf/server/hub.rb
+resource: gems/okf/lib/okf/server/hub.rb
 tags: [server, registry, hub, ui]
 generated:
   by: human:maintainer
   at: 2026-07-21T16:00:00Z
 sources:
-  - title: okf/lib/okf/server/hub.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/hub.rb
-  - title: okf/lib/okf/cli/server.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/server.rb
-  - title: okf/lib/okf/registry.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/registry.rb
+  - title: gems/okf/lib/okf/server/hub.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/server/hub.rb
+  - title: gems/okf/lib/okf/cli/server.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/cli/server.rb
+  - title: gems/okf/lib/okf/registry.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/registry.rb
 ---
 
 # Why it exists

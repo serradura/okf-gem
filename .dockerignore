@@ -1,19 +1,19 @@
 # Keep the build context small. NOTE: .git is intentionally NOT ignored —
 # okf.gemspec builds spec.files from `git ls-files`, so the build stage needs it.
 #
-# LOAD-BEARING, and one-directional: anything excluded here from under okf/ must
-# ALSO be rejected by the gemspec (or be gitignored). `git ls-files` reads the
+# LOAD-BEARING, and one-directional: anything excluded here from under gems/okf/
+# must ALSO be rejected by the gemspec (or be gitignored). `git ls-files` reads the
 # index, so a path dropped from the context is still listed in spec.files — and
 # `gem build` then fails on a file that is not there.
 #
 # The converse is NOT true, and must not be "restored" for symmetry: the gemspec
-# also rejects okf/bin, okf/Gemfile, okf/Rakefile and okf/.gitignore, which stay
-# in the context deliberately. Handing the builder a file the gem does not carry
-# costs nothing; the reverse breaks the build.
+# also rejects gems/okf/bin, gems/okf/Gemfile, gems/okf/Rakefile and
+# gems/okf/.gitignore, which stay in the context deliberately. Handing the builder
+# a file the gem does not carry costs nothing; the reverse breaks the build.
 #
-# Paths outside okf/ (.okf, plugin/, .github…) need no pairing at all: the
-# gemspec runs `git ls-files` with chdir into okf/ and never sees them. They are
-# here only to keep the context small.
+# Paths outside gems/okf/ (.okf, plugin/, .github…) need no pairing at all: the
+# gemspec runs `git ls-files` with chdir into gems/okf/ and never sees them. They
+# are here only to keep the context small.
 node_modules
 tmp
 *.gem
@@ -32,8 +32,8 @@ skills
 coverage
 pkg
 
-# Under okf/ — each of these is also in okf.gemspec's reject list. See above.
-okf/test
-okf/coverage
-okf/pkg
-okf/.rubocop.yml
+# Under gems/okf/ — each of these is also in okf.gemspec's reject list. See above.
+gems/okf/test
+gems/okf/coverage
+gems/okf/pkg
+gems/okf/.rubocop.yml

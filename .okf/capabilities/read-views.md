@@ -8,7 +8,7 @@ generated:
   at: 2026-08-13T12:00:00Z
 sources:
   - title: cli.md — read views
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/cli.md
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill/reference/cli.md
 ---
 
 # Overview

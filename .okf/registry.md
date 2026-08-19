@@ -2,14 +2,14 @@
 type: Component
 title: The bundle registry
 description: An ordered list of bundle references persisted as JSON — global under $OKF_HOME, or project-local via `okf registry init` and discovered from the working directory — the kernel behind a bare `okf server`.
-resource: okf/lib/okf/registry.rb
+resource: gems/okf/lib/okf/registry.rb
 tags: [cli, shell, registry]
 generated:
   by: human:maintainer
   at: 2026-07-24T12:00:00Z
 sources:
-  - title: okf/lib/okf/registry.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/registry.rb
+  - title: gems/okf/lib/okf/registry.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/registry.rb
 ---
 
 # Overview

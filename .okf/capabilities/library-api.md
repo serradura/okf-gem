@@ -2,7 +2,7 @@
 type: Capability
 title: Library API
 description: The Ruby surface — a pure in-memory model plus on-disk handles, an "ActiveRecord for the filesystem".
-resource: okf/lib/okf.rb
+resource: gems/okf/lib/okf.rb
 tags: [ruby, diagram]
 generated:
   by: human:maintainer
@@ -10,8 +10,8 @@ generated:
 sources:
   - title: README.md — Library
     resource: https://github.com/serradura/okf-gem/blob/main/README.md
-  - title: okf/lib/okf.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf.rb
+  - title: gems/okf/lib/okf.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf.rb
 ---
 
 # Overview

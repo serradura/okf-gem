@@ -2,14 +2,14 @@
 type: Constraint
 title: The core/shell split
 description: A pure functional core that never touches disk or stdio, and a thin shell that owns all I/O — enforced by a test.
-resource: okf/test/unit/boundary_test.rb
+resource: gems/okf/test/unit/boundary_test.rb
 tags: [architecture, pure, testing, diagram]
 generated:
   by: human:maintainer
   at: 2026-07-18T19:00:00Z
 sources:
-  - title: okf/test/unit/boundary_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/unit/boundary_test.rb
+  - title: gems/okf/test/unit/boundary_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/boundary_test.rb
 ---
 
 # Overview

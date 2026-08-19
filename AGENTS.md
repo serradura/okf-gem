@@ -1,37 +1,42 @@
 # AGENTS.md
 
-Maintainer guide for okf-gem, a monorepo. `okf/` holds `okf` on RubyGems — the
-baseline all-in-one gem that reads, validates, lints, and serves Open Knowledge
-Format (OKF) v0.1 bundles: directories of Markdown + YAML frontmatter that humans
-and agents both read. The bundled skill (`okf/lib/okf/skill/`) documents the
-format itself; this file documents how to change the code without breaking its
-contracts.
+Maintainer guide for okf-gem, a monorepo. `gems/okf/` holds `okf` on RubyGems —
+the baseline all-in-one gem that reads, validates, lints, and serves Open
+Knowledge Format (OKF) v0.1 bundles: directories of Markdown + YAML frontmatter
+that humans and agents both read. The bundled skill
+(`gems/okf/lib/okf/skill/`) documents the format itself; this file documents how
+to change the code without breaking its contracts.
 
-The ecosystem grows as sibling directories — an MCP shell, a TUI, an
-enforcement layer, an FTS5 storage engine — each named for the gem it ships.
+The ecosystem grows as sibling directories under `gems/` — an MCP shell, a TUI,
+an enforcement layer, an FTS5 storage engine — each named for the gem it ships.
 This file is about the baseline; a sibling inherits the working style and the
 Git rules below, but not the 2.4 floor or the dependency limits, which are
 `okf`'s own. A sibling with contracts of its own carries its own `AGENTS.md`
-beside its code ([`okf-mcp/AGENTS.md`](okf-mcp/AGENTS.md),
-[`okf-tui/AGENTS.md`](okf-tui/AGENTS.md) and
-[`okf-pro/AGENTS.md`](okf-pro/AGENTS.md) are the three that do) — this file
+beside its code ([`okf-mcp/AGENTS.md`](gems/okf-mcp/AGENTS.md),
+[`okf-tui/AGENTS.md`](gems/okf-tui/AGENTS.md) and
+[`okf-pro/AGENTS.md`](gems/okf-pro/AGENTS.md) are the three that do) — this file
 stays the general rule and those are the instances, so the same fact is never
 stated in two places to drift apart.
 
 ## Map
 
-The repository — one directory per gem, plus what is not a gem:
+The repository — a `gems/` container holding one directory per gem, and at the
+root only what is not a gem. A directory under `gems/` **is** a gem and is named
+for the gem it ships; everything at the root is named for what it is. The
+container says where gems live, never which gem this is — the whole argument,
+including the rejection it reverses, is in
+[.okf/design/monorepo-layout.md](.okf/design/monorepo-layout.md).
 
 ```
-okf/            the baseline gem; everything below lives inside it
-okf-mcp/        the MCP shell: the kernel's capabilities as MCP tools + prompts
+gems/okf/       the baseline gem; everything below lives inside it
+gems/okf-mcp/   the MCP shell: the kernel's capabilities as MCP tools + prompts
                 (floor 2.7 — the `mcp` SDK's — deps exactly `mcp` + `okf`;
                 own AGENTS.md)
-okf-tui/        the terminal UI: six views over one or many bundles, and the
+gems/okf-tui/   the terminal UI: six views over one or many bundles, and the
                 registry (floor 2.4 — okf's — deps `okf` + the TTY toolkit; it
                 has its own AGENTS.md, and ships its own `.okf/` in the gem).
                 Like okf-mcp it ships no exe: `okf tui` is the entry point
-okf-pro/      the enforcement layer: `okf pro setup` writes an agent's
+gems/okf-pro/   the enforcement layer: `okf pro setup` writes an agent's
                 knowledge repo — bundle, hooks, pre-commit, CI, skill — and
                 `okf pro hook` runs one gate against one hook event (floor
                 2.4 — okf's — deps exactly `okf`; own AGENTS.md, ships its own
@@ -48,11 +53,12 @@ skills/         the skills a generic installer reads (`npx skills add serradura/
                 every bundle in the tree, addressable as `@slug` — and while you
                 stand anywhere under this root it *replaces* your global
                 $OKF_HOME registry outright, rather than adding to it
-Dockerfile      builds okf/ — from a root context, because the gemspec needs .git
+Dockerfile      builds gems/okf/ — from a root context, because the gemspec
+                needs .git
 Rakefile        a delegator: `rake` runs every gem's default task
 ```
 
-Inside the baseline. **Paths below are relative to `okf/`** unless they begin
+Inside the baseline. **Paths below are relative to `gems/okf/`** unless they begin
 with `plugin/`, `.claude-plugin/`, `.okf/` or `.github/`:
 
 ```
@@ -120,7 +126,7 @@ that routes to the skill's playbooks (`lib/okf/skill/playbooks/`) or to the
 skill itself, a PostToolUse curation hook (`plugin/hooks/scripts/curate.rb`,
 plain Ruby on the stdlib, same 2.4 floor), and a generated copy of the skill.
 Neither ships in the gem — and neither needs a gemspec reject any more, because
-`git ls-files` runs with `chdir:` into `okf/` and never sees them.
+`git ls-files` runs with `chdir:` into `gems/okf/` and never sees them.
 
 They stay at the repo root and `rake skill:sync` stays in the *gem's* Rakefile
 pointing up at them. Every input is the gem's — the skill tree and the version —
@@ -176,7 +182,7 @@ you touch what `require "okf"` pulls in.
 
    ```bash
    docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
-     "cp -a /src /build && cd /build/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
+     "cp -a /src /build && cd /build/gems/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
    ```
 2. **Runtime dependencies are exactly `rack`, `webrick` and `minifts`.** No
    ActiveSupport — `OKF.blank?` and `Markdown::Frontmatter.stringify_keys` exist
@@ -232,14 +238,15 @@ you touch what `require "okf"` pulls in.
    compete for effort, integration wins. See the section below for what that
    obliges you to do.
 9. **`.dockerignore` implies the gemspec's reject list, one way only.** Anything
-   `.dockerignore` drops from under `okf/` must also be rejected by the gemspec
+   `.dockerignore` drops from under `gems/okf/` must also be rejected by the gemspec
    (or be gitignored). `git ls-files` reads the *index*, so a path excluded from
    the Docker build context is still listed in `spec.files` and `gem build` then
    fails on a file that is not there. **The converse does not hold** and must not
-   be "restored" for symmetry: `okf/bin`, `okf/Gemfile` and `okf/Rakefile` are
-   rejected from the gem and stay in the build context on purpose. Paths outside
-   the gem need no pairing at all — the gemspec runs with `chdir:` into `okf/`
-   and never sees them.
+   be "restored" for symmetry: `gems/okf/bin`, `gems/okf/Gemfile` and
+   `gems/okf/Rakefile` are rejected from the gem and stay in the build context on
+   purpose. Paths outside
+   the gem need no pairing at all — the gemspec runs with `chdir:` into
+   `gems/okf/` and never sees them.
    The same section's other rule: **nothing in `spec.files` may be a symlink.**
    `gem build` does not resolve one — it writes a symlink into the package, warns,
    and succeeds. RubyGems >= 3.2 then refuses to extract a link pointing outside
@@ -356,11 +363,11 @@ From the repo root — plain `rake`, no bundler, because there is no root Gemfil
 ```bash
 rake                               # every gem's default task, then the repo-level rubocop
 rake test                          # every gem's suite
-rake okf                           # validate + lint every .okf bundle in the repo
+rake okf                           # validate + lint every registered .okf bundle
 rake serve                         # serve this repo's own .okf as a graph
 ```
 
-From `okf/` — everything about the gem, and what CI actually runs:
+From `gems/okf/` — everything about the gem, and what CI actually runs:
 
 ```bash
 bin/setup                          # install dependencies
@@ -379,8 +386,8 @@ bundle exec rake skill:sync        # regenerate every generated skill copy + ver
 is the intended answer rather than an oversight — see the Map.
 
 CI (`.github/workflows/main.yml`) runs the gem's default task on every supported
-Ruby, 2.4 through the current stable, with `working-directory: okf` on both the
-job and `ruby/setup-ruby` (the action needs its own input to find the Gemfile it
+Ruby, 2.4 through the current stable, with `working-directory: gems/okf` on both
+the job and `ruby/setup-ruby` (the action needs its own input to find the Gemfile it
 caches against). It is one job per gem, not a gem axis on the matrix: the floors
 diverge, so a shared matrix would be mostly exclusions.
 
@@ -453,8 +460,8 @@ carries the problem statement, the hero images, the comparison table, and the
 argument for why any of this exists. It answers "what is OKF and should I care",
 then points at the gem.
 
-**`okf/README.md` is the gem's** — it ships inside the `.gem`, and its reader has
-already decided. Install, the shortest path to a working bundle, the command
+**`gems/okf/README.md` is the gem's** — it ships inside the `.gem`, and its
+reader has already decided. Install, the shortest path to a working bundle, the command
 block, one worked example per surface. No hero images: it is read on
 rubygems.org and in a terminal.
 
@@ -527,8 +534,8 @@ in the concept it is about, stated as a principle, in the same commit as the cod
 happened: **it records durable knowledge and shipped behavior, not the process
 that produced them.** The rule is general OKF craft rather than a fact about this
 repository, so it is stated once where it travels — `rule:okf-log-durable-only`
-in the skill's [authoring.md](okf/lib/okf/skill/reference/authoring.md), cited by
-the maintain playbook and the Closeout gate. Read it there; what follows is the
+in the skill's [authoring.md](gems/okf/lib/okf/skill/reference/authoring.md),
+cited by the maintain playbook and the Closeout gate. Read it there; what follows is the
 instance that earned it.
 
 The failure it closes has a shape worth recognizing, because the log invites
@@ -637,8 +644,9 @@ only: no label, no fixed title (#12, #8, #7).
 
 ### The steps
 
-A release is cut **from the gem's own directory** — `cd okf` first. Bundler reads
-the gemspec in its working directory and derives the tag from it, so the root
+A release is cut **from the gem's own directory** — `cd gems/okf` first. Bundler
+reads the gemspec in its working directory and derives the tag from it, so the
+root
 `rake release` refuses rather than doing something plausible.
 
 1. Bump `lib/okf/version.rb`, then `bundle exec rake skill:sync` — the plugin
@@ -667,7 +675,7 @@ everything would have been tidier and would have ended a public tag series
 mid-history to buy nothing.
 
 Gem packaging detail: `spec.files` comes from `git ls-files` run with `chdir:`
-into `okf/`, minus `test/`, `bin/`, the Gemfile, the Rakefile, `.gitignore`,
+into `gems/okf/`, minus `test/`, `bin/`, the Gemfile, the Rakefile, `.gitignore`,
 `.rubocop.yml` and the gemspec itself. Everything at the
 repo root is invisible to it, so a new *root* file needs no reject — but a new
 top-level file **inside the gem** ships unless the gemspec rejects it, so check

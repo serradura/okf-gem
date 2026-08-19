@@ -2,7 +2,7 @@
 type: Capability
 title: MCP server (okf-mcp)
 description: The kernel's proven capabilities projected onto the Model Context Protocol — fourteen read-only tools, concepts as resources, and the two consuming prompts, for any MCP-capable agent host.
-resource: okf-mcp/lib/okf/mcp/server.rb
+resource: gems/okf-mcp/lib/okf/mcp/server.rb
 tags: [mcp, serve, agent, registry, search]
 generated:
   by: human:maintainer

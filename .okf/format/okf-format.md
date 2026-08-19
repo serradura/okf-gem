@@ -2,14 +2,14 @@
 type: Format
 title: Open Knowledge Format v0.2
 description: Portable knowledge as a directory of Markdown files with YAML frontmatter that humans and agents both read.
-resource: okf/lib/okf/skill/reference/SPEC.md
+resource: gems/okf/lib/okf/skill/reference/SPEC.md
 tags: [okf, conformance]
 generated:
   by: human:maintainer
   at: 2026-08-13T12:00:00Z
 sources:
   - title: SPEC.md
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill/reference/SPEC.md
 ---
 
 # Overview

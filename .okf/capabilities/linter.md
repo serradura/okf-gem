@@ -2,14 +2,14 @@
 type: Capability
 title: Curation linter (lint)
 description: An advisory curation-quality report across eight categories and twenty-six checks — pinned severities, an explicit clock, and it never rejects a bundle.
-resource: okf/lib/okf/bundle/linter.rb
+resource: gems/okf/lib/okf/bundle/linter.rb
 tags: [curation, cli]
 generated:
   by: human:maintainer
   at: 2026-08-14T12:00:00Z
 sources:
-  - title: okf/lib/okf/bundle/linter.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/linter.rb
+  - title: gems/okf/lib/okf/bundle/linter.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/linter.rb
 ---
 
 # Overview

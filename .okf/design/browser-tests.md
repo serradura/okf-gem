@@ -2,16 +2,16 @@
 type: Constraint
 title: The graph page is proven in a real browser
 description: A string assertion over rendered HTML cannot see a collapsed canvas or a folded breakpoint, so the page is driven in Chromium — in both render modes, with any thrown error failing the run.
-resource: okf/test/browser
+resource: gems/okf/test/browser
 tags: [testing, render, server, architecture]
 generated:
   by: human:maintainer
   at: 2026-07-22T12:00:00Z
 sources:
-  - title: okf/test/browser/README.md
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/browser/README.md
-  - title: okf/test/browser/COVERAGE.md
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/browser/COVERAGE.md
+  - title: gems/okf/test/browser/README.md
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/browser/README.md
+  - title: gems/okf/test/browser/COVERAGE.md
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/browser/COVERAGE.md
 ---
 
 # Overview

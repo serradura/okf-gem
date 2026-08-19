@@ -2,7 +2,7 @@
 type: Constraint
 title: Integration tests are the critical layer
 description: The CLI is the product, so the suite that drives it end to end outranks the unit tests — and its coverage is measured alone, because the full number flatters.
-resource: okf/test/integration/cli
+resource: gems/okf/test/integration/cli
 tags: [testing, cli, architecture]
 generated:
   by: human:maintainer
@@ -10,8 +10,8 @@ generated:
 sources:
   - title: "AGENTS.md — Testing: integration first"
     resource: https://github.com/serradura/okf-gem/blob/main/AGENTS.md
-  - title: okf/test/integration/cli/cli_integration_case.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/integration/cli/cli_integration_case.rb
+  - title: gems/gems/okf/test/integration/cli/cli_integration_case.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/integration/cli/cli_integration_case.rb
 ---
 
 # Overview

@@ -2,14 +2,14 @@
 type: Constraint
 title: Three runtime dependencies, each challenged
 description: The gem depends on rack, webrick and minifts only — no ActiveSupport, no build step, no JavaScript toolchain, and no native extension.
-resource: okf/okf.gemspec
+resource: gems/okf/okf.gemspec
 tags: [rack, portability]
 generated:
   by: human:maintainer
   at: 2026-07-19T03:00:00Z
 sources:
-  - title: okf/okf.gemspec
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/okf.gemspec
+  - title: gems/okf/okf.gemspec
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/okf.gemspec
   - title: minifts
     resource: https://github.com/serradura/minifts
 ---

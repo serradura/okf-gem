@@ -2,7 +2,7 @@
 type: Constraint
 title: The server trust boundary
 description: The trust boundary for serving a bundle you may not fully trust — both XSS paths into the page are closed, the registry write routes carry their own locks, and every read is realpath-contained so a symlinked file cannot escape the bundle root.
-resource: okf/lib/okf/render/graph/template.html.erb
+resource: gems/okf/lib/okf/render/graph/template.html.erb
 tags: [security, server, xss, containment]
 generated:
   by: human:maintainer
@@ -10,10 +10,10 @@ generated:
 sources:
   - title: README.md — Server trust boundary
     resource: https://github.com/serradura/okf-gem/blob/main/README.md
-  - title: okf/lib/okf/render/graph/template.html.erb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph/template.html.erb
-  - title: okf/lib/okf/safe_read.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/safe_read.rb
+  - title: gems/okf/lib/okf/render/graph/template.html.erb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/render/graph/template.html.erb
+  - title: gems/okf/lib/okf/safe_read.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/safe_read.rb
 ---
 
 # Overview

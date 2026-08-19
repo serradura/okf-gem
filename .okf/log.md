@@ -1,5 +1,27 @@
 # Update Log
 
+## 2026-08-19
+* **Update**: **every gem lives under `gems/`** —
+  [monorepo layout](design/monorepo-layout.md). `gems/okf` builds `okf`,
+  `gems/okf-mcp` builds `okf-mcp`: the container names where gems live and never
+  which gem this is, so the naming rule and the tree's host-versus-plugin
+  asymmetry both survive one segment deeper. The concept it reverses said the
+  container buys separation the root does not need *at this size*, and records
+  what changed rather than reading as if `gems/` had always been the plan. Eight
+  classes of path moved with it, and the root `.rubocop.yml` enumeration of four
+  gems collapsed to one `gems/**/*` — the entry that was only ever as true as
+  the last person to remember it.
+* **Addition**: **the repository commits its own registry** —
+  [bundles manager](capabilities/bundles-manager.md). `.okf-registry.json` at
+  the root makes all three bundles addressable as `@okf`, `@okf-tui` and
+  `@okf-pro` from anywhere in the tree, with no global setup: `rake okf` reads
+  it instead of a constant, and a bare `okf server` mounts each at `/b/<slug>/`.
+  Every stored path is relative, so a checkout copied elsewhere still resolves.
+  The surprise it carries is that a project-local registry *replaces* the global
+  `$OKF_HOME` one rather than adding to it — which three test helpers had
+  assumed away by pinning `$OKF_HOME` alone, and which they now close with
+  `OKF_NO_DISCOVERY`.
+
 ## 2026-08-17
 * **Update**: **the skill's CLI reference is an index and seven leaves, and the
   skill gained a third channel** — [agent skill](capabilities/agent-skill.md).
@@ -22,7 +44,7 @@
   is what the CLI reference split above was an application of.
 
 ## 2026-08-15
-* **Addition**: **[okf-pro](https://github.com/serradura/okf-gem/tree/main/okf-pro)
+* **Addition**: **[okf-pro](https://github.com/serradura/okf-gem/tree/main/gems/okf-pro)
   joins the repository as its fourth gem**, cut at 1.0.0 — the
   [enforcement layer](capabilities/enforcement.md), and the first surface here
   that writes rather than reads. `okf pro setup` generates an agent's whole
@@ -42,7 +64,7 @@
   dispatch, and it exited 1, which the hook protocol reads as *proceed*. Three
   such holes and one silently skipped lint check are recorded with their
   measurements in that gem's own `.okf/`.
-* **Addition**: **[okf-tui](https://github.com/serradura/okf-gem/tree/main/okf-tui) joins the
+* **Addition**: **[okf-tui](https://github.com/serradura/okf-gem/tree/main/gems/okf-tui) joins the
   repository as its third gem**, cut at 1.0.0 — the full-screen terminal UI over
   one bundle or many: six views, the registry and its groups as editable
   configuration, and search across every bundle in scope through one shared
@@ -587,7 +609,7 @@
   look exempt. Predates the registry work — a straight carry-over from the
   monolith, found by reviewing the moved code rather than the diff.
 * **Update**: the **shipped skill** learned that the verb list is open. Its
-  [cli reference](https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/cli.md)
+  [cli reference](https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill/reference/cli.md)
   and `SKILL.md`'s verb row now say an installed extension adds verbs of its
   own, so a verb `okf help` shows and the reference does not document reads as
   **normal rather than a documentation error**. Worth doing because the skill is

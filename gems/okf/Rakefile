@@ -1,0 +1,289 @@
+# frozen_string_literal: true
+
+require "bundler/gem_tasks"
+
+# rake/testtask (not minitest/test_task) so `rake test` runs on every supported
+# Ruby — minitest's own task class needs minitest 5.16+, which needs Ruby 2.6.
+require "rake/testtask"
+
+BROWSER_DIR = File.expand_path("test/browser", __dir__)
+
+# Every browser task shells out to npx from test/browser. `env` carries the
+# knobs playwright.config.js reads: OKF_SLOWMO (pause between actions, so a
+# headed run is watchable) and OKF_VIDEO (record each spec to .webm).
+def browser_sh(command, env = {})
+  Dir.chdir(BROWSER_DIR) { sh(env, command) }
+end
+
+# skill:verify's two primitives. The file list is relative and sorted so two
+# trees compare directly; dotfiles stay out of it on purpose — a stray .DS_Store
+# is not drift, and neither copy is tracked carrying one.
+def skill_file_list(root)
+  Dir.glob(File.join(root, "**", "*"))
+     .select { |path| File.file?(path) }
+     .map { |path| path[(root.length + 1)..-1] }
+     .sort
+end
+
+def skill_checksum(path)
+  require "digest"
+  Digest::SHA256.file(path).hexdigest
+end
+
+# The repo root, one level up: the two things this gem's tasks reach outside
+# itself both live there — the project's own .okf bundle (browser:shots) and the
+# generated copies of the skill (skill:sync).
+REPO_ROOT = File.expand_path("../..", __dir__)
+
+# The skill's one editable copy, and every copy generated from it. Both
+# destinations are repo-root paths because neither ships in the gem:
+# `plugin/skills/okf` is the Claude Code plugin's, and `skills/` is where a
+# skill installer looks — `npx skills add serradura/okf-gem` finds okf there,
+# and okf-principles beside it. A third destination is a line in this list.
+CANONICAL_SKILL = File.expand_path("lib/okf/skill", __dir__)
+GENERATED_SKILL_COPIES = [ "plugin/skills/okf", "skills/okf" ].freeze
+
+# The README's graph shot, in both themes: boots the server on this repo's own
+# .okf and hands it to shots.mjs, which drives Chromium and writes the two PNGs.
+# It has nothing to do with the test suite beyond borrowing its Chromium — it
+# lives beside it because that is the one place in the repo that already has a
+# browser to drive, and because the pair it replaced went three releases stale
+# while regenerating them was a manual job nobody had a command for.
+def regenerate_shots
+  unless File.directory?(File.join(BROWSER_DIR, "node_modules"))
+    abort "browser suite not installed: run `bundle exec rake browser:setup`"
+  end
+
+  port = ENV.fetch("SHOT_PORT", "8877")
+  server = spawn(RbConfig.ruby, "-I#{__dir__}/lib", "#{__dir__}/exe/okf",
+    "server", "#{REPO_ROOT}/.okf", "-p", port, "--title", "okf-gem",
+    out: File::NULL, err: File::NULL)
+  begin
+    sleep 2 # WEBrick's boot; the script's own goto retries nothing
+    browser_sh("node shots.mjs", "SHOT_PORT" => port)
+  ensure
+    Process.kill("TERM", server)
+    Process.wait(server)
+  end
+end
+
+# A headed or recorded run is scoped to one spec file against the live server:
+# headed mode opens a window per worker, and the whole suite at watchable speed
+# is minutes of flashing windows.
+BROWSER_ONE_FILE = "--project=server --workers=1"
+
+Rake::TestTask.new(:test) do |t|
+  t.libs << "test" << "lib"
+  t.test_files = FileList["test/**/*_test.rb"]
+  t.warning = false
+end
+
+namespace :test do
+  # Integration alone, with its own coverage report. Run this to ask the question
+  # the full suite cannot answer: how much of the gem is reachable the way a user
+  # reaches it? Unit tests inflate the number by calling classes directly, so the
+  # honest figure comes from running this task on its own (OKF_COVERAGE_DIR keeps
+  # its report from overwriting the full suite's).
+  desc "Run only the integration suite, with an integration-only coverage report"
+  Rake::TestTask.new(:integration) do |t|
+    t.libs << "test" << "lib"
+    t.test_files = FileList["test/integration/**/*_test.rb"]
+    t.warning = false
+  end
+
+  # The graph page is ~1,300 lines of inline JS and CSS in one ERB template,
+  # and the things that break there — a view that returns with a collapsed
+  # canvas, a filter that stops composing, the ≤768px block folding the wrong
+  # element — are invisible to a string assertion over the rendered HTML. This
+  # task drives the real page in a real Chromium: DOM, computed CSS, media
+  # queries, and any error the page throws while a spec is running.
+  #
+  # Deliberately outside the default task. It needs node and a ~120MB Chromium,
+  # neither of which belongs on the Ruby 2.4 CI matrix, and the gem itself
+  # gains no dependency from it.
+  desc "Run the browser suite against the graph page (needs node; `rake browser:setup` first)"
+  task :browser do
+    unless File.directory?(File.join(BROWSER_DIR, "node_modules"))
+      abort "browser suite not installed: run `bundle exec rake browser:setup`"
+    end
+    browser_sh("npx playwright test")
+  end
+end
+
+namespace :browser do
+  desc "Install the browser suite's node dependencies and Chromium"
+  task :setup do
+    browser_sh("npm install")
+    browser_sh("npx playwright install chromium")
+  end
+
+  desc "Open the browser suite's interactive runner (pick specs, watch them drive a real page)"
+  task :ui do
+    browser_sh("npx playwright test --ui")
+  end
+
+  desc "Regenerate the README's .github/server-{light,dark}.png from this repo's own .okf"
+  task(:shots) { regenerate_shots }
+
+  #   rake browser:watch                  # inspector.spec.js, 400ms per action
+  #   rake browser:watch[filters]         # a different file
+  #   rake browser:watch[inspector,900]   # slower
+  desc "Watch a real browser run a spec file (args: [spec,slowmo_ms])"
+  task :watch, [ :spec, :slowmo ] do |_t, args|
+    browser_sh(
+      "npx playwright test #{args[:spec] || "inspector"} #{BROWSER_ONE_FILE} --headed",
+      "OKF_SLOWMO" => args[:slowmo] || "400"
+    )
+  end
+
+  desc "Record a spec file's run to video (args: [spec])"
+  task :video, [ :spec ] do |_t, args|
+    browser_sh("npx playwright test #{args[:spec] || "inspector"} #{BROWSER_ONE_FILE}", "OKF_VIDEO" => "1")
+    puts "\nvideos: test/browser/.tmp/results/**/*.webm"
+  end
+
+  desc "Show the last browser run's HTML report (traces, screenshots, timings)"
+  task :report do
+    browser_sh("npx playwright show-report .tmp/report")
+  end
+end
+
+# Boot the graph page on the same fixture the browser suite drives, for poking
+# at by hand. `rake test:browser` boots its own server on 8899; this one is
+# yours to leave running.
+desc "Serve the browser suite's fixture bundle at http://127.0.0.1:8808"
+task :serve do
+  sh "ruby -Ilib exe/okf server test/browser/fixtures/bundle"
+end
+
+task "test:integration" => :set_integration_coverage_dir
+
+task :set_integration_coverage_dir do
+  ENV["OKF_COVERAGE_DIR"] = "coverage/integration"
+  ENV["OKF_COVERAGE_NAME"] = "Integration Tests (alone)"
+end
+
+# The two generated copies of the skill, and the gem's version in the plugin
+# manifest, all come from sources inside this gem (lib/okf/skill and
+# lib/okf/version.rb). `skill:sync` writes them; `skill:verify` and
+# test/plugin/sync_test.rb both fail when they drift, so the "single editable
+# skill copy" constraint (AGENTS.md constraint 6) stays auditable rather than
+# remembered.
+#
+# Both destinations live at the repo root, not in this gem, but these tasks stay
+# here: every input is the gem's, and keeping them here is what lets
+# `task build: "skill:verify"` below stay a plain dependency — the guard that
+# makes a release with a stale copy impossible rather than a CI failure after
+# the fact.
+namespace :skill do
+  desc "Regenerate every generated copy of lib/okf/skill and stamp the gem version into plugin.json"
+  task :sync do
+    require "fileutils"
+    require "json"
+    require_relative "lib/okf/version"
+
+    # File by file rather than cp_r of the whole directory, so the copies carry
+    # exactly what skill_file_list compares — a macOS .DS_Store beside the skill
+    # would otherwise be copied into both, and a repo-wide `release:guard_clean`
+    # then blocks a release over a file nobody wrote.
+    names = skill_file_list(CANONICAL_SKILL)
+
+    GENERATED_SKILL_COPIES.each do |rel|
+      dest = File.join(REPO_ROOT, rel)
+      FileUtils.rm_rf(dest)
+      names.each do |name|
+        target = File.join(dest, name)
+        FileUtils.mkdir_p(File.dirname(target))
+        FileUtils.cp(File.join(CANONICAL_SKILL, name), target)
+      end
+
+      puts "#{rel} synced (#{names.length} files)"
+    end
+
+    manifest_path = File.join(REPO_ROOT, "plugin/.claude-plugin/plugin.json")
+    manifest = JSON.parse(File.read(manifest_path))
+    manifest["version"] = OKF::VERSION
+    File.write(manifest_path, JSON.pretty_generate(manifest) + "\n")
+    puts "plugin.json stamped #{OKF::VERSION}"
+  end
+
+  # Both halves of the obligation, in the order they bite: a copy that drifted
+  # from the skill it was generated from, then a manifest a version bump left
+  # behind. The suite checks the same two things, but `build` cannot run the
+  # suite — it runs this.
+  desc "Fail unless every generated skill copy matches lib/okf/skill and plugin.json carries the gem version"
+  task :verify do
+    require "json"
+    require_relative "lib/okf/version"
+
+    canonical = skill_file_list(CANONICAL_SKILL)
+
+    GENERATED_SKILL_COPIES.each do |rel|
+      copy = File.join(REPO_ROOT, rel)
+      abort "#{rel} is missing: run `bundle exec rake skill:sync`" unless File.directory?(copy)
+
+      if skill_file_list(copy) != canonical
+        abort "#{rel} does not carry the same files as lib/okf/skill: run `bundle exec rake skill:sync`"
+      end
+
+      drifted = canonical.reject do |name|
+        skill_checksum(File.join(CANONICAL_SKILL, name)) == skill_checksum(File.join(copy, name))
+      end
+      unless drifted.empty?
+        abort "#{rel} has drifted from lib/okf/skill (#{drifted.join(", ")}): run `bundle exec rake skill:sync`"
+      end
+    end
+
+    manifest = JSON.parse(File.read(File.join(REPO_ROOT, "plugin/.claude-plugin/plugin.json")))
+    unless manifest["version"] == OKF::VERSION
+      abort "plugin.json is at #{manifest["version"]} but the gem is #{OKF::VERSION}: run `bundle exec rake skill:sync`"
+    end
+  end
+end
+
+# Every generated copy versions with the gem. Guarding `build` (which `release`
+# runs first) makes a release with a stale copy or a stale manifest impossible,
+# not just a CI failure after the fact.
+task build: "skill:verify"
+
+# Bundler's `release:guard_clean` runs `git diff` with no pathspec, so it is
+# *repo-wide* regardless of the directory it runs from. In a monorepo that is the
+# right behaviour and a confusing one: a half-finished sibling gem, or an edited
+# README two levels up, blocks a release of this gem — and all Bundler says is
+# "There are files that need to be committed first."
+#
+# So this runs first and says what Bundler will not: which paths are dirty, which
+# of them belong to this gem, and that the rest count anyway. It aborts rather
+# than warns, because guard_clean is about to abort regardless and a clear message
+# beating a terse one to the exit is the whole point.
+namespace :release do
+  desc "Name exactly what is blocking a release before Bundler's terse guard does"
+  task :preflight do
+    dirty = `git status --porcelain`.lines.map { |line| line[3..-1].to_s.strip }.reject(&:empty?)
+    unless dirty.empty?
+      gem_dir = File.basename(__dir__)
+      mine, theirs = dirty.partition { |path| path.start_with?("#{gem_dir}/") }
+
+      warn "cannot release #{gem_dir}: the working tree is not clean.\n"
+      warn "  in #{gem_dir}/ (this gem):\n#{mine.map { |p| "    #{p}\n" }.join}" unless mine.empty?
+      unless theirs.empty?
+        warn "  elsewhere in the repo — these block the release too, because Bundler's"
+        warn "  guard is repo-wide, even though they are not part of this gem:"
+        warn theirs.map { |p| "    #{p}" }.join("\n")
+      end
+      abort "\ncommit or stash all of it, then run `rake release` again."
+    end
+  end
+end
+
+task "release:guard_clean" => "release:preflight"
+
+# RuboCop only installs on newer Rubies (see Gemfile); the default task degrades
+# to test-only where it is absent.
+begin
+  require "rubocop/rake_task"
+  RuboCop::RakeTask.new
+  task default: %i[test rubocop]
+rescue LoadError
+  task default: %i[test]
+end

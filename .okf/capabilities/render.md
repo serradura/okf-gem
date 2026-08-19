@@ -2,16 +2,16 @@
 type: Capability
 title: Static render (render)
 description: One self-contained HTML file with the whole graph baked in — the same page `okf server` serves, written to disk so it hosts where nothing runs (`okf render`).
-resource: okf/lib/okf/render/graph.rb
+resource: gems/okf/lib/okf/render/graph.rb
 tags: [server, graph]
 generated:
   by: human:maintainer
   at: 2026-08-13T12:00:00Z
 sources:
-  - title: okf/lib/okf/cli/render.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/render.rb
-  - title: okf/lib/okf/render/graph.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph.rb
+  - title: gems/okf/lib/okf/cli/render.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/cli/render.rb
+  - title: gems/okf/lib/okf/render/graph.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/render/graph.rb
 ---
 
 # Overview

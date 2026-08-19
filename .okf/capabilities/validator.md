@@ -2,14 +2,14 @@
 type: Capability
 title: Conformance validator (validate)
 description: Implements the spec's §11 conformance definition exactly — three hard conditions, everything else a machine-readable warning.
-resource: okf/lib/okf/bundle/validator.rb
+resource: gems/okf/lib/okf/bundle/validator.rb
 tags: [conformance, cli]
 generated:
   by: human:maintainer
   at: 2026-08-13T12:00:00Z
 sources:
-  - title: okf/lib/okf/bundle/validator.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/validator.rb
+  - title: gems/okf/lib/okf/bundle/validator.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/validator.rb
 ---
 
 # Overview

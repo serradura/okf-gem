@@ -2,14 +2,14 @@
 type: Component
 title: OKF::Bundle
 description: The pure in-memory collection of concepts that validate, lint, and graph run over.
-resource: okf/lib/okf/bundle.rb
+resource: gems/okf/lib/okf/bundle.rb
 tags: [pure]
 generated:
   by: human:maintainer
   at: 2026-08-13T12:00:00Z
 sources:
-  - title: okf/lib/okf/bundle.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle.rb
+  - title: gems/okf/lib/okf/bundle.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle.rb
 ---
 
 # Overview

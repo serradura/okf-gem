@@ -2,18 +2,18 @@
 type: Constraint
 title: Search engines are adapters, and the facade owns the row
 description: One facade over N retrieval engines — the scan by default, the index when a query needs it or names it — with a shared conformance suite standing in for the oracle rule that multiple engines made impossible.
-resource: okf/lib/okf/bundle/search.rb
+resource: gems/okf/lib/okf/bundle/search.rb
 tags: [architecture, search, extensibility, testing]
 generated:
   by: human:maintainer
   at: 2026-07-24T12:00:00Z
 sources:
-  - title: okf/lib/okf/bundle/search.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb
-  - title: okf/test/unit/bundle/search/engine_conformance.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/unit/bundle/search/engine_conformance.rb
-  - title: okf/test/unit/bundle/search/accepted_losses_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/unit/bundle/search/accepted_losses_test.rb
+  - title: gems/okf/lib/okf/bundle/search.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/search.rb
+  - title: gems/okf/test/unit/bundle/search/engine_conformance.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/bundle/search/engine_conformance.rb
+  - title: gems/okf/test/unit/bundle/search/accepted_losses_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/bundle/search/accepted_losses_test.rb
 ---
 
 # Overview

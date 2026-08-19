@@ -2,16 +2,16 @@
 type: Component
 title: The okf command-line front end
 description: The only layer that parses argv, prints, writes files, and decides exit codes.
-resource: okf/lib/okf/cli.rb
+resource: gems/okf/lib/okf/cli.rb
 tags: [cli, shell, registry]
 generated:
   by: human:maintainer
   at: 2026-08-13T12:00:00Z
 sources:
-  - title: okf/lib/okf/cli.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli.rb
-  - title: okf/lib/okf/cli/command.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/command.rb
+  - title: gems/okf/lib/okf/cli.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/cli.rb
+  - title: gems/okf/lib/okf/cli/command.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/cli/command.rb
 ---
 
 # Overview

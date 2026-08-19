@@ -96,7 +96,7 @@ else is optional and tolerated when missing. A concept (here the real
 type: Capability
 title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph served over HTTP, and a mountable Rack app.
-resource: okf/lib/okf/server/app.rb
+resource: gems/okf/lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
 generated:
   by: human:maintainer
@@ -517,7 +517,7 @@ the pure layer, the writer, and the lower-level pieces.
 
 `validate` (the [conformance validator](https://okfgem.com/docs/cli/validate/)) asks
 _"is this legal OKF?"_ and implements the spec's
-[§11](okf/lib/okf/skill/reference/SPEC.md#11-conformance) exactly — which means it is
+[§11](gems/okf/lib/okf/skill/reference/SPEC.md#11-conformance) exactly — which means it is
 *forbidden* to reject a bundle for a broken link or a missing optional field.
 
 `lint` (the [curation linter](https://okfgem.com/docs/cli/lint/)) asks the
@@ -556,18 +556,20 @@ do not know. Full write-up:
 
 ## This repository
 
-A monorepo, one directory per gem, each named for the gem it ships. `okf/` is the
-baseline — the all-in-one everything above describes — and the ecosystem grows
-beside it.
+A monorepo. Every gem lives under `gems/`, each directory named for the gem it
+ships; `gems/okf` is the baseline — the all-in-one everything above describes —
+and the ecosystem grows beside it.
 
 ```
-okf/              the okf gem: skill, CLI, library, graph      → okf/README.md
-okf-mcp/          the MCP server over the same kernel          → okf-mcp/README.md
-okf-tui/          the terminal UI over the same kernel         → okf-tui/README.md
-okf-pro/        the scaffold and the gates over the same kernel → okf-pro/README.md
+gems/okf/         the okf gem: skill, CLI, library, graph  → gems/okf/README.md
+gems/okf-mcp/     the MCP server over the same kernel      → gems/okf-mcp/README.md
+gems/okf-tui/     the terminal UI over the same kernel     → gems/okf-tui/README.md
+gems/okf-pro/     the scaffold and the gates               → gems/okf-pro/README.md
 plugin/           the Claude Code plugin (this repo is its marketplace)
+skills/           the skills a generic installer reads
 .okf/             this project's own knowledge, as an OKF bundle
-Dockerfile        builds the published image from okf/
+.okf-registry.json  every bundle in the tree, addressable as @slug
+Dockerfile        builds the published image from gems/okf/
 ```
 
 ## Development
@@ -577,17 +579,16 @@ From the repo root — plain `rake`, there is no root Gemfile:
 ```bash
 rake              # every gem's default task (tests + RuboCop), then the repo-level lint
 rake test         # every gem's test suite
-rake okf          # validate + lint every .okf bundle in the repo
+rake okf          # validate + lint every registered .okf bundle
 rake serve        # browse this project's own bundle as a graph
 ```
 
-From any gem's directory, for work on that gem — `cd okf-mcp`, `cd okf-tui` or
-`cd okf-pro` follows the same three commands, and each has its own README and
-CI job. From
-`okf/`, for work on the baseline itself:
+From any gem's directory, for work on that gem — `cd gems/okf-mcp`, `cd
+gems/okf-tui` or `cd gems/okf-pro` follows the same three commands, and each has
+its own README and CI job. From `gems/okf`, for work on the baseline itself:
 
 ```bash
-cd okf
+cd gems/okf
 bin/setup               # install dependencies
 bundle exec rake        # tests + RuboCop (what CI runs)
 bundle exec rake test   # just the test suite
@@ -599,11 +600,11 @@ repo root:
 
 ```bash
 docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
-  "cp -a /src /build && cd /build/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
+  "cp -a /src /build && cd /build/gems/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
 ```
 
 The graph page has its own suite in a real browser (`bundle exec rake
-browser:setup`, then `rake test:browser`, both from `okf/`). See
+browser:setup`, then `rake test:browser`, both from `gems/okf/`). See
 [AGENTS.md](AGENTS.md) for the maintainer guide.
 
 ## Contributing

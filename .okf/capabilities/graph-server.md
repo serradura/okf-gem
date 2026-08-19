@@ -2,22 +2,22 @@
 type: Capability
 title: Interactive graph server (server)
 description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
-resource: okf/lib/okf/server/app.rb
+resource: gems/okf/lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
 generated:
   by: human:maintainer
   at: 2026-08-13T12:00:00Z
 sources:
-  - title: okf/lib/okf/server/app.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/app.rb
+  - title: gems/okf/lib/okf/server/app.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/server/app.rb
   - resource: render.md
-  - title: okf/lib/okf/cli/server.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/server.rb
+  - title: gems/okf/lib/okf/cli/server.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/cli/server.rb
   - resource: render.md
-  - title: okf/lib/okf/server/hub.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/server/hub.rb
-  - title: okf/lib/okf/render/graph/template.html.erb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/render/graph/template.html.erb
+  - title: gems/okf/lib/okf/server/hub.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/server/hub.rb
+  - title: gems/okf/lib/okf/render/graph/template.html.erb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/render/graph/template.html.erb
 ---
 
 # Overview

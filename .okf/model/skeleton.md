@@ -2,16 +2,16 @@
 type: Component
 title: OKF::Bundle::Skeleton
 description: The graph reduced to what a reader can hold — directories, the weighted arcs between them, and each link with the cut it survives.
-resource: okf/lib/okf/bundle/skeleton.rb
+resource: gems/okf/lib/okf/bundle/skeleton.rb
 tags: [graph, pure]
 generated:
   by: human:maintainer
   at: 2026-07-23T12:00:00Z
 sources:
-  - title: okf/lib/okf/bundle/skeleton.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/skeleton.rb
-  - title: okf/lib/okf/cli/graph.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/cli/graph.rb
+  - title: gems/okf/lib/okf/bundle/skeleton.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/skeleton.rb
+  - title: gems/okf/lib/okf/cli/graph.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/cli/graph.rb
 ---
 
 # Overview

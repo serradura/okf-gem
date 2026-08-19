@@ -7,8 +7,8 @@ generated:
   by: human:maintainer
   at: 2026-07-17T16:00:00Z
 sources:
-  - title: okf/okf.gemspec
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/okf.gemspec
+  - title: gems/okf/okf.gemspec
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/okf.gemspec
   - title: AGENTS.md — Hard constraints
     resource: https://github.com/serradura/okf-gem/blob/main/AGENTS.md
 ---

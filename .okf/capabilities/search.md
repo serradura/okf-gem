@@ -2,18 +2,18 @@
 type: Capability
 title: Ranked text search (search)
 description: Full-text retrieval over concept metadata and bodies — raw-text matching by default, BM25+ token ranking on request, and explainable row by row either way.
-resource: okf/lib/okf/bundle/search.rb
+resource: gems/okf/lib/okf/bundle/search.rb
 tags: [read, cli, json, registry, search]
 generated:
   by: human:maintainer
   at: 2026-08-13T12:00:00Z
 sources:
-  - title: okf/lib/okf/bundle/search.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/bundle/search.rb
-  - title: okf/test/integration/cli/by_dir/cli_search_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/integration/cli/by_dir/cli_search_test.rb
-  - title: okf/test/unit/bundle/search/recall_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/test/unit/bundle/search/recall_test.rb
+  - title: gems/okf/lib/okf/bundle/search.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/search.rb
+  - title: gems/okf/test/integration/cli/by_dir/cli_search_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/integration/cli/by_dir/cli_search_test.rb
+  - title: gems/okf/test/unit/bundle/search/recall_test.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/bundle/search/recall_test.rb
 ---
 
 # Overview

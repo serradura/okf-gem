@@ -2,16 +2,16 @@
 type: Format
 title: Frontmatter (spec §4)
 description: The YAML header on every concept, parsed through the gem's single, hardened YAML gateway.
-resource: okf/lib/okf/markdown/frontmatter.rb
+resource: gems/okf/lib/okf/markdown/frontmatter.rb
 tags: [yaml]
 generated:
   by: human:maintainer
   at: 2026-08-13T12:00:00Z
 sources:
-  - title: okf/lib/okf/markdown/frontmatter.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/markdown/frontmatter.rb
+  - title: gems/okf/lib/okf/markdown/frontmatter.rb
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/markdown/frontmatter.rb
   - title: SPEC.md §4
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill/reference/SPEC.md
 ---
 
 # Overview

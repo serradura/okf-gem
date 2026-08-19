@@ -7,12 +7,12 @@
     },
     {
       "slug": "okf-tui",
-      "path": "okf-tui/.okf",
+      "path": "gems/okf-tui/.okf",
       "title": "okf-tui"
     },
     {
       "slug": "okf-pro",
-      "path": "okf-pro/.okf",
+      "path": "gems/okf-pro/.okf",
       "title": "okf-pro"
     }
   ],
