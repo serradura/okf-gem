@@ -72,31 +72,28 @@ the concept that owns them:
 
 | you want | read |
 | --- | --- |
-| the shape of the whole thing | [`gems/okf/.okf/overview.md`](gems/okf/.okf/overview.md) |
 | what a file under `lib/` does | [`gems/okf/.okf/structure/`](gems/okf/.okf/structure/) — one concept per layer, and it names every one of the fifty files |
-| whether a capability already exists | [`gems/okf/.okf/capabilities/`](gems/okf/.okf/capabilities/) — the verbs, the subcommands, and the library surface |
-| how a change is proven | [`gems/okf/.okf/testing/`](gems/okf/.okf/testing/) — the layers, how to read coverage, and the walk a new verb owes |
+| how to add a verb or a subcommand | [`gems/okf/.okf/testing/adding-a-verb.md`](gems/okf/.okf/testing/adding-a-verb.md) |
+| what any of it *means* — the format, the model, the seven capabilities, the design constraints | [`.okf/`](.okf/), this repository's own bundle, which is still okf's |
 
-`okf server @okf-kernel` reads it as a graph; `okf search @okf-kernel <term>`
-searches it from anywhere in the checkout.
+`okf server @okf-kernel` reads the structural half as a graph; `okf search @all
+<term>` reaches both.
 
-The split used to run the other way: this file carried a hand-written Map of
-`lib/**` and a full account of the test layers, and nothing checked either.
-`gems/okf/test/unit/bundle_catalog_test.rb` now fails when a file under `lib/`
-is named by no concept, when a concept names a file that is gone, or when the
-verb catalogue and `OKF::CLI.builtins` disagree — so the structural layer is
-pinned where it lives, rather than trusted where nobody looks.
+The split is by **kind**, not by subject, and deliberately so. What the code
+*is* lives beside the code, where a test holds it to the tree:
+`gems/okf/test/unit/bundle_catalog_test.rb` fails when a file under `lib/` is
+named by no concept, or when a concept names a file that is gone. What it
+*means* stays in `.okf/`, alongside the format and the layout decisions — and is
+not copied, because a second catalogue that can disagree with the first teaches a
+reader to trust neither. The same test pins the one catalogue that already
+existed, the group table in [.okf/cli.md](.okf/cli.md), against
+`OKF::CLI.builtins`.
 
-Two things stay here rather than moving. The **hard constraints** below are the
-contract, and three of the four gems cite them across a directory boundary. And
-the **format** — what a citation is, what §5 declares — is
-[`.okf/`](.okf/)'s, the repository's own bundle, because the skill, the plugin
-and every future non-Ruby implementation speak it.
-
-The threat model for the plugin seam is
-[.okf/design/extension-points.md](.okf/design/extension-points.md), which stays
-at the root for the same reason: it is about the seam every sibling arrives
-through, not about the kernel.
+The **hard constraints** below stay here too: they are the contract, and three
+of the four gems cite them across a directory boundary. So does the threat model
+for the plugin seam,
+[.okf/design/extension-points.md](.okf/design/extension-points.md) — it is about
+the seam every sibling arrives through, not about the kernel.
 
 Outside the gem, `plugin/`, `.claude-plugin/` and `skills/` are the three
 distribution surfaces the repo carries for a tree that lives inside it. The first
@@ -239,11 +236,11 @@ test proves the *product* behaves, so when the two compete for effort,
 integration wins.
 
 How that layer is organised — one file per command and subcommand, three folders
-for the three ways a user names a bundle, and what `across_bundles/` obliges
-even for the verbs that take one — is
-[`gems/okf/.okf/testing/layers.md`](gems/okf/.okf/testing/layers.md), together
-with how to read the integration coverage map and the three shapes that hide in
-it. The step-by-step walk a new verb owes is
+for the three ways a user names a bundle, what `across_bundles/` obliges even
+for the verbs that take one, how to read the integration coverage map, and why
+fixtures are the cheap part — is
+[.okf/design/integration-first.md](.okf/design/integration-first.md). The
+step-by-step walk a new verb owes is
 [`gems/okf/.okf/testing/adding-a-verb.md`](gems/okf/.okf/testing/adding-a-verb.md).
 
 Four obligations stay here, because a reviewer checks them:
@@ -324,9 +321,10 @@ unhedged: **a change to the template is not done until `rake test:browser` is
 green**, and a bug in the page earns a red spec there before it earns a patch.
 Nothing enforces it. Run it and say what it said.
 
-The argument, the two modes, the vendor cache and what to read before editing
-the template are
-[`gems/okf/.okf/testing/the-graph-page.md`](gems/okf/.okf/testing/the-graph-page.md).
+The argument, the two modes, the vendor cache and the measurement that ended the
+CI job are [.okf/design/browser-tests.md](.okf/design/browser-tests.md); what
+the file is made of, and the three seams that couple its sections, are
+[`gems/okf/.okf/structure/the-server.md`](gems/okf/.okf/structure/the-server.md).
 
 ## The READMEs
 

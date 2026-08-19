@@ -40,8 +40,10 @@ And one file per verb, each registering itself at load:
 
 **That table's order is the require order at the bottom of `cli.rb`, and the
 require order IS the order `okf help` lists the verbs in.** A test pins the
-result, but the coupling is in the source. What each verb answers is
-[capabilities/verbs](/capabilities/verbs.md).
+result, but the coupling is in the source. What each verb *answers* is the
+repository bundle's `cli.md` group table, pinned against `OKF::CLI.builtins` by
+the same test; the walk a new one owes is
+[adding-a-verb](/testing/adding-a-verb.md).
 
 # What a verb is
 

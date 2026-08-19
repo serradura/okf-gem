@@ -42,7 +42,9 @@ refusals; `safe_markdown_path!` is the containment check, borrowed from the
 format layer rather than rewritten.
 
 No CLI verb writes a bundle. This is the library API's surface, which is why its
-integration coverage is low *by design* — see [the-suite](/testing/layers.md).
+integration coverage is low *by design*, and why a new verb reaching for it is
+worth a second look — [adding-a-verb](/testing/adding-a-verb.md) says where
+logic belongs instead.
 
 # Registry: two files, one answer
 

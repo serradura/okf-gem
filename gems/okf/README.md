@@ -348,9 +348,9 @@ diagrams, the comparison with `CLAUDE.md`, agent auto-memory and wikis, the
 Claude Code plugin, and the way to install the skill into any agent without this
 gem (`npx skills add serradura/okf-gem`). The [docs](https://okfgem.com/docs/) are the manual.
 
-And the gem documents *itself* in OKF. `.okf/` ships inside it — what every file
-under `lib/` does, what each verb answers, and how a change is proven — so from
-an installed copy:
+And the gem documents *itself* in OKF. `.okf/` ships inside it — a map of what
+every file under `lib/` does, and the walk a new verb owes — so from an
+installed copy:
 
 ```bash
 okf server "$(gem contents okf --show-install-dir)/.okf"

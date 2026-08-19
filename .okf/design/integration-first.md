@@ -70,6 +70,19 @@ belong to the [library API](../capabilities/library-api.md) to prove. Low covera
 in `cli/`, `registry.rb`, or `server/` is a **hole** — a path a user can reach
 that no user-shaped test walks.
 
+And prove that completeness by **reading the uncovered lines, not by judgment**.
+A green run and a flattering aggregate hide the same thing — a branch only the
+unit tests reach — so after a feature, diff
+`coverage/integration/.resultset.json` for the uncovered lines in the files you
+changed. Three shapes hide there by habit, because a unit test walked them
+first: the *second* output format (the human listing when only `--json` was
+asserted, or the reverse), an *error* branch and the exit code it carries, and
+*malformed-input* robustness (a hand-edited [registry](../registry.md) — a
+cycle, an unnormalised slug, a missing field). The registry groups shipped with
+nine integration tests that read as exhaustive and left six such branches, a
+whole human-rendering path among them, proven only by unit tests until the
+resultset named them.
+
 # Fixtures are the cheap part
 
 `fixtures/` is the substrate the whole layer stands on: a committed bundle is

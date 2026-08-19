@@ -11,11 +11,12 @@ resource: lib/okf/cli/command.rb
 
 # Before adding one, check it is not already there
 
-[capabilities/verbs](/capabilities/verbs.md) is seventeen commands and eight
-subcommands, and most of what a new one would want is a *flag* on an existing
-view rather than a view of its own. Check the shared filters and projections
-first — `--type/--dir/--tag/--status/--trust` and `--fields/--except` compose
-with every list.
+Seventeen commands and eight subcommands already exist, catalogued in the
+repository bundle's `cli.md` and `capabilities/read-views.md`, and `okf help`
+prints the same list. Most of what a new verb would want is a *flag* on an
+existing view rather than a view of its own: the shared filters and projections
+— `--type/--dir/--tag/--status/--trust` and `--fields/--except` — compose with
+every list already.
 
 # The walk
 
@@ -29,8 +30,8 @@ with every list.
    file — `registry set` is a surface a user invokes on its own.
 3. **Subclass `CLI::Command` and add nothing it already has.** Refs, the shared
    flags, `filter_entries`, `print_inverted_index`, `no_extras?` — the list is in
-   [structure/the-cli](/structure/the-cli.md). Re-implementing one of these is
-   how two verbs come to disagree about what `--dir` means.
+   [the-cli](/structure/the-cli.md). Re-implementing one of these is how two
+   verbs come to disagree about what `--dir` means.
 4. **`#call` is the whole public surface.** Everything else is private, so a
    helper cannot become a verb by accident. Answer `.id`, `.group`,
    `.help_rows`, `.hidden?`.
@@ -45,14 +46,17 @@ with every list.
    Then exercise the whole surface, not the happy path: every flag once, every
    output format it offers, every exit code it can return, and the combinations
    that actually interact.
-8. **Update the catalogue** — [capabilities/verbs](/capabilities/verbs.md) — and,
-   if you added a file, the concept in [structure/](/structure/) that owns its
-   layer. `test/unit/bundle_catalog_test.rb` fails until you do. So does the
-   gem's README, which owes a line for every verb; nothing enforces that one.
+8. **Update what describes it.** A new file under `lib/` needs its line in the
+   concept in [structure/](/structure/) that owns its layer, and the verb needs
+   its cell in the repository bundle's `cli.md` group table.
+   `test/unit/bundle_catalog_test.rb` fails on either. So does the gem's README,
+   which owes a line for every verb; nothing enforces that one.
 9. **Run the same test unedited**, then read the uncovered lines:
    `bundle exec rake test:integration`, then diff
-   `coverage/integration/.resultset.json` for the files you changed. See
-   [layers](layers.md) for the three shapes that hide there.
+   `coverage/integration/.resultset.json` for the files you changed. Three
+   shapes hide there by habit, because a unit test walked them first: the
+   *second* output format, an *error* branch and the exit code it carries, and
+   *malformed-input* robustness.
 
 # Where the logic goes
 

@@ -9,18 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **The gem ships its own knowledge bundle, at `.okf/`.** It is the gem's
-  structural documentation rather than a sample: `structure/` names every one of
-  the fifty files under `lib/`, grouped by the layer that owns it;
-  `capabilities/` catalogues the seventeen verbs, the eight `registry`
-  subcommands and the library surface; `testing/` carries the integration-first
-  doctrine, how to read the coverage map, the walk a new verb owes, and the
-  browser obligation. An installed okf now carries a real bundle — its own — for
-  a reader to open with the tool they just installed.
+- **The gem ships a file-level map of itself, at `.okf/`.** `structure/` names
+  every one of the fifty files under `lib/`, grouped by the layer that owns it,
+  and `testing/adding-a-verb.md` is the ordered walk a new command owes. It is
+  the gem's own documentation rather than a sample, so an installed okf now
+  carries a real bundle for a reader to open with the tool they just installed:
+  `okf server "$(gem contents okf --show-install-dir)/.okf"`.
 
-  `test/unit/bundle_catalog_test.rb` pins it: a file under `lib/` named by no
-  concept, a concept naming a file that is gone, or a verb catalogue that
-  disagrees with `OKF::CLI.builtins` all fail the suite.
+  It deliberately copies nothing from the repository's own bundle, which still
+  holds okf's format, model, capabilities and design constraints — a second copy
+  of a catalogue is worse than none.
+
+  `test/unit/bundle_catalog_test.rb` pins both halves: a file under `lib/` named
+  by no concept, a concept naming a file that is gone, or the repository
+  bundle's `cli.md` group table disagreeing with `OKF::CLI.builtins` all fail
+  the suite. That group table was code-derived and unchecked until now.
   `test/unit/packaging_test.rb` pins that the bundle actually ships.
 
 ## [2.1.0] - 2026-08-17

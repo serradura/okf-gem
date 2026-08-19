@@ -1,10 +1,10 @@
 # Testing
 
-How this gem is proven, and what each layer can and cannot catch. The rule that
-outranks the rest: **integration first** — a unit test proves a method behaves,
-an integration test proves the *product* behaves, and when the two compete for
-effort integration wins.
+Why the suite is shaped the way it is — integration first, its coverage read as
+a map rather than a score, and the graph page proven in a real browser — is the
+repository bundle's, in `design/integration-first.md` and `design/browser-tests.md`.
 
-* [The Layers](layers.md) - What each suite proves, how coverage is read, and the three shapes that hide from an integration run.
-* [Adding a Verb](adding-a-verb.md) - The walk a new command or subcommand owes, in order.
-* [The Graph Page](the-graph-page.md) - Why a string assertion cannot prove the page works, and the local obligation that replaced a CI job.
+What is here is the procedure: the ordered walk a new surface owes, ending at the
+checks that will refuse it if a step is skipped.
+
+* [Adding a Verb](adding-a-verb.md) - The steps a new command or subcommand owes, in order.

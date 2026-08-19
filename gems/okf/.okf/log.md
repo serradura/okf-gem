@@ -2,18 +2,21 @@
 
 ## 2026-08-19
 
-* **This bundle begins, as the gem's structural documentation.** The
-  repository-root `AGENTS.md` carried a hand-maintained Map of `lib/**` and a
-  full account of the test layers, and nothing checked either: a file could
-  arrive, move or leave and the Map would keep reading plausibly.
-  [Structure](/structure/) now owns the Map — eight concepts over the fifty
-  files — [Capabilities](/capabilities/) owns the catalogue of the seventeen
-  verbs, the eight `registry` subcommands and the library surface, and
-  [Testing](/testing/) owns the layers, the coverage reading and the browser
-  obligation. `test/unit/bundle_catalog_test.rb` is the pin, and it bites in
-  both directions: a file no concept names, a concept naming a file that is
-  gone, or a verb catalogue that disagrees with `OKF::CLI.builtins`.
+* **This bundle begins, as the gem's file-level map — and only that.** The
+  repository-root `AGENTS.md` carried a hand-maintained Map of `lib/**` and
+  nothing checked it: a file could arrive, move or leave and the Map would keep
+  reading plausibly. [Structure](/structure/) now owns it, eight concepts over
+  the fifty files, and `test/unit/bundle_catalog_test.rb` fails on a file no
+  concept names or a concept naming a file that is gone.
 
-  The repository bundle keeps the **format** — what a citation is, what §5
-  declares — because the skill, the plugin and every non-Ruby implementation
-  speak it, and a reader asking about §5.1 is not asking about this gem.
+  It deliberately copies nothing from the repository's own bundle, which is
+  still okf's: the format, the pure model, the seven capabilities and the design
+  constraints stay there. A second copy of a catalogue is worse than none, since
+  two tables that can disagree teach a reader to trust neither. So the split is
+  by *kind* — what the code **is** lives beside the code where a test can hold
+  it to the tree; what it **means** stays where the format and the layout
+  decisions are.
+
+  The one catalogue that already existed — the group table in the repository
+  bundle's `cli.md` — was code-derived and unchecked. The same test now pins it
+  against `OKF::CLI.builtins`, in place rather than by copying it here.

@@ -19,13 +19,21 @@ require "okf/cli"
 #     so ownership is single and a reader knows where to look
 #   - every path a structure concept names exists, so a delete cannot leave a
 #     concept describing something that is gone
-#   - every verb the CLI ships is in the capabilities catalogue, which is the
-#     whole point of the catalogue: an agent that reads it must not go looking
-#     for an eighteenth verb, or miss one of the seventeen
+#   - every verb the CLI ships appears in the repository bundle's `cli.md` group
+#     table, which is the catalogue an agent reads before writing an eighteenth
+#     verb. That table lives in the *repository's* bundle rather than this one,
+#     because that bundle is still okf's own and a second copy of a catalogue is
+#     worse than none — two tables that can disagree teach a reader to trust
+#     neither. It was code-derived and unchecked; now it is code-derived and
+#     pinned.
 class OKF::BundleCatalogTest < OKF::TestCase
   GEM_ROOT = File.expand_path("../..", __dir__)
+  REPO_ROOT = File.expand_path("../..", GEM_ROOT)
   BUNDLE = File.join(GEM_ROOT, ".okf")
   STRUCTURE = File.join(BUNDLE, "structure")
+
+  # The repository bundle's CLI concept, which carries the group table.
+  CLI_CONCEPT = File.join(REPO_ROOT, ".okf", "cli.md")
 
   test "the bundle ships a structure area — the Map's home" do
     assert File.directory?(STRUCTURE),
@@ -57,13 +65,15 @@ class OKF::BundleCatalogTest < OKF::TestCase
       "the bundle describes files that are not there; a move or a delete has to travel to the concept"
   end
 
-  test "every verb this gem ships is in the capabilities catalogue" do
-    catalog = File.join(BUNDLE, "capabilities", "verbs.md")
-    assert File.file?(catalog), "#{rel(catalog)} is missing: the verb catalogue is the bundle's"
+  test "every verb this gem ships is in the repository bundle's group table" do
+    assert File.file?(CLI_CONCEPT),
+      "#{CLI_CONCEPT} is missing: the verb catalogue is the repository bundle's, and this test " \
+      "runs from a checkout, never from an installed gem"
 
     declared = OKF::CLI.builtins.map { |command| command.id.to_s }.sort
-    assert_equal declared, table_keys(catalog),
-      "#{rel(catalog)} and OKF::CLI.builtins disagree about which verbs this gem ships"
+    assert_equal declared, group_table_verbs,
+      "the repository bundle's cli.md group table and OKF::CLI.builtins disagree about which " \
+      "verbs this gem ships"
   end
 
   private
@@ -101,12 +111,15 @@ class OKF::BundleCatalogTest < OKF::TestCase
     (@bodies ||= {})[concept] ||= File.read(concept, encoding: "UTF-8")
   end
 
-  # The first column of every table row in the catalogue's *first* section. The
-  # sections after it list subcommands and flags in the same shape, and those
-  # have no constant to be held against — `registry`'s eight live inside one
-  # verb file, not in the registry.
-  def table_keys(path)
-    File.read(path, encoding: "UTF-8").split(/^## /).first.scan(/^\| `([a-z]+)`/).flatten.uniq.sort
+  # The group table's rows are `| `:group` | `verb`, `verb`… | notes |`, so the
+  # verbs are the code spans in the *second* cell. The `:extension` row carries
+  # none, by construction — whatever is installed is not this gem's to list.
+  def group_table_verbs
+    File.read(CLI_CONCEPT, encoding: "UTF-8").each_line.flat_map do |line|
+      next [] unless line =~ /\A\| `:[a-z]+` \|([^|]*)\|/
+
+      Regexp.last_match(1).scan(/`([a-z]+)`/).flatten
+    end.uniq.sort
   end
 
   def rel(path)

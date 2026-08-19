@@ -43,6 +43,8 @@ Parity is the subtler half: the Ruby index engine is a bit-for-bit port of the
 browser's MiniSearch, pinned to the same version the page lazy-loads, so an
 `--engine index` result and a search typed into the page rank identically.
 
+The verb that drives it is in [the-cli](/structure/the-cli.md).
+
 # `Search.register` is an extension point
 
 Append-only, idempotent by id, duck-type checked at registration —

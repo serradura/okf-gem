@@ -6,24 +6,32 @@
   the documentation most likely to be wrong and least likely to be checked: a
   file can arrive, move or leave and the Map keeps reading plausibly. All four
   gems now carry that Map in `.okf/structure/`, one concept per layer naming
-  every file, beside a `.okf/capabilities/` catalogue of what the gem already
-  answers — the fourteen MCP tools, the seventeen `okf` verbs, okf-pro's sixteen
-  verbs and nine checks, okf-tui's six views. Each gem's
-  `test/unit/bundle_catalog_test.rb` fails on a file no concept names, a concept
-  naming a file that is gone, or a catalogue out of step with the constant it
-  claims to mirror.
+  every file, and each gem's `test/unit/bundle_catalog_test.rb` fails on a file
+  no concept names or a concept naming a file that is gone.
 
-  The catalogue is the half that pays for itself daily: it is the list an agent
-  reads *before* building the fifteenth tool or the eighteenth verb, which is
-  the rediscovery this format exists to stop. Each gem's `AGENTS.md` keeps the
-  contract, the commands and the obligations a reviewer checks, and routes there
-  for the rest — including this file, which is `okf`'s own maintainer guide as
-  well as the repository's.
+  Beside it, three of the four gained a `.okf/capabilities/` catalogue of what
+  the gem already answers — the fourteen MCP tools, okf-pro's sixteen verbs and
+  nine checks, okf-tui's six views — each pinned against the constant it claims
+  to mirror. That half is the one that pays for itself daily: it is the list an
+  agent reads *before* building the fifteenth tool or the tenth check, which is
+  the rediscovery this format exists to stop.
 
-  Five bundles now: `@okf` is the repository's (the format, the layout, the
-  seams), and `@okf-kernel`, `@okf-mcp`, `@okf-tui` and `@okf-pro` are the gems'.
-  All four ship inside their gem, so an installed copy carries a real bundle —
-  its own — for a reader to open with the tool they just installed.
+  `okf` is the exception, on purpose. **This** bundle is still okf's own, so its
+  catalogue already lives here and a second copy would be worse than none — two
+  tables that can disagree teach a reader to trust neither. So the split for the
+  kernel is by *kind*: what the code **is** went to `gems/okf/.okf/structure/`,
+  beside the code where a test can hold it to the tree, and what it **means**
+  stayed here beside the format and the layout decisions. The one catalogue that
+  did exist — the group table in [cli](/cli.md) — was code-derived and unchecked,
+  and the same test now pins it against `OKF::CLI.builtins`, in place.
+
+  Each gem's `AGENTS.md` keeps the contract, the commands and the obligations a
+  reviewer checks, and routes to the bundle for the rest — including this
+  repository's own `AGENTS.md`, which is `okf`'s maintainer guide as well.
+
+  Five bundles now, and each gem's ships inside it, so an installed copy carries
+  a real bundle — its own — for a reader to open with the tool they just
+  installed.
 * **Update**: **the root README is the menu, not the manual** — every top-level
   name is a boundary and gets one row, and the eight sections that explained how
   the `okf` gem works moved into

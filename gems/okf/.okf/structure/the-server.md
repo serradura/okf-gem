@@ -21,7 +21,9 @@ resource: lib/okf/render/graph.rb
 
 The template itself is `graph/template.html.erb` beside `render/graph.rb`, and it
 is ~1,300 lines of inline JS and CSS. Both halves open with a section map; the JS
-one also names the three seams that actually couple the sections.
+one also names the three seams that actually couple the sections
+(`applyGraphFilter`, `setView`, the lazy caches). Read it before editing —
+`grep -n '── '` on the template prints the same list with live line numbers.
 
 # One template, two modes
 
