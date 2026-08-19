@@ -2,6 +2,9 @@
 type: Finding
 title: The eight failure modes
 description: The named ways a personal knowledge system dies — three by lying and five by telling the truth badly — and the mechanism that answers each.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The catalogue

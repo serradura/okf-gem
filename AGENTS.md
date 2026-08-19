@@ -25,7 +25,7 @@ root only what is not a gem. A directory under `gems/` **is** a gem and is named
 for the gem it ships; everything at the root is named for what it is. The
 container says where gems live, never which gem this is — the whole argument,
 including the rejection it reverses, is in
-[.okf/design/monorepo-layout.md](.okf/design/monorepo-layout.md).
+[.okf/decisions/monorepo-layout.md](.okf/decisions/monorepo-layout.md).
 
 ```
 gems/okf/       the baseline gem; everything below lives inside it. Like the
@@ -65,35 +65,40 @@ Rakefile        a delegator: `rake` runs every gem's default task
 
 ### Inside the baseline: read its bundle first
 
-**`gems/okf/.okf/` is the gem's structural documentation, and this file no
-longer restates it.** What the code is, where each responsibility lives, what
-every verb already answers, and how a change is proven all live there — once, in
-the concept that owns them:
+**`gems/okf/.okf/` is this gem's knowledge, and this file no longer restates
+it.** What the code is, what every verb already answers, why each rule is a rule,
+and how a change is proven all live there — once, in the concept that owns them:
 
 | you want | read |
 | --- | --- |
-| what a file under `lib/` does | [`gems/okf/.okf/structure/`](gems/okf/.okf/structure/) — one concept per layer, and it names every one of the fifty files |
-| how to add a verb or a subcommand | [`gems/okf/.okf/testing/adding-a-verb.md`](gems/okf/.okf/testing/adding-a-verb.md) |
-| what any of it *means* — the format, the model, the seven capabilities, the design constraints | [`.okf/`](.okf/), this repository's own bundle, which is still okf's |
+| the gem at a glance | [`gems/okf/.okf/overview.md`](gems/okf/.okf/overview.md) |
+| what a file under `lib/` does | [`gems/okf/.okf/structure/`](gems/okf/.okf/structure/) — one concept per layer, naming every one of the fifty files |
+| what a verb answers | [`gems/okf/.okf/cli.md`](gems/okf/.okf/cli.md) and [`capabilities/`](gems/okf/.okf/capabilities/) |
+| why a rule is a rule | [`gems/okf/.okf/design/`](gems/okf/.okf/design/) |
+| how a change is proven | [`gems/okf/.okf/testing/`](gems/okf/.okf/testing/) |
 
-`okf server @okf-kernel` reads the structural half as a graph; `okf search @all
-<term>` reaches both.
+`okf server @okf-kernel` reads it as a graph; `okf search @all <term>` reaches
+every bundle at once.
 
-The split is by **kind**, not by subject, and deliberately so. What the code
-*is* lives beside the code, where a test holds it to the tree:
+`structure/` is the half a test holds to the tree:
 `gems/okf/test/unit/bundle_catalog_test.rb` fails when a file under `lib/` is
-named by no concept, or when a concept names a file that is gone. What it
-*means* stays in `.okf/`, alongside the format and the layout decisions — and is
-not copied, because a second catalogue that can disagree with the first teaches a
-reader to trust neither. The same test pins the one catalogue that already
-existed, the group table in [.okf/cli.md](.okf/cli.md), against
-`OKF::CLI.builtins`.
+named by no concept, when a concept names a file that is gone, or when
+`cli.md`'s group table disagrees with `OKF::CLI.builtins`. That table was
+code-derived and unchecked for its whole life.
 
-The **hard constraints** below stay here too: they are the contract, and three
-of the four gems cite them across a directory boundary. So does the threat model
-for the plugin seam,
-[.okf/design/extension-points.md](.okf/design/extension-points.md) — it is about
-the seam every sibling arrives through, not about the kernel.
+**The repository's own `.okf/` is the ecosystem's map, not this gem's.** It
+carries the four gems, the plugin, the skills, the resources, the decisions and
+the design that hold them together — including the threat model for the plugin
+seam every sibling arrives through,
+[.okf/design/extension-points.md](.okf/design/extension-points.md) — and [the
+format](.okf/format/), which stays there because all four gems and any future
+non-Ruby implementation speak it. A
+concept cannot link out of its own bundle, so references across the line name
+the other bundle in prose: `` `@okf format/frontmatter` ``.
+
+The **hard constraints** below stay in this file: they are the contract a
+reviewer checks, and three of the four gems cite them across a directory
+boundary.
 
 Outside the gem, `plugin/`, `.claude-plugin/` and `skills/` are the three
 distribution surfaces the repo carries for a tree that lives inside it. The first
@@ -239,7 +244,7 @@ How that layer is organised — one file per command and subcommand, three folde
 for the three ways a user names a bundle, what `across_bundles/` obliges even
 for the verbs that take one, how to read the integration coverage map, and why
 fixtures are the cheap part — is
-[.okf/design/integration-first.md](.okf/design/integration-first.md). The
+[gems/okf/.okf/design/integration-first.md](gems/okf/.okf/design/integration-first.md). The
 step-by-step walk a new verb owes is
 [`gems/okf/.okf/testing/adding-a-verb.md`](gems/okf/.okf/testing/adding-a-verb.md).
 
@@ -322,7 +327,7 @@ green**, and a bug in the page earns a red spec there before it earns a patch.
 Nothing enforces it. Run it and say what it said.
 
 The argument, the two modes, the vendor cache and the measurement that ended the
-CI job are [.okf/design/browser-tests.md](.okf/design/browser-tests.md); what
+CI job are [gems/okf/.okf/design/browser-tests.md](gems/okf/.okf/design/browser-tests.md); what
 the file is made of, and the three seams that couple its sections, are
 [`gems/okf/.okf/structure/the-server.md`](gems/okf/.okf/structure/the-server.md).
 
@@ -418,12 +423,22 @@ finishing a change, not a separate chore. A durable lesson a change taught goes
 in the concept it is about, stated as a principle, in the same commit as the code
 (the concept is the home; the reader finds it there, not by reading history).
 
-Which bundle: **a gem's own** for anything about that gem's code, structure,
-catalogue or tests; **the root's** for the format, the layout, and the seams
-between gems. `rake okf` validates and lints all five, reading the slugs from
+Which bundle: **a gem's own** for anything about that gem — its code, its
+capabilities, its design arguments, its tests. **The root's** for what belongs to
+no single gem: the format, the four gems as a set, the plugin, the skills, the
+resources, and the decisions and design that govern them. The test is whether the
+fact survives deleting a gem; if it does, it is the root's.
+
+`rake okf` validates and lints all five, reading the slugs from
 `.okf-registry.json` rather than a list. Each gem's structural half is pinned by
 its own `bundle_catalog_test.rb`, so a file that arrives under `lib/` without a
 line in the concept that owns its layer is a red suite, not a stale document.
+
+A concept cannot link out of its own bundle — `Path.normalize_relative!` refuses
+every `..` segment — so a reference across the line names the other bundle in
+prose (`` `@okf-kernel capabilities/linter` ``). That is a real cost of the
+split, paid deliberately: 208 edges crossed the root bundle before it, and every
+one that now leaves was rewritten rather than dropped.
 
 `.okf/log.md` is held to one rule that outranks the reflex to write down what
 happened: **it records durable knowledge and shipped behavior, not the process

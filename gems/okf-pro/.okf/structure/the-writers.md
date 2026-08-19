@@ -2,6 +2,9 @@
 type: Component
 title: The writers — pure transforms, a declared delta, and the refusal that enforces it
 description: Every write verb computes its new text without touching the disk, declares the lines it means to add, remove and move, and is refused if the actual delta differs.
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The files

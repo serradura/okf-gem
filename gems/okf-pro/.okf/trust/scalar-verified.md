@@ -2,6 +2,9 @@
 type: Finding
 title: A scalar `verified:` fails in the worst available direction
 description: The guard fires on the word, the owner approves, and then the reader drops the malformed value — so the concept stays unverified and the To-read line is demanded forever.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The sequence

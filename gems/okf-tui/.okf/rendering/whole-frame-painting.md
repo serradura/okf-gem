@@ -3,7 +3,14 @@ type: Component
 title: Whole-frame Painting
 description: Each keystroke repaints every row from cursor-home rather than diffing, which makes a frame a pure function of state and is what lets the tests render without a terminal.
 tags: [rendering, terminal, testing]
-timestamp: 2026-07-18
+generated:
+  by: human:maintainer
+  at: 2026-07-18
+sources:
+  - title: "`lib/okf/tui/app.rb` — `paint`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+  - title: "`test/test_helper.rb` — `FixedScreen`, `frame_for`, `render`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/test_helper.rb
 ---
 
 # Overview
@@ -45,8 +52,3 @@ differently on the machine running the suite.
   earlier per-pane budget that could go negative on a short terminal and crash.
 - **Views stay pure row builders.** No view writes to the terminal; they return
   arrays of rows. The app is the only thing that prints.
-
-# Citations
-
-[1] `lib/okf/tui/app.rb` — `paint`.
-[2] `test/test_helper.rb` — `FixedScreen`, `frame_for`, `render`.

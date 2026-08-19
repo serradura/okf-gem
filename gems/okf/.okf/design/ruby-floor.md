@@ -30,7 +30,7 @@ limits:
   `yield_self`;
 - **2.6** — `to_h { }`, `then`, endless string slices `str[i..]`, `YAML.safe_load`
   keyword args (allowed **only** inside the
-  [Frontmatter shim](../format/frontmatter.md));
+  Frontmatter shim (`@okf format/frontmatter`));
 - **2.7** — `filter_map`, `tally`, numbered block params;
 - **3.x** — endless methods, hash shorthand.
 
@@ -44,7 +44,7 @@ dropping `Gemfile.lock` (the lockfile is written by a modern Bundler that 2.4's
 own cannot read), and mounting the checkout **read-only** so the run cannot write
 one back. Run it from the **repository root** — `$PWD` becomes `/src`, and the
 command steps into the gem on the other side, because the floor is a property of
-`okf` rather than of the repository and the [siblings](monorepo-layout.md) will
+`okf` rather than of the repository and the siblings (`@okf decisions/monorepo-layout`) will
 not share it:
 
 ```bash

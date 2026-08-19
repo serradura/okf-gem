@@ -16,7 +16,7 @@ sources:
 
 `OKF::Bundle::Graph` turns a [bundle](bundle.md) into nodes and edges:
 [concepts](concept.md) become nodes keyed by id, and bundle-relative
-[cross-links](../format/cross-links.md) become directed edges. It is pure — it
+cross-links (`@okf format/cross-links`) become directed edges. It is pure — it
 carries no presentation concerns; sizing and colour belong to a renderer like
 the [graph server](../capabilities/graph-server.md).
 

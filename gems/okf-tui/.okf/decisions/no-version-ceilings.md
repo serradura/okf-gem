@@ -3,7 +3,14 @@ type: Decision
 title: No Version Ceilings on the Markdown Stack
 description: Pinning kramdown and rouge to their old lines to protect the Ruby 2.4 floor broke modern Ruby instead; the gems declare their own floors, so resolution handles it per-Ruby.
 tags: [ruby-floor, dependencies]
-timestamp: 2026-07-18
+generated:
+  by: human:maintainer
+  at: 2026-07-18
+sources:
+  - title: "`okf-tui.gemspec` — the two floors, with the comment recording the failed ceiling attempt."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/okf-tui.gemspec
+  - title: "Verified in `ruby:2.4` (Docker): resolved kramdown 2.4.0 + rouge 3.30.0, 34 runs / 6622 assertions green, and green across the whole matrix up to 4.0."
+    resource: "Verified in `ruby:2.4` (Docker): resolved kramdown 2.4.0 + rouge 3.30.0, 34 runs / 6622 assertions green, and green across the whole matrix up to 4.0"
 ---
 
 # Overview
@@ -59,11 +66,3 @@ So `< 3` buys the one thing a floor cannot: it turns the *next* one into a
 resolution failure a maintainer reads, instead of a wrong number a reader
 believes. `test/unit/gemspec_test.rb` pins both bounds — the floor may never lag
 the kernel this gem develops against, and the ceiling may not quietly go away.
-
-# Citations
-
-[1] `okf-tui.gemspec` — the two floors, with the comment recording the failed
-    ceiling attempt.
-[2] Verified in `ruby:2.4` (Docker): resolved kramdown 2.4.0 + rouge 3.30.0,
-    34 runs / 6622 assertions green, and green across
-    [the whole matrix](/testing/ci-matrix.md) up to 4.0.

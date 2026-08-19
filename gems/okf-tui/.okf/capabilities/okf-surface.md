@@ -3,7 +3,9 @@ type: Capability
 title: The okf Surface This Gem Uses
 description: Every kernel call the TUI makes, in one list — because the rule is that okf owns every judgement on screen, and a number this gem computed is a number that will disagree with `okf lint`.
 tags: [okf, boundary, capabilities]
-timestamp: 2026-08-19
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The rule first

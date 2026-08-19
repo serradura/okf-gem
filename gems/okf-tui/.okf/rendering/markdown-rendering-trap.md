@@ -3,7 +3,14 @@ type: Reference
 title: The tty-markdown Wrapping Trap
 description: tty-markdown raises IndexError on some documents when colour is on, so the renderer asks it never to wrap and does its own wrapping instead.
 tags: [rendering, terminal, ansi, scar-tissue]
-timestamp: 2026-07-18
+generated:
+  by: human:maintainer
+  at: 2026-07-18
+sources:
+  - title: "`lib/okf/tui/app.rb` — `PARSE_WIDTH` and the render."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+  - title: "Reproduced by sweeping every concept × width with colour forced on: 50/192 raised `IndexError`; 0/192 with the fix."
+    resource: "Reproduced by sweeping every concept × width with colour forced on: 50/192 raised `IndexError`; 0/192 with the fix"
 ---
 
 # The symptom
@@ -55,9 +62,3 @@ A rendering bug that only appears with colour on cannot be caught by any test
 that captures output through a pipe. When a screen misbehaves in the terminal but
 not in a test, **suspect the colour path first** — it is the one the harness
 never walks.
-
-# Citations
-
-[1] `lib/okf/tui/app.rb` — `PARSE_WIDTH` and the render.
-[2] Reproduced by sweeping every concept × width with colour forced on: 50/192
-    raised `IndexError`; 0/192 with the fix.

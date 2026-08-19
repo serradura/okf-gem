@@ -2,6 +2,11 @@
 
 ## 2026-08-19
 
+* **Every concept declares `generated:`.** The dates are read from git with
+  `--follow`, so a rename is not mistaken for authorship — the first attempt
+  stamped all 37 with the day the files *moved*, which is provenance invented
+  rather than recorded, and was thrown away.
+
 * **The structure and the catalogue moved into this bundle, and a test holds
   them to the code.** `AGENTS.md` carried a hand-maintained Map of `lib/**` that
   nothing checked, so a file could arrive, move or leave and the Map would keep

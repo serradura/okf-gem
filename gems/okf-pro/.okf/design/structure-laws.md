@@ -2,6 +2,9 @@
 type: Decision
 title: Structure laws
 description: The seven rules that decide whether a room, a field or a file may exist — a directory is a retrieval question, and state lives in exactly one place.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The rules

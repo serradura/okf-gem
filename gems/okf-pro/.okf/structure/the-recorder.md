@@ -2,6 +2,9 @@
 type: Component
 title: The recorder — telemetry that refuses nothing and still may not lie
 description: "`friction` counts what was done by hand that a verb could have done, at paths that already run; it blocks nothing, and it may not report a zero it did not count."
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The file

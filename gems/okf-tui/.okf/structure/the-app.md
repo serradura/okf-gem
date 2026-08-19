@@ -3,7 +3,9 @@ type: Component
 title: The App — State, the Key Loop, and the Frame
 description: "One class holding the whole session: which view, which selection, which prompt is open, and the loop that reads a key, changes that state, and repaints every row."
 tags: [structure, keyboard, state, terminal]
-timestamp: 2026-08-19
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The file

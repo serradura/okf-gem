@@ -2,6 +2,9 @@
 type: Learning
 title: The bundle fixture is a client of the code under test
 description: The bundle fixture computes its own snapshot line by calling the code under test, so a change to the counters reaches every fixture carrying a log day — which bounds what a green ported suite proves.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # Why it calls the code

@@ -6,6 +6,13 @@ All notable changes to okf-pro are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Every concept in the gem's bundle now declares `generated:`.** The actor is
+  the maintainer and the date is read from git with `--follow`, so a rename is
+  not mistaken for authorship — 27 concepts date to the 1.0.0 release and 10 to
+  the structural work after it. `okf lint` on the bundle is clean.
+
 ### Added
 
 - **The bundle carries the structure and the catalogue, and a test pins them.**

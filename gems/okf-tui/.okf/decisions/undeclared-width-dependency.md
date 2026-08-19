@@ -3,7 +3,17 @@ type: Decision
 title: The Undeclared Width Dependency
 description: Ui.width rests on unicode-display_width, which arrives through tty-box rather than the gemspec — accepted deliberately, and guarded by a test that fails loudly if it stops arriving.
 tags: [dependencies, rendering, terminal]
-timestamp: 2026-07-19
+generated:
+  by: human:maintainer
+  at: 2026-07-19
+sources:
+  - id: "1"
+    title: "Sabotage run 2026-07-19: `Ui.width` reduced to `plain.length`, both checks failed as predicted, then restored — 38 runs green."
+    resource: "Sabotage run 2026-07-19: `Ui.width` reduced to `plain.length`, both checks failed as predicted, then restored — 38 runs green"
+  - title: "`lib/okf/tui/ui.rb` — the guarded require and the fallback."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/ui.rb
+  - title: "`test/integration/geometry_test.rb` — `WIDE_STATES` and the display-columns check."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/geometry_test.rb
 ---
 
 # Overview
@@ -62,12 +72,4 @@ terminal sheared. A test that degrades alongside the code it checks is not a
 guard.
 
 Both were verified by forcing the fallback: a row measured 87 columns in an
-80-column terminal, and CJK measured 3 instead of 6.[1]
-
-# Citations
-
-[1] Sabotage run 2026-07-19: `Ui.width` reduced to `plain.length`, both checks
-    failed as predicted, then restored — 38 runs green.
-[2] `lib/okf/tui/ui.rb` — the guarded require and the fallback.
-[3] `test/integration/geometry_test.rb` — `WIDE_STATES` and the
-    display-columns check.
+80-column terminal, and CJK measured 3 instead of 6.[^1]

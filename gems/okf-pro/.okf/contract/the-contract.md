@@ -2,6 +2,9 @@
 type: Decision
 title: The contract
 description: Blocking checks fail closed, feedback checks fail loud, and no check ever fails silent — the three clauses every other decision in this gem is derived from.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The three clauses

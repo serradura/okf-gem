@@ -3,7 +3,20 @@ type: Decision
 title: It Writes the Registry, Never a Bundle
 description: The line the TUI's side effects sit on is not read-versus-write — it is the registry versus the knowledge; what that admits, what it excludes, and why `registry init` is on the far side of it.
 tags: [registry, boundary, side-effects]
-timestamp: 2026-08-13
+generated:
+  by: human:maintainer
+  at: 2026-08-13
+sources:
+  - title: "`lib/okf/tui/workspace.rb` — the seven writes, each returning a status message and reloading; `not_registry_backed` for the ad-hoc case, which has no registry to change."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/workspace.rb
+  - title: "`AGENTS.md` constraint 8 — the same boundary, stated where a change is judged."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/AGENTS.md
+  - title: "`grep -rn \"Bundle::Writer\" lib/` → no matches, 2026-08-13."
+    resource: "`grep -rn \"Bundle::Writer\" lib/` → no matches, 2026-08-13"
+  - title: "okf `CHANGELOG.md` 1.12.0 — `okf registry init`, and the discovery rule that makes the nearest `.okf-registry.json` win."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/CHANGELOG.md
+  - title: "`test/test_helper.rb` — `with_registry`, `with_local_registry`, and the `$OKF_HOME` save/restore around both."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/test_helper.rb
 ---
 
 # Overview
@@ -161,15 +174,3 @@ because okf's own API refuses to produce them: a member naming nothing registere
 and a cycle (`group cycle: @g would contain itself`). Both are legitimate things
 to survive, since okf invites you to *commit* a local registry — so a hand-edited
 file is a normal input, not an abuse.
-
-# Citations
-
-[1] `lib/okf/tui/workspace.rb` — the seven writes, each returning a status message
-    and reloading; `not_registry_backed` for the ad-hoc case, which has no registry
-    to change.
-[2] `AGENTS.md` constraint 8 — the same boundary, stated where a change is judged.
-[3] `grep -rn "Bundle::Writer" lib/` → no matches, 2026-08-13.
-[4] okf `CHANGELOG.md` 1.12.0 — `okf registry init`, and the discovery rule that
-    makes the nearest `.okf-registry.json` win.
-[5] `test/test_helper.rb` — `with_registry`, `with_local_registry`, and the
-    `$OKF_HOME` save/restore around both.

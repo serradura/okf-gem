@@ -3,7 +3,12 @@ type: Reference
 title: Key Routing and Its Modes
 description: handle dispatches through modes before the global keys, which is what keeps digits navigating everywhere, and the guard-fallback trap that a Ruby case statement sets for shared letters.
 tags: [ux, keys]
-timestamp: 2026-07-18
+generated:
+  by: human:maintainer
+  at: 2026-07-18
+sources:
+  - title: "`lib/okf/tui/app.rb` — `handle`, `fallback`, `KEY_VIEWS`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
 ---
 
 # The order
@@ -78,7 +83,3 @@ later. That is the check worth keeping: an arming that never lets go renders
 identically to the fixed behaviour until the pair is pressed apart.
 
 `Ctrl-c` stays single. An escape hatch that needs confirming is not one.
-
-# Citations
-
-[1] `lib/okf/tui/app.rb` — `handle`, `fallback`, `KEY_VIEWS`.

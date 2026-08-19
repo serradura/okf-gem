@@ -3,7 +3,9 @@ type: Component
 title: The Workspace and the Model
 description: Two files answering two different questions — which bundles this session can see, and everything there is to know about one of them — with the memoization that makes a repaint free.
 tags: [structure, registry, model, memoization]
-timestamp: 2026-08-19
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The files

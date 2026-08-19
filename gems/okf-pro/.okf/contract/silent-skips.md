@@ -2,6 +2,9 @@
 type: Finding
 title: The checker broke its own third clause
 description: A default Linter.call skips two clock-gated checks and still reports healthy, so the gate reported clean over checks it never ran.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # What was measured

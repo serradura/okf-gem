@@ -18,7 +18,7 @@ sources:
 
 A cross-link is an ordinary Markdown link from one concept's body to another
 concept file. `OKF::Markdown::Links` extracts them, and that is the whole edge
-mechanism: the [graph](../model/graph.md) is *emergent* — you never declare it,
+mechanism: the graph (`@okf-kernel model/graph`) is *emergent* — you never declare it,
 it arises from the links you write. Good linking is good knowledge modelling.
 
 ```mermaid
@@ -36,7 +36,7 @@ Nobody declared this graph — it fell out of three files linking each other.
 A Markdown link asserts only "these two relate." The *kind* of relationship —
 depends-on, supersedes, derived-from — lives in the **prose around the link**,
 never in a made-up typed-edge syntax. Both a human and an agent already
-understand a Markdown link, which is the point of the [dual audience](../overview.md).
+understand a Markdown link, which is the point of the dual audience (`@okf-kernel overview`).
 
 # What counts as an edge
 
@@ -47,8 +47,8 @@ understand a Markdown link, which is the point of the [dual audience](../overvie
   *not* graph edges.
 - A link to a concept that does not exist yet is **not an error** (§6.1): it is
   not-yet-written knowledge, which consumers MUST tolerate and the
-  [linter](../capabilities/linter.md) surfaces as backlog demand.
+  linter (`@okf-kernel capabilities/linter`) surfaces as backlog demand.
 
-The [graph server](../capabilities/graph-server.md) draws these edges; a
+The graph server (`@okf-kernel capabilities/graph-server`) draws these edges; a
 degree-0 concept (no links in or out) is a *loose* file the
-[read views](../capabilities/read-views.md) flag.
+read views (`@okf-kernel capabilities/read-views`) flag.

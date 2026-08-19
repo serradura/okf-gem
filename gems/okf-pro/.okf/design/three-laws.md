@@ -2,6 +2,9 @@
 type: Decision
 title: Three laws
 description: Nothing is written without confronting what is already there; every view confesses its blind spots; attention is a budget, renegotiable but never silently exceeded.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The laws

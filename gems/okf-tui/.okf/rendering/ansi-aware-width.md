@@ -3,7 +3,14 @@ type: Component
 title: ANSI-aware Width
 description: Every layout primitive measures display width on colour-stripped text, because String#length counts escape bytes and a composed frame breaks the moment those two disagree.
 tags: [rendering, terminal, ansi]
-timestamp: 2026-07-19
+generated:
+  by: human:maintainer
+  at: 2026-07-19
+sources:
+  - title: "`lib/okf/tui/ui.rb` — the primitives."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/ui.rb
+  - title: "`test/integration/geometry_test.rb` — the two-colour matrix and `with_colour`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/geometry_test.rb
 ---
 
 # Overview
@@ -66,9 +73,3 @@ the same broken measure.
 
 Which matters because `Ui.width` depends on a gem nobody declared — see
 [the undeclared width dependency](/decisions/undeclared-width-dependency.md).
-
-# Citations
-
-[1] `lib/okf/tui/ui.rb` — the primitives.
-[2] `test/integration/geometry_test.rb` — the two-colour matrix and
-    `with_colour`.

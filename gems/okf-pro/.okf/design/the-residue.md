@@ -2,6 +2,9 @@
 type: Learning
 title: The residue
 description: Trust measures process, never truth — a misheard number, sourced and verified, reaches maximum trust while being false, and no law closes it.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The limit

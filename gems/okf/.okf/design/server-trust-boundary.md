@@ -99,7 +99,7 @@ symlink breaks that: its name sits under the root, but its target need not, and
 the link. So a bundle carrying `services/billing.md → /etc/passwd`, or an
 `index.md` symlinked outside the root, had its target read and served: verbatim
 over the [graph server](../capabilities/graph-server.md) and `okf render`, and —
-the reason it finally mattered — over [okf-mcp](../capabilities/mcp-server.md)'s
+the reason it finally mattered — over okf-mcp's tool set (`@okf-mcp design/the-tool-set`)
 `--http`, to any host that could reach the port. Two code comments and a test
 name asserted a containment that was never enforced; none tested it.
 
@@ -118,7 +118,7 @@ The durable half is the rule the old comments claimed and did not hold: **a
 lexical path check guards the name; a symlink escapes by its target, and only
 `realpath` sees where a name actually leads.** The boundary is drawn where it
 can be, not oversold past it — the same discipline the
-[extension seam](extension-points.md) applies to its prefix: a hardlink shares
+extension seam (`@okf design/extension-points`) applies to its prefix: a hardlink shares
 its target's inode and keeps an in-root path that `realpath` cannot distinguish,
 and neither a hardlink nor a symlink survives a `git clone`, a copy or a tarball.
 So the portable, adversarial bundle is a symlink's to plant and `realpath`'s to

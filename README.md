@@ -82,9 +82,9 @@ id. This repo documents _itself_ in OKF, so the tree below is real:
 ├── index.md                       # progressive-disclosure map (root carries okf_version)
 ├── log.md                         # ISO-dated change history, newest first
 ├── overview.md
-├── format/frontmatter.md
-├── model/graph.md
-└── capabilities/graph-server.md   # one concept = one file
+├── gems/okf-mcp.md                # one concept = one file
+├── decisions/monorepo-layout.md
+└── format/frontmatter.md
 ```
 
 The only hard requirement is YAML frontmatter with a non-empty `type`; everything
@@ -136,19 +136,19 @@ and never fail you for not having done it.
 </p>
 
 > [!TIP]
-> **Browse the gem as knowledge, not just docs.** This README is the front door;
-> the depth lives in the [`.okf/`](.okf) bundle this repo ships. Start at the
-> [overview](.okf/overview.md), then follow the graph into the
-> [capabilities](.okf/capabilities/) (what it does), the
-> [design constraints](.okf/design/) (why it stays this light), and the
-> [format itself](.okf/format/) (what it operates on). Run `okf server .okf` to
-> walk the same bundle as an interactive graph.
+> **Browse this repository as knowledge, not just docs.** This README is the
+> front door; the depth lives in the five OKF bundles it carries. Start at the
+> [ecosystem map](.okf) — the [gems](.okf/gems/), the [plugin](.okf/plugin/),
+> the [skills](.okf/skills/), the [decisions](.okf/decisions/) and the
+> [format itself](.okf/format/) — then open a gem's own bundle for its code:
+> [`gems/okf/.okf/`](gems/okf/.okf). Run `okf server .okf` to walk the map as an
+> interactive graph, or `okf search @all <term>` to reach every bundle at once.
 
 **It installs on the Ruby your OS already ships** — every Ruby since 2.4, three
 small dependencies, no native extension and no build step — so there is nothing
 to provision and nothing to keep up to date. The
-[design constraints](.okf/design/) that hold that line are enforced by tests on
-every supported Ruby.
+[design constraints](gems/okf/.okf/design/) that hold that line are enforced by
+tests on every supported Ruby.
 
 ## What is in this repository
 
@@ -166,7 +166,7 @@ the root is named for what it is.
 | [`.claude-plugin/`](.claude-plugin) | the marketplace manifest — this repository is its own marketplace |
 | [`skills/`](#the-skill-without-the-gem) | the skills a generic installer reads: `okf`, and `okf-principles` |
 | [`resources/`](resources/ci/github/README.md) | copy-paste recipes — today, CI that validates and lints your bundles on every push |
-| [`.okf/`](.okf) | this project's own knowledge, as an OKF bundle |
+| [`.okf/`](.okf) | the ecosystem map: a concept per gem, per plugin item, per skill — plus the decisions and the format |
 | [`.okf-registry.json`](.okf-registry.json) | every bundle in this tree, addressable as `@slug` from anywhere in it |
 | [`Dockerfile`](Dockerfile) | builds the published image from `gems/okf/`, from a root build context |
 | [`.github/`](.github/workflows) | the CI workflows, and the images this page renders |
@@ -247,7 +247,7 @@ every concept body is sanitized before it reaches the DOM, so a script hidden in
 Markdown is stripped rather than run. It still loads libraries from a CDN, so
 treat an unfamiliar bundle the way you would treat any document from a source you
 do not know. Full write-up:
-[server trust boundary](.okf/design/server-trust-boundary.md).
+[server trust boundary](gems/okf/.okf/design/server-trust-boundary.md).
 
 ## Development
 

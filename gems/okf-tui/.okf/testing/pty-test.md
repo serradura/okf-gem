@@ -3,7 +3,12 @@ type: Runbook
 title: The One Test That Opens a Terminal
 description: A single pty test boots `okf tui` in a real process and walks every view, and the three timing traps that made it flake on the Ruby floor.
 tags: [testing, terminal, scar-tissue]
-timestamp: 2026-07-18
+generated:
+  by: human:maintainer
+  at: 2026-07-18
+sources:
+  - title: "`test/integration/terminal_test.rb` — `SCRIPT`, `settle`, `reap`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/terminal_test.rb
 ---
 
 # Why it exists
@@ -67,7 +72,3 @@ the escape sequences before it do not.
 `"\t\r"` in a single write can reach the reader as a *single* keypress. Split
 control keys into separate steps — a race the test loses only sometimes is worse
 than one it loses always.
-
-# Citations
-
-[1] `test/integration/terminal_test.rb` — `SCRIPT`, `settle`, `reap`.

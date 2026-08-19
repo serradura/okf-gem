@@ -2,6 +2,9 @@
 type: Finding
 title: Bundler scoping switches the gates off, and the fix locks out the in-bundle adopter
 description: Gem discovery is bundle-scoped once bundler's variables are exported, so `okf pro` is an unknown command inside a bundle that does not name okf-pro.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # Both directions, both measured

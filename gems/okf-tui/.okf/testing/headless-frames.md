@@ -3,7 +3,12 @@ type: Playbook
 title: Testing Frames Without a Terminal
 description: How the suite drives real interactions and asserts on real frames with no pty — and the discipline of proving each check can actually fail.
 tags: [testing, rendering]
-timestamp: 2026-07-19
+generated:
+  by: human:maintainer
+  at: 2026-07-19
+sources:
+  - title: "`test/test_helper.rb` — `FixedScreen`, `with_registry`, `app_for`, `frame_for`, `keystrokes`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/test_helper.rb
 ---
 
 # The shape
@@ -67,8 +72,3 @@ Two things, each covered elsewhere because no headless frame can reach them:
   [the pty test](/testing/pty-test.md);
 - anything that depends on which okf actually resolves, since the Gemfile prefers
   the sibling checkout locally — that is [the CI matrix](/testing/ci-matrix.md).
-
-# Citations
-
-[1] `test/test_helper.rb` — `FixedScreen`, `with_registry`, `app_for`,
-    `frame_for`, `keystrokes`.

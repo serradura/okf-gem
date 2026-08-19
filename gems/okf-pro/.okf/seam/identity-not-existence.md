@@ -2,6 +2,9 @@
 type: Learning
 title: Existence is not identity
 description: A stray `okf` on PATH that exits 0 passes every gate, and no exit-code normalisation can tell it from a clean check.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The claim that was wrong

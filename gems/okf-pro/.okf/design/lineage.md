@@ -11,6 +11,9 @@ sources:
     resource: https://gettingthingsdone.com/
     title: Getting Things Done
     author: David Allen
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # Nothing here is invented from nothing

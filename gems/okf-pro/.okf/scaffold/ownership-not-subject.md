@@ -2,6 +2,9 @@
 type: Decision
 title: The scaffold splits by ownership, not by subject
 description: Knowledge-versus-machinery is the obvious cut and the wrong one — it makes `upgrade` destroy exactly the hand-merge that adopting the gem asked for.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The two classes

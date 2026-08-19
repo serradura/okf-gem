@@ -2,6 +2,9 @@
 type: Decision
 title: Setup writes what it can, and refuses exactly one thing
 description: A collision is staged beside the adopter's file rather than refused; a root-level bundle is refused outright, because writing there manufactures an ambiguous layout.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # Never refuse wholesale

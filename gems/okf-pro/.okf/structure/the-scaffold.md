@@ -2,6 +2,9 @@
 type: Component
 title: The scaffold — what `setup` writes, and who owns it afterwards
 description: "One generator, two template trees, and a split by ownership rather than by subject: `upgrade` rewrites the gem's files and never touches a seeded one."
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The file

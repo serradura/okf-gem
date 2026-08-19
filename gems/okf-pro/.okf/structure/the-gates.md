@@ -2,6 +2,9 @@
 type: Component
 title: The gates — one question each, and the two doors that ask them all
 description: Nine files, each answering one invariant, plus `audit` (the CI door) and `state` (the readers' payload) which ask the same questions from a different side.
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The files

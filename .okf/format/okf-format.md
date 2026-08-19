@@ -32,13 +32,13 @@ Two filenames are reserved and are never concepts:
 # §11 conformance is narrow and tolerant
 
 The spec makes only three conditions **hard**, and the
-[validator](../capabilities/validator.md) fails a bundle on any of them:
+validator (`@okf-kernel capabilities/validator`) fails a bundle on any of them:
 
 1. **§11 cond. 1** — every non-reserved `.md` file has a parseable frontmatter block;
 2. **§11 cond. 2** — every such block has a **non-empty `type`**;
 3. **§11 cond. 3** — every reserved file present is well-formed.
 
 Everything else is soft guidance a consumer MUST tolerate: missing optional
-fields, unknown [`type`](../model/concept.md) values, and **broken cross-links**.
-Judging those is the [linter](../capabilities/linter.md)'s job, held separate on
+fields, unknown `type` (`@okf-kernel model/concept`) values, and **broken cross-links**.
+Judging those is the linter's job (`@okf-kernel capabilities/linter`), held separate on
 purpose.

@@ -3,7 +3,14 @@ type: Concept
 title: Active Bundle and Scope Are Two Axes
 description: What you are reading and what you are searching move independently, and the registry writes that reconcile them key on the directory rather than the slug.
 tags: [ux, search, registry]
-timestamp: 2026-07-19
+generated:
+  by: human:maintainer
+  at: 2026-07-19
+sources:
+  - title: "`lib/okf/tui/workspace.rb` — `reload`, `add`, `remove`, `make_default`, `rename`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/workspace.rb
+  - title: "`test/test_helper.rb` — `with_registry`; `test/integration/terminal_test.rb` — the unchanged-registry assertion."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/test_helper.rb
 ---
 
 # Overview
@@ -52,10 +59,3 @@ says so rather than pretending to configure one.
 The suite never touches the real `~/.okf`: every test runs against a temporary
 `$OKF_HOME`, and the pty test asserts the registry file is byte-identical
 afterwards.
-
-# Citations
-
-[1] `lib/okf/tui/workspace.rb` — `reload`, `add`, `remove`, `make_default`,
-    `rename`.
-[2] `test/test_helper.rb` — `with_registry`; `test/integration/terminal_test.rb`
-    — the unchanged-registry assertion.

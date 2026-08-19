@@ -3,7 +3,24 @@ type: Decision
 title: The Search Facade Coupling
 description: The search view rides okf's engine facade — `across` for the routing, and since okf 1.11.0 a corpus prepared once and queried many times; the `fuzzy` flag is what selects the engine, and it is load-bearing in a way it does not look.
 tags: [okf-coupling, search, dependencies]
-timestamp: 2026-08-13
+generated:
+  by: human:maintainer
+  at: 2026-08-13
+sources:
+  - id: "1"
+    title: "Verified 2026-07-19 in a clean `ruby:3.2-slim` container — no checkout, no bundler: `gem install okf` resolved 1.9.0, `Bundle::Search.respond_to?(:across)` → `true`, `engine_for([:fuzzy])` → `OKF::Bundle::Search::Index`. RubyGems lists okf 1.9.0 as the current release."
+    resource: "Verified 2026-07-19 in a clean `ruby:3.2-slim` container — no checkout, no bundler: `gem install okf` resolved 1.9.0, `Bundle::Search.respond_to?(:across)` → `true`, `engine_for([:fuzzy])` → `OKF::Bundle::Search::Index`. RubyGems lists okf 1.9.0 as the current release"
+  - id: "2"
+    title: "Verified 2026-07-19 against the okf checkout: `engine_for([:fuzzy])` → `index`, `engine_for([])` → `scan`; `DEFAULT_ENGINE = :scan` in `lib/okf/bundle/search.rb`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/search.rb
+  - id: "3"
+    title: "Measured 2026-08-13 against the registry's own five bundles (129 concepts): `across` per query 391.8 ms; with a held corpus 16.2 / 13.0 / 12.0 / 14.4 ms after the first. On the six test fixtures (36 concepts): 62–80 ms against 2.7–3.0 ms."
+    resource: "Measured 2026-08-13 against the registry's own five bundles (129 concepts): `across` per query 391.8 ms; with a held corpus 16.2 / 13.0 / 12.0 / 14.4 ms after the first. On the six test fixtures (36 concepts): 62–80 ms against 2.7–3.0 ms"
+  - id: "4"
+    title: "Reproduced 2026-07-18: `ruby -Ilib` outside bundler loaded okf 1.8.0 from the mise gem path, `Bundle::Search.respond_to?(:across)` → `false`, search returned 0 hits for a term the checkout finds. Under `bundle exec` the same query returned 1 hit (\"orphan\") and 11 (\"registry\")."
+    resource: "Reproduced 2026-07-18: `ruby -Ilib` outside bundler loaded okf 1.8.0 from the mise gem path, `Bundle::Search.respond_to?(:across)` → `false`, search returned 0 hits for a term the checkout finds. Under `bundle exec` the same query returned 1 hit (\"orphan\") and 11 (\"registry\")"
+  - title: "`lib/okf/tui.rb` — `OKF::TUI.search_capable?`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui.rb
 ---
 
 # Overview
@@ -13,7 +30,7 @@ merges several bundles into **one** ranked corpus.
 
 **This has shipped.** `across` was unreleased when the view was built — `okf`
 1.8.0 on RubyGems had no such method — but okf **1.9.0 carries it**, verified
-from a clean install with no checkout and no bundler in sight.[1] The coupling
+from a clean install with no checkout and no bundler in sight.[^1] The coupling
 that shaped this file is resolved.
 
 The coupling is deliberate, because per-bundle indexes would be a different and
@@ -35,7 +52,7 @@ OKF::Bundle::Search.across(pairs, terms, fuzzy: true)
 ```
 
 The registry picks the default engine first and falls through to one that can
-answer, so `fuzzy` is what routes this to minifts.[2] That makes the flag
+answer, so `fuzzy` is what routes this to minifts.[^2] That makes the flag
 load-bearing in a way it does not look: **dropping `fuzzy: true` would silently
 change the engine**, and with it the ranking — no error, no missing method, just
 different results and no BM25 scores. The screen would still work.
@@ -56,7 +73,7 @@ OKF::Bundle::Search.with(corpus, terms, fuzzy: true) # per query
 ```
 
 Measured over five registered bundles, 129 concepts: **392 ms** for the first
-query, then **12–16 ms**. Before, every query paid the 392 ms.[3] It is the same
+query, then **12–16 ms**. Before, every query paid the 392 ms.[^3] It is the same
 arithmetic okf used to justify the opposite default — an index build amortized over
 one query is a bad trade, and over many it is the whole point.
 
@@ -113,7 +130,7 @@ into "no matches".
 
 That is exactly how it presented: running the CLI via `ruby -Ilib` outside
 bundler let RubyGems activate the installed `okf` 1.8.0, and search silently
-found nothing.[4] The prototype could never hit it — it put the okf checkout on
+found nothing.[^4] The prototype could never hit it — it put the okf checkout on
 `$LOAD_PATH` directly, so it always had the unreleased method.
 
 So the check moved out of the rescue and up to boot:
@@ -125,22 +142,3 @@ OKF::TUI.search_capable?   # across, prepare and with — all three
 The CLI refuses to start and exits `1`, naming **the okf file that answered** —
 not the version, the file — because the usual cause is a second okf ahead of the
 intended one on the load path, and a version number does not tell you that.
-
-# Citations
-
-[1] Verified 2026-07-19 in a clean `ruby:3.2-slim` container — no checkout, no
-    bundler: `gem install okf` resolved 1.9.0, `Bundle::Search.respond_to?(:across)`
-    → `true`, `engine_for([:fuzzy])` → `OKF::Bundle::Search::Index`. RubyGems lists
-    okf 1.9.0 as the current release.
-[2] Verified 2026-07-19 against the okf checkout: `engine_for([:fuzzy])` → `index`,
-    `engine_for([])` → `scan`; `DEFAULT_ENGINE = :scan` in
-    `lib/okf/bundle/search.rb`.
-[3] Measured 2026-08-13 against the registry's own five bundles (129 concepts):
-    `across` per query 391.8 ms; with a held corpus 16.2 / 13.0 / 12.0 / 14.4 ms
-    after the first. On the six test fixtures (36 concepts): 62–80 ms against
-    2.7–3.0 ms.
-[4] Reproduced 2026-07-18: `ruby -Ilib` outside bundler loaded okf 1.8.0 from the
-    mise gem path, `Bundle::Search.respond_to?(:across)` → `false`, search
-    returned 0 hits for a term the checkout finds. Under `bundle exec` the same
-    query returned 1 hit ("orphan") and 11 ("registry").
-[5] `lib/okf/tui.rb` — `OKF::TUI.search_capable?`.

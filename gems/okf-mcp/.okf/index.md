@@ -16,10 +16,11 @@ rebuild something the kernel or this shell already answers. `AGENTS.md` beside
 it is now only the contract and the commands; everything it used to restate
 about the code lives here, once.
 
-Two things are deliberately elsewhere. The **argument** for the server — why
-each tool exists, the bounded-output doctrine, the posture — is
-`capabilities/mcp-server.md` in the repository's root bundle, not a second copy
-here. And what a *user* does with the gem is the README's.
+The **argument** for the server — why each tool exists, the bounded-output
+doctrine, the posture — is [the tool set](design/the-tool-set.md). It used to
+live in the repository's root bundle, back when that bundle was the kernel's and
+described every surface; it came here when the root became the ecosystem's map.
+What a *user* does with the gem stays the README's.
 
 `structure/` is pinned: `test/unit/bundle_catalog_test.rb` fails when a file
 under `lib/` is named by no concept, or when a concept names a file that is

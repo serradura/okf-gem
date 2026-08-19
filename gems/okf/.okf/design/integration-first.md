@@ -42,7 +42,7 @@ okf/test/integration/cli/
 `cli_plugin_test.rb` is the odd one, deliberately: it names no bundle and tests
 no verb of ours. It writes `okf/plugin.rb` into a temp dir on `$LOAD_PATH`, which
 is indistinguishable from an installed gem's `lib/`, so the
-[seam](extension-points.md) is driven for real without building and installing a
+seam (`@okf design/extension-points`) is driven for real without building and installing a
 gem to drive it.
 
 Same command, same flags, three identities — because the identity is where the

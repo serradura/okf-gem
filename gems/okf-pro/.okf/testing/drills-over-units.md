@@ -2,6 +2,9 @@
 type: Learning
 title: Drills, not unit tests, at the enforcement seam
 description: Every defect found in the entry point was a gate that passed while unable to check, which only a real process with a real exit status can catch.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # What a drill is here

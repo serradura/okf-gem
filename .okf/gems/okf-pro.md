@@ -1,19 +1,24 @@
 ---
-type: Capability
-title: Enforcement layer (okf-pro)
-description: A sibling gem that writes an agent's knowledge repository — bundle, hooks, pre-commit, CI, skill — and then holds it to a handful of invariants at all three doors, under a contract that refuses rather than shrugs.
-resource: gems/okf-pro/lib/okf/pro/cli.rb
-tags: [enforcement, agent, hooks, scaffold, trust]
+type: Component
+title: okf-pro — the enforcement layer
+description: A profile of OKF plus the gates that hold a bundle to it — `okf pro setup` writes an agent's knowledge repository, and `okf pro hook` refuses an edit that breaks it.
+resource: gems/okf-pro
+tags: [gem, enforcement, agent, hooks, scaffold, trust]
 generated:
   by: human:maintainer
-  at: 2026-08-15T12:00:00Z
+  at: 2026-08-19T12:00:00Z
+sources:
+  - title: gems/okf-pro
+    resource: https://github.com/serradura/okf-gem/tree/main/gems/okf-pro
+  - title: gems/okf-pro/README.md
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-pro/README.md
 ---
 
 # Overview
 
-`okf-pro` is the **fifth surface** beside the [CLI](../cli.md), the
-[graph server](graph-server.md), the [library API](library-api.md) and the
-[MCP server](mcp-server.md), and the first one that **writes** rather than
+`okf-pro` is the **fifth surface** beside the CLI (`@okf-kernel cli`), the
+graph server (`@okf-kernel capabilities/graph-server`), the library API (`@okf-kernel capabilities/library-api`) and the
+MCP server (`@okf-mcp design/the-tool-set`), and the first one that **writes** rather than
 reads. It answers a question the others cannot: an agent that keeps notes
 accumulates a folder, and what turns a folder into a memory is not a better
 format — it is a small number of invariants that something actually enforces.
@@ -27,7 +32,8 @@ invariants again from CI.
 
 It inherits every judgement it makes. Conformance, curation, search, the trust
 tiers, where a staleness boundary falls — all of that is the
-[validator](validator.md)'s, the [linter](linter.md)'s and the model's. What
+kernel's — the validator's, the linter's and the model's
+(`@okf-kernel capabilities/validator`, `capabilities/linter`). What
 this gem owns is the policy layered on top and the machinery that makes a gate
 refuse rather than shrug.
 
@@ -100,7 +106,7 @@ that is fine.
 
 # The boundaries it keeps
 
-Like [okf-mcp](mcp-server.md) and okf-tui it ships **no executable**: `okf pro`
+Like okf-mcp (`@okf-mcp design/the-tool-set`) and okf-tui it ships **no executable**: `okf pro`
 is the only door, which is what lets the wrapper refuse anything that is not it.
 Its only runtime dependency is `okf` — a gate with a dependency tree is a gate
 that fails to install on the machine that needed it most — and it holds okf's
@@ -108,5 +114,22 @@ that fails to install on the machine that needed it most — and it holds okf's
 this code runs inside git hooks and CI steps on machines nobody chose.
 
 See also: [extension points](../design/extension-points.md) for the seam it
-registers through, and [the monorepo layout](../design/monorepo-layout.md) for
+registers through, and the monorepo layout (`@okf decisions/monorepo-layout`) for
 what a sibling owes the root.
+
+# What holds it in shape
+
+| | |
+|---|---|
+| Ruby floor | **2.4** — okf's, and it matters more here: this code runs inside a git hook and a CI step on machines nobody chose |
+| Runtime dependencies | exactly `okf`; everything else is stdlib, because a gate with a dependency tree fails to install on the machine that needed it most |
+| Entry point | no executable — `okf pro` through the kernel's plugin seam, and the scaffold's wrapper refuses any `okf` that cannot identify itself as the enforcer |
+| Exit codes | the one place in this repository where **1 is non-blocking and 2 is the refusal**, because that is the hook protocol's vocabulary, not this repository's |
+
+# Where its knowledge lives
+
+`@okf-pro` — `gems/okf-pro/.okf/`, which ships inside the gem. It is the fullest
+of the four, because this gem's defects all fail in the direction of silence and
+the knowledge worth recording is where the machinery can stop asserting anything
+without saying so. Its `structure/` and `capabilities/` areas are pinned by a
+test.

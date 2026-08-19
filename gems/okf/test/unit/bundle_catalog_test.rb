@@ -19,21 +19,17 @@ require "okf/cli"
 #     so ownership is single and a reader knows where to look
 #   - every path a structure concept names exists, so a delete cannot leave a
 #     concept describing something that is gone
-#   - every verb the CLI ships appears in the repository bundle's `cli.md` group
-#     table, which is the catalogue an agent reads before writing an eighteenth
-#     verb. That table lives in the *repository's* bundle rather than this one,
-#     because that bundle is still okf's own and a second copy of a catalogue is
-#     worse than none — two tables that can disagree teach a reader to trust
-#     neither. It was code-derived and unchecked; now it is code-derived and
+#   - every verb the CLI ships appears in `cli.md`'s group table, which is the
+#     catalogue an agent reads before writing an eighteenth verb. It was
+#     code-derived and unchecked for its whole life; now it is code-derived and
 #     pinned.
 class OKF::BundleCatalogTest < OKF::TestCase
   GEM_ROOT = File.expand_path("../..", __dir__)
-  REPO_ROOT = File.expand_path("../..", GEM_ROOT)
   BUNDLE = File.join(GEM_ROOT, ".okf")
   STRUCTURE = File.join(BUNDLE, "structure")
 
-  # The repository bundle's CLI concept, which carries the group table.
-  CLI_CONCEPT = File.join(REPO_ROOT, ".okf", "cli.md")
+  # The bundle's CLI concept, which carries the group table.
+  CLI_CONCEPT = File.join(BUNDLE, "cli.md")
 
   test "the bundle ships a structure area — the Map's home" do
     assert File.directory?(STRUCTURE),
@@ -65,15 +61,13 @@ class OKF::BundleCatalogTest < OKF::TestCase
       "the bundle describes files that are not there; a move or a delete has to travel to the concept"
   end
 
-  test "every verb this gem ships is in the repository bundle's group table" do
-    assert File.file?(CLI_CONCEPT),
-      "#{CLI_CONCEPT} is missing: the verb catalogue is the repository bundle's, and this test " \
-      "runs from a checkout, never from an installed gem"
+  test "every verb this gem ships is in the bundle's group table" do
+    assert File.file?(CLI_CONCEPT), "#{rel(CLI_CONCEPT)} is missing: it carries the verb catalogue"
 
     declared = OKF::CLI.builtins.map { |command| command.id.to_s }.sort
     assert_equal declared, group_table_verbs,
-      "the repository bundle's cli.md group table and OKF::CLI.builtins disagree about which " \
-      "verbs this gem ships"
+      "#{rel(CLI_CONCEPT)}'s group table and OKF::CLI.builtins disagree about which verbs " \
+      "this gem ships"
   end
 
   private

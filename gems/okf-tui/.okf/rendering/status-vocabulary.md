@@ -3,7 +3,12 @@ type: Concept
 title: One Verdict, Worn Everywhere
 description: A bundle is clean, warned, or not conformant, and that single judgement drives its colour in every place it is named — so a problem is visible without opening the health view.
 tags: [rendering, ux]
-timestamp: 2026-07-18
+generated:
+  by: human:maintainer
+  at: 2026-07-18
+sources:
+  - title: "`lib/okf/tui/views.rb` — `health_status`, `STATUS`, `status_style`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/views.rb
 ---
 
 # Overview
@@ -39,7 +44,3 @@ Because the colour is attached to the name rather than to a view, switching the
 active bundle changes it everywhere at once, which is what makes it readable
 while moving between bundles — see
 [cross-bundle-scope](/interaction/cross-bundle-scope.md).
-
-# Citations
-
-[1] `lib/okf/tui/views.rb` — `health_status`, `STATUS`, `status_style`.

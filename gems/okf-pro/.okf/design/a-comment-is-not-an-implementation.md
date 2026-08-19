@@ -2,6 +2,9 @@
 type: Learning
 title: A comment is not an implementation
 description: A regex that claimed to anchor `>` to a redirection position never did, and the guard it powered fired on reads for its whole life — which is the shape of noise that retires a gate. The same class reaches comments, docstrings and the bundle's own concepts.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # What happened

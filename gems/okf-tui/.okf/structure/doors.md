@@ -3,7 +3,9 @@ type: Component
 title: The Doors, and What Loads When
 description: One entry point through okf's plugin seam, an argv shell that loads on demand, and a ref grammar subclassed from okf rather than rewritten.
 tags: [structure, cli, plugin, loading]
-timestamp: 2026-08-19
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The files

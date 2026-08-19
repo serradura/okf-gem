@@ -46,7 +46,7 @@ Everything that is not a gem, and one thing that is not obvious:
   manifest that names `./plugin`. That path is published; moving it would break
   installs to no end.
 - `skills/` — the name every generic skill installer walks. It carries a
-  generated copy of okf's skill ([agent skill](../capabilities/agent-skill.md))
+  generated copy of okf's skill (agent skill (`@okf-kernel capabilities/agent-skill`))
   and okf-principles, whose canonical copy this is: that one describes how to
   structure instructions, not how okf works, so it belongs to no gem.
 - `.okf/` — this bundle. It documents the *project*, not the gem, and it grows
@@ -65,7 +65,7 @@ published marketplace path, an installer's discovery walk. Without that rule
 every new kind of artifact argues for its own root entry in its own PR, which is
 how a root grows to twenty lines and stops being a map.
 
-The [extension points](extension-points.md) convention is what makes the sibling
+The extension points (`@okf design/extension-points`) convention is what makes the sibling
 gems possible at all; this concept is only about where they sit.
 
 # `gems/` reverses a rejection this concept recorded
@@ -144,7 +144,7 @@ platforms`, and succeeds. What happens next depends on the installer's RubyGems:
 - **RubyGems >= 3.2** (Ruby 3.0 and up) refuses to extract a symlink pointing
   outside the gem — `Gem::Package::SymlinkError`. `gem install` fails outright.
 - **RubyGems < 3.2** has no such guard. Measured on Ruby 2.7 (RubyGems 3.1.6),
-  which is inside this gem's [supported range](ruby-floor.md): `gem install`
+  which is inside this gem's supported range (`@okf-kernel design/ruby-floor`): `gem install`
   **succeeds**, exit 0, and installs a dangling `LICENSE.txt` pointing at a path
   that does not exist on that machine.
 
@@ -178,8 +178,7 @@ arrived in Bundler 2.2; the Bundler each old Ruby *ships* predates it — 1.17.3
 2.4 and 2.5, 1.17.2 on 2.6, 2.1.4 on 2.7 — so calling it there raises
 `NoMethodError` at Rakefile load, taking `rake test` down with it before a single
 test runs. CI hides this, because `ruby/setup-ruby` installs the newest Bundler
-each Ruby accepts rather than the bundled one; the [2.4 floor
-run](ruby-floor.md), which uses the image as it comes, is what surfaced it in
+each Ruby accepts rather than the bundled one; the 2.4 floor run (`@okf-kernel design/ruby-floor`), which uses the image as it comes, is what surfaced it in
 okf-tui.
 
 The guard is a `respond_to?`, and what it does in the negative branch is the

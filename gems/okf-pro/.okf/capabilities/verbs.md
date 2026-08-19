@@ -2,6 +2,9 @@
 type: Capability
 title: The verbs — what `okf pro` already answers
 description: Sixteen verbs in four families — scaffold, readers, writers, and the hook adapter — each with the module that implements it and the flags it declares.
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The catalogue

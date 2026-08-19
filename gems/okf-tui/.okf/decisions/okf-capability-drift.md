@@ -3,7 +3,22 @@ type: Decision
 title: okf Moves, and This Breaks Quietly
 description: Inventing no analysis means every answer on screen is okf's — so okf renaming a field or adding a faster path is a change to this program, and every such drift found so far failed silently rather than loudly.
 tags: [okf-coupling, dependencies, testing, maintenance]
-timestamp: 2026-08-13
+generated:
+  by: human:maintainer
+  at: 2026-08-13
+sources:
+  - title: "`okf-tui.gemspec` — the seven capabilities and the version each shipped in."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/okf-tui.gemspec
+  - title: "`test/integration/dirs_test.rb` — `okf_subtree_counts`, the `okf dirs --json` oracle; and the `nested` fixture, which exists because at one directory level `dir` and `top_dir` are the same string and an assertion cannot tell them apart."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/dirs_test.rb
+  - title: "`test/integration/structure_test.rb` — `okf_traffic_rows`, parsing okf's human traffic table; the row count is asserted first so the comparison loop cannot pass vacuously."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/structure_test.rb
+  - title: "`lib/okf/tui/refs.rb` — the inherited grammar, and why it subclasses Command without ever being registered."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/refs.rb
+  - title: "okf `CHANGELOG.md`, 1.12.0 \"Changed\": \"The derived `area` field is renamed `top_dir`\" — \"`area` was never the OKF spec's word (`grep -ci area SPEC.md` → 0)\"."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/CHANGELOG.md
+  - title: "Measured 2026-08-13 over five registered bundles / 129 concepts: first query 391.8 ms, then 16.2 / 13.0 / 12.0 / 14.4 ms. Before, every query paid the first figure."
+    resource: "Measured 2026-08-13 over five registered bundles / 129 concepts: first query 391.8 ms, then 16.2 / 13.0 / 12.0 / 14.4 ms. Before, every query paid the first figure"
 ---
 
 # Overview
@@ -101,20 +116,3 @@ was a *number this program did not have to compute*, and three of the four were
 okf getting better at answering it. A TUI with its own catalog would not have had
 the `area` break — it would have had its own, permanently, with no upstream to
 inherit the fix from.
-
-# Citations
-
-[1] `okf-tui.gemspec` — the seven capabilities and the version each shipped in.
-[2] `test/integration/dirs_test.rb` — `okf_subtree_counts`, the `okf dirs --json`
-    oracle; and the `nested` fixture, which exists because at one directory level
-    `dir` and `top_dir` are the same string and an assertion cannot tell them apart.
-[3] `test/integration/structure_test.rb` — `okf_traffic_rows`, parsing okf's human
-    traffic table; the row count is asserted first so the comparison loop cannot
-    pass vacuously.
-[4] `lib/okf/tui/refs.rb` — the inherited grammar, and why it subclasses Command
-    without ever being registered.
-[5] okf `CHANGELOG.md`, 1.12.0 "Changed": "The derived `area` field is renamed
-    `top_dir`" — "`area` was never the OKF spec's word (`grep -ci area SPEC.md` → 0)".
-[6] Measured 2026-08-13 over five registered bundles / 129 concepts: first query
-    391.8 ms, then 16.2 / 13.0 / 12.0 / 14.4 ms. Before, every query paid the first
-    figure.

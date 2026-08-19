@@ -2,6 +2,9 @@
 type: Decision
 title: Exit codes
 description: The hook protocol reads 0 and 2 and treats every other code as non-blocking, which inverts the repo's usual 0/1/2 convention for `hook` alone.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # What the protocol actually reads

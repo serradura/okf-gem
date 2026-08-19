@@ -3,7 +3,20 @@ type: Decision
 title: One door — the plugin seam is the entry point
 description: okf-tui ships no executable; `okf tui` is the only way in, and the registration stays cheap enough that a run wanting `okf lint` pays nothing for it.
 tags: [okf-coupling, dependencies, cli]
-timestamp: 2026-07-19T18:00:00Z
+generated:
+  by: human:maintainer
+  at: 2026-07-19T18:00:00Z
+sources:
+  - title: "`lib/okf/plugin.rb` — the whole seam, including why the heavy require is in `#call`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/plugin.rb
+  - title: "`okf-tui.gemspec` — the comment recording why there is no `spec.executables`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/okf-tui.gemspec
+  - title: "`test/integration/plugin_test.rb` — the dispatcher adding nothing but the streams, and the subprocess check that registering does not load tty-box."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/plugin_test.rb
+  - title: "`test/integration/terminal_test.rb` — okf's own executable on a real pty, the one test that walks process boot and plugin discovery rather than the in-process dispatcher."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/terminal_test.rb
+  - title: "Verified 2026-07-19: `okf --help` lists `tui` under `installed extensions:`; `okf validate` still runs without triggering discovery at all."
+    resource: "Verified 2026-07-19: `okf --help` lists `tui` under `installed extensions:`; `okf validate` still runs without triggering discovery at all"
 ---
 
 # Overview
@@ -117,15 +130,3 @@ The library keyword is untouched: `App` and `Workspace` still take `home:`, whic
 is how an embedding app and the suite name a registry without mutating a
 process-global. That is exactly the split okf itself draws — the env var is the
 CLI's only lever, the keyword is the library's.
-
-# Citations
-
-[1] `lib/okf/plugin.rb` — the whole seam, including why the heavy require is in `#call`.
-[2] `okf-tui.gemspec` — the comment recording why there is no `spec.executables`.
-[3] `test/integration/plugin_test.rb` — the dispatcher adding nothing but the
-    streams, and the subprocess check that registering does not load tty-box.
-[4] `test/integration/terminal_test.rb` — okf's own executable on a real pty, the
-    one test that walks process boot and plugin discovery rather than the
-    in-process dispatcher.
-[5] Verified 2026-07-19: `okf --help` lists `tui` under `installed extensions:`;
-    `okf validate` still runs without triggering discovery at all.

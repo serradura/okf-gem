@@ -2,6 +2,9 @@
 type: Decision
 title: Only gates answer at the hook door
 description: The CI verbs are not checks, and accepting one as a check name would report clean without ever reading the event.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The whitelist

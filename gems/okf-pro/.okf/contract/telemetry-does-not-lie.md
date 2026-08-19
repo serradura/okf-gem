@@ -2,6 +2,9 @@
 type: Learning
 title: The third clause, applied to something that is not a check
 description: The friction recorder neither refuses nor blocks, and still may not report a zero it did not count — because a measurement that quietly degrades to "nothing happened" retires itself.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # What it is

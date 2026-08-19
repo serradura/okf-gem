@@ -11,8 +11,8 @@ resource: lib/okf/cli/command.rb
 
 # Before adding one, check it is not already there
 
-Seventeen commands and eight subcommands already exist, catalogued in the
-repository bundle's `cli.md` and `capabilities/read-views.md`, and `okf help`
+Seventeen commands and eight subcommands already exist, catalogued in
+[cli](/cli.md) and [read-views](/capabilities/read-views.md), and `okf help`
 prints the same list. Most of what a new verb would want is a *flag* on an
 existing view rather than a view of its own: the shared filters and projections
 — `--type/--dir/--tag/--status/--trust` and `--fields/--except` — compose with
@@ -48,7 +48,7 @@ every list already.
    that actually interact.
 8. **Update what describes it.** A new file under `lib/` needs its line in the
    concept in [structure/](/structure/) that owns its layer, and the verb needs
-   its cell in the repository bundle's `cli.md` group table.
+   its cell in [cli](/cli.md)'s group table.
    `test/unit/bundle_catalog_test.rb` fails on either. So does the gem's README,
    which owes a line for every verb; nothing enforces that one.
 9. **Run the same test unedited**, then read the uncovered lines:

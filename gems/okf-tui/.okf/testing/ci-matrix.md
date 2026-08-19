@@ -3,7 +3,14 @@ type: Runbook
 title: The CI Matrix and What Only It Catches
 description: Ten Rubies on every push, what only the 2.4 container proves, and the resolution gap the matrix cannot see because every run resolves the sibling checkout.
 tags: [testing, ruby-floor, dependencies]
-timestamp: 2026-07-19
+generated:
+  by: human:maintainer
+  at: 2026-07-19
+sources:
+  - title: "The repository's `.github/workflows/main.yml`, `okf-tui` job."
+    resource: https://github.com/serradura/okf-gem/blob/main/.github/workflows/main.yml
+  - title: "`AGENTS.md` — the scripted `Gemfile.ci-check` run against the published okf."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/AGENTS.md
 ---
 
 # The matrix
@@ -73,8 +80,3 @@ Two details keep that reproduction honest:
   something no user has. Drop the lockfile in the copy, exactly as the Docker
   command above drops it for its own reason (a lockfile written by a modern
   Bundler is one 2.4's cannot read).
-
-# Citations
-
-[1] The repository's `.github/workflows/main.yml`, `okf-tui` job.
-[2] `AGENTS.md` — the scripted `Gemfile.ci-check` run against the published okf.

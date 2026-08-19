@@ -2,6 +2,9 @@
 type: Playbook
 title: Adding a verb, or a check
 description: The nine steps a new `okf pro` surface owes, in order — where the logic goes, which table it joins, which test file it earns, and which catalogue entry the pin will demand.
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # Decide the family first

@@ -2,6 +2,9 @@
 type: Capability
 title: The checks — nine hook names, and the event each one rides
 description: What `okf pro hook <name>` accepts, which Claude Code event the scaffold wires it to, what it asks, and what it does when it cannot answer.
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The catalogue

@@ -15,7 +15,7 @@ sources:
 # Overview
 
 `OKF::Concept` is the atomic node: a `path`, a parsed
-[`frontmatter`](../format/frontmatter.md) hash, and a Markdown `body`. It is
+`frontmatter` (`@okf format/frontmatter`) hash, and a Markdown `body`. It is
 [pure](../design/core-shell-split.md) — it holds no file handle and does no I/O.
 The on-disk counterpart is `OKF::Concept::File`, part of the
 [library API](../capabilities/library-api.md).
@@ -49,7 +49,7 @@ gem consumes:
 - the §5 families, each carrying §13.1's fallbacks inline: `#generated` /
   `#generated_at` / `#generated_by` (a legacy `timestamp` lifts into `at`,
   per-key, with no actor ever invented), `#sources` (the native list, or the
-  legacy [`# Citations`](../format/citations.md) body list whenever the native
+  legacy `# Citations` (`@okf format/citations`) body list whenever the native
   value yields zero mappings), `#verified` (a bare mapping reads as a
   one-element list; degenerate shapes fold to unverified), `#trust_tier` /
   `#trust` (derived per §5.3, never stored), `#status`/`#declared_status`
@@ -64,7 +64,7 @@ gem consumes:
   would be speculative;
 - `#declared_generated?`, `#legacy_timestamp?`, `#legacy_citations?` — raw-key
   detection for lint and the surfaces; detection never influences reading;
-- `#links` — every raw [cross-link](../format/cross-links.md) target in the body, in order; the bundle-relative ones become graph edges;
+- `#links` — every raw cross-link (`@okf format/cross-links`) target in the body, in order; the bundle-relative ones become graph edges;
 - `#external_links` — the subset of those that are URLs or `mailto:` (not edges);
 - `#to_markdown` — the inverse of the frontmatter parser (`#citations` is gone,
   subsumed by `#sources`);

@@ -3,7 +3,9 @@ type: Playbook
 title: Adding a View, a Key, or a Panel
 description: The steps a new screen owes, in order — where the builder goes, which tables it joins, what the frame test must assert, and the catalogue entry the pin will demand.
 tags: [testing, playbook, views]
-timestamp: 2026-08-19
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # Before you add a view, try not to

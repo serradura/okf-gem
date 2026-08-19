@@ -2,6 +2,9 @@
 type: Component
 title: Reading the world — the root, the event, and the two documents as data
 description: Six files that answer where the bundle is, what arrived on stdin, and what `board.md` and `log.md` say — before any gate has an opinion.
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The files

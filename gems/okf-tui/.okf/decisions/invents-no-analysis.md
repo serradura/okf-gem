@@ -3,7 +3,14 @@ type: Decision
 title: It Invents No Analysis
 description: Every judgement on screen is a pure call into okf; the TUI adds no check, score, or verdict of its own, which bounds what a feature request may be answered with.
 tags: [okf-coupling, dependencies]
-timestamp: 2026-07-19
+generated:
+  by: human:maintainer
+  at: 2026-07-19
+sources:
+  - title: "`lib/okf/tui.rb` — the module comment stating the split."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui.rb
+  - title: "`lib/okf/tui/model.rb`, `lib/okf/tui/workspace.rb` — every analysis is a memoized call into okf."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/model.rb
 ---
 
 # Overview
@@ -45,9 +52,3 @@ construction* — implementing a fallback search here would have broken this rul
 That one has since resolved (okf 1.9.0 shipped the facade), which is the point
 rather than a footnote: the cost of this rule is paid in **waiting**, not in
 capability. The wait ended, and nothing had to be built twice.
-
-# Citations
-
-[1] `lib/okf/tui.rb` — the module comment stating the split.
-[2] `lib/okf/tui/model.rb`, `lib/okf/tui/workspace.rb` — every analysis is a
-    memoized call into okf.

@@ -61,7 +61,7 @@ targeting v0.2 a compatible pair rather than a choice.
 | unknown keys | consumers **SHOULD NOT** reject | consumers **MUST NOT** reject | hardened |
 
 One of these landed where this gem had already improvised. `status` is passed
-through as a free-form producer key, and the [graph page](../capabilities/render.md)
+through as a free-form producer key, and the graph page (`@okf-kernel capabilities/render`)
 styles the value `shipped` specially — legal under §4.1, which lets a producer
 use any value, but not one of the three v0.2 names. The special case is narrower
 than it looks: **no concept in this bundle and no test fixture declares `status`
@@ -147,20 +147,20 @@ one module**:
 | `okf_version` | 1 — the root-index frontmatter check | `OKF::Bundle::Validator` |
 
 Not one of them reads `frontmatter["timestamp"]` directly, which is what makes a
-single read-time normalization on [Concept](../model/concept.md) sufficient: both
+single read-time normalization on Concept (`@okf-kernel model/concept`) sufficient: both
 v0.1 shapes map *into* v0.2 shapes losslessly, so everything downstream can be
 taught exactly one shape.
 
-[Search](../capabilities/search.md) and the graph payload are **structurally
+Search (`@okf-kernel capabilities/search`) and the graph payload are **structurally
 immune** — `Bundle::Graph#node` emits `id`/`type`/`title`/`description`/`tags`
 and `Bundle::Search#row` emits those plus `dir`/`top_dir`/`matched`/`score`/
 `snippet`. Neither carries a timestamp or touches citations, so neither changes.
 
 The gem targets v0.2 now, and the narrowness above is what let the support land
 as one reading rule instead of a version hierarchy:
-[Concept](../model/concept.md) stays one class whose accessors carry §13.1's
-two fallbacks inline, the [validator](../capabilities/validator.md) warns on
-the new families' shapes, and the [linter](../capabilities/linter.md) owns the
+Concept (`@okf-kernel model/concept`) stays one class whose accessors carry §13.1's
+two fallbacks inline, the validator (`@okf-kernel capabilities/validator`) warns on
+the new families' shapes, and the linter (`@okf-kernel capabilities/linter`) owns the
 curation questions they raise[^upstream-spec] — including the two Migration
 findings that name what a v0.1 bundle would change, without ever being able to
 fail it.

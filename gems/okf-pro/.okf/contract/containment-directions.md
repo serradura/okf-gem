@@ -2,6 +2,9 @@
 type: Decision
 title: Containment fails in four different directions, on purpose
 description: A path that escapes the bundle is refused, or ignored, or read as "not closed" — and which one is right is decided per call site by what a wrong answer costs, at the write door as well as the read one.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The rule

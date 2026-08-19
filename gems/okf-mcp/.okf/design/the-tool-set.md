@@ -9,10 +9,14 @@ generated:
   at: 2026-08-14T12:00:00Z
 ---
 
+
+The tools this argues for are catalogued in [tools](/capabilities/tools.md);
+what implements them is [the server definition](/structure/server-definition.md).
+
 # Overview
 
-`okf-mcp` is the **fourth surface** beside the [CLI](../cli.md), the
-[graph server](graph-server.md) and the [library API](library-api.md): a
+`okf-mcp` is the **fourth surface** beside the CLI (`@okf-kernel cli`), the
+graph server (`@okf-kernel capabilities/graph-server`) and the library API (`@okf-kernel capabilities/library-api`): a
 sibling gem that maps MCP tool calls onto the kernel's library so any
 MCP-capable host — Claude Desktop, Claude Code, anything speaking the protocol
 — can discover, orient in, search, and read the bundles on a machine. It is
@@ -52,7 +56,7 @@ kernel first (`Bundle::References`), then a thin projection.
 
 Every tool takes a `bundle` argument that is a **registry slug** — the same
 identity `@slug` resolves at the CLI and `/b/<slug>/` mounts on the
-[hub](bundles-manager.md). One name across all four surfaces, and a slug is
+hub (`@okf-kernel capabilities/bundles-manager`). One name across all four surfaces, and a slug is
 only ever a key into the served map: no tool opens a path from a request.
 
 **One name across the fourteen tools, too**, which took a second pass. `search` is
@@ -62,7 +66,7 @@ on: an MCP host's unknown property is refused by the schema before any okf
 sentence can be written, so a caller that had just used `dirs(bundle:)` got
 back "object property at `/bundle` is a disallowed additional property" and no
 hint. The type already declares that it takes an array, and the
-[CLI](../cli.md) spells the identity slot identically for every verb —
+CLI (`@okf-kernel cli`) spells the identity slot identically for every verb —
 `okf search <dir|@slug…>` beside `okf lint <dir|@slug>`. Renamed before the
 first release, on the same rule the `exe/okf-mcp` deletion followed: **a name
 in the public surface is a compatibility promise from the moment it ships**,
@@ -71,7 +75,7 @@ retired a guard rather than adding one — a test existed only to stop the
 near-miss from silently widening a search to every bundle, and the asymmetry
 that made that possible is gone. Argv
 roots are the allowlist (`okf mcp <dir> @slug …`), slugged by the
-[registry's](../registry.md) own normalization with registered slugs reserved
+registry's (`@okf-kernel registry`) own normalization with registered slugs reserved
 before basenames are deduped; no argv serves the active registry — the
 project-local discovery, `$OKF_HOME` fallback and `OKF_NO_DISCOVERY` lever
 included, for free, by loading through it. Groups fan out for `search` and are
@@ -93,7 +97,7 @@ questions" is reachable by anything that can ask one.**
 
 # The long-lived holder's branch
 
-The [search](search.md) capability's lifecycle asymmetry, honored from the
+The search (`@okf-kernel capabilities/search`) capability's lifecycle asymmetry, honored from the
 other side: a one-shot CLI gets the scan, a long-lived holder gets the
 prepared corpus. okf-mcp holds one parsed bundle per root, re-read only when
 the on-disk fingerprint moves — bodies are always live and canonical — and one
@@ -102,8 +106,8 @@ first use and **dropped when any member's fingerprint moves** (a held index
 outliving its set is a wrong answer, not a slow one — the hub's contract).
 
 The **identity map obeys the same rule**, which it did not at first. Served by
-the [registry](../registry.md), the set of bundles was a boot snapshot — as the
-[hub's](bundles-manager.md) *mounted* set still is, so this was consistency
+the registry (`@okf-kernel registry`), the set of bundles was a boot snapshot — as the
+hub's (`@okf-kernel capabilities/bundles-manager`) *mounted* set still is, so this was consistency
 rather than oversight — and three of the four ways it went stale were loud: an
 unknown slug names what it knows. The fourth was not. An entry repointed at a
 new directory kept answering from the old one under the current slug, which is
@@ -164,8 +168,7 @@ recommended path the instructions name. It now returns the newest three
 date-grouped entries per file (§9's own structure) with each file's `total` and
 `returned`, which cut that answer to 13,491 bytes and a whole eval session in
 half. The split stays here rather than in the kernel because bounding for a
-context window is this surface's problem alone — the [graph
-server](graph-server.md)'s Log panel wants the whole file and scrolls it. The
+context window is this surface's problem alone — the graph server's Log panel (`@okf-kernel capabilities/graph-server`) wants the whole file and scrolls it. The
 general shape: **a bound that counts containers instead of contents reads as
 bounded and is not**, which is the same false-comfort class as a capability
 declared by default.
@@ -193,7 +196,7 @@ as rows withheld from a tool that takes no limit. One key, one question.
 **An empty answer that reads like a real one is the same failure wearing
 zero.** `dirs` and `index` refused a `dir` naming no directory; `catalog` and
 `search` answered `total: 0` to it. Worst for `root` — the spelling the
-[CLI](../cli.md) and the [skill](agent-skill.md) both teach — where an agent
+CLI (`@okf-kernel cli`) and the skill (`@okf-kernel capabilities/agent-skill`) both teach — where an agent
 asked for the bundle root, was told zero, and reported that the bundle root
 holds nothing. Every tool taking a `dir` refuses one now, and across bundles the
 refusal is a fact about the searched *set*: a directory one of three bundles has
@@ -223,7 +226,7 @@ The gem is separate because it has to be: the `mcp` SDK's floor is 2.7 against
 the kernel's 2.4, and it brings five transitive dependencies to a tool whose
 runtime set is deliberately three. Neither fact argues for a separate
 *command*, and conflating the two questions is what left `okf mcp` unbuilt at
-0.1.0. The [extension seam](../design/extension-points.md) exists precisely so
+0.1.0. The extension seam (`@okf design/extension-points`) exists precisely so
 the dependency stays on the addon's side of the line: `okf-mcp/lib/okf/plugin.rb`
 registers the verb, the baseline names nothing, and a 2.4 machine simply cannot
 install the gem (`required_ruby_version` refuses). The kernel floor is the same
@@ -293,7 +296,7 @@ exposes what the shape leaves out — `search` named its query, its bundles and
 its rows, and not the **engine that answered**, which `fuzzy` selects without
 being asked. Nothing in the result recovers it: the scan's integer count and
 the index's BM25 float both round to a number. So a miss under the index's
-[tokenizer](search.md) — a shattered identifier, a documented recall hole —
+tokenizer (`@okf-kernel capabilities/search`) — a shattered identifier, a documented recall hole —
 was indistinguishable from a fact the bundle does not hold, which is the
 silent wrong answer again in its quietest form. The schemas are proven rather than
 asserted — the suite runs every tool through every variant with the SDK's
@@ -318,7 +321,7 @@ would only invite a host to wait for one that never comes.
 # The prompts are the consuming pair, in tool vocabulary
 
 The prompt surface took three cuts to find its principle. Four of the
-[skill's](agent-skill.md) nine playbooks shipped first, selected by nothing
+skill's (`@okf-kernel capabilities/agent-skill`) nine playbooks shipped first, selected by nothing
 better than their names resembling tools. The second cut served all eight
 (everything but `doctor`, whose premise — install the CLI — anything reaching
 this server has disproved), on the argument that **a prompt is instructions,
@@ -390,11 +393,11 @@ sets `Host` to whatever it likes, and there is no authentication behind it. So
 `--bind 0.0.0.0` publishes every served bundle to anything that can reach the
 port, and the boot line warns in those words rather than printing a URL that
 reads as safe to share. Selling the allowlist as the security story would be
-the same overselling the [extension seam](../design/extension-points.md)
+the same overselling the extension seam (`@okf design/extension-points`)
 refuses for the `okf-*` prefix — the false confidence is worse than no rule.
 
 Binding publicly is nonetheless allowed, matching the
-[graph server](graph-server.md): its read surface follows any bind too, and
+graph server (`@okf-kernel capabilities/graph-server`): its read surface follows any bind too, and
 only the *write* surface refuses, with **no flag that says otherwise**. The
 surface is read-only by construction (`readOnlyHint` on every tool — fourteen
 today),

@@ -2,6 +2,9 @@
 type: Learning
 title: The seeded README is the only document written for the owner
 description: Every other seeded file addresses the agent, so the adopter's README carries the exit, the limits and the price — and a fresh reader can measure whether it does.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # What the seeded README is for

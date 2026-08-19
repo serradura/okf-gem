@@ -3,7 +3,18 @@ type: Concept
 title: A Dead Filter Offers the Wider Search
 description: Filtering reads metadata in one bundle and searching reads bodies across all of them, so a filter that matches nothing offers the search rather than leaving a dead end.
 tags: [ux, search]
-timestamp: 2026-08-13
+generated:
+  by: human:maintainer
+  at: 2026-08-13
+sources:
+  - title: "`lib/okf/tui/views.rb` — `escalation_panel`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/views.rb
+  - title: "`lib/okf/tui/app.rb` — `filter_found_nothing?`, which is where the two views' conditions live side by side."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+  - title: "`test/integration/search_test.rb` — \"a filter that matches nothing offers the wider search\"."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/search_test.rb
+  - title: "`test/integration/groups_test.rb` — \"a filter matching a group but no bundle has found something\"."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/groups_test.rb
 ---
 
 # Overview
@@ -45,13 +56,3 @@ group and no bundle has found something, and the first cut of this read only the
 bundles pane — so `Enter` escalated on the keystroke that was accepting the
 filter, taking the filter, the view and the group the reader was pointing at with
 it. "The filter found nothing" is a claim about the whole view.
-
-# Citations
-
-[1] `lib/okf/tui/views.rb` — `escalation_panel`.
-[2] `lib/okf/tui/app.rb` — `filter_found_nothing?`, which is where the two views'
-    conditions live side by side.
-[3] `test/integration/search_test.rb` — "a filter that matches nothing offers
-    the wider search".
-[4] `test/integration/groups_test.rb` — "a filter matching a group but no bundle
-    has found something".

@@ -2,6 +2,9 @@
 type: Overview
 title: Three pillars
 description: Know, Work and State — three questions no one of them can answer alone, and why the zones of the bundle are the pillars themselves.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The three questions

@@ -2,6 +2,9 @@
 type: Component
 title: The guards — the trust rules, and the same rules at the shell door
 description: Two files asking the same questions at two doors, because a `cat > concept.md` is seen by neither the Edit tool nor the file-path checks.
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The files

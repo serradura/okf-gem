@@ -13,7 +13,7 @@ them run over the same [pure model](../model/); the gem's own are fronted by the
 # Serve & read
 
 * [Interactive graph server](graph-server.md) - a self-contained HTML graph over HTTP — one bundle or many behind a hub — mountable as a Rack app.
-* [MCP server](mcp-server.md) - the sibling `okf-mcp` gem: the kernel's capabilities as MCP tools, resources and prompts for any agent host.
+* MCP server (`@okf-mcp design/the-tool-set`) - the sibling `okf-mcp` gem: the kernel's capabilities as MCP tools, resources and prompts for any agent host.
 * [Bundles manager](bundles-manager.md) - the hub's `/b/` page: every bundle with its size, health and default marker, and the forms that manage the registry from a browser.
 * [Static render](render.md) - the same page written to one self-contained static file, the bundle baked in, to host where there is no server (`okf render`).
 * [Read views](read-views.md) - `index`, `catalog`, `files`, `types`, `tags`, `stats`, `loose`, `graph` — the browser views as text, plus the `index` map.
@@ -23,4 +23,4 @@ them run over the same [pure model](../model/); the gem's own are fronted by the
 
 * [Library API](library-api.md) - the Ruby surface: pure model plus on-disk handles.
 * [Companion agent skill](agent-skill.md) - the skill shipped inside the gem that teaches an agent to author OKF.
-* [Enforcement layer](enforcement.md) - the sibling `okf-pro` gem: writes an agent's knowledge repository, then holds it to a few invariants at three doors under a fail-closed contract.
+* Enforcement layer (`@okf gems/okf-pro`) - the sibling `okf-pro` gem: writes an agent's knowledge repository, then holds it to a few invariants at three doors under a fail-closed contract.

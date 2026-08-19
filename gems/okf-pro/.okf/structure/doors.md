@@ -2,6 +2,9 @@
 type: Component
 title: The doors, and the constants the contract is written in
 description: Three entry points — the plugin verb, the hook adapter, the CI verbs — all through one dispatcher, and the exit codes every one of them answers in.
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The files

@@ -3,7 +3,9 @@ type: Component
 title: The Rendering Layer
 description: Six screens built as rows of text with no terminal I/O, over primitives that measure and cut strings by display width rather than by character count.
 tags: [structure, rendering, ansi, layout]
-timestamp: 2026-08-19
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The files

@@ -2,34 +2,39 @@
 okf_version: "0.2"
 ---
 
-# okf structure bundle
+# okf knowledge bundle
 
-The **file-level map of this gem**: what every one of the fifty files under
-`lib/` is, grouped by the layer that owns it, and the walk a new verb owes.
+Everything about **okf**, the kernel of this ecosystem: what it does, how the
+code is arranged, why each rule is a rule, and how a change is proven. It is
+written to be read *before* opening `lib/`, so an agent about to add a verb, a
+check or a search engine does not re-derive the layering and does not rebuild
+something the model already answers.
 
-It is written to be read *before* opening `lib/`, so an agent about to change
-something does not re-derive the layering — and it is **pinned**.
-`test/unit/bundle_catalog_test.rb` fails when a file under `lib/` is named by no
-concept, or when a concept names a file that is gone. That is the whole reason
-this bundle exists rather than a section in a maintainer guide: the Map it
-replaces lived where nothing checked it, so a file could arrive, move or leave
-and the Map would keep reading plausibly.
+`AGENTS.md` at the repository root is this gem's maintainer guide as well as the
+monorepo's. It keeps the hard constraints, the release process and the Git
+rules; everything it used to restate about the shape of `lib/**` and the shape
+of the test suite lives here.
 
-# What is deliberately not here
+`structure/` is pinned: `test/unit/bundle_catalog_test.rb` fails when a file
+under `lib/` is named by no concept, when a concept names a file that is gone,
+or when the verb table in [cli](cli.md) disagrees with `OKF::CLI.builtins`. The
+code is the truth and this bundle is the claim, so the two cannot drift quietly.
 
-Most of okf's knowledge is in the **repository's own bundle** at
-[`.okf/`](https://github.com/serradura/okf-gem/tree/main/.okf) — the format, the
-pure model, the seven capabilities, the design constraints, and the CLI's design.
-This bundle does not copy a word of it, and a second copy of a catalogue is worse
-than none: two tables that can disagree teach a reader to trust neither.
+One thing is deliberately elsewhere. The **format** — what a citation is, what
+§5 declares, what a bundle must contain — is the repository's own bundle
+(`@okf`), because the skill, the plugin, the three sibling gems and any future
+non-Ruby implementation all speak it, and a reader asking about §5.1 is not
+asking about a Ruby gem. A concept cannot link out of its own bundle, so
+references to it name it in prose: `@okf format/frontmatter`.
 
-So the split, for now, is by *kind* rather than by subject. **What the code is**
-is here, beside the code, where a test can hold it to the tree. **What it means
-and why** is the repository's, where the format and the layout decisions live
-alongside it. When the repository bundle becomes the ecosystem's, okf's half of
-it moves in beside this one.
+* [Overview](overview.md) - The gem at a glance: the seven capabilities and the design ethos behind them.
+* [Command line](cli.md) - The `okf` executable — the one layer that parses argv, prints, and exits.
+* [Bundle registry](registry.md) - The list of bundles a machine or a project knows, addressable as `@slug`.
 
 # Areas
 
-* [Structure](structure/) - Every file under `lib/`, grouped by the layer that owns it: the format layer, the model, the analysers, search, the disk shell, the server, the CLI, the skill.
-* [Testing](testing/) - The step-by-step walk a new verb or subcommand owes, ending at the checks that will refuse it.
+* [Structure](structure/) - Every file under `lib/`, grouped by the layer that owns it — pinned to the tree by a test.
+* [The model](model/) - The pure in-memory data structures: concept, bundle, graph, skeleton.
+* [Capabilities](capabilities/) - The things the gem does: validate, lint, search, serve, render, the library, the skill.
+* [Design](design/) - The enforced boundaries that keep the gem light and honest.
+* [Testing](testing/) - How a change is proven, and the walk a new verb owes.

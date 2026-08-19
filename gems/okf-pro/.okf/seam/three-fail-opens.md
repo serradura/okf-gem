@@ -2,6 +2,9 @@
 type: Finding
 title: Three fail-opens in the plugin seam
 description: Moving the checker behind okf's plugin seam introduced three paths where a failure exits 1 — which the hook protocol reads as "proceed".
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The measurements

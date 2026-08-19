@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The gem's own bundle is now OKF v0.2.** It was the last one in the tree on
+  v0.1. Its 30 concepts moved `timestamp:` under `generated: { by, at }`, and
+  the 22 carrying a body `# Citations` list moved that provenance into
+  `sources:` — every entry keeping its text, with a GitHub URL where it named a
+  real file. The three concepts using positional `[1]` markers were rekeyed to
+  `[^1]` footnotes, which is what §5.1 asks for. `okf validate` and `okf lint`
+  are both clean on it.
+
 ### Added
 
 - **The bundle carries the structure and the catalogue, and a test pins them.**

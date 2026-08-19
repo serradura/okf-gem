@@ -3,7 +3,9 @@ type: Component
 title: The Suite — Its Layers, and the Two Fixtures That Exist to Bite
 description: "What each test file proves, why `nested` and `provenance` were built when twelve fixtures already existed, and the two gaps between this suite and the okf a user actually resolves."
 tags: [testing, fixtures, structure]
-timestamp: 2026-08-19
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # Integration first

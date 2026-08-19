@@ -3,7 +3,9 @@ type: Capability
 title: The Six Views
 description: What each screen answers, whether it is about one bundle or the whole scope, which keys reach it, and which reader supplies its numbers.
 tags: [views, keyboard, capabilities]
-timestamp: 2026-08-19
+generated:
+  by: human:maintainer
+  at: 2026-08-19
 ---
 
 # The catalogue

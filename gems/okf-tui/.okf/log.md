@@ -2,6 +2,14 @@
 
 ## 2026-08-19
 
+* **This bundle moved to OKF v0.2.** `timestamp:` became
+  `generated: { by, at }` on all 30 concepts, and the 22 body `# Citations`
+  lists became `sources:` — the text preserved, a GitHub URL where the entry
+  named a real file, a scope descriptor where it recorded a measurement or a
+  repro. Three concepts carried positional `[1]` markers in their bodies; those
+  are now `[^1]` footnotes keyed to `sources[].id`, and the sources nothing
+  cites lost the id rather than keeping a join half-made.
+
 * **The structure and the catalogue moved into this bundle, and a test holds
   them to the code.** `AGENTS.md` carried a hand-maintained Map of `lib/**` that
   nothing checked, so a file could arrive, move or leave and the Map would keep

@@ -3,7 +3,14 @@ type: Decision
 title: Ruby 2.4 Floor, Inherited
 description: okf-tui takes okf's floor rather than its own, which costs the ergonomic syntax and forces the development tooling to load conditionally.
 tags: [ruby-floor, dependencies]
-timestamp: 2026-07-18
+generated:
+  by: human:maintainer
+  at: 2026-07-18
+sources:
+  - title: "`okf-tui.gemspec`, `Gemfile`, `Rakefile`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/okf-tui.gemspec
+  - title: "Verified in `ruby:2.4` (Docker) and on CI, which runs 2.4 through 4.0."
+    resource: "Verified in `ruby:2.4` (Docker) and on CI, which runs 2.4 through 4.0"
 ---
 
 # Overview
@@ -52,8 +59,3 @@ the floor.
 
 Nothing is pinned *down* to make this work — see
 [no-version-ceilings](/decisions/no-version-ceilings.md).
-
-# Citations
-
-[1] `okf-tui.gemspec`, `Gemfile`, `Rakefile`.
-[2] Verified in `ruby:2.4` (Docker) and on CI, which runs 2.4 through 4.0.

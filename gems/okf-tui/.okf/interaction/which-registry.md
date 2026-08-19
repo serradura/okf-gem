@@ -3,7 +3,20 @@ type: Constraint
 title: Which Registry a Session Is On
 description: okf resolves a project-local .okf-registry.json before the global $OKF_HOME one; the TUI did not, and being the single verb that disagreed was a silent wrong answer rather than an error.
 tags: [registry, okf-coupling, discovery]
-timestamp: 2026-08-13
+generated:
+  by: human:maintainer
+  at: 2026-08-13
+sources:
+  - title: "`lib/okf/tui/workspace.rb` — `open_registry`, and `registry_path` asking the registry rather than recomputing from `home`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/workspace.rb
+  - title: "okf `lib/okf/registry.rb` — `Registry.load(home:, cwd:)`, `LOCAL_FILE`, `NO_DISCOVERY_ENV`, and `#reopen` with the comment recording what a bare `new` costs."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/registry.rb
+  - title: "okf `CHANGELOG.md` 1.12.0 — `okf registry init`, relative path storage, and the hub bug that `#reopen` fixed."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/CHANGELOG.md
+  - title: "`test/integration/refs_test.rb` — the local/global pair, `OKF_NO_DISCOVERY`, and the embedding-app case that must stay global-only."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/refs_test.rb
+  - title: "Reproduced 2026-08-13 in a scratch project: `Registry.load(cwd: pwd).path` → `<project>/.okf-registry.json`, `Registry.load.path` → `<home>/registry.json`."
+    resource: "Reproduced 2026-08-13 in a scratch project: `Registry.load(cwd: pwd).path` → `<project>/.okf-registry.json`, `Registry.load.path` → `<home>/registry.json`"
 ---
 
 # Overview
@@ -69,17 +82,3 @@ too. That is not decoration — it is the only way a user can tell which of the 
 registries is in force, and it is what `refs_test.rb` asserts on to prove the CLI
 opts into discovery at all: an empty *local* registry reports the local path,
 where a run that ignored discovery would name the global one.
-
-# Citations
-
-[1] `lib/okf/tui/workspace.rb` — `open_registry`, and `registry_path` asking the
-    registry rather than recomputing from `home`.
-[2] okf `lib/okf/registry.rb` — `Registry.load(home:, cwd:)`, `LOCAL_FILE`,
-    `NO_DISCOVERY_ENV`, and `#reopen` with the comment recording what a bare `new`
-    costs.
-[3] okf `CHANGELOG.md` 1.12.0 — `okf registry init`, relative path storage, and the
-    hub bug that `#reopen` fixed.
-[4] `test/integration/refs_test.rb` — the local/global pair, `OKF_NO_DISCOVERY`, and
-    the embedding-app case that must stay global-only.
-[5] Reproduced 2026-08-13 in a scratch project: `Registry.load(cwd: pwd).path` →
-    `<project>/.okf-registry.json`, `Registry.load.path` → `<home>/registry.json`.

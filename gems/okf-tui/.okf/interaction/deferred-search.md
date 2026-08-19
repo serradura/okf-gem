@@ -3,7 +3,14 @@ type: Decision
 title: Search Submits, It Does Not Follow Typing
 description: Enter runs the search rather than every keystroke, because a cross-bundle index is rebuilt per query — and the regression that hides is invisible on screen.
 tags: [ux, search, keys]
-timestamp: 2026-07-18
+generated:
+  by: human:maintainer
+  at: 2026-07-18
+sources:
+  - title: "`lib/okf/tui/app.rb` — `@searched`, `@search_hits_key`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+  - title: "`test/integration/search_test.rb` — the counting test."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/search_test.rb
 ---
 
 # Overview
@@ -42,8 +49,3 @@ identical bug. Both keys are now `.dup`ed.
 
 A cache keyed on a mutable string it does not own is not a cache; it is a
 one-shot.
-
-# Citations
-
-[1] `lib/okf/tui/app.rb` — `@searched`, `@search_hits_key`.
-[2] `test/integration/search_test.rb` — the counting test.

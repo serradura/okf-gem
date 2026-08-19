@@ -2,6 +2,9 @@
 type: Decision
 title: Why the wrapper is a separate shell script
 description: A Ruby checker structurally cannot refuse on its own absence, so something already running has to — and it must not exec.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The argument

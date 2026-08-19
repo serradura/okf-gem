@@ -2,6 +2,9 @@
 type: Decision
 title: A briefing is owed a read until a human has verified it
 description: §5.3's trust tiers replaced a truthiness test on `verified`, and the four call sites that read the rule have to move together or a briefing falls through all of them.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The rule

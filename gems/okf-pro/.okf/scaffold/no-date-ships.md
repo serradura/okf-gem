@@ -2,6 +2,9 @@
 type: Decision
 title: No date ships in the generated bundle
 description: A template is cloned an unknowable number of days after it is built, and every shipped date ages into somebody else's calendar.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The rule

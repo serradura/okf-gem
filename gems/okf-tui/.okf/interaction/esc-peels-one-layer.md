@@ -3,7 +3,15 @@ type: Decision
 title: Esc Peels One Layer
 description: Esc ends the innermost active thing and nothing else — the rule that stops it from resetting a list cursor and losing the file the reader had open.
 tags: [ux, keys, scar-tissue]
-timestamp: 2026-07-18
+generated:
+  by: human:maintainer
+  at: 2026-07-18
+sources:
+  - id: "1"
+    title: "Reproduced 2026-07-18 in `test/integration/browse_test.rb`: with `overview` open the cursor moved 4 → 1 on Esc. The test was written red first and passed unedited after the fix."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/browse_test.rb
+  - title: "`lib/okf/tui/app.rb` — `handle_escape`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
 ---
 
 # The rule
@@ -31,7 +39,7 @@ still active while `@finding` is false.
 
 Esc from that state fell through to the list's own Esc, which clears the filter
 and calls `reset_cursor`. The reader was reading a concept and landed back on the
-**first file in the bundle**, having lost the one they had open.[1]
+**first file in the bundle**, having lost the one they had open.[^1]
 
 ```ruby
 if findable? && !@find.empty?
@@ -61,10 +69,3 @@ the bug above: it is handled *inside* the picker's own key handler rather than i
 `handle_escape`, so closing it can never fall through to the layers beneath —
 which is exactly what the find failed to do. See
 [following-links](/interaction/following-links.md).
-
-# Citations
-
-[1] Reproduced 2026-07-18 in `test/integration/browse_test.rb`: with `overview`
-    open the cursor moved 4 → 1 on Esc. The test was written red first and
-    passed unedited after the fix.
-[2] `lib/okf/tui/app.rb` — `handle_escape`.

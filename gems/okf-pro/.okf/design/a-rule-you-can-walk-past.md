@@ -2,6 +2,9 @@
 type: Learning
 title: A rule you can walk past is a preference
 description: Why the gates block rather than warn, why three doors are not redundant, and why the day's ritual must stay silent on a day nobody worked.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The claim

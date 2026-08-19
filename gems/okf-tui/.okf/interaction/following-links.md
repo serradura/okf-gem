@@ -3,7 +3,16 @@ type: Decision
 title: Following a Link Out of the Page
 description: The picker is a mode rather than inline hints, the directory link okf declines to resolve, and the count it deliberately disagrees with.
 tags: [ux, keys, okf-coupling]
-timestamp: 2026-07-19
+generated:
+  by: human:maintainer
+  at: 2026-07-19
+sources:
+  - title: "`lib/okf/tui/model.rb` — `links_for`, `resolve_target`, `describe_link`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/model.rb
+  - title: "`lib/okf/tui/app.rb` — `handle_follow`, `follow_selected`, `push_trail`, `back`."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+  - title: "`test/integration/links_test.rb` — the area-link case is the one that would otherwise have been silently empty."
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/links_test.rb
 ---
 
 # Overview
@@ -73,10 +82,3 @@ label rather than being reconciled to the header.
 two functions every jump already went through. Opening a search hit and following
 a concept out of the graph became reversible without either being touched, which
 is why the stack lives there rather than in the picker.
-
-# Citations
-
-[1] `lib/okf/tui/model.rb` — `links_for`, `resolve_target`, `describe_link`.
-[2] `lib/okf/tui/app.rb` — `handle_follow`, `follow_selected`, `push_trail`, `back`.
-[3] `test/integration/links_test.rb` — the area-link case is the one that would
-    otherwise have been silently empty.

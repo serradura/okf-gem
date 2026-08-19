@@ -2,6 +2,9 @@
 type: Decision
 title: Derivation may write, under a conservation guard
 description: Failure mode 07 forbids an LLM regenerating a view; it does not forbid a Ruby function performing a declared, line-conserving edit — and the status quo it was written against was the failure mode itself.
+generated:
+  by: human:maintainer
+  at: 2026-08-17
 ---
 
 # The verdict, read precisely
