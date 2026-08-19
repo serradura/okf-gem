@@ -99,8 +99,13 @@ class OKF::Pro::BundleCatalogTest < OKF::Pro::TestCase
     body(concept).scan(%r{\blib/[\w./-]*\.(?:rb|md)\b}).uniq
   end
 
+  # `encoding: "UTF-8"` is not decoration. `File.read` uses
+  # `Encoding.default_external`, which is US-ASCII when LANG is unset — the
+  # state the documented Ruby 2.4 Docker floor run is in — and the very next
+  # `match?` then raises `ArgumentError: invalid byte sequence` on the first em
+  # dash in a concept. Read the bytes as what they are.
   def body(concept)
-    (@bodies ||= {})[concept] ||= File.read(concept)
+    (@bodies ||= {})[concept] ||= File.read(concept, encoding: "UTF-8")
   end
 
   # The first column of every markdown table row that opens with a code span.
@@ -108,7 +113,7 @@ class OKF::Pro::BundleCatalogTest < OKF::Pro::TestCase
   # table, once in the flags table — and the second list is a subset by
   # construction.
   def table_keys(path)
-    File.read(path).scan(/^\| `([a-z][a-z-]*)`/).flatten.uniq.sort
+    File.read(path, encoding: "UTF-8").scan(/^\| `([a-z][a-z-]*)`/).flatten.uniq.sort
   end
 
   def rel(path)

@@ -59,7 +59,7 @@ class OKF::TUI::BundleCatalogTest < OKF::TUI::TestCase
     assert File.file?(catalog), "#{rel(catalog)} is missing: the view catalogue is the bundle's"
 
     declared = OKF::TUI::App::TABS.map { |tab| tab[0].to_s }.sort
-    listed = File.read(catalog).scan(/^\| `([a-z]+)`/).flatten.uniq.sort
+    listed = File.read(catalog, encoding: "UTF-8").scan(/^\| `([a-z]+)`/).flatten.uniq.sort
     assert_equal declared, listed,
       "#{rel(catalog)} and OKF::TUI::App::TABS disagree about which views exist"
   end
@@ -90,8 +90,13 @@ class OKF::TUI::BundleCatalogTest < OKF::TUI::TestCase
     body(concept).scan(%r{\blib/[\w./-]*\.(?:rb|md)\b}).uniq
   end
 
+  # `encoding: "UTF-8"` is not decoration. `File.read` uses
+  # `Encoding.default_external`, which is US-ASCII when LANG is unset — the
+  # state the documented Ruby 2.4 Docker floor run is in — and the very next
+  # `match?` then raises `ArgumentError: invalid byte sequence` on the first em
+  # dash in a concept. Read the bytes as what they are.
   def body(concept)
-    (@bodies ||= {})[concept] ||= File.read(concept)
+    (@bodies ||= {})[concept] ||= File.read(concept, encoding: "UTF-8")
   end
 
   def rel(path)

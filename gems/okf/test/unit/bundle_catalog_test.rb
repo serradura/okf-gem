@@ -92,8 +92,13 @@ class OKF::BundleCatalogTest < OKF::TestCase
     body(concept).scan(%r{\blib/[\w./-]*\.(?:rb|md)\b}).uniq
   end
 
+  # `encoding: "UTF-8"` is not decoration. `File.read` uses
+  # `Encoding.default_external`, which is US-ASCII when LANG is unset — the
+  # state the documented Ruby 2.4 Docker floor run is in — and the very next
+  # `match?` then raises `ArgumentError: invalid byte sequence` on the first em
+  # dash in a concept. Read the bytes as what they are.
   def body(concept)
-    (@bodies ||= {})[concept] ||= File.read(concept)
+    (@bodies ||= {})[concept] ||= File.read(concept, encoding: "UTF-8")
   end
 
   # The first column of every table row in the catalogue's *first* section. The
@@ -101,7 +106,7 @@ class OKF::BundleCatalogTest < OKF::TestCase
   # have no constant to be held against — `registry`'s eight live inside one
   # verb file, not in the registry.
   def table_keys(path)
-    File.read(path).split(/^## /).first.scan(/^\| `([a-z]+)`/).flatten.uniq.sort
+    File.read(path, encoding: "UTF-8").split(/^## /).first.scan(/^\| `([a-z]+)`/).flatten.uniq.sort
   end
 
   def rel(path)

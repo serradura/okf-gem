@@ -58,7 +58,7 @@ class BundleCatalogTest < OKF::TestCase
     catalog = File.join(BUNDLE, "capabilities", "tools.md")
     assert File.file?(catalog), "#{rel(catalog)} is missing: the tool catalog is the bundle's"
 
-    text = File.read(catalog)
+    text = File.read(catalog, encoding: "UTF-8")
     missing = defined_tools.reject { |name| text.include?("`#{name}`") }
     assert_empty missing, "#{rel(catalog)} does not list #{missing.join(", ")}"
 
@@ -91,12 +91,17 @@ class BundleCatalogTest < OKF::TestCase
     body(concept).scan(%r{\blib/[\w./-]*\.(?:rb|md)\b}).uniq
   end
 
+  # `encoding: "UTF-8"` is not decoration. `File.read` uses
+  # `Encoding.default_external`, which is US-ASCII when LANG is unset — the
+  # state the documented Ruby 2.7 Docker floor run is in — and the very next
+  # `match?` then raises `ArgumentError: invalid byte sequence` on the first em
+  # dash in a concept. Read the bytes as what they are.
   def body(concept)
-    (@bodies ||= {})[concept] ||= File.read(concept)
+    (@bodies ||= {})[concept] ||= File.read(concept, encoding: "UTF-8")
   end
 
   def defined_tools
-    @defined_tools ||= File.read(File.join(GEM_ROOT, "lib/okf/mcp/server.rb"))
+    @defined_tools ||= File.read(File.join(GEM_ROOT, "lib/okf/mcp/server.rb"), encoding: "UTF-8")
                            .scan(/define_tool\(\s*\n\s*name: "([a-z_]+)"/).flatten.sort
   end
 
