@@ -182,7 +182,7 @@ module Integration
         global.add(fixture(:conformant))
 
         # begin/ensure, not a bare `ensure` in the block: that spelling is Ruby
-        # 2.6 syntax and this suite runs on 2.4 (see AGENTS.md).
+        # 2.6 syntax and this suite runs on 2.4 (see the contract in AGENTS.md).
         begin
           was = ENV.fetch("OKF_NO_DISCOVERY", nil)
           ENV["OKF_NO_DISCOVERY"] = "1"

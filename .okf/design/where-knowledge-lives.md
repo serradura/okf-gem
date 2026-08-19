@@ -16,7 +16,7 @@ sources:
 | file | reader | answers |
 |---|---|---|
 | `README.md` | someone deciding whether to care | what this is, what it buys them, the shortest path to a working bundle |
-| `AGENTS.md` | someone about to change the code | the contract a change may not break, the commands, the obligations a reviewer checks |
+| `AGENTS.md` | someone about to change the code | the contract a change may not break, the commands, and *where to read the rest* |
 | `.okf/` | someone about to change the code, *before* they open `lib/` | what the code is, what it already answers, and why each rule is a rule |
 
 A boundary gets its own README when a stranger can land on it directly — from a
@@ -28,6 +28,12 @@ The root README is the **menu**: the ecosystem, one row per door, and no manual
 for any of them. A front door that is also a manual for one item on it is a door
 a visitor has to read past.
 
+There are two `AGENTS.md` layers, not one. The root's is the ecosystem's: the
+layout, the shared obligations, and one row per gem. Each gem's is that gem's:
+its floor, its dependency limits, its own contract. A gem's file names the
+root's as the general rule and itself as the instance, and the root names no
+gem's contract at all — the same one-way pointer the bundles use.
+
 # The rule underneath
 
 **The same fact may be in one of them, not two.** Two copies of a catalogue do
@@ -36,9 +42,18 @@ not stay equal, and a reader who finds them disagreeing learns to trust neither
 
 This is why each gem's `AGENTS.md` stopped restating the shape of its own
 `lib/`, and why this bundle carries no second copy of what `@okf` says
-about okf. It is also why the split had to be by *kind* rather than by subject:
-what the code **is** lives beside the code, where a test can hold it to the
-tree; what it **means** lives where the argument belongs.
+about okf. It is also why an `AGENTS.md` **routes rather than restates**: where
+a concept already carries an argument, the guide keeps the one or two sentences
+a reviewer checks against and links to the concept for the rest. A rule stated
+twice is not twice as clear — the copies drift, and this is not hypothetical.
+`okf-tui`'s guide once ended with a `Working style` section it had copied from
+the root's while declaring in its own opening that the root owned that rule;
+eight of its fourteen lines had silently diverged, and nothing on either page
+said the other existed.
+
+And it is why the split had to be by *kind* rather than by subject: what the
+code **is** lives beside the code, where a test can hold it to the tree; what it
+**means** lives where the argument belongs.
 
 # The half a test holds
 

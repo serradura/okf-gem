@@ -8,8 +8,8 @@ generated:
   by: human:maintainer
   at: 2026-07-20T12:00:00Z
 sources:
-  - title: "AGENTS.md — Testing: integration first"
-    resource: https://github.com/serradura/okf-gem/blob/main/AGENTS.md
+  - title: gems/okf/AGENTS.md — Testing
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/AGENTS.md
   - title: gems/gems/okf/test/integration/cli/cli_integration_case.rb
     resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/integration/cli/cli_integration_case.rb
 ---

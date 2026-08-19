@@ -1,22 +1,34 @@
 # AGENTS.md
 
-Maintainer guide for okf-gem, a monorepo. `gems/okf/` holds `okf` on RubyGems —
-the baseline all-in-one gem that reads, validates, lints, and serves Open
-Knowledge Format (OKF) v0.1 bundles: directories of Markdown + YAML frontmatter
-that humans and agents both read. The bundled skill
-(`gems/okf/lib/okf/skill/`) documents the format itself; this file documents how
-to change the code without breaking its contracts.
+Maintainer guide for okf-gem, a monorepo. It ships four gems around one format:
+`okf`, the baseline that reads, validates, lints, searches and serves Open
+Knowledge Format (OKF) v0.2 bundles — directories of Markdown + YAML frontmatter
+that humans and agents both read — and three surfaces over it, an MCP shell, a
+terminal UI and an enforcement layer.
 
-The ecosystem grows as sibling directories under `gems/` — an MCP shell, a TUI,
-an enforcement layer, an FTS5 storage engine — each named for the gem it ships.
-This file is about the baseline; a sibling inherits the working style and the
-Git rules below, but not the 2.4 floor or the dependency limits, which are
-`okf`'s own. A sibling with contracts of its own carries its own `AGENTS.md`
-beside its code ([`okf-mcp/AGENTS.md`](gems/okf-mcp/AGENTS.md),
-[`okf-tui/AGENTS.md`](gems/okf-tui/AGENTS.md) and
-[`okf-pro/AGENTS.md`](gems/okf-pro/AGENTS.md) are the three that do) — this file
-stays the general rule and those are the instances, so the same fact is never
-stated in two places to drift apart.
+**This file owns everything above a single gem**: the layout, the shared
+obligations, the distribution surfaces, the conventions for READMEs, pull
+requests and releases, and the rules about attribution and working style. It
+owns no gem's contract. Each of the four carries its own `AGENTS.md` beside its
+code and its own `.okf/` bundle beside that, and this file routes to them rather
+than restating them — the argument for the split, and the drift that motivated
+it, are [.okf/design/where-knowledge-lives.md](.okf/design/where-knowledge-lives.md).
+
+## Where to go
+
+Read the guide for the gem you are changing; it names the bundle concepts under
+it. This file is the general rule, a gem's is the instance.
+
+| working on | read | then |
+| --- | --- | --- |
+| the baseline gem | [`gems/okf/AGENTS.md`](gems/okf/AGENTS.md) | `okf search @okf <term>` |
+| the MCP shell | [`gems/okf-mcp/AGENTS.md`](gems/okf-mcp/AGENTS.md) | `okf search @okf-mcp <term>` |
+| the terminal UI | [`gems/okf-tui/AGENTS.md`](gems/okf-tui/AGENTS.md) | `okf search @okf-tui <term>` |
+| the enforcement layer | [`gems/okf-pro/AGENTS.md`](gems/okf-pro/AGENTS.md) | `okf search @okf-pro <term>` |
+| the plugin, the skills, the resources, or a decision that binds all four | this file, then [`.okf/`](.okf/) | `okf search @okf-eco <term>` |
+
+`okf search @all <term>` reaches every bundle at once, and `rake serve` opens
+this repository's own as a graph.
 
 ## Map
 
@@ -28,22 +40,17 @@ including the rejection it reverses, is in
 [.okf/decisions/monorepo-layout.md](.okf/decisions/monorepo-layout.md).
 
 ```
-gems/okf/       the baseline gem; everything below lives inside it. Like the
-                three siblings it ships its own `.okf/` in the gem, and it is
-                the one registered as plain `@okf`
-gems/okf-mcp/   the MCP shell: the kernel's capabilities as MCP tools + prompts
-                (floor 2.7 — the `mcp` SDK's — deps exactly `mcp` + `okf`; own
-                AGENTS.md, and it ships its own `.okf/` in the gem)
+gems/okf/       the baseline gem, registered as plain `@okf`. Floor 2.4; deps
+                exactly rack + webrick + minifts. Ships the skill, and its own
+                `.okf/` inside the gem
+gems/okf-mcp/   the MCP shell: the kernel's capabilities as MCP tools + prompts.
+                Floor 2.7 — the `mcp` SDK's — deps exactly `mcp` + `okf`
 gems/okf-tui/   the terminal UI: six views over one or many bundles, and the
-                registry (floor 2.4 — okf's — deps `okf` + the TTY toolkit; it
-                has its own AGENTS.md, and ships its own `.okf/` in the gem).
-                Like okf-mcp it ships no exe: `okf tui` is the entry point
+                registry. Floor 2.4, deps `okf` + the TTY toolkit
 gems/okf-pro/   the enforcement layer: `okf pro setup` writes an agent's
-                knowledge repo — bundle, hooks, pre-commit, CI, skill — and
-                `okf pro hook` runs one gate against one hook event (floor
-                2.4 — okf's — deps exactly `okf`; own AGENTS.md, ships its own
-                `.okf/`, no exe). Its `hook` verb is the one place in the repo
-                where exit 1 is *non-blocking* and 2 is the refusal
+                knowledge repo, `okf pro hook` runs one gate against one hook
+                event. Floor 2.4, deps exactly `okf`. Its `hook` verb is the one
+                place in the repo where exit 1 is *non-blocking* and 2 refuses
 plugin/         the Claude Code plugin — generated skill copy, command, curation hook
 .claude-plugin/ the marketplace manifest (the repo doubles as the marketplace)
 skills/         the skills a generic installer reads (`npx skills add serradura/okf-gem`):
@@ -63,216 +70,60 @@ Dockerfile      builds gems/okf/ — from a root context, because the gemspec
 Rakefile        a delegator: `rake` runs every gem's default task
 ```
 
-### Inside the baseline: read its bundle first
+Each sibling ships **no exe**: `okf mcp`, `okf tui` and `okf pro` arrive through
+the kernel's plugin seam, which is
+[.okf/decisions/one-door-per-sibling.md](.okf/decisions/one-door-per-sibling.md)
+— and the threat model for that seam, which every sibling arrives through, is
+[.okf/design/extension-points.md](.okf/design/extension-points.md).
 
-**`gems/okf/.okf/` is this gem's knowledge, and this file no longer restates
-it.** What the code is, what every verb already answers, why each rule is a rule,
-and how a change is proven all live there — once, in the concept that owns them:
-
-| you want | read |
-| --- | --- |
-| the gem at a glance | [`gems/okf/.okf/overview.md`](gems/okf/.okf/overview.md) |
-| what a file under `lib/` does | [`gems/okf/.okf/structure/`](gems/okf/.okf/structure/) — one concept per layer, naming every one of the fifty files |
-| what a verb answers | [`gems/okf/.okf/cli.md`](gems/okf/.okf/cli.md) and [`capabilities/`](gems/okf/.okf/capabilities/) |
-| why a rule is a rule | [`gems/okf/.okf/design/`](gems/okf/.okf/design/) |
-| how a change is proven | [`gems/okf/.okf/testing/`](gems/okf/.okf/testing/) |
-
-`okf server @okf` reads it as a graph; `okf search @all <term>` reaches
-every bundle at once.
-
-`structure/` is the half a test holds to the tree:
-`gems/okf/test/unit/bundle_catalog_test.rb` fails when a file under `lib/` is
-named by no concept, when a concept names a file that is gone, or when
-`cli.md`'s group table disagrees with `OKF::CLI.builtins`. That table was
-code-derived and unchecked for its whole life.
-
-**The repository's own `.okf/` is the ecosystem's map, not this gem's.** It
-carries the four gems, the plugin, the skills, the resources, the decisions and
-the design that hold them together — including the threat model for the plugin
-seam every sibling arrives through,
-[.okf/design/extension-points.md](.okf/design/extension-points.md) — and [the
-format](.okf/format/), which stays there because all four gems and any future
-non-Ruby implementation speak it. A
-concept cannot link out of its own bundle, so references across the line name
-the other bundle in prose: `` `@okf-eco format/frontmatter` ``.
-
-The **hard constraints** below stay in this file: they are the contract a
-reviewer checks, and three of the four gems cite them across a directory
-boundary.
-
-Outside the gem, `plugin/`, `.claude-plugin/` and `skills/` are the three
-distribution surfaces the repo carries for a tree that lives inside it. The first
-two are the Claude Code plugin and its marketplace manifest (the repo doubles as
-the marketplace): one thin command
-that routes to the skill's playbooks (`lib/okf/skill/playbooks/`) or to the
-skill itself, a PostToolUse curation hook (`plugin/hooks/scripts/curate.rb`,
-plain Ruby on the stdlib, same 2.4 floor), and a generated copy of the skill.
-Neither ships in the gem — and neither needs a gemspec reject any more, because
-`git ls-files` runs with `chdir:` into `gems/okf/` and never sees them.
-
-They stay at the repo root and `rake skill:sync` stays in the *gem's* Rakefile
-pointing up at them. Every input is the gem's — the skill tree and the version —
-and keeping the task there is what lets `task build: "skill:verify"` remain a
-plain dependency, the guard that makes a release with a stale copy impossible
-rather than a CI failure after the fact.
-
-The task writes **both** generated copies, `plugin/skills/okf` and `skills/okf`,
-because one canonical tree with two destinations is one obligation, not two: a
-second task to remember is a second task to forget. `skills/` is the only one of
-the two a stranger installs from — the CLI at
-[skills.sh](https://skills.sh) walks `skills/` in any git repository — so a
-drifted copy there is a skill shipped to somebody at a version nobody edited.
-`skill:verify` compares file lists and SHA-256 checksums for every destination
-and aborts the build; `test/plugin/sync_test.rb` asserts the same thing in CI.
+`plugin/`, `.claude-plugin/` and `skills/` are the three distribution surfaces
+the repo carries for a tree that lives inside a gem. None of them ships in the
+gem, and none may be edited: `plugin/skills/okf` and `skills/okf` are generated
+by `rake skill:sync` in the *gem's* Rakefile, and two guards fail the build on
+drift. Why the task lives there, why there are two destinations, and what the
+curation hook does are
+[.okf/skills/okf-skill.md](.okf/skills/okf-skill.md) and
+[.okf/plugin/](.okf/plugin/).
 
 The root `Rakefile` runs plain `rake`, not `bundle exec rake`: there is no root
 Gemfile, because the gems here do not share a Ruby floor and one lockfile could
 never resolve for all of them. It names each gem's `BUNDLE_GEMFILE` explicitly
 when it delegates — bundler exports that variable to everything it runs, so a
-nested `bundle exec` otherwise inherits the parent's bundle. `rake okf` is what
-replaced `ruby -Ilib exe/okf` for this repo's own bundle, and root `rake
-release` refuses: Bundler reads the gemspec in its working directory and derives
-the tag from it, so a release is cut from the gem's own directory.
+nested `bundle exec` otherwise inherits the parent's bundle. `bundle exec rake`
+at the root fails with "Could not locate Gemfile", and that is the intended
+answer rather than an oversight. Root `rake release` refuses too: Bundler reads
+the gemspec in its working directory, so a release is cut from the gem's own.
 
 The repo-level Ruby — the root Rakefile and the curation hook — sits outside
 every gem, so no gem's `rake rubocop` reaches it. The root `.rubocop.yml`
-inherits the gem's and covers exactly those two files.
+inherits the baseline gem's and covers exactly those two files.
 
-## Hard constraints
+## What every gem owes
 
-1. **Ruby >= 2.4** (rack's own floor — the point is running on the Ruby an OS
-   already ships). RuboCop parses at 2.4 and catches syntax, but **not APIs**.
-   Do not introduce: `delete_prefix`/`delete_suffix`, `transform_keys`,
-   `Dir.children`, `Dir.glob(base:)`, `Struct.new(keyword_init:)`,
-   `yield_self` (2.5); `to_h { }`, `then`, `rescue`/`ensure` directly inside a
-   `do…end` block, endless string slices `str[i..]`, `YAML.safe_load` keyword
-   args outside the Frontmatter shim (2.6); `filter_map`, `tally`, numbered
-   block params (2.7); endless methods, hash shorthand (3.x).
-   The truth test — it copies the tree and drops `Gemfile.lock`, because the
-   lockfile is written by a modern Bundler that 2.4's own cannot read
-   (`You must use Bundler 4 or greater with this lockfile`), and mounting the
-   checkout read-only keeps the run from writing one back. Run it from the repo
-   root; it steps into the gem, because the floor is `okf`'s property and a
-   sibling gem will not share it:
+A gem's own floor, dependency limits and contracts are its own file's. These
+four hold everywhere, and a reviewer checks them:
 
-   ```bash
-   docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
-     "cp -a /src /build && cd /build/gems/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
-   ```
-2. **Runtime dependencies are exactly `rack`, `webrick` and `minifts`.** No
-   ActiveSupport — `OKF.blank?` and `Markdown::Frontmatter.stringify_keys` exist
-   precisely so it is not needed. A new runtime dependency is a design decision,
-   not a convenience; challenge it. `minifts` (the index engine) cleared that
-   bar by being pure Ruby with **no dependencies of its own**, the same 2.4
-   floor, and no native extension — it is what defers SQLite + FTS5, and being a
-   bit-for-bit port of the browser's MiniSearch is what lets `--engine index`
-   rank identically to the page. A fourth gem needs an argument that strong.
-   Note it now backs a *non-default* engine: the scan leads because a one-shot
-   CLI cannot amortize an index build (3.00 s vs 0.24 s at 1,000 concepts). That
-   weakens the dependency's case but does not retire it — `--fuzzy` and page
-   parity both still need it — and a cached index would restore it outright.
-3. **YAML only through `Markdown::Frontmatter`** — `safe_load`, `Date`/`Time`
-   permitted, no aliases. The Psych <3.1 positional-argument shim lives there;
-   do not call `YAML.safe_load`/`YAML.load` anywhere else.
-4. **`validate` and `lint` stay separate.** §9 forbids the validator from
-   rejecting broken cross-links or missing optional fields (warnings only);
-   lint owns curation findings and never emits conformance errors. New checks go
-   to the right side, and exit codes keep the contract: 0 ok, 1 failing bundle,
-   2 usage error.
-5. **The server page stays self-contained**: one ERB template, inline CSS/JS,
-   only Cytoscape, marked, and DOMPurify from a CDN at boot (Mermaid, Panzoom,
-   MiniSearch, and the extra layout engines lazy-load from the same CDN on first
-   use — MiniSearch on the first search, pinned to the same `7.2.0` the Ruby port
-   tracks so an `--engine index` result and the browser's rank identically),
-   bodies pulled on demand with `fetch()`. No htmx, no bundler, no build step. Two XSS defenses hold the
-   line: inlined data goes through `json_for_script` (escapes `<` so it cannot
-   break out of its `<script>`), and every fetched body is run through
-   `DOMPurify.sanitize(marked.parse(...))` before it reaches `innerHTML`. Keep
-   both — a new render path that skips the sanitizer reopens the hole.
-6. **The skill ships only from `lib/okf/skill/**`** — that tree is the single
-   canonical copy (`okf skill <dest>` installs from it), so edit it there and
-   nowhere else. Local installs (e.g. `.agents/`, `.claude/`) are gitignored.
-   `plugin/skills/okf` and `skills/okf` are *generated* copies — the Claude Code
-   plugin's and the one a skill installer reads — so never edit either: run
-   `bundle exec rake skill:sync` after touching the skill or bumping the version
-   (the task also stamps `plugin/.claude-plugin/plugin.json`). Two guards fail on
-   drift, both by file list and SHA-256 checksum: `rake skill:verify`, which
-   `build` depends on, and `test/plugin/sync_test.rb`. Signature guidance lines
-   carry stable markers — `<!-- check:<lint-check-id> -->` when a deterministic
-   check enforces the point, `<!-- rule:okf-<slug> -->` for pure-judgment craft —
-   as anchors for eval pinning and citation. They render invisibly and sync
-   verbatim into every copy, so keep them on the line they annotate when you edit
-   it.
-7. **Tests use `OKF::TestCase`** (`test/test_helper.rb`): plain Minitest plus
-   `test "..."` / block `setup`/`teardown` sugar. The tests run on 2.4 too, so
-   the API constraints above apply to `test/` as well.
-8. **Integration first — `test/integration/cli/` is the critical layer.** It is
-   the only place the gem is exercised the way it is actually used: real argv,
-   real streams, real exit codes, real files. A unit test proves a method
-   behaves; an integration test proves the *product* behaves, so when the two
-   compete for effort, integration wins. See the section below for what that
-   obliges you to do.
-9. **`.dockerignore` implies the gemspec's reject list, one way only.** Anything
-   `.dockerignore` drops from under `gems/okf/` must also be rejected by the gemspec
-   (or be gitignored). `git ls-files` reads the *index*, so a path excluded from
-   the Docker build context is still listed in `spec.files` and `gem build` then
-   fails on a file that is not there. **The converse does not hold** and must not
-   be "restored" for symmetry: `gems/okf/bin`, `gems/okf/Gemfile` and
-   `gems/okf/Rakefile` are rejected from the gem and stay in the build context on
-   purpose. Paths outside
-   the gem need no pairing at all — the gemspec runs with `chdir:` into
-   `gems/okf/` and never sees them.
-   The same section's other rule: **nothing in `spec.files` may be a symlink.**
-   `gem build` does not resolve one — it writes a symlink into the package, warns,
-   and succeeds. RubyGems >= 3.2 then refuses to extract a link pointing outside
-   the gem (`Gem::Package::SymlinkError`); **RubyGems < 3.2 has no guard at all**,
-   so on Ruby 2.7 (RubyGems 3.1.6, inside the supported range) `gem install`
-   exits 0 and installs a *dangling* file. The old half of the matrix is the
-   dangerous one: the gem installs cleanly and carries no licence. So
-   `LICENSE.txt` and `NOTICE` are real duplicates of the root's, and
-   `test/unit/packaging_test.rb` pins that they are not symlinks, are
-   byte-identical to the root's, and are actually in `spec.files`.
-
-## Testing: integration first
-
-`gems/okf/test/integration/cli/` is the critical layer: real argv, real streams,
-real exit codes, real files. A unit test proves a method behaves; an integration
-test proves the *product* behaves, so when the two compete for effort,
-integration wins.
-
-How that layer is organised — one file per command and subcommand, three folders
-for the three ways a user names a bundle, what `across_bundles/` obliges even
-for the verbs that take one, how to read the integration coverage map, and why
-fixtures are the cheap part — is
-[gems/okf/.okf/design/integration-first.md](gems/okf/.okf/design/integration-first.md). The
-step-by-step walk a new verb owes is
-[`gems/okf/.okf/testing/adding-a-verb.md`](gems/okf/.okf/testing/adding-a-verb.md).
-
-Four obligations stay here, because a reviewer checks them:
-
-- **Test first, and at this level.** A change starts with a failing integration
-  test, not with the fix. Run it and read the failure: it must fail for the
-  reason you predicted, not because a fixture is missing or a regex has a typo.
-  Then write the code and re-run; the same test passes, **unedited**. A test
-  written after the fix certifies only the code it was read off, and editing test
-  and code together in one pass is how a bug and its test come to agree with each
-  other and stay wrong together. A bug report earns a red test before a patch.
-- **Pure refactors are the exception, not a licence.** They change no behavior,
-  so the existing suite is the test and a green run is the proof. If a change is
-  too small to fail visibly first, say so — never skip the step quietly.
-- **Assertions must be able to fail for a real reason.** Run the CLI, read what
-  it actually prints, then assert *that*. Never assert what you assume the code
-  does — that is how a green suite certifies a bug.
-- **Do not skimp on fixtures.** When a path is unreachable from the existing
-  ones, add the fixture; never bend a test toward what the fixtures happen to
-  make easy. A branch no fixture can reach is a branch nobody has ever proven.
-
-Tests use `OKF::TestCase` (`test/test_helper.rb`) and run on 2.4 too, so the API
-constraints above apply to `test/` as well.
+- **A change starts with a failing test at the level the change lives at**, run
+  and read: it must fail for the reason you predicted, not because a fixture is
+  missing. Then the code, then the same test green and **unedited**. A test
+  written after the fix certifies only the code it was read off. A bug report
+  earns a red test before a patch. Pure refactors are the exception, not a
+  licence — say so rather than skipping the step quietly.
+- **Assertions must be able to fail for a real reason.** Run the thing, read
+  what it actually prints, then assert *that*. Never assert what you assume the
+  code does — that is how a green suite certifies a bug.
+- **Structural documentation is pinned, not trusted.** Every gem's `.okf/structure/`
+  is held to its tree by its own `test/unit/bundle_catalog_test.rb`: a file under
+  `lib/` that no concept names, a concept naming a file that is gone, or a
+  catalogue out of step with the constant it mirrors is a red suite. The rest of
+  a bundle cannot be pinned that way and is not pretended to be — see
+  [.okf/design/nothing-runs-it.md](.okf/design/nothing-runs-it.md).
+- **The bundle is maintained in the same commit as the code it documents**, not
+  as a follow-up chore.
 
 ## Commands
 
-From the repo root — plain `rake`, no bundler, because there is no root Gemfile:
+From the repo root — plain `rake`, no bundler:
 
 ```bash
 rake                               # every gem's default task, then the repo-level rubocop
@@ -281,315 +132,78 @@ rake okf                           # validate + lint every registered .okf bundl
 rake serve                         # serve this repo's own .okf as a graph
 ```
 
-From `gems/okf/` — everything about the gem, and what CI actually runs:
+Everything about one gem — its suite, its CLI from the checkout, its floor
+container — is in that gem's own guide.
 
-```bash
-bin/setup                          # install dependencies
-bundle exec rake                   # test + rubocop — the default task, what CI runs
-bundle exec rake test              # just the suite (SimpleCov report in coverage/)
-bundle exec rake test:integration  # the critical layer alone + coverage/integration/
-bundle exec rake test:browser      # the graph page in a real Chromium (needs browser:setup)
-bundle exec rake browser:ui        # the same suite, interactive — pick specs and watch
-bundle exec rake serve             # the browser fixture bundle, served for poking by hand
-ruby -Ilib exe/okf <cmd> <dir>     # the CLI from the checkout, no install
-ruby -Ilib exe/okf server <dir>    # boot the graph server locally
-bundle exec rake skill:sync        # regenerate every generated skill copy + version stamp
-```
-
-`bundle exec rake` at the root fails with "Could not locate Gemfile", and that
-is the intended answer rather than an oversight — see the Map.
-
-CI (`.github/workflows/main.yml`) runs the gem's default task on every supported
-Ruby, 2.4 through the current stable, with `working-directory: gems/okf` on both
-the job and `ruby/setup-ruby` (the action needs its own input to find the Gemfile it
-caches against). It is one job per gem, not a gem axis on the matrix: the floors
-diverge, so a shared matrix would be mostly exclusions.
-
-Alongside it, a single `lint` job runs the root `rake rubocop` on one modern Ruby.
-That job is the only thing standing between `plugin/hooks/scripts/curate.rb` and
-being linted by nobody: no gem's own `rake rubocop` reaches a file outside every
-gem, and before it existed this repo shipped a commit claiming the root
-`.rubocop.yml` "restores lint coverage" when in CI it did nothing at all.
+CI (`.github/workflows/main.yml`) is **one job per gem**, not a gem axis on one
+matrix: the floors diverge, so a shared matrix would be mostly exclusions. Each
+job sets `working-directory` on both the job and `ruby/setup-ruby` (the action
+needs its own input to find the Gemfile it caches against). Alongside them a
+single `lint` job runs the root `rake rubocop` on one modern Ruby — that job is
+the only thing standing between `plugin/hooks/scripts/curate.rb` and being
+linted by nobody, and before it existed this repo shipped a commit claiming the
+root `.rubocop.yml` "restores lint coverage" when in CI it did nothing at all.
 
 A change is not done until both are green.
 
-## Testing the graph page
+## The bundles and the log
 
-`gems/okf/lib/okf/render/graph/template.html.erb` is ~1,300 lines of inline JS
-and CSS, and its regressions are the kind a string assertion cannot see.
-`test/integration/render/` proves the page is *emitted* correctly;
-`test/browser/` — Playwright driving real Chromium, every spec run twice — is
-what proves it *works*.
-
-It does not run in CI, deliberately and on the evidence, so the obligation is
-unhedged: **a change to the template is not done until `rake test:browser` is
-green**, and a bug in the page earns a red spec there before it earns a patch.
-Nothing enforces it. Run it and say what it said.
-
-The argument, the two modes, the vendor cache and the measurement that ended the
-CI job are [gems/okf/.okf/design/browser-tests.md](gems/okf/.okf/design/browser-tests.md); what
-the file is made of, and the three seams that couple its sections, are
-[`gems/okf/.okf/structure/the-server.md`](gems/okf/.okf/structure/the-server.md).
-
-## The READMEs
-
-**A boundary gets its own README when a stranger can land on it directly** —
-from a search result, a package page, a pasted link. That is true of each of the
-four gems and of `resources/ci/github/`, which is the one place someone copies a
-file into a pipeline they will run unattended. `gems/` itself needs none: nobody
-arrives at a container, they arrive at what it holds.
-
-**The root `README.md` is the menu** — the ecosystem, not any one gem. It is
-what GitHub renders and what a link from anywhere lands on, so it carries the
-problem statement, the hero and overview diagrams, the comparison table, and one
-row per door. It answers "what is OKF and should I care", then names the
-boundaries. It does *not* explain how any of them works: a menu that is also a
-manual for one item on it is a front door a visitor has to read past.
-
-**Each gem's README is that gem's** — `gems/okf/README.md` ships inside the
-`.gem`, and its reader has already decided. Install, the shortest path to a
-working bundle, the command block, one worked example per surface. No hero
-images: it is read on rubygems.org and in a terminal, where a relative image path
-resolves to nothing.
-
-No README here is a symlink or a generated copy of another; they say different
-things.
-
-What follows is written for the root README, which is where the diagrams, the
-comparison table and the `.okf/` links live. A gem's carries none of those —
-`.okf/` does not ship, and a package page is no place for a hero image. What
-*does* bind all of them, without exception, is the four rules below: every
-command runs as written, every number is measured now, no deprecated spelling,
-and a new verb ships with its line in each README that lists verbs.
-
-**The site owns the manual; a README is a front door.** Every verb is
-documented at [okfgem.com/docs](https://okfgem.com/docs/), so a README spends
-its space on *value and usage* — what this is for, what it buys you, the shortest
-path to a working bundle — and links out for the rest. When a passage starts
-enumerating flags, spec clauses, API surface or category lists, it has become
-reference material: move it to the site and leave a sentence and a link.
-
-What earns its place: the problem in the opening paragraph, the three pieces, the
-two diagrams, the comparison table, the four-step start, what a bundle actually
-looks like, and one worked example per surface. What does not: clause-by-clause
-§9, the six lint categories enumerated, exhaustive library listings, a Ruby
-version matrix, or an essay per flag. The version this replaced carried all of
-those; they are all still true and all still one link away.
-
-Four rules that outrank taste, because each has already gone wrong here:
-
-- **Every command shown must run, exactly as written.** Not "looks right" — run
-  it against this repo's own `.okf` and check the exit status. A README whose
-  commands have drifted spends a new reader's trust on their first minute.
-- **Every number is measured now, not copied.** Byte counts, concept counts and
-  timings go stale as fixtures grow. Re-measure before printing, and if it cannot
-  be measured, do not print it. The `index --json` figure carried over from the
-  CHANGELOG as 311 KB → 2.6 KB and measured 313 KB → 2.8 KB the same afternoon —
-  close enough to look fine, wrong enough to be a fabricated number.
-- **A deprecated spelling never appears.** After any CLI change, grep the README
-  for the flag you just retired. `--area` outlived its deprecation there by a
-  whole feature branch.
-- **A new verb ships with its README line**, the same obligation as its test
-  file. A verb absent from the command block does not exist to a reader. That
-  obligation is the *gem's* README's now, not the root's — the root lists doors,
-  never verbs. A new gem is what earns a root row.
-
-**Benchmarks name the shape of what was measured, never where it lives** — "a
-400-concept bundle", not a path. Scratch material under the repo root's `tmp/`
-(the one exception to the path convention above, since it belongs to no gem) is a
-working reference, not part of the published record, and must not be named in
-either README, the CHANGELOG, `.okf/`, or the skill.
-
-**Alt text carries the whole content of its image.** The hero and overview PNGs
-say everything the diagram says, in prose, because the README is read in
-terminals, by screen readers, and by agents that never fetch the image.
-
-**Link depth downward, breadth outward.** The root's rows link to the boundary
-they name, and its `.okf/` pointers go to the concept documenting a claim — this
-project's own knowledge is an OKF bundle, and pointing at it is the argument that
-the format works. The manual, the guides and the demo are absolute links to the
-site. A gem's README cannot link into `.okf/` at all: those paths do not ship, so
-it links to the site or to nothing.
-
-The prose is the maintainer's, in the README's established voice. Match it rather
-than flattening it into neutral documentation register; the same attribution rule
-as commits applies (see [Git](#git)).
-
-## The `.okf` bundle and its log
-
-This repo carries **five** OKF bundles — `.okf/` at the root for the project
-itself, and one inside each gem — and maintaining the right one is part of
-finishing a change, not a separate chore. A durable lesson a change taught goes
-in the concept it is about, stated as a principle, in the same commit as the code
-(the concept is the home; the reader finds it there, not by reading history).
+This repo carries **five** OKF bundles — `.okf/` at the root for the ecosystem,
+and one inside each gem. `rake okf` validates and lints all five, reading the
+slugs from `.okf-registry.json` rather than a list.
 
 Which bundle: **a gem's own** for anything about that gem — its code, its
-capabilities, its design arguments, its tests. **The root's** for what belongs to
-no single gem: the format, the four gems as a set, the plugin, the skills, the
-resources, and the decisions and design that govern them. The test is whether the
-fact survives deleting a gem; if it does, it is the root's.
-
-`rake okf` validates and lints all five, reading the slugs from
-`.okf-registry.json` rather than a list. Each gem's structural half is pinned by
-its own `bundle_catalog_test.rb`, so a file that arrives under `lib/` without a
-line in the concept that owns its layer is a red suite, not a stale document.
+capabilities, its design arguments, its tests. **The root's** for what belongs
+to no single gem: the format, the four gems as a set, the plugin, the skills,
+the resources, and the decisions and design that govern them. The test is
+whether the fact survives deleting a gem; if it does, it is the root's. The
+three-way split between a README, an `AGENTS.md` and a bundle is
+[.okf/design/where-knowledge-lives.md](.okf/design/where-knowledge-lives.md).
 
 A concept cannot link out of its own bundle — `Path.normalize_relative!` refuses
 every `..` segment — so a reference across the line names the other bundle in
-prose (`` `@okf capabilities/linter` ``). That is a real cost of the
-split, paid deliberately: 208 edges crossed the root bundle before it, and every
-one that now leaves was rewritten rather than dropped.
+prose (`` `@okf capabilities/linter` ``). That is a real cost of the split, paid
+deliberately: 208 edges crossed the root bundle before it, and every one that
+now leaves was rewritten rather than dropped.
 
 `.okf/log.md` is held to one rule that outranks the reflex to write down what
 happened: **it records durable knowledge and shipped behavior, not the process
 that produced them.** The rule is general OKF craft rather than a fact about this
 repository, so it is stated once where it travels — `rule:okf-log-durable-only`
-in the skill's [authoring.md](gems/okf/lib/okf/skill/reference/authoring.md),
-cited by the maintain playbook and the Closeout gate. Read it there; what follows is the
-instance that earned it.
+in the skill's
+[authoring.md](gems/okf/lib/okf/skill/reference/authoring.md), cited by the
+maintain playbook and the Closeout gate. A durable lesson a change taught goes in
+the concept it is about, stated as a principle, in the same commit as the code;
+the reader finds it there, not by reading history.
 
-The failure it closes has a shape worth recognizing, because the log invites
-it: the newest entries sit at the top where every reader lands, so a branch
-stabilized by iteration accretes a diary of "review round N found M defects"
-exactly where a durable summary should be. okf-mcp's first release was that —
-five date-groups of round-by-round narrative — and was collapsed to one entry on
-this rule, losing nothing, because the lessons were already in
-`capabilities/mcp-server.md` where they belong. A sibling under development, or a
-hardening pass like the symlink-containment work, earns one entry naming the
-outcome and the concept that carries the rule; the process that got there is not
-the bundle's to keep.
+## The READMEs
+
+Who gets one, why the root's is a menu and a gem's is a manual, what the site
+owns instead, and the four rules that outrank taste — every command runs as
+written, every number is measured now, no deprecated spelling, a new verb ships
+with its README line — are
+[.okf/design/the-readmes.md](.okf/design/the-readmes.md).
 
 ## Pull requests
 
-Every PR is a written argument for its own diff, and they share one skeleton.
-#12, #7 and #15 are good instances of it at three sizes.
-
-1. **A lead paragraph, no heading** — what changes and why, in a sentence or
-   three, carrying the issue it settles (`Closes #6.`, `Follow-up to #7.`). A
-   reviewer who reads only this must know whether the PR concerns them. Do not
-   open with a `## What` or `## Summary` heading: the first paragraph is already
-   the summary, and the heading only pushes it below the fold.
-2. **`##` sections named for the area they change or the question they settle** —
-   "Where the wrap lives", "The design — one template, two modes", "Graph page".
-   Named for their content, not their role: "What", "Overview" and "Details"
-   read the same on every PR and tell a reviewer nothing about where to skip to.
-   A small PR (#8) needs none at all — a lead and a list is a complete body.
-3. **`## Verification` last** — the commands actually run, with their real
-   numbers. Three rules that outrank the formatting:
-   - **A skipped check is stated as skipped, with why.** #1's "Not run: the Ruby
-     2.4 Docker floor…" is the model. A bullet nobody ran is worse than no
-     bullet, because it spends the reviewer's trust rather than earning it.
-   - **A claim carries the evidence it came from** — "~86% (9.7 KB → 1.4 KB)",
-     "worst pairwise gap -1px → +39px", not "much smaller" or "better spaced".
-     If it was measured, print the measurement.
-   - **What can only prove out after merge gets its own section** ("After
-     merge"), never a Verification bullet — publishing a demo, uploading an
-     image, running a workflow.
-
-**Argue, don't restate.** The diff is one tab away and reviewers can read it; a
-body that inventories changed files earns nothing. Spend the space on what the
-diff cannot say: the alternative rejected and why (#12 on why the wrap sits at
-the boot seam and not in `App`), the bug class a test pins (#12's wiring pin),
-the measurement behind a trade-off, the constraint the change had to hold — the
-runtime-dependency rule, the 2.4 floor, the core/shell split.
-
-The prose is the maintainer's, under the same attribution rule as commits (see
-[Git](#git)).
+Every PR is a written argument for its own diff: a lead paragraph with no
+heading, `##` sections named for what they settle, and `## Verification` last
+with the commands actually run and their real numbers. **Argue, don't restate** —
+the diff is one tab away. A PR that touches a gem's `version.rb` is a release PR
+and adds the `release` label, a fixed title and a fixed body on top. The
+skeleton, the three rules that outrank Verification's formatting, and both fixed
+shapes are [.okf/design/pull-requests.md](.okf/design/pull-requests.md).
 
 ## Releasing
 
-**A PR that touches `lib/okf/version.rb` is a release PR.** It is everything
-above, plus the `release` label and the two fixed shapes below. PRs #1–#15 were
-normalized to all three in one pass, so the merged list reads as one series —
-match it. The label is what keeps the series queryable
-(`gh pr list --state all --label release`) when a title is mistyped.
-
-### The title
-
-```
-Release X.Y.Z — <summary>              # the baseline gem
-Release <gem> X.Y.Z — <summary>        # a sibling: Release okf-mcp 1.0.0 — …
-```
-
-- **`Release X.Y.Z` verbatim** — the literal word, the bare version, no `v`, no
-  branch prefix, and never parenthesized at the end. This holds even when the
-  bump is not the point of the work; the release a version shipped in should be
-  findable by scanning one column.
-- **A sibling names its gem, immediately after `Release`** — the same asymmetry
-  the tags already carry, and for the same reason: the baseline owns the bare
-  series (`vX.Y.Z`, `Release X.Y.Z`) and a sibling qualifies itself
-  (`okf-mcp/vX.Y.Z`, `Release okf-mcp X.Y.Z`). The gem goes in the title, not
-  in the summary — `gh pr list --label release` has to answer *which gem, which
-  version* by column, and a name buried after the em dash does not. Prefixing
-  the baseline too would have been tidier and would have renamed a public
-  series to buy nothing.
-- **A spaced em dash** — not a colon, not a hyphen. The summary is a phrase, not
-  a subtitle.
-- **The summary is the CHANGELOG's headline** — the two or three things the new
-  section leads with, comma-joined, lowercase but for identifiers and proper
-  nouns, no trailing period, one line (past ~80 characters it is listing too
-  much). "opt-in search index, the graph's index layer, @slug addressing", not
-  "This release adds an opt-in search index."
-
-### The body
-
-The skeleton above, pinned at three points:
-
-- **The lead opens with the cut** — `Cuts **X.Y.Z**.` — and closes with the
-  pointer: `CHANGELOG.md` carries the full notes under `## [X.Y.Z] -
-  YYYY-MM-DD`. The PR argues the release, the CHANGELOG itemizes it, so the lead
-  says what the version is *for* and never re-lists the entries.
-- **Verification names the release checks**: `rake`, the 2.4 Docker floor,
-  `skill:verify` (every generated copy in sync, gem and manifest at the same
-  version), `gem build`, and `validate`/`lint` on the repo's own `.okf`.
-- **The closing line, verbatim**: `` `rake release` (tag, push, RubyGems with
-  MFA) is deliberately not run here. `` — the PR is the gate, the human pushes
-  the gem.
-
-#15 is the reference instance of both shapes. Nothing enforces any of it — no CI
-check reads PR titles or bodies — so it is a maintainer obligation, and the
-point of it is that the tag, the CHANGELOG entry and the PR that carried them
-stay findable as one thing. A PR with no version bump takes the base skeleton
-only: no label, no fixed title (#12, #8, #7).
-
-### The steps
-
-A release is cut **from the gem's own directory** — `cd gems/okf` first. Bundler
-reads the gemspec in its working directory and derives the tag from it, so the
-root
-`rake release` refuses rather than doing something plausible.
-
-1. Bump `lib/okf/version.rb`, then `bundle exec rake skill:sync` — the plugin
-   versions with the gem, so `plugin/.claude-plugin/plugin.json` must follow
-   every bump, and both generated skill copies with it. Move the `Unreleased` notes in `CHANGELOG.md` under the new
-   version.
-2. `bundle exec rake release` — tags `vX.Y.Z`, pushes commits + tag, pushes the
-   gem to RubyGems (MFA required). `release` runs `build`, and `build` aborts
-   if a generated skill copy has drifted or the plugin manifest lags the gem
-   version (`rake skill:verify`), so a forgotten sync stops the release instead
-   of shipping.
-
-`release:guard_clean` is **repo-wide** — Bundler runs `git diff` with no pathspec,
-so a half-finished sibling gem or an edited file two levels up blocks a release of
-this one, and all Bundler says is "There are files that need to be committed
-first." `release:preflight` runs ahead of it and names the paths, separating this
-gem's from the rest; it aborts, because guard_clean was going to anyway and the
-only question is which message you get. Verified by running, not pinned by a test:
-it is release tooling, and nothing in the suite drives rake tasks.
-
-**The bare `v*` tag series belongs to the baseline gem** and keeps doing so. A
-sibling tags `okf-mcp/vX.Y.Z`. The asymmetry is deliberate: the Docker workflow
-fires on `v*`, and a glob does not match across `/`, so a sibling's release
-cannot trigger a build of an image that ships something else. Prefixing
-everything would have been tidier and would have ended a public tag series
-mid-history to buy nothing.
-
-Gem packaging detail: `spec.files` comes from `git ls-files` run with `chdir:`
-into `gems/okf/`, minus `test/`, `bin/`, the Gemfile, the Rakefile, `.gitignore`,
-`.rubocop.yml` and the gemspec itself. Everything at the
-repo root is invisible to it, so a new *root* file needs no reject — but a new
-top-level file **inside the gem** ships unless the gemspec rejects it, so check
-`gem build` output when adding one. Constraint 9 is the other half of this.
+A release is cut **from the gem's own directory**, and the steps are that gem's
+guide's. What is shared is the tag convention: **the bare `v*` series belongs to
+the baseline gem** and a sibling tags `<gem>/vX.Y.Z`. The asymmetry is
+deliberate — the Docker workflow fires on `v*`, and a glob does not match across
+`/`, so a sibling's release cannot trigger a build of an image that ships
+something else. Prefixing everything would have been tidier and would have ended
+a public tag series mid-history to buy nothing.
+[.okf/decisions/release-and-tags.md](.okf/decisions/release-and-tags.md).
 
 ## Git
 
@@ -607,6 +221,7 @@ no "generated by" lines, in commits or PRs.
 - **Surgical changes.** Match the existing style (see `.rubocop.yml` — e.g.
   spaced array brackets `[ 1, 2 ]`, double quotes). Don't improve adjacent
   code; remove only orphans your own change created.
-- **Verify against a goal.** Turn every task into a check that can fail: a new
-  test, a failing-then-passing repro, the rake default task, the 2.4 Docker
-  run. "Works on my Ruby" is not verification here — the floor is.
+- **Verify against a goal.** Turn every task into a check that can fail, and
+  prove it can: break the code on purpose and watch the test report it. A green
+  suite that cannot go red is not verification, and "works on my Ruby" is not
+  either — the floor is.

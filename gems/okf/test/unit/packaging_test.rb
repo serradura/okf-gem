@@ -52,6 +52,25 @@ class OKF::PackagingTest < OKF::TestCase
     assert_includes shipped, ".okf/index.md", "a bundle without its index is not a bundle"
   end
 
+  # `CLAUDE.md` is one line — `@AGENTS.md` — and `AGENTS.md` is a maintainer guide
+  # for someone with a checkout, not for the reader of an installed gem. Shipping
+  # the pointer without its target puts a reference to nothing inside the
+  # published gem; shipping the guide itself ships instructions for editing code
+  # the reader cannot edit.
+  #
+  # It is not hypothetical tidiness: a new top-level file inside a gem directory
+  # ships unless the gemspec rejects it, and both of these arrived after the
+  # reject list was last read.
+  test "AGENTS.md and CLAUDE.md do not ship — they are for a reader with a checkout" do
+    assert File.file?(File.join(GEM_ROOT, "AGENTS.md")), "the guide is missing from the checkout"
+    assert File.file?(File.join(GEM_ROOT, "CLAUDE.md")), "the pointer is missing from the checkout"
+    refute_includes spec.files, "AGENTS.md",
+      "AGENTS.md is in spec.files, so the published gem ships a maintainer guide"
+    refute_includes spec.files, "CLAUDE.md",
+      "CLAUDE.md is in spec.files, so the published gem carries a pointer to a file " \
+      "that is not there. Reject both, or ship both."
+  end
+
   private
 
   def spec

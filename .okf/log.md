@@ -2,6 +2,28 @@
 
 ## 2026-08-19
 
+* **Governance**: **an `AGENTS.md` routes; it no longer restates.** Every rule
+  whose argument a concept already carried was cut to the one or two sentences a
+  reviewer checks against, plus the link. The root's guide dropped the baseline
+  gem's contract entirely — `gems/okf/` was the only gem without a guide of its
+  own, so its floor, its dependency limits, its testing obligations and its
+  release steps moved into one, and the four gems are now symmetric. Two
+  conventions that belonged to no gem and no concept became concepts here:
+  [the READMEs](design/the-readmes.md) and
+  [the shape of a pull request](design/pull-requests.md).
+
+  What made the case was not size but a **drift already shipped**: okf-tui's
+  guide ended with a `Working style` section copied from the root's, eight of
+  whose fourteen lines had silently diverged, while its own opening paragraph
+  declared that the root owned that rule. Two answers, one claim of single
+  ownership, and nothing on either page saying the other existed. The principle
+  is in [where knowledge lives](design/where-knowledge-lives.md).
+
+  Measured over twelve realistic questions, every one got cheaper and none
+  needed a boundary merged back; the worst went 59,236 → 32,164 bytes, and what
+  an agent loads before reading any code fell 26–65% depending on where it
+  stands.
+
 * **Naming**: **`@okf` is the gem; this bundle is `@okf-eco`.** The kernel had
   been registered as `@okf-kernel` only because the root bundle was squatting on
   the obvious name from when it *was* the kernel's. Someone typing `@okf` is

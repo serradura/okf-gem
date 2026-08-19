@@ -20,8 +20,8 @@ that lets the edit through.
 
 # The deviation, and where it stops
 
-`AGENTS.md` states the repo's convention as 0 ok / 1 failing bundle / 2 usage
-error. `okf pro hook` cannot keep it: 1 is a code the protocol ignores, so it
+The kernel's guide states the repo's convention as 0 ok / 1 failing bundle / 2
+usage error (`@okf capabilities/validator` carries it too). `okf pro hook` cannot keep it: 1 is a code the protocol ignores, so it
 is never returned. Every other verb keeps the convention.
 
 | Verb | 0 | 1 | 2 |

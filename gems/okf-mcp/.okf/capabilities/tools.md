@@ -69,6 +69,5 @@ and the same object as `structuredContent`.
 # The doctrine is elsewhere
 
 *Why* each tool exists, what was rejected, and the reasoning behind the
-bounded-output rules is `capabilities/mcp-server.md` in the repository's root
-bundle. This table is the catalog; that concept is the argument. Neither
-restates the other.
+bounded-output rules is [the tool set](../design/the-tool-set.md). This table
+is the catalog; that concept is the argument. Neither restates the other.

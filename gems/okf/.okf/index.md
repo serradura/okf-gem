@@ -10,10 +10,10 @@ written to be read *before* opening `lib/`, so an agent about to add a verb, a
 check or a search engine does not re-derive the layering and does not rebuild
 something the model already answers.
 
-`AGENTS.md` at the repository root is this gem's maintainer guide as well as the
-monorepo's. It keeps the hard constraints, the release process and the Git
-rules; everything it used to restate about the shape of `lib/**` and the shape
-of the test suite lives here.
+`AGENTS.md` beside this bundle is the gem's maintainer guide. It keeps the
+contract, the commands and the release steps, and routes here for everything
+else; the repository root's guide is the ecosystem's and states no contract of
+this gem's at all.
 
 `structure/` is pinned: `test/unit/bundle_catalog_test.rb` fails when a file
 under `lib/` is named by no concept, when a concept names a file that is gone,

@@ -9,7 +9,7 @@ generated:
 sources:
   - title: "`lib/okf/tui/workspace.rb` — the seven writes, each returning a status message and reloading; `not_registry_backed` for the ad-hoc case, which has no registry to change."
     resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/workspace.rb
-  - title: "`AGENTS.md` constraint 8 — the same boundary, stated where a change is judged."
+  - title: "`AGENTS.md` — \"The registry is the user's configuration\", the same boundary where a change is judged."
     resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/AGENTS.md
   - title: "`grep -rn \"Bundle::Writer\" lib/` → no matches, 2026-08-13."
     resource: "`grep -rn \"Bundle::Writer\" lib/` → no matches, 2026-08-13"
@@ -34,7 +34,7 @@ The line is **the registry, not read-versus-write**: this program edits the user
 
 Seven of okf's eight `registry` verbs have a place here, and it is the same place —
 the bundles view, where `Workspace` owns every write and each is followed by a
-reload, per `AGENTS.md` constraint 8:
+reload, per `AGENTS.md`'s rule that the registry is the user's configuration:
 
 | Key | `Workspace` | okf CLI |
 |-----|-------------|---------|

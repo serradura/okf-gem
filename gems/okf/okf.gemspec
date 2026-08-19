@@ -64,11 +64,18 @@ Gem::Specification.new do |spec|
   # Note that .dockerignore's `.okf` entry drops the *repository's* bundle and
   # not this one: Docker anchors a pattern with no `**` at the context root.
   # `test/unit/packaging_test.rb` pins that it ships.
+  #
+  # `AGENTS.md` and `CLAUDE.md` are rejected together. The guide is for someone
+  # with a checkout — it names rake tasks, test paths and a container command
+  # that only exist there — and `CLAUDE.md` is one line, `@AGENTS.md`, so
+  # shipping the pointer without its target puts a reference to nothing inside
+  # the published gem. The two go together or neither goes, which is the same
+  # call the three siblings made. `test/unit/packaging_test.rb` pins that.
   gemspec = File.basename(__FILE__)
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).reject do |f|
       (f == gemspec) ||
-        f.start_with?(*%w[bin/ Gemfile Rakefile .gitignore test/ .rubocop.yml])
+        f.start_with?(*%w[bin/ Gemfile Rakefile .gitignore test/ .rubocop.yml AGENTS.md CLAUDE.md])
     end
   end
   spec.bindir = "exe"

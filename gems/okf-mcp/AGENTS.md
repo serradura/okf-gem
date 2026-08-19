@@ -31,9 +31,9 @@ once, in the concept that owns them:
 <term>` searches it from anywhere in the checkout.
 
 The **doctrine** — why the tool set is what it is, the bounded-output argument,
-the posture — is the repository bundle's
-[`capabilities/mcp-server.md`](../../.okf/capabilities/mcp-server.md), and the
-bundle here deliberately does not copy it.
+the posture — is [`.okf/design/the-tool-set.md`](.okf/design/the-tool-set.md).
+It used to live in the repository bundle, one directory up; it moved here with
+the rest of this gem's knowledge, because the ecosystem's map explains no gem.
 
 The split used to run the other way: this file carried a hand-written Map of
 `lib/**` and nothing checked it. `test/unit/bundle_catalog_test.rb` now fails

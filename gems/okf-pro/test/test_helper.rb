@@ -389,7 +389,7 @@ module OKF
   module Pro
     # The kernel's declarative Minitest sugar, ported so the suites read alike
     # across the monorepo: `test "name" do ... end` plus block setup/teardown.
-    # The suite runs on 2.4 too, so ../AGENTS.md's API constraints apply here.
+    # The suite runs on 2.4 too, so okf's 2.4 API constraints apply here.
     class TestCase < Minitest::Test
       include BundleFixture
 

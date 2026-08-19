@@ -18,8 +18,8 @@ supports, so there is no version of this gem that reaches okf's floor.
 
 # What it admits, and what it still forbids
 
-A sibling's floor is its own: **the root `AGENTS.md`'s 2.4 API list does not
-bind here.** `filter_map`, `tally`, `Dir.glob(base:)`, `transform_keys`,
+A sibling's floor is its own: **okf's 2.4 API list — `@okf design/ruby-floor` —
+does not bind here.** `filter_map`, `tally`, `Dir.glob(base:)`, `transform_keys`,
 `Struct.new(keyword_init:)` and numbered block params are all available and
 used.
 

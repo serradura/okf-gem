@@ -47,8 +47,8 @@ module OKF
     end
 
     # Plain Minitest plus `test "..."` / block `setup` sugar, mirroring okf's own
-    # OKF::TestCase. The suite runs on 2.4 too, so the API constraints in
-    # AGENTS.md apply to test/ as well.
+    # OKF::TestCase. The suite runs on 2.4 too, so okf's 2.4 API list applies
+    # to test/ as well.
     class TestCase < Minitest::Test
       FIXTURES = File.expand_path("fixtures", __dir__)
 

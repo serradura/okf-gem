@@ -53,5 +53,5 @@ seam is the [single entry point](design/one-entry-point.md).
 
 The argument for *why* the tool set is what it is — why fourteen and not
 thirty, what `total` means, why domain failures carry the kernel's own
-sentences — is the root bundle's `capabilities/mcp-server.md`, not restated
-here. This bundle is about the code that serves it.
+sentences — is [the tool set](design/the-tool-set.md), not restated here. The
+rest of this bundle is about the code that serves it.

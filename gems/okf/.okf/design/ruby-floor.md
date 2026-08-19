@@ -9,8 +9,8 @@ generated:
 sources:
   - title: gems/okf/okf.gemspec
     resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/okf.gemspec
-  - title: AGENTS.md — Hard constraints
-    resource: https://github.com/serradura/okf-gem/blob/main/AGENTS.md
+  - title: gems/okf/AGENTS.md — The contract
+    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/AGENTS.md
 ---
 
 # Overview

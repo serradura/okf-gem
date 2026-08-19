@@ -9,10 +9,11 @@ This file documents how to change the code without breaking its contracts.
 This gem is a sibling in the okf-gem monorepo, one directory per gem under
 `gems/`, beside the baseline `gems/okf/` it depends on.
 [`../../AGENTS.md`](../../AGENTS.md) is the repo-level
-guide and owns everything above a single gem — the layout, the PR shape, the
-release-title convention, the Git attribution rule. What is here is okf-pro's
-own: the contract, the exit codes, the seam, and the scaffold. Where the two
-overlap, the root is the general rule and this is the instance.
+guide and owns everything above a single gem — the layout, the shared testing
+obligations, the PR shape, the release-title convention, the Git attribution
+rule and the working style. What is here is okf-pro's own: the contract, the
+exit codes, the seam, and the scaffold. Where the two overlap, the root is the
+general rule and this is the instance.
 
 ## Read the bundle first
 
@@ -73,93 +74,76 @@ a gate waves an edit through. The seam is
 
 ## Hard constraints
 
+Twelve rules. Where a concept carries the argument, this is the short form a
+reviewer checks against and the link is the rest.
+
 1. **Ruby >= 2.4**, okf's own floor. It matters more here than anywhere else in
    the repo: this code runs inside a git hook and a CI step on machines nobody
-   chose, and a checker that cannot parse is a checker that is off. The forbidden
-   APIs are listed in [`../../AGENTS.md`](../../AGENTS.md); the ones this port had to
-   undo were `filter_map` (2.7) and endless ranges (2.6). The floor is checked
-   twice — in the gemspec, and at the top of `lib/okf/pro.rb`, which refuses
-   with `exit 2` — and `test/unit/pro_test.rb` pins that the two agree.
-2. **Runtime dependencies are exactly `okf`.** Everything else is stdlib. A
-   gate with a dependency tree is a gate that fails to install on the machine
-   that needed it most.
+   chose, and a checker that cannot parse is a checker that is off. The
+   forbidden-API list, broken out by the version that introduced each name, is
+   `@okf design/ruby-floor`; the ones this port had to undo were `filter_map`
+   (2.7) and endless ranges (2.6). The floor is checked twice — in the gemspec,
+   and at the top of `lib/okf/pro.rb`, which refuses with `exit 2` — and
+   `test/unit/pro_test.rb` pins that the two agree.
+2. **Runtime dependencies are exactly `okf`.** Everything else is stdlib. A gate
+   with a dependency tree is a gate that fails to install on the machine that
+   needed it most.
 3. **`hook`'s exit codes are the protocol's, not this repo's.** `0` passes, `2`
-   blocks, and **every other code — including `1` — is non-blocking**: the tool
-   call proceeds. So `hook` never returns 1. Every other verb keeps the repo's
-   0/1/2 convention, and `audit` in particular reserves 1 for *findings* and
-   spells "the checker broke" as 2 — a pipeline that cannot tell those apart
-   learns to ignore both. The table is in
+   blocks, and **every other code — including `1` — is non-blocking**, so `hook`
+   never returns 1. Every other verb keeps the repo's 0/1/2 convention, and
+   `audit` reserves 1 for *findings* and spells "the checker broke" as 2.
    [`.okf/contract/exit-codes.md`](.okf/contract/exit-codes.md).
+
    Which is why **every verb in `CLI::READERS` routes through `parse_flags`**,
    listed in `FLAGS` or not: absence from that table means "accepts none", and a
    verb that skips the parser hands its undeclared flag to `BundleRoot.resolve`
-   as a directory and reports "holds no OKF bundle" as a finding — a pipeline's
-   own typo, spelled as a broken bundle. `test/integration/cli_test.rb` pins it
-   over `READERS`, which is the invariant and the whole of it: the writers go
-   through `writer_flags` instead (their first argument is content, so a flag
-   there is data), and the scaffold verbs and `hook` through neither.
+   as a directory and reports "holds no OKF bundle" — a pipeline's own typo,
+   spelled as a broken bundle. `test/integration/cli_test.rb` pins it over
+   `READERS`, which is the invariant and the whole of it.
 4. **The seam is where the contract's last Ruby line lives.** `plugin.rb` holds
    a `rescue Exception` that re-raises `SystemExit`, with the cop disabled and
-   the reason beside it. That is not laziness: the failures it catches are
-   `ScriptError`s, which are not `StandardError`s, and it must sit **outside**
-   the `require "okf/pro"` it guards — inside `Pro::CLI.run` it could not
-   catch the LoadError of the require that reaches it. See
-   [`.okf/seam/three-fail-opens.md`](.okf/seam/three-fail-opens.md).
+   the reason beside it, and it must sit **outside** the `require "okf/pro"` it
+   guards. [`.okf/seam/three-fail-opens.md`](.okf/seam/three-fail-opens.md).
 5. **A `SyntaxError` in `plugin.rb` is unreachable from Ruby.** Discovery
-   rescues `LoadError, StandardError`; a `SyntaxError` is neither, the CLI dies
-   with a parse dump and exit 1, and *no gem code runs at all*. Only the
-   scaffold's `.claude/hooks/run` can catch it, which is why that wrapper no
-   longer `exec`s. If you make it `exec` again, you have reopened this.
+   rescues `LoadError, StandardError`; a `SyntaxError` is neither, and *no gem
+   code runs at all*. Only the scaffold's `.claude/hooks/run` can catch it,
+   which is why that wrapper no longer `exec`s. If you make it `exec` again, you
+   have reopened this.
 6. **`hook` whitelists its argument.** `Pro::CLI.run` dispatches the CI verbs
    off the same first argv element a check name arrives in, so an adapter that
    only stripped `hook` would make `okf pro hook audit` run a CI verb —
-   measured status 0, "clean.", reading no stdin and never blocking. The
-   whitelist is `Pro::CLI::HOOK_NAMES`, read from the library rather than
-   copied, so it cannot drift from the composition table.
+   status 0, "clean.", reading no stdin and never blocking. The whitelist is
+   `Pro::CLI::HOOK_NAMES`, read from the library rather than copied.
 7. **The gate leaves no check silently unrun.** `Linter.call` with no options
    skips `expired` and `stale` and still reports `healthy?`. Supply what a check
    needs, or exclude it in source with its reason; never let
    `stats[:skipped_checks]` come back non-empty and be discarded.
-   `test/integration/conformance_test.rb` asserts the residue is empty.
+   [`.okf/contract/silent-skips.md`](.okf/contract/silent-skips.md), pinned by
+   `test/integration/conformance_test.rb`.
 8. **A write verb is additive and targeted, never regenerative**, and that is
-   enforced rather than promised. Each one computes its new text purely (in
-   `board/edit.rb` or `log/edit.rb`, which cannot touch the disk), declares the
-   delta it intends, and `Conserve` refuses with exit 2 — nothing written — if
-   the actual delta differs in either direction. No verb writes a concept body
-   or sets `verified:`; `snapshot` gains no `--write`, because a writer and a
-   checker sharing a code path agree trivially. Agent text reaches a board line
-   body or a journal entry body and nowhere else, and text spanning lines is
-   refused rather than escaped — a verb invoked through Bash is seen by neither
-   `guard-verified` nor `shell-guard`, so the safety is by construction. And a
-   verb **refuses a missing file rather than writing one**: `capture` will not
-   create `board.md`, `journal open` will not create `journal/index.md`, because
-   an index rebuilt from the one line a verb knows is regeneration wearing an
-   append's clothes. A name the caller supplies is contained twice over — one
-   directory segment, *and* resolving inside the bundle, because
-   `projects/<slug>` can be a symlink out and the checker that reads it refuses
-   to. See
+   enforced rather than promised: each computes its new text purely, declares
+   the delta it intends, and `Conserve` refuses with exit 2 — nothing written —
+   if the actual delta differs in either direction. No verb writes a concept
+   body or sets `verified:`; a verb **refuses a missing file rather than writing
+   one**; and a name the caller supplies is contained twice over, because
+   `projects/<slug>` can be a symlink out.
    [`.okf/design/derivation-that-writes.md`](.okf/design/derivation-that-writes.md)
    and [`.okf/contract/containment-directions.md`](.okf/contract/containment-directions.md).
 9. **Friction is recorded at paths that already run, and never at a new hook
-   event.** `.claude/settings.json` is seeded, so a registration added there
+   event** — `.claude/settings.json` is seeded, so a registration added there
    would never reach an adopter through `upgrade`. The recorder refuses nothing
-   and blocks nothing — and still may not report a zero it did not count: a
-   failed write leaves a marker, an unwritable `.tmp/` is asked about directly,
-   and an unparseable line is confessed. Nor may it ask for a verb nothing is
-   missing: the session banner counts only rows an `okf pro` verb would answer
-   (a shell redirect's answer is Edit or Write), and `--issue` prints nothing
-   when nothing was recorded. It is telemetry about the tooling, so it is not
-   one of `okf pro state`'s sources.
+   and blocks nothing, and still may not report a zero it did not count, nor ask
+   for a verb nothing is missing.
    [`.okf/contract/telemetry-does-not-lie.md`](.okf/contract/telemetry-does-not-lie.md).
-10. **The scaffold splits by ownership, not by subject.** `upgrade` rewrites
-    the four gem-owned files and never touches a seeded one. Reclassifying
+10. **The scaffold splits by ownership, not by subject.** `upgrade` rewrites the
+    four gem-owned files and never touches a seeded one. Reclassifying
     `CLAUDE.md`, `.gitignore` or `settings.json` as machinery makes `upgrade`
-    destroy exactly the hand-merge `setup` told the adopter to perform. See
-    [`.okf/scaffold/`](.okf/scaffold/ownership-not-subject.md).
+    destroy exactly the hand-merge `setup` told the adopter to perform.
+    [`.okf/scaffold/ownership-not-subject.md`](.okf/scaffold/ownership-not-subject.md).
 11. **No date ships in the generated bundle**, outside a code span. The
-    exemption is required rather than cosmetic — `projects/index.md` teaches the
-    closure marker and `Pairing::MARKER` requires a date — and both directions
-    of that coupling are pinned by `test/unit/closure_grammar_test.rb`.
+    exemption is required rather than cosmetic, and both directions of that
+    coupling are pinned by `test/unit/closure_grammar_test.rb`.
+    [`.okf/scaffold/no-date-ships.md`](.okf/scaffold/no-date-ships.md).
 12. **`lib/okf/pro/template/**` is what `setup` writes**, and it ships:
     `test/integration/scaffold_test.rb` compares the generated list against
     `spec.files`, *not* against a glob of the template, because a glob-versus-glob
@@ -178,10 +162,9 @@ drill there names a way the seam was found to break, and every one of them was a
 gate that **passed**. The list, and why half the drills assert a *pass*, is
 [`.okf/testing/drills-over-units.md`](.okf/testing/drills-over-units.md).
 
-Beyond that, the repo's rules apply: one file per verb and subcommand, real
-fixtures rather than mocks, a failing test before the fix, red for the reason
-you predicted, then the same test green and unedited. The step-by-step walk a
-new verb or check owes is
+Beyond that the root guide's obligations apply unchanged, plus one file per verb
+and subcommand and real fixtures rather than mocks. The step-by-step walk a new
+verb or check owes is
 [`.okf/testing/adding-a-verb.md`](.okf/testing/adding-a-verb.md).
 
 ## Commands
