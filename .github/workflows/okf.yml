@@ -38,7 +38,7 @@ jobs:
       - name: Validate and lint every bundle
         env:
           # ─── the one repository-specific line ───────────────────────────────
-          BUNDLES: ".okf gems/okf-tui/.okf gems/okf-pro/.okf"
+          BUNDLES: ".okf gems/okf-mcp/.okf gems/okf-tui/.okf gems/okf-pro/.okf"
         run: |
           for bundle in $BUNDLES; do
             docker run --rm -v "$PWD":/data ghcr.io/serradura/okf:latest validate "$bundle"

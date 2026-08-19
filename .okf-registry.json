@@ -14,6 +14,11 @@
       "slug": "okf-pro",
       "path": "gems/okf-pro/.okf",
       "title": "okf-pro"
+    },
+    {
+      "slug": "okf-mcp",
+      "path": "gems/okf-mcp/.okf",
+      "title": "okf-mcp"
     }
   ],
   "groups": []

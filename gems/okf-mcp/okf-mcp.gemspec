@@ -32,6 +32,13 @@ Gem::Specification.new do |spec|
   # `git ls-files` with `chdir:` into this gem's directory: paths outside the
   # gem are invisible, so only this gem's own development files need rejecting.
   #
+  # `.okf/` is deliberately *not* rejected: this gem's own knowledge bundle ships
+  # inside it, so an installed okf-mcp carries a real bundle — its own — for a
+  # host to read through the very tools it serves, with no checkout. It is
+  # validated and lint-clean, which the repo's `rake okf` covers, and
+  # `test/unit/packaging_test.rb` pins that it actually ships rather than
+  # arriving by accident and leaving the same way.
+  #
   # `CLAUDE.md` is rejected alongside `AGENTS.md`, and only reads as a stylistic
   # choice: it is one line, `@AGENTS.md`, so shipping it without its target puts
   # a pointer to nothing inside the published gem. The two go together or

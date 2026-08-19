@@ -206,6 +206,16 @@ bundle exec rake                   # tests + RuboCop — what CI runs
 bundle exec rake test:integration  # the critical layer alone + coverage/integration/
 ```
 
+The gem carries its own OKF bundle in `.okf/` — what each file under `lib/`
+does, the catalog of the fourteen tools, the design rules, and how to add a
+tool. It ships inside the gem, so it is there after `gem install` too, and the
+quickest way to read it is through this server:
+
+```bash
+okf mcp .okf        # serve okf-mcp's own knowledge, over MCP
+okf server .okf     # or read it as a graph
+```
+
 ## License
 
 Apache-2.0, see [LICENSE.txt](LICENSE.txt).

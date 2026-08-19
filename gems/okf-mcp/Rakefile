@@ -11,8 +11,29 @@ require "bundler/gem_helper"
 # on the instance before #install, which registers it as
 # Bundler::GemHelper.instance — the object `release` reads its tag from.
 helper = Bundler::GemHelper.new(__dir__)
-helper.tag_prefix = "okf-mcp/"
-helper.install
+
+if helper.respond_to?(:tag_prefix=)
+  helper.tag_prefix = "okf-mcp/"
+  helper.install
+else
+  # `tag_prefix` arrived in Bundler 2.2, and the Bundler a supported Ruby
+  # *ships* can predate it — 2.1.4 on 2.7, this gem's floor — where setting it
+  # raised NoMethodError at Rakefile load and took `rake test` down before a
+  # single test ran. CI never saw it: `ruby/setup-ruby` installs the newest
+  # Bundler each Ruby accepts, so only a floor run against the image as it
+  # comes surfaces it. okf-tui and okf-pro have carried this guard since they
+  # were cut; this gem was the one that did not.
+  #
+  # The old floor is a Ruby to *test* on, never one to release from, so the
+  # release tasks are absent there rather than present with the wrong tag: a
+  # bare `vX.Y.Z` pushed by accident triggers the okf image build for a gem
+  # that ships something else, and that is not undoable.
+  desc "Refuse to release: this Bundler cannot set the okf-mcp/ tag prefix"
+  task :release do
+    abort "this Bundler has no GemHelper#tag_prefix=, so `rake release` here would push a bare " \
+          "vX.Y.Z tag and trigger the okf image build. Release from a Ruby with a current Bundler."
+  end
+end
 
 require "rake/testtask"
 

@@ -1,6 +1,14 @@
 # Update Log
 
 ## 2026-08-19
+* **Addition**: **okf-mcp carries its own bundle, and its `AGENTS.md` relies on
+  it** — the first gem whose *structural* documentation is a bundle rather than
+  a section of a maintainer guide. Every file under `lib/` is named by exactly
+  one concept, the fourteen tools have a catalog an agent reads before writing
+  a fifteenth, and the whole thing is pinned: a file no concept names, a
+  concept naming a file that is gone, or a catalog out of step with the code is
+  a red suite. The Map it replaces lived where nothing checked it. Registered
+  as `@okf-mcp`, and it ships inside the gem the way okf-tui's does.
 * **Update**: **the root README is the menu, not the manual** — every top-level
   name is a boundary and gets one row, and the eight sections that explained how
   the `okf` gem works moved into

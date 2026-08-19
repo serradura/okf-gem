@@ -30,8 +30,9 @@ including the rejection it reverses, is in
 ```
 gems/okf/       the baseline gem; everything below lives inside it
 gems/okf-mcp/   the MCP shell: the kernel's capabilities as MCP tools + prompts
-                (floor 2.7 — the `mcp` SDK's — deps exactly `mcp` + `okf`;
-                own AGENTS.md)
+                (floor 2.7 — the `mcp` SDK's — deps exactly `mcp` + `okf`; own
+                AGENTS.md, and it ships its own `.okf/` in the gem — the one
+                bundle that carries a gem's *structure*, pinned by a test)
 gems/okf-tui/   the terminal UI: six views over one or many bundles, and the
                 registry (floor 2.4 — okf's — deps `okf` + the TTY toolkit; it
                 has its own AGENTS.md, and ships its own `.okf/` in the gem).

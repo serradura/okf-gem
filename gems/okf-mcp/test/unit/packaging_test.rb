@@ -43,6 +43,17 @@ class PackagingTest < OKF::TestCase
     refute_includes spec.files, "AGENTS.md"
   end
 
+  # `.okf/` ships on purpose: an installed okf-mcp carries a real bundle for a
+  # host to read through its own tools. A new top-level entry inside a gem
+  # directory ships unless the gemspec rejects it, so the default here is the
+  # one we want — but a default nobody asserted is indistinguishable from an
+  # accident, and the next person to prune the reject list has nothing to read.
+  test ".okf/ ships — the gem carries its own bundle, deliberately" do
+    shipped = spec.files.grep(%r{\A\.okf/})
+    refute_empty shipped, ".okf/ is not in spec.files: the published gem carries no bundle of its own"
+    assert_includes shipped, ".okf/index.md", "a bundle without its index is not a bundle"
+  end
+
   private
 
   def spec

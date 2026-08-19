@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The gem ships its own knowledge bundle.** `.okf/` is in `spec.files`, so an
+  installed okf-mcp carries a real bundle — its own — that a host can read
+  through the very tools it serves. It documents the gem's structure: every
+  file under `lib/` grouped by the layer that owns it, the catalog of the
+  fourteen tools, the four design rules, and how to add a tool or a test.
+  `AGENTS.md` now relies on it rather than restating it, and
+  `test/unit/bundle_catalog_test.rb` fails when the two disagree with the tree
+  — a file no concept names, a concept naming a file that is gone, or a tool
+  catalog out of step with `server.rb`.
+
+### Fixed
+
+- **`rake test` on the 2.7 floor.** The Rakefile set
+  `Bundler::GemHelper#tag_prefix=` unguarded, and that accessor arrived in
+  Bundler 2.2 — Ruby 2.7, this gem's floor, ships 2.1.4. Loading the Rakefile
+  there raised `NoMethodError` and took the whole task down before a single
+  test ran. CI never saw it, because `ruby/setup-ruby` installs the newest
+  Bundler each Ruby accepts; only a floor run against the stock image
+  surfaces it. okf-tui and okf-pro have carried the `respond_to?` guard since
+  they were cut, and this gem now does too — on a Bundler without the
+  accessor, `release` aborts rather than pushing a bare `vX.Y.Z` that would
+  trigger the okf image build.
+
 ## [1.2.0] - 2026-08-18
 
 ### Added
