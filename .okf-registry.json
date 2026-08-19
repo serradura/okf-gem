@@ -1,9 +1,9 @@
 {
   "bundles": [
     {
-      "slug": "okf",
+      "slug": "okf-eco",
       "path": ".okf",
-      "title": "okf"
+      "title": "the OKF ecosystem"
     },
     {
       "slug": "okf-tui",
@@ -21,9 +21,9 @@
       "title": "okf-mcp"
     },
     {
-      "slug": "okf-kernel",
+      "slug": "okf",
       "path": "gems/okf/.okf",
-      "title": "okf (the kernel)"
+      "title": "okf"
     }
   ],
   "groups": []

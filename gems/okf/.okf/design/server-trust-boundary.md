@@ -118,7 +118,7 @@ The durable half is the rule the old comments claimed and did not hold: **a
 lexical path check guards the name; a symlink escapes by its target, and only
 `realpath` sees where a name actually leads.** The boundary is drawn where it
 can be, not oversold past it — the same discipline the
-extension seam (`@okf design/extension-points`) applies to its prefix: a hardlink shares
+extension seam (`@okf-eco design/extension-points`) applies to its prefix: a hardlink shares
 its target's inode and keeps an in-root path that `realpath` cannot distinguish,
 and neither a hardlink nor a symlink survives a `git clone`, a copy or a tarball.
 So the portable, adversarial bundle is a symlink's to plant and `realpath`'s to

@@ -9,10 +9,14 @@ decisions that put them where they are. It is the **connection layer** — every
 bucket below is a top-level name in the tree, and every item in a bucket has a
 concept pointing at the thing itself.
 
-It deliberately explains no gem. Each of the four carries its own bundle beside
-its code, addressed by slug — `@okf-kernel`, `@okf-mcp`, `@okf-tui`, `@okf-pro`
-— and this one points at them rather than restating them. `okf search @all
-<term>` reaches every bundle at once.
+This bundle is `@okf-eco`. It deliberately explains no gem: each of the four
+carries its own bundle beside its code — `@okf`, `@okf-mcp`, `@okf-tui`,
+`@okf-pro` — and this one points at them rather than restating them.
+`okf search @all <term>` reaches all five at once.
+
+The plain `@okf` belongs to the gem, not here. A reader who types it is almost
+always asking about the kernel's code, and the ecosystem is the thing you arrive
+at rather than the thing you look up.
 
 * [Overview](overview.md) - One format, one kernel, three shells, three ways it leaves this repository.
 

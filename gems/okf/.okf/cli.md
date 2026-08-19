@@ -37,7 +37,7 @@ name up and calls it. The require block at the bottom of `cli.rb` *is* the order
 `okf help` lists them in, and a test pins that so the coupling cannot drift
 unnoticed.
 
-That registry is also the CLI's extension point (`@okf design/extension-points`): a
+That registry is also the CLI's extension point (`@okf-eco design/extension-points`): a
 gem shipping `okf/plugin.rb` adds a verb with no edit here, and it appears in the
 map under `installed extensions:`. Discovery is lazy — a built-in never scans —
 and a broken addon is reported on stderr rather than being fatal.

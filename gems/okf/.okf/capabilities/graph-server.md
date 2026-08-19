@@ -542,7 +542,7 @@ node — selecting into a graph nobody is looking at is a silent no-op, and
 
 The graph, catalog, files, tags, and stats panels are all *derived* from the
 model; the one layer humans actually write — the §8 index map and the
-§9 log (`@okf format/okf-format`) — now renders in the browser too. The tree
+§9 log (`@okf-eco format/okf-format`) — now renders in the browser too. The tree
 column is **one tree**. The authored files used to live on a second tab as a
 flat list of paths, which put a directory's own map somewhere other than the
 directory — the one place a reader looks for it. `index.md` and `log.md` are rows

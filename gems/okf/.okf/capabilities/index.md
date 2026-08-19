@@ -23,4 +23,4 @@ them run over the same [pure model](../model/); the gem's own are fronted by the
 
 * [Library API](library-api.md) - the Ruby surface: pure model plus on-disk handles.
 * [Companion agent skill](agent-skill.md) - the skill shipped inside the gem that teaches an agent to author OKF.
-* Enforcement layer (`@okf gems/okf-pro`) - the sibling `okf-pro` gem: writes an agent's knowledge repository, then holds it to a few invariants at three doors under a fail-closed contract.
+* Enforcement layer (`@okf-eco gems/okf-pro`) - the sibling `okf-pro` gem: writes an agent's knowledge repository, then holds it to a few invariants at three doors under a fail-closed contract.

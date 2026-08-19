@@ -16,8 +16,8 @@ sources:
 
 # Overview
 
-`okf-pro` is the **fifth surface** beside the CLI (`@okf-kernel cli`), the
-graph server (`@okf-kernel capabilities/graph-server`), the library API (`@okf-kernel capabilities/library-api`) and the
+`okf-pro` is the **fifth surface** beside the CLI (`@okf cli`), the
+graph server (`@okf capabilities/graph-server`), the library API (`@okf capabilities/library-api`) and the
 MCP server (`@okf-mcp design/the-tool-set`), and the first one that **writes** rather than
 reads. It answers a question the others cannot: an agent that keeps notes
 accumulates a folder, and what turns a folder into a memory is not a better
@@ -33,7 +33,7 @@ invariants again from CI.
 It inherits every judgement it makes. Conformance, curation, search, the trust
 tiers, where a staleness boundary falls — all of that is the
 kernel's — the validator's, the linter's and the model's
-(`@okf-kernel capabilities/validator`, `capabilities/linter`). What
+(`@okf capabilities/validator`, `capabilities/linter`). What
 this gem owns is the policy layered on top and the machinery that makes a gate
 refuse rather than shrug.
 
@@ -114,7 +114,7 @@ that fails to install on the machine that needed it most — and it holds okf's
 this code runs inside git hooks and CI steps on machines nobody chose.
 
 See also: [extension points](../design/extension-points.md) for the seam it
-registers through, and the monorepo layout (`@okf decisions/monorepo-layout`) for
+registers through, and the monorepo layout (`@okf-eco decisions/monorepo-layout`) for
 what a sibling owes the root.
 
 # What holds it in shape

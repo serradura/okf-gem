@@ -15,7 +15,7 @@ sources:
 
 # Overview
 
-**okf-gem** — `okf` on RubyGems — operates on OKF v0.2 (`@okf format/okf-format`)
+**okf-gem** — `okf` on RubyGems — operates on OKF v0.2 (`@okf-eco format/okf-format`)
 bundles: directories of Markdown files with YAML frontmatter that humans and
 agents both read from one source. It does not define new knowledge storage; it
 gives you leverage over knowledge that already lives as Markdown.
@@ -53,7 +53,7 @@ MCP server (`@okf-mcp design/the-tool-set`) (`okf-mcp`) projects the same kernel
 onto the Model Context Protocol so any MCP-capable agent host reads these
 bundles without a terminal — ten read-only tools, concepts as resources a host
 can attach on its own, and the [skill's](capabilities/agent-skill.md) playbooks
-as prompts. The enforcement layer (`@okf gems/okf-pro`) (`okf-pro`)
+as prompts. The enforcement layer (`@okf-eco gems/okf-pro`) (`okf-pro`)
 goes the other way and is the only surface here that **writes**: it generates an
 agent's knowledge repository — bundle, hooks, pre-commit, CI, skill — and then
 holds it to a few invariants at all three doors, under a contract where a gate
@@ -71,7 +71,7 @@ server to remember.
 
 - **Dual audience.** Every file serves a human skimming it _and_ an agent
   extracting from it, so bodies are structural Markdown and
-  links (`@okf format/cross-links`) are plain Markdown links — both readers already
+  links (`@okf-eco format/cross-links`) are plain Markdown links — both readers already
   understand them.
 - **The graph is emergent.** Files are nodes, Markdown links are edges. You never
   declare a graph; the gem [builds one](model/graph.md) from how concepts link.

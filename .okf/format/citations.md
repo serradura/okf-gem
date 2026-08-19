@@ -25,7 +25,7 @@ approval, a quota — should trace to a source here.
 
 "Citation" is the legacy spelling (v0.2 §2 retires the term): v0.1 kept
 provenance in a body `# Citations` list, and §13.1 keeps that list readable
-forever — `Concept#sources` (`@okf-kernel model/concept`) lifts it into the same
+forever — `Concept#sources` (`@okf model/concept`) lifts it into the same
 mappings whenever the native key yields nothing, through
 `OKF::Markdown::Citations`, which is v0.2 reading code, not a leftover.
 
@@ -35,7 +35,7 @@ key itself is [frontmatter](frontmatter.md).
 # Why it matters to the tooling
 
 Sources are the input to the linter's **provenance** category
-(`@okf-kernel capabilities/linter`), which checks the keyed-attribution join in both
+(`@okf capabilities/linter`), which checks the keyed-attribution join in both
 directions (`unattributed_claim` warns — a dangling footnote misattributes a
 claim; `unused_source` informs — recorded but never cited is only slack),
 flags external links with no sources at all (`uncited_external`), and verifies
@@ -43,7 +43,7 @@ in-bundle source targets (`broken_source` — URLs and scope descriptors are
 exempt by construction). An in-bundle `sources[].resource` is also a graph
 edge, so recording provenance is also linking (§5.1's lineage).
 
-Because the validator (`@okf-kernel capabilities/validator`) is forbidden from
+Because the validator (`@okf capabilities/validator`) is forbidden from
 rejecting a bundle over provenance, it warns only about *shape* (a list of
 mappings, `resource` REQUIRED within an entry); everything judgment-shaped
 lives on the lint side — advisory signal a curator acts on, never a

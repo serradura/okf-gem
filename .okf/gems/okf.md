@@ -33,7 +33,7 @@ three depend on.
 | Enforced boundary | the core is pure, the shell does the I/O, and a test fails the build if a pure file touches the disk |
 
 The arguments for all three, and everything about how the code is arranged, are
-the gem's own bundle: `@okf-kernel`.
+the gem's own bundle: `@okf`.
 
 # The seam the other three arrive through
 
@@ -44,7 +44,7 @@ see [extension points](../design/extension-points.md).
 
 # Where its knowledge lives
 
-`@okf-kernel` — `gems/okf/.okf/`, which ships inside the gem. Its `structure/`
+`@okf` — `gems/okf/.okf/`, which ships inside the gem. Its `structure/`
 area names every file under `lib/` and is pinned by a test, so a file that
 arrives without a line in the concept that owns its layer is a red suite rather
 than a stale document.

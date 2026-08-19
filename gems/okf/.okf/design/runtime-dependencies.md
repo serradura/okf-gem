@@ -61,7 +61,7 @@ precisely so it is not needed:
 
 - `OKF.blank?` — the emptiness check;
 - `OKF::Markdown::Frontmatter.stringify_keys` — the key coercion, living in
-  the one YAML gateway (`@okf format/frontmatter`).
+  the one YAML gateway (`@okf-eco format/frontmatter`).
 
 # What the leanness buys
 
@@ -78,5 +78,5 @@ directory, minus `test/`, `bin/`, the `Gemfile`, the `Rakefile` and a couple mor
 Because of that `chdir:`, everything at the repository root is invisible to it —
 so a new *repo*-level file never ships, and needs no reject. A new top-level file
 **inside the gem** does ship unless the gemspec rejects it; check `gem build`
-output when adding one. See the monorepo layout (`@okf decisions/monorepo-layout`) for the
+output when adding one. See the monorepo layout (`@okf-eco decisions/monorepo-layout`) for the
 one-directional rule that ties the reject list to `.dockerignore`.

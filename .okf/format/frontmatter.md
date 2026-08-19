@@ -16,7 +16,7 @@ sources:
 
 # Overview
 
-Every concept (`@okf-kernel model/concept`) opens with a YAML frontmatter block delimited
+Every concept (`@okf model/concept`) opens with a YAML frontmatter block delimited
 by `---` lines. `OKF::Markdown::Frontmatter` parses it and is the inverse of
 `Concept#to_markdown`. The only **required** key is
 [`type`](../format/okf-format.md); `title`, `description`, `resource`, `tags`, and
@@ -31,10 +31,10 @@ and portability boundary, not an accident of layering:
 - it uses `safe_load` — permitting `Date`/`Time`, forbidding aliases — so a
   bundle can never execute arbitrary Ruby on load;
 - it carries the Psych `<3.1` positional-argument shim, so the gem parses
-  identically on the old Ruby versions the 2.4 floor (`@okf-kernel design/ruby-floor`)
+  identically on the old Ruby versions the 2.4 floor (`@okf design/ruby-floor`)
   targets;
 - `stringify_keys` lives here so the gem needs no ActiveSupport (see
-  runtime dependencies (`@okf-kernel design/runtime-dependencies`)).
+  runtime dependencies (`@okf design/runtime-dependencies`)).
 
 The rule is enforced by convention: `YAML.safe_load` / `YAML.load` appear
 **nowhere else** in the codebase.

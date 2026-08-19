@@ -18,7 +18,7 @@ The gem is two halves. The **core** is pure — [`Concept`](../model/concept.md)
 [`Bundle`](../model/bundle.md), [`Graph`](../model/graph.md), the
 [validator](../capabilities/validator.md), the [linter](../capabilities/linter.md),
 the [search](../capabilities/search.md),
-the format layer (`@okf format/`) — logic that returns data and does no I/O. The
+the format layer (`@okf-eco format/`) — logic that returns data and does no I/O. The
 **shell** owns everything that touches the world: the on-disk handles
 (`Concept::File`, `Bundle::{Reader,Writer,Folder}`), the
 [renderer](../capabilities/render.md) that draws the page, the

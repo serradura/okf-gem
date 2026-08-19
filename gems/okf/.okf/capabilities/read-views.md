@@ -31,10 +31,10 @@ these views group by, for the price of a few rows.
 | `catalog` | concepts with type, tags, link counts, status | top-level dir |
 | `files` | files with titles | folder |
 | `references` | the on-disk `references/` tree (§6.3) with each file's citers and the dangling §6.2 pointers | folder |
-| `types` | types (`@okf format/frontmatter`) with their concepts | count |
-| `tags` | tags (`@okf format/frontmatter`) with their concepts | count |
+| `types` | types (`@okf-eco format/frontmatter`) with their concepts | count |
+| `tags` | tags (`@okf-eco format/frontmatter`) with their concepts | count |
 | `stats` | rollups: concepts, dirs, types, cross-links, tags | — |
-| `loose` | degree-0 concepts (no links (`@okf format/cross-links`) in or out) | folder |
+| `loose` | degree-0 concepts (no links (`@okf-eco format/cross-links`) in or out) | folder |
 | `graph` | the raw nodes and edges; `--hubs` ranks inbound links by source top-level dir; `--traffic` collapses concepts into dirs and links into weighted arcs, with cohesion | — (`--minimal` / `--no-body`) |
 
 `dirs` and `stats` answer about the *same* set of directories, deliberately:
@@ -67,7 +67,7 @@ had nothing in that answer to tell them apart.
 
 Alone among the read views, `index` shows the reserved `index.md` layer: the
 concept views skip those structural files, so only `index` renders the
-progressive-disclosure map (`@okf format/okf-format`) — one entry per directory
+progressive-disclosure map (`@okf-eco format/okf-format`) — one entry per directory
 (root first) with its authored index body, a type/tag rollup over the concepts
 living directly there, its child directories, and the concept listing. `--dir`
 narrows to a directory and its subtree and repeats (`root` names the bundle
@@ -189,18 +189,18 @@ is *when*: the alias is a fact about a bundle, so a run naming several resolves
 it once across the served set — resolving inside the per-bundle loop let a
 single `--dir root` mean the subtree in one bundle and the root in the next,
 merged into one ranking with nothing saying so. It replaces `--area`, which saw only a concept id's
-first path segment — a word the OKF format (`@okf format/okf-format`) never used —
+first path segment — a word the OKF format (`@okf-eco format/okf-format`) never used —
 and which still works, warning on stderr, until a later release drops it.
 
 `tags --by type|dir` regroups the tag index under each concept dimension with
 within-group counts — the view for curating a
-tag (`@okf format/frontmatter`) vocabulary: which tags cluster in which directory,
+tag (`@okf-eco format/frontmatter`) vocabulary: which tags cluster in which directory,
 which type leans on which tags. Each row also carries the tag's total across
 the narrowed set, printed `count/total` when they differ (`async  2/3`) and as
 a plain count when the tag is wholly local — so a tag's *locality* (domain
 confined to one directory, or concern cutting across several) reads per row. The
 same evidence question for the graph: `graph --hubs` ranks every concept with
-inbound links (`@okf format/cross-links`) by inbound degree and groups each
+inbound links (`@okf-eco format/cross-links`) by inbound degree and groups each
 hub's links by *source top-level dir* — whether a hub is well-homed, answered
 mechanically.
 

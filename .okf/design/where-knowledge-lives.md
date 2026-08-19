@@ -35,7 +35,7 @@ not stay equal, and a reader who finds them disagreeing learns to trust neither
 — which is worse than having only one, wherever it is.
 
 This is why each gem's `AGENTS.md` stopped restating the shape of its own
-`lib/`, and why this bundle carries no second copy of what `@okf-kernel` says
+`lib/`, and why this bundle carries no second copy of what `@okf` says
 about okf. It is also why the split had to be by *kind* rather than by subject:
 what the code **is** lives beside the code, where a test can hold it to the
 tree; what it **means** lives where the argument belongs.

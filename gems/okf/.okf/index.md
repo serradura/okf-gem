@@ -22,10 +22,10 @@ code is the truth and this bundle is the claim, so the two cannot drift quietly.
 
 One thing is deliberately elsewhere. The **format** — what a citation is, what
 §5 declares, what a bundle must contain — is the repository's own bundle
-(`@okf`), because the skill, the plugin, the three sibling gems and any future
+(`@okf-eco`), because the skill, the plugin, the three sibling gems and any future
 non-Ruby implementation all speak it, and a reader asking about §5.1 is not
 asking about a Ruby gem. A concept cannot link out of its own bundle, so
-references to it name it in prose: `@okf format/frontmatter`.
+references to it name it in prose: `@okf-eco format/frontmatter`.
 
 * [Overview](overview.md) - The gem at a glance: the seven capabilities and the design ethos behind them.
 * [Command line](cli.md) - The `okf` executable — the one layer that parses argv, prints, and exits.

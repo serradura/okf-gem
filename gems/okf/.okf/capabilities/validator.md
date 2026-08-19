@@ -14,7 +14,7 @@ sources:
 
 # Overview
 
-`okf validate` answers one question: *is this a legal OKF (`@okf format/okf-format`)
+`okf validate` answers one question: *is this a legal OKF (`@okf-eco format/okf-format`)
 bundle?* `OKF::Bundle::Validator` implements §11 exactly and is the **only**
 capability that can fail a bundle — exit `1` on any hard error, `0` otherwise.
 
@@ -22,7 +22,7 @@ capability that can fail a bundle — exit `1` on any hard error, `0` otherwise.
 
 | Rule | Condition |
 |------|-----------|
-| §11 cond. 1 | every non-reserved file can be **read** and has a parseable frontmatter (`@okf format/frontmatter`) block |
+| §11 cond. 1 | every non-reserved file can be **read** and has a parseable frontmatter (`@okf-eco format/frontmatter`) block |
 | §11 cond. 2 | every such block has a **non-empty `type`** |
 | §11 cond. 3 | every `index.md` / `log.md` present is well-formed (nested index has no frontmatter, root index carries only `okf_version`, log dates are real ISO calendar days — `2026-02-30` matches the shape and is refused) |
 
@@ -43,7 +43,7 @@ these are warnings that never change conformance:
   the fallback-carrying accessors, so a pure v0.1 bundle validates silently;
 - an `okf_version` the gem does not know (read best-effort under §12, compared
   after `to_s.strip` because an unquoted `0.2` is a Psych Float);
-- **broken cross-links (`@okf format/cross-links`)** (§6.1) — consumers MUST
+- **broken cross-links (`@okf-eco format/cross-links`)** (§6.1) — consumers MUST
   tolerate them.
 
 Judging those is the [linter](linter.md)'s job, and keeping the two apart is a

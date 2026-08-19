@@ -29,9 +29,8 @@ including the rejection it reverses, is in
 
 ```
 gems/okf/       the baseline gem; everything below lives inside it. Like the
-                three siblings it ships its own `.okf/` in the gem — its
-                structure, its catalogue and its testing doctrine, registered
-                as `@okf-kernel` because `@okf` is the repository's bundle
+                three siblings it ships its own `.okf/` in the gem, and it is
+                the one registered as plain `@okf`
 gems/okf-mcp/   the MCP shell: the kernel's capabilities as MCP tools + prompts
                 (floor 2.7 — the `mcp` SDK's — deps exactly `mcp` + `okf`; own
                 AGENTS.md, and it ships its own `.okf/` in the gem)
@@ -51,9 +50,10 @@ skills/         the skills a generic installer reads (`npx skills add serradura/
                 a generated copy of okf's, and okf-principles, whose canonical
                 copy this is — it documents a way of structuring instructions,
                 not okf's code, so it belongs to no gem
-.okf/           the project's own knowledge bundle — the format, the layout
-                decisions, and the seam every sibling arrives through. Each gem's
-                own knowledge is in its own `.okf/`, beside its code
+.okf/           the ecosystem's map, registered as `@okf-eco`: a concept per
+                gem, per plugin item, per skill and per resource, plus the
+                format, the decisions and the design that govern them all. Each
+                gem's own knowledge is in its own `.okf/`, beside its code
 .okf-registry.json
                 every bundle in the tree, addressable as `@slug` — and while you
                 stand anywhere under this root it *replaces* your global
@@ -77,7 +77,7 @@ and how a change is proven all live there — once, in the concept that owns the
 | why a rule is a rule | [`gems/okf/.okf/design/`](gems/okf/.okf/design/) |
 | how a change is proven | [`gems/okf/.okf/testing/`](gems/okf/.okf/testing/) |
 
-`okf server @okf-kernel` reads it as a graph; `okf search @all <term>` reaches
+`okf server @okf` reads it as a graph; `okf search @all <term>` reaches
 every bundle at once.
 
 `structure/` is the half a test holds to the tree:
@@ -94,7 +94,7 @@ seam every sibling arrives through,
 format](.okf/format/), which stays there because all four gems and any future
 non-Ruby implementation speak it. A
 concept cannot link out of its own bundle, so references across the line name
-the other bundle in prose: `` `@okf format/frontmatter` ``.
+the other bundle in prose: `` `@okf-eco format/frontmatter` ``.
 
 The **hard constraints** below stay in this file: they are the contract a
 reviewer checks, and three of the four gems cite them across a directory
@@ -436,7 +436,7 @@ line in the concept that owns its layer is a red suite, not a stale document.
 
 A concept cannot link out of its own bundle — `Path.normalize_relative!` refuses
 every `..` segment — so a reference across the line names the other bundle in
-prose (`` `@okf-kernel capabilities/linter` ``). That is a real cost of the
+prose (`` `@okf capabilities/linter` ``). That is a real cost of the
 split, paid deliberately: 208 edges crossed the root bundle before it, and every
 one that now leaves was rewritten rather than dropped.
 

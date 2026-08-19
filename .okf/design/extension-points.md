@@ -21,9 +21,9 @@ are deliberately the same shape:
 
 | Seam | Registers | State |
 |------|-----------|-------|
-| `Search.register` | a search engine (`@okf-kernel capabilities/search`) | shipped |
-| `CLI.register` | a command (`@okf-kernel cli`) — a verb `okf` answers to | shipped |
-| `Linter.register` | a lint check (`@okf-kernel capabilities/linter`) | planned |
+| `Search.register` | a search engine (`@okf capabilities/search`) | shipped |
+| `CLI.register` | a command (`@okf cli`) — a verb `okf` answers to | shipped |
+| `Linter.register` | a lint check (`@okf capabilities/linter`) | planned |
 
 One idiom, in all three: **append-only, idempotent by id**. A second
 registration of an id already present is a no-op, so a double `require` cannot
@@ -148,14 +148,14 @@ this trade should be reopened.
 
 # Lazy, because a one-shot CLI cannot afford eager
 
-Discovery costs about 11ms on the 2.4 floor (`@okf-kernel design/ruby-floor`). Small, and still
+Discovery costs about 11ms on the 2.4 floor (`@okf design/ruby-floor`). Small, and still
 not worth paying on every run: `okf lint` resolves its verb against the registry
 and dispatches **without scanning at all**. Only two paths pay — an unknown verb,
 which has to look before it can fail, and `okf help`, which has to know
 everything by definition.
 
 This is the same arithmetic that made the scan the default
-search engine (`@okf-kernel design/search-engines`): a process that loads a bundle, answers one
+search engine (`@okf design/search-engines`): a process that loads a bundle, answers one
 question and exits has nothing to amortize a fixed cost over. A CLI that refuses
 to build an index for a single query should not pay for discovery to answer a
 verb it shipped with.
@@ -167,7 +167,7 @@ registration keeps the built-in and records the rejection.
 
 # A broken addon is skipped, not fatal
 
-The same best-effort posture (`@okf-kernel cli #best-effort-reads`) the reader takes with
+The same best-effort posture (`@okf cli #best-effort-reads`) the reader takes with
 an unparseable file. A plugin that raises on load is caught, collected, and
 reported on **stderr** — so a `--json` run's stdout stays a clean machine
 substrate — and every other verb still works. One addon that will not load must
@@ -186,13 +186,13 @@ what a built-in does, because a seam only the base gem can use is not a seam.
 
 # Why not Thor
 
-Thor is the obvious reach, and the Ruby 2.4 floor (`@okf-kernel design/ruby-floor`) closes it:
+Thor is the obvious reach, and the Ruby 2.4 floor (`@okf design/ruby-floor`) closes it:
 Thor 1.3+ requires Ruby >= 2.6, and only the EOL 1.2.2 line accepts 2.4. Pinning
 an old line for everyone is the mistake
-no version ceilings (`@okf-kernel design/runtime-dependencies`) already records as
+no version ceilings (`@okf design/runtime-dependencies`) already records as
 having broken things once.
 
-It would also be a fourth runtime dependency (`@okf-kernel design/runtime-dependencies`), which is
+It would also be a fourth runtime dependency (`@okf design/runtime-dependencies`), which is
 a design decision to be challenged rather than a convenience — and it would buy
 little. What the CLI needed was a *registry*, not an option-parsing DSL; it
 already has `optparse` from the stdlib, plus a help, exit-code and

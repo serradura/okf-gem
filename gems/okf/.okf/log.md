@@ -14,7 +14,7 @@
   four gems and any future non-Ruby implementation speak, and the layout,
   governance and vision of the repository. A concept cannot link out of its own
   bundle — `Path.normalize_relative!` refuses every `..` — so the references
-  that used to cross now name the other bundle in prose, as `@okf format/…`.
+  that used to cross now name the other bundle in prose, as `@okf-eco format/…`.
   Every one was accounted for rather than dropped.
 
 * **`structure/` is the half a test holds to the tree.** `AGENTS.md` carried a
@@ -69,7 +69,7 @@
 ## 2026-08-13
 
 * **OKF v0.2 is the target**: the gem reads, validates, lints, serves and
-  teaches the published v0.2 (`@okf format/okf-0-2`) — one reading rule on
+  teaches the published v0.2 (`@okf-eco format/okf-0-2`) — one reading rule on
   [Concept](model/concept.md) carrying §13.1's two fallbacks inline (no version
   hierarchy), shape warnings for every §5/§10 family on the
   [validator](capabilities/validator.md) (machine-readable, `check:`/`source:`),
@@ -80,7 +80,7 @@
   [source text in search](capabilities/search.md) where the body used to hold
   it, and the trust line as the [graph page](capabilities/graph-server.md)'s
   third channel. This bundle migrated in the same change — `generated` replaces
-  `timestamp`, `sources` (`@okf format/citations`) replace the `# Citations`
+  `timestamp`, `sources` (`@okf-eco format/citations`) replace the `# Citations`
   sections — and the lessons live in the concepts each is about.
 
 
@@ -108,7 +108,7 @@
 
 ## 2026-07-24
 
-* **Change**: the repository became a **monorepo**, and this bundle acquired a subject it did not have before — the repository itself, alongside the gem it has always described. (Only that: [the index](index.md) and [overview](overview.md) still read as the gem's, correctly, because the gem is still all there is to document. The reframing comes when a sibling does.) The layout (`@okf decisions/monorepo-layout`) is the new concept: one directory per gem named for the gem it ships (`okf/` is the baseline all-in-one; `okf-mcp/`, `okf-tui/`, `okf-sqlite3/` land beside it), so a directory, its release-tag prefix, its CI job and its `require` path are one word rather than four mappings. Everything that is not a gem stays at the root — `plugin/` and `.claude-plugin/` because `marketplace.json` publishes `./plugin`, this bundle because it covers the project, and the `Dockerfile` because its build context *must* be the root: the gemspec derives `spec.files` from `git ls-files`, which needs the `.git` only the root has. Every `resource:` and citation here moved down a level with the code.
+* **Change**: the repository became a **monorepo**, and this bundle acquired a subject it did not have before — the repository itself, alongside the gem it has always described. (Only that: [the index](index.md) and [overview](overview.md) still read as the gem's, correctly, because the gem is still all there is to document. The reframing comes when a sibling does.) The layout (`@okf-eco decisions/monorepo-layout`) is the new concept: one directory per gem named for the gem it ships (`okf/` is the baseline all-in-one; `okf-mcp/`, `okf-tui/`, `okf-sqlite3/` land beside it), so a directory, its release-tag prefix, its CI job and its `require` path are one word rather than four mappings. Everything that is not a gem stays at the root — `plugin/` and `.claude-plugin/` because `marketplace.json` publishes `./plugin`, this bundle because it covers the project, and the `Dockerfile` because its build context *must* be the root: the gemspec derives `spec.files` from `git ls-files`, which needs the `.git` only the root has. Every `resource:` and citation here moved down a level with the code.
 * **Note**: moving a gem down one level is mechanical; what is not is that **four mechanisms around it resolved paths from the repository root, and three of them failed without saying so**. `spec.files` needed nothing — `git ls-files` with `chdir:` returns paths relative to where it runs, so the gemspec sees its own tree and its reject list *shrank* from fourteen prefixes to six, the eight removed having been rejecting paths that are no longer under the gem. `.gitignore` broke where it was anchored — sixteen of its nineteen entries carry a leading `/`, and all sixteen stopped matching at once, so the first test run would have staged a coverage report; the unanchored `*.gem` and `Gemfile.lock` kept working, which is what made the breakage partial and easy to miss. SimpleCov failed in the direction that looks like success: its root defaults to the working directory, so the plugin's curation hook — a repo-level file this suite tests — fell out of the report and line coverage read **98.63% against 98.47%**, the percentage rising while the thing measured got smaller. Only `.dockerignore` fails loudly, and it is the one carrying a real invariant: whatever it drops from under the gem must also be in the gemspec's reject list, because `git ls-files` reads the *index* and an excluded path is still listed in `spec.files` — so `gem build` fails on a file that is not in the context. The generalizable half: **a path resolved from an implicit root is a dependency on where you are standing**, and the ones that degrade quietly are worse than the ones that crash.
 * **Note**: the gem must distribute `LICENSE.txt` and `NOTICE`, and `git ls-files` from the gem directory cannot see the root's copies. **A symlink builds a gem that either refuses to install or installs broken, depending on whose RubyGems does it.** `gem build` does not resolve the link — it writes a symlink into the package tar, warns (`LICENSE.txt is a symlink, which is not supported on all platforms`) and succeeds. RubyGems **>= 3.2** then refuses to extract one pointing outside the gem (`Gem::Package::SymlinkError`); RubyGems **< 3.2** has no guard, and measured on Ruby 2.7 / RubyGems 3.1.6 — inside this gem's supported range — `gem install` exits **0** and lays down a dangling `LICENSE.txt`. The older half is the worse one, against the intuition that an old installer is merely stricter or looser: there the gem installs cleanly and simply carries no licence. They are duplicated real files now, with `okf/test/unit/packaging_test.rb` asserting both that neither is a symlink and that each is byte-identical to the root's — the assertion being what makes a duplicate safe rather than merely conventional. Found by building the thing and installing it instead of reasoning about it, which is the same lesson the recall probes taught from the other end.
 * **Sync**: caught the bundle up with **project-local registries** — the
@@ -569,10 +569,10 @@
   how an agent learns this surface, and an agent that treats an unknown verb as
   a doc bug will go looking for the bug. `rake plugin:sync` run, so the
   generated copy does not drift.
-* **Change**: the CLI became a **registry**, and with it an extension point — the new extension points (`@okf design/extension-points`) concept, with [cli](cli.md)'s dispatch section rewritten around it. `lib/okf/cli.rb` was 1,794 lines and a 15-arm `case`; the verbs now live one per file under `lib/okf/cli/`, each a `Command` subclass registering itself at load, with the shared surface (refs, flags, the JSON emitters, the printers) on a base class. Behaviour is unchanged and the suite says so: every existing test passed untouched. Any gem shipping `okf/plugin.rb` on its load path can now add a verb — `okf-tui` is the first, answering `okf tui` — with **no edit to this gem and no list of known addons**, which a test enforces by grepping `cli.rb` for their names. `Search.register` set the idiom and this copies it exactly: append-only, idempotent by id, duck type checked at registration, so an addon cannot displace a built-in.
+* **Change**: the CLI became a **registry**, and with it an extension point — the new extension points (`@okf-eco design/extension-points`) concept, with [cli](cli.md)'s dispatch section rewritten around it. `lib/okf/cli.rb` was 1,794 lines and a 15-arm `case`; the verbs now live one per file under `lib/okf/cli/`, each a `Command` subclass registering itself at load, with the shared surface (refs, flags, the JSON emitters, the printers) on a base class. Behaviour is unchanged and the suite says so: every existing test passed untouched. Any gem shipping `okf/plugin.rb` on its load path can now add a verb — `okf-tui` is the first, answering `okf tui` — with **no edit to this gem and no list of known addons**, which a test enforces by grepping `cli.rb` for their names. `Search.register` set the idiom and this copies it exactly: append-only, idempotent by id, duck type checked at registration, so an addon cannot displace a built-in.
 * **Note**: discovery is **lazy**, and the arithmetic is the one that made the scan the default engine. `Gem.find_latest_files` costs ~11ms on the 2.4 floor — small, and still not worth paying on a run that only wanted `okf lint`, so a built-in resolves and dispatches without scanning at all. Only an unknown verb and `okf help` pay. An unplanned consequence, worth keeping: an addon claiming a built-in's verb is not merely refused, it is never loaded, because running that verb never triggers the scan.
 * **Note**: discovery is a **code-execution** decision, so the trust boundary is
-  argued in extension-points (`@okf design/extension-points`) rather than assumed.
+  argued in extension-points (`@okf-eco design/extension-points`) rather than assumed.
   The usual principle — Ruby trusts `gem install`, not `require` — is not the
   whole truth: it holds for native extensions, which run `extconf.rb` at install,
   and **not** for pure-Ruby gems, which execute nothing until something requires
@@ -657,6 +657,6 @@
 
 ## 2026-07-11
 
-* **Creation**: seeded the bundle documenting okf-gem's capabilities at version 0.1.0 — the [overview](overview.md), the [CLI](cli.md), and the format (`@okf format/`), [model](model/), [capabilities](capabilities/), and [design](design/) areas.
-* **Update**: added Mermaid diagrams (tagged `diagram`) to five concepts — [overview](overview.md), the [core/shell split](design/core-shell-split.md), the [graph server](capabilities/graph-server.md), the [library API](capabilities/library-api.md), and cross-links (`@okf format/cross-links`).
+* **Creation**: seeded the bundle documenting okf-gem's capabilities at version 0.1.0 — the [overview](overview.md), the [CLI](cli.md), and the format (`@okf-eco format/`), [model](model/), [capabilities](capabilities/), and [design](design/) areas.
+* **Update**: added Mermaid diagrams (tagged `diagram`) to five concepts — [overview](overview.md), the [core/shell split](design/core-shell-split.md), the [graph server](capabilities/graph-server.md), the [library API](capabilities/library-api.md), and cross-links (`@okf-eco format/cross-links`).
 * **Sync**: caught the bundle up with the CLI — documented the new `types` command, the cross-view `--type`/`--area`/`--tag` filters, and `tags --by type|area` in [read views](capabilities/read-views.md), the [CLI](cli.md) front end, the [graph](model/graph.md) indexes, and the [capabilities](capabilities/) index listing.

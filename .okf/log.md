@@ -2,6 +2,13 @@
 
 ## 2026-08-19
 
+* **Naming**: **`@okf` is the gem; this bundle is `@okf-eco`.** The kernel had
+  been registered as `@okf-kernel` only because the root bundle was squatting on
+  the obvious name from when it *was* the kernel's. Someone typing `@okf` is
+  almost always asking about the gem's code, so the gem takes it. The ecosystem
+  is the thing you arrive at rather than the thing you look up, and it can
+  afford the longer name.
+
 * **Migration**: **every bundle in the tree is now OKF v0.2, declared and
   clean.** okf-tui's was the last on v0.1 and the only one carrying the retired
   spellings: 30 concepts moved `timestamp:` under `generated: { by, at }`, and 22
@@ -38,7 +45,7 @@
 
   The cost was paid in edges. 208 of them crossed this bundle before the split;
   every reference that now leaves it was rewritten to name the other bundle in
-  prose (`@okf-kernel capabilities/linter`), because a concept structurally
+  prose (`@okf capabilities/linter`), because a concept structurally
   cannot link out of its own bundle — `Path.normalize_relative!` refuses every
   `..` segment. None was dropped silently, and the log went with the gem whose
   history it records.
@@ -64,7 +71,7 @@
   kernel is by *kind*: what the code **is** went to `gems/okf/.okf/structure/`,
   beside the code where a test can hold it to the tree, and what it **means**
   stayed here beside the format and the layout decisions. The one catalogue that
-  did exist — the group table in cli (`@okf-kernel cli`) — was code-derived and unchecked,
+  did exist — the group table in cli (`@okf cli`) — was code-derived and unchecked,
   and the same test now pins it against `OKF::CLI.builtins`, in place.
 
   Each gem's `AGENTS.md` keeps the contract, the commands and the obligations a
@@ -84,8 +91,8 @@
   obligation that a new verb ships with its README line is the gem's now: the
   root lists doors, and a new gem is what earns a row.
 * **Addition**: **this repository validates and lints its own bundles in CI, and
-  publishes the recipe it runs** — validator (`@okf-kernel capabilities/validator`),
-  linter (`@okf-kernel capabilities/linter`). `rake okf` existed for as long as the
+  publishes the recipe it runs** — validator (`@okf capabilities/validator`),
+  linter (`@okf capabilities/linter`). `rake okf` existed for as long as the
   bundles did and nothing ran it. The workflow and the copy-paste template in
   `resources/ci/github/` are the same file but for the `BUNDLES` line, so a break
   in the published recipe is a red check here rather than a report from whoever
@@ -105,7 +112,7 @@
   gems collapsed to one `gems/**/*` — the entry that was only ever as true as
   the last person to remember it.
 * **Addition**: **the repository commits its own registry** —
-  bundles manager (`@okf-kernel capabilities/bundles-manager`). `.okf-registry.json` at
+  bundles manager (`@okf capabilities/bundles-manager`). `.okf-registry.json` at
   the root makes all three bundles addressable as `@okf`, `@okf-tui` and
   `@okf-pro` from anywhere in the tree, with no global setup: `rake okf` reads
   it instead of a constant, and a bare `okf server` mounts each at `/b/<slug>/`.
@@ -163,7 +170,7 @@
   in, because a binary that only aliases a verb is one more name to install and
   document, and two front ends are two argument grammars that drift while each
   passes its own tests. It is the second, too, to hold the line that a
-  shell invents no analysis (`@okf-kernel capabilities/read-views`) — every number on
+  shell invents no analysis (`@okf capabilities/read-views`) — every number on
   screen is a pure call on the same core the CLI and the graph server use, with
   agreement tests comparing two of them against `okf dirs --json` and `okf graph
   --traffic` row for row. It floors okf at `>= 2.0, < 3`: the ceiling is earned
@@ -183,7 +190,7 @@
   ships predates it (1.17.3 on 2.4/2.5, 2.1.4 on 2.7), so a sibling's Rakefile
   raises `NoMethodError` at load there and takes `rake test` down before a test
   runs. CI cannot see it — `ruby/setup-ruby` installs a newer Bundler than the
-  Ruby ships — and the 2.4 floor run (`@okf-kernel design/ruby-floor`) is what caught it,
+  Ruby ships — and the 2.4 floor run (`@okf design/ruby-floor`) is what caught it,
   which is the argument for that container in one sentence. The guard refuses to
   release rather than releasing unprefixed: an old Ruby is one to test on, never
   one to release from, and a bare `vX.Y.Z` fires the image build for a different

@@ -20,7 +20,7 @@ sources:
 
 The gem carries the **OKF agent skill** — a `SKILL.md` with reference and
 template files that teach a coding agent to *produce*, *migrate*, *maintain*,
-*refine*, *consume*, *search*, *curate*, and *doctor* OKF (`@okf format/okf-format`) bundles
+*refine*, *consume*, *search*, *curate*, and *doctor* OKF (`@okf-eco format/okf-format`) bundles
 and to drive the [CLI](../cli.md). The authoring judgment the executable can't encode lives here;
 the executable handles the mechanics. Each verb routes to its own playbook
 (`playbooks/`); the search playbook is progressive disclosure end to end —

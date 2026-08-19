@@ -4,8 +4,8 @@ The boundaries that keep this gem light and honest. Each is enforced by
 something — a test, a build task, a CI job — rather than intended.
 
 The two that are *not* this gem's live in the repository bundle: the extension
-seam every sibling arrives through (`@okf design/extension-points`) and the
-monorepo layout (`@okf decisions/monorepo-layout`).
+seam every sibling arrives through (`@okf-eco design/extension-points`) and the
+monorepo layout (`@okf-eco decisions/monorepo-layout`).
 
 * [The core/shell split](core-shell-split.md) - Pure logic and I/O are separated, and a test fails the build when they are not.
 * [Integration tests are the critical layer](integration-first.md) - The CLI is the product, so the suite that drives it end to end outranks the unit tests.
