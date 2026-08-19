@@ -452,27 +452,34 @@ assertion mistakes the suite's first run shook out, and the cache in full.
 
 ## The READMEs
 
-There are two, and they are for different readers.
+**A boundary gets its own README when a stranger can land on it directly** —
+from a search result, a package page, a pasted link. That is true of each of the
+four gems and of `resources/ci/github/`, which is the one place someone copies a
+file into a pipeline they will run unattended. `gems/` itself needs none: nobody
+arrives at a container, they arrive at what it holds.
 
-**The root `README.md` is the project's front door** — the ecosystem, not the
-gem. It is what GitHub renders and what a link from anywhere lands on, so it
-carries the problem statement, the hero images, the comparison table, and the
-argument for why any of this exists. It answers "what is OKF and should I care",
-then points at the gem.
+**The root `README.md` is the menu** — the ecosystem, not any one gem. It is
+what GitHub renders and what a link from anywhere lands on, so it carries the
+problem statement, the hero and overview diagrams, the comparison table, and one
+row per door. It answers "what is OKF and should I care", then names the
+boundaries. It does *not* explain how any of them works: a menu that is also a
+manual for one item on it is a front door a visitor has to read past.
 
-**`gems/okf/README.md` is the gem's** — it ships inside the `.gem`, and its
-reader has already decided. Install, the shortest path to a working bundle, the command
-block, one worked example per surface. No hero images: it is read on
-rubygems.org and in a terminal.
+**Each gem's README is that gem's** — `gems/okf/README.md` ships inside the
+`.gem`, and its reader has already decided. Install, the shortest path to a
+working bundle, the command block, one worked example per surface. No hero
+images: it is read on rubygems.org and in a terminal, where a relative image path
+resolves to nothing.
 
-Neither is a symlink or a generated copy of the other; they say different things.
+No README here is a symlink or a generated copy of another; they say different
+things.
 
 What follows is written for the root README, which is where the diagrams, the
-comparison table and the `.okf/` links live. The gem's carries none of those —
+comparison table and the `.okf/` links live. A gem's carries none of those —
 `.okf/` does not ship, and a package page is no place for a hero image. What
-*does* bind both, without exception, is the four rules below: every command runs
-as written, every number is measured now, no deprecated spelling, and a new verb
-ships with its line in each README that lists verbs.
+*does* bind all of them, without exception, is the four rules below: every
+command runs as written, every number is measured now, no deprecated spelling,
+and a new verb ships with its line in each README that lists verbs.
 
 **The site owns the manual; a README is a front door.** Every verb is
 documented at [okfgem.com/docs](https://okfgem.com/docs/), so a README spends
@@ -502,7 +509,9 @@ Four rules that outrank taste, because each has already gone wrong here:
   for the flag you just retired. `--area` outlived its deprecation there by a
   whole feature branch.
 - **A new verb ships with its README line**, the same obligation as its test
-  file. A verb absent from the command block does not exist to a reader.
+  file. A verb absent from the command block does not exist to a reader. That
+  obligation is the *gem's* README's now, not the root's — the root lists doors,
+  never verbs. A new gem is what earns a root row.
 
 **Benchmarks name the shape of what was measured, never where it lives** — "a
 400-concept bundle", not a path. Scratch material under the repo root's `tmp/`
@@ -514,10 +523,12 @@ either README, the CHANGELOG, `.okf/`, or the skill.
 say everything the diagram says, in prose, because the README is read in
 terminals, by screen readers, and by agents that never fetch the image.
 
-**Link depth downward, breadth outward.** Each capability row links to the `.okf/`
-concept documenting it — this gem's own knowledge is an OKF bundle, and pointing
-at it is the argument that the format works. The manual, the guides and the demo
-are absolute links to the site.
+**Link depth downward, breadth outward.** The root's rows link to the boundary
+they name, and its `.okf/` pointers go to the concept documenting a claim — this
+project's own knowledge is an OKF bundle, and pointing at it is the argument that
+the format works. The manual, the guides and the demo are absolute links to the
+site. A gem's README cannot link into `.okf/` at all: those paths do not ship, so
+it links to the site or to nothing.
 
 The prose is the maintainer's, in the README's established voice. Match it rather
 than flattening it into neutral documentation register; the same attribution rule

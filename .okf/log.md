@@ -1,6 +1,26 @@
 # Update Log
 
 ## 2026-08-19
+* **Update**: **the root README is the menu, not the manual** — every top-level
+  name is a boundary and gets one row, and the eight sections that explained how
+  the `okf` gem works moved into
+  [gems/okf/README.md](https://github.com/serradura/okf-gem/blob/main/gems/okf/README.md),
+  which is where its reader already is. A visitor deciding *whether* to care was
+  reading eight sections about one of four gems. Persuasion stays at the root —
+  the problem, the comparison table, the two diagrams; instruction leaves. The
+  obligation that a new verb ships with its README line is the gem's now: the
+  root lists doors, and a new gem is what earns a row.
+* **Addition**: **this repository validates and lints its own bundles in CI, and
+  publishes the recipe it runs** — [validator](capabilities/validator.md),
+  [linter](capabilities/linter.md). `rake okf` existed for as long as the
+  bundles did and nothing ran it. The workflow and the copy-paste template in
+  `resources/ci/github/` are the same file but for the `BUNDLES` line, so a break
+  in the published recipe is a red check here rather than a report from whoever
+  pasted it. Both run the published image through a plain `docker run` against
+  the mounted checkout — never `container:`, which runs every step inside an
+  image that ships no node and so fails at `actions/checkout`. The half that had
+  never been tested now is: the image's non-root `okf` user reads a checkout
+  owned by another uid, and a writing verb in the same place dies with EACCES.
 * **Update**: **every gem lives under `gems/`** —
   [monorepo layout](design/monorepo-layout.md). `gems/okf` builds `okf`,
   `gems/okf-mcp` builds `okf-mcp`: the container names where gems live and never
