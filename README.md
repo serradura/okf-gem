@@ -88,19 +88,20 @@ id. This repo documents _itself_ in OKF, so the tree below is real:
 ```
 
 The only hard requirement is YAML frontmatter with a non-empty `type`; everything
-else is optional and tolerated when missing. A concept (here the real
-`capabilities/graph-server.md`, body trimmed) reads:
+else is optional and tolerated when missing. A concept reads as below — this is
+the real `capabilities/graph-server.md` from the baseline gem's own bundle,
+`gems/okf/.okf/`, with its body trimmed:
 
 ```markdown
 ---
 type: Capability
 title: Interactive graph server (server)
-description: A self-contained HTML knowledge graph served over HTTP, and a mountable Rack app.
+description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
 resource: gems/okf/lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
 generated:
   by: human:maintainer
-  at: 2026-07-11T12:00:00Z
+  at: 2026-08-13T12:00:00Z
 ---
 
 # Overview
@@ -108,8 +109,10 @@ generated:
 `okf server` boots an interactive view of the [graph](../model/graph.md) …
 ```
 
-That bundle is this gem's own documentation. Clone the repo and run
-`okf server .okf` to browse it as an interactive graph.
+The `.okf/` above is the **ecosystem's** map — a concept per gem, per plugin
+item, per skill — and each gem carries its own bundle beside its code. Clone the
+repo and run `okf server .okf` to browse the map as an interactive graph, or
+`okf server gems/okf/.okf` for the baseline gem's.
 
 ### Trust, provenance, and lifecycle — OKF v0.2
 
