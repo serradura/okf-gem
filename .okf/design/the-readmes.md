@@ -36,6 +36,26 @@ No README here is a symlink or a generated copy of another; they say different
 things. Which reader each file is for at all is
 [where knowledge lives](where-knowledge-lives.md).
 
+# The first screen has one job
+
+**A reader arrives with a loss, not with a category.** Their agent works the
+codebase out every session and forgets it every session, so the top of the page
+names that and shows it fixed: the loss, then what the thing is, then a command
+they can run against this repository before installing anything, then the
+comparison that places it against the homes knowledge already has.
+
+**Feature inventory is not an opening.** The three pieces, the sibling verbs and
+the packaging claim are all true and all good, and all of them answer a question
+the reader has not asked by line 30. They live below the fold under **The whole
+ecosystem**. The same goes for vocabulary: *bundle*, *concept* and *progressive
+disclosure* survive, but the first use of *bundle* sits next to a command that
+shows one.
+
+The check, asked of someone who has never heard of OKF after reading down to the
+end of the sixty-second block: **what would you use this for?** An answer that
+describes a use means the order is right. An answer that describes what the
+software *is* means it is not, however accurate the description.
+
 # The manual is elsewhere
 
 **The site owns the manual; a README is a front door.** Every verb is
@@ -45,9 +65,13 @@ shortest path to a working bundle — and links out for the rest. When a passage
 starts enumerating flags, spec clauses, API surface or category lists, it has
 become reference material: move it to the site and leave a sentence and a link.
 
-What earns its place in the root's: the problem in the opening paragraph, the
-three pieces, the two diagrams, the comparison table, the four-step start, what
-a bundle actually looks like, and one worked example per surface. What does not:
+What earns its place in the root's, in this order: the loss and the answer to
+it, the sixty-second block, why it does not rot, the comparison table, what a
+bundle actually looks like, the ecosystem — three pieces and three sibling verbs
+— the two diagrams, one row per door, and the install line for the two channels
+that have no README of their own, the plugin marketplace and `npx skills`. The
+four-step start and the worked examples per surface moved to
+`gems/okf/README.md`, where the reader has already decided. What does not:
 clause-by-clause §9, the six lint categories enumerated, exhaustive library
 listings, a Ruby version matrix, or an essay per flag. The version this replaced
 carried all of those; they are all still true and all still one link away.
@@ -69,8 +93,14 @@ Each has already gone wrong in this repository.
   whole feature branch.
 - **A new verb ships with its README line**, the same obligation as its test
   file. A verb absent from the command block does not exist to a reader. That
-  obligation is the *gem's* README's, not the root's — the root lists doors,
-  never verbs. A new gem is what earns a root row.
+  obligation is the *gem's* README's, not the root's — with one exception:
+  **a sibling's door is named by the verb it answers to**. `okf mcp`, `okf tui`,
+  `okf pro` — one command growing verbs *is* the interface claim, and four gems
+  listed without their verbs read as four tools. That belongs under *The whole
+  ecosystem*, never in the lead, for the reason above. What never reaches the
+  root at all is a gem's *own* verb list: its subcommands, its flags, its
+  options. A new gem earns a root row; a new verb inside one is that gem's
+  README's problem.
 
 Nothing runs any of these, which is why they are written down as rules rather
 than trusted as taste — see [a rule nothing runs](nothing-runs-it.md).

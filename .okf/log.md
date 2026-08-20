@@ -2,6 +2,47 @@
 
 ## 2026-08-20
 
+* **The root README leads with the loss, and the ecosystem gets a heading of
+  its own.** Two faults, one pass, because fixing either alone made the other
+  worse. The page opened on what the software *contains* — the baseline gem's
+  three pieces — which answers a question a stranger has not asked yet; and the
+  three siblings appeared nowhere until a door table halfway down and an
+  extension-seam paragraph near the end, which reads as one gem with
+  hangers-on. Putting four gems at the top would only have made the inventory
+  longer.
+
+  The first screen now opens on the thing a reader recognises: an agent works
+  the codebase out every session and forgets it every session. Then what it is
+  (Markdown in the repo, written by the agent), then no lock-in, then **See it
+  in sixty seconds** — `gem install okf`, clone, `okf server .okf` against this
+  repository's own bundle, which is also the first place the word *bundle*
+  appears — then **Why it doesn't rot**, where the CI exit codes and
+  progressive disclosure finally argue for something, and then the comparison
+  table, moved up about sixty lines.
+
+  Nothing was cut. The feature material collects under **The whole ecosystem**
+  below the fold: the three pieces, the three siblings named by the verb each
+  answers to (`okf mcp`, `okf tui`, `okf pro`), `gem install okf-pro`, and
+  *packaging multiplies; the interface does not*. The overview diagram still
+  shows the kernel and three surfaces, so a line beneath it says what the
+  picture does not yet cover rather than letting it stand as the whole
+  ecosystem.
+
+  What was deleted: the `Why OKF` heading — a section that announces itself as
+  the *why* is a sign the why was missing from the opening — and *"this gem is
+  the Ruby-native way to work with it"*, the sentence that produces the "a Ruby
+  library" reading this pass exists to fix. The `ruby >= 2.4` badge left the top
+  row for the same reason and stays where it is a constraint rather than a
+  category. The hero's alt text leads with the job, since it is the first text a
+  screen reader and a search engine both get.
+
+  [The READMEs](/design/the-readmes.md) carries the doctrine, the rule this
+  broke — *the root lists doors, never verbs* — with its exception and limit,
+  and the test that settles any future argument about the order: give the first
+  screen to someone who has never heard of OKF and ask what they would use it
+  for. An answer that describes a use means it worked; an answer that describes
+  what the software is means it did not.
+
 * **`@slug` is prose, not a link target — said once, where the edge rule
   lives.** Four concepts across the three sibling bundles wrote `[okf](@okf)`,
   and it resolves to nothing: `Links.resolve` gates on `.md`, returns `nil`, and
