@@ -5,7 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.1] - 2026-08-20
+
+### Fixed
+
+- **The package metadata follows the `gems/` move and the repository rename.**
+  Two URLs on the package page were about to be wrong at once. `changelog_uri`
+  named `blob/main/okf/CHANGELOG.md`, a path that stopped existing when the
+  four gems moved under `gems/`; `homepage` named `serradura/okf-gem`, and the
+  repository is now **`serradura/okf`** — the name the command has had all
+  along. rubygems.org serves whatever the last release published, so neither
+  corrects itself: only a release republishes metadata, and this is that
+  release. Both land in one round rather than two, which is the whole reason
+  the rename waited for the paths to stop moving.
+
+  `homepage_uri`, `source_code_uri` and `changelog_uri` are all derived from
+  `homepage`, so one line moves four pieces of this gem's metadata. GitHub
+  redirects the old URLs permanently, so anything already published keeps
+  resolving.
 
 ### Added
 
@@ -1564,6 +1581,8 @@ Initial release.
 
 - Runs on Ruby >= 2.4 with two runtime dependencies: rack and webrick.
 
+[2.1.1]: https://github.com/serradura/okf/compare/v2.1.0...v2.1.1
+[2.1.0]: https://github.com/serradura/okf/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/serradura/okf/compare/v1.13.0...v2.0.0
 [1.13.0]: https://github.com/serradura/okf/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/serradura/okf/compare/v1.11.0...v1.12.0
