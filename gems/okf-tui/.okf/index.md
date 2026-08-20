@@ -5,7 +5,7 @@ okf_version: "0.2"
 # okf-tui knowledge bundle
 
 The knowledge behind **okf-tui** — the full-screen terminal UI over
-[okf](@okf) bundles. It is written to be read *before* opening `lib/`, so an
+okf (`@okf`) bundles. It is written to be read *before* opening `lib/`, so an
 agent about to add a view, a key or a panel does not re-derive the layering and
 does not rebuild something the kernel or this program already answers.
 

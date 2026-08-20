@@ -15,9 +15,9 @@ sources:
 
 # Overview
 
-`required_ruby_version = ">= 2.4.0"`, taken from [okf](@okf), which takes it from
-rack. A UI over a library that runs on the Ruby an OS already ships would be a
-strange thing to require a newer Ruby for.
+`required_ruby_version = ">= 2.4.0"`, taken from okf (`@okf design/ruby-floor`),
+which takes it from rack. A UI over a library that runs on the Ruby an OS
+already ships would be a strange thing to require a newer Ruby for.
 
 The cost lands in two places that are not obvious until you hit them.
 

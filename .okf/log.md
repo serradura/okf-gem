@@ -1,5 +1,19 @@
 # Update Log
 
+## 2026-08-20
+
+* **`@slug` is prose, not a link target — said once, where the edge rule
+  lives.** Four concepts across the three sibling bundles wrote `[okf](@okf)`,
+  and it resolves to nothing: `Links.resolve` gates on `.md`, returns `nil`, and
+  the validator never sees the link — no edge, no warning, a 404 on GitHub. The
+  near-miss spelling `[cli](@okf/cli.md)` is worse in the other direction: it
+  resolves *inside* the linking bundle, so §6.1 tolerates a phantom concept in
+  the wrong graph. [Cross-links](/format/cross-links.md) now carries both
+  failures and the convention that replaces them — the address in backticks,
+  `@okf capabilities/linter` — and [a rule nothing
+  runs](/design/nothing-runs-it.md) lists it among the obligations no check
+  enforces, because nothing rejects a link the resolver silently drops.
+
 ## 2026-08-19
 
 * **Governance**: **an `AGENTS.md` is context, routing and reference — the

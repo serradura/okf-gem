@@ -45,7 +45,13 @@ They are real, and naming them is the point:
   evidence that a usually-red check teaches its readers to ignore it;
 * the Ruby floor Docker runs;
 * the PR title, label and body shape — no CI check reads a pull request;
-* a new verb's line in its gem's README.
+* a new verb's line in its gem's README;
+* **cross-bundle references stay prose.** `[okf](@okf)` is dropped before the
+  validator sees it — no edge, no warning, in any bundle — so a bundle full of
+  them validates and lints clean while its graph quietly has fewer edges than
+  its prose claims. The rule and the two failure modes are
+  [cross-links](/format/cross-links.md); reading the bundle is what enforces
+  them.
 
 A check that is usually red is worse than no check, because it trains its
 audience. Removing one is sometimes the honest move — but only alongside the

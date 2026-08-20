@@ -4,7 +4,7 @@ okf_version: "0.2"
 
 # okf-mcp knowledge bundle
 
-**okf-mcp** is the MCP shell over the [okf](@okf) kernel: any MCP-capable agent
+**okf-mcp** is the MCP shell over the okf kernel (`@okf`): any MCP-capable agent
 host can discover, orient in, search and read Open Knowledge Format bundles over
 stdio or Streamable HTTP. This bundle is the gem's structural documentation —
 what the code is, where each responsibility lives, and the rules a change has to

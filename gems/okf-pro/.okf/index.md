@@ -4,7 +4,7 @@ okf_version: "0.2"
 
 # okf-pro knowledge bundle
 
-The knowledge behind **okf-pro** — the gem that turns an [okf](@okf) bundle
+The knowledge behind **okf-pro** — the gem that turns an okf bundle (`@okf`)
 into a working memory an agent is held to. It is written to be read *before*
 opening `lib/`, so an agent about to add a check, a verb or a test does not
 re-derive the layering and does not rebuild something this gem already answers.
