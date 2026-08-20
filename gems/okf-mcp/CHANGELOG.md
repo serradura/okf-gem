@@ -5,7 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.1] - 2026-08-20
+
+### Fixed
+
+- **The package metadata follows the `gems/` move and the repository rename.**
+  Two URLs on the package page were about to be wrong at once. `changelog_uri`
+  named `blob/main/okf-mcp/CHANGELOG.md`, a path that stopped existing when the
+  four gems moved under `gems/`; `homepage` named `serradura/okf-gem`, and the
+  repository is now **`serradura/okf`** — the name the command has had all
+  along. rubygems.org serves whatever the last release published, so neither
+  corrects itself: only a release republishes metadata, and this is that
+  release. Both land in one round rather than two, which is the whole reason
+  the rename waited for the paths to stop moving.
+
+  `homepage_uri`, `source_code_uri` and `changelog_uri` are all derived from
+  `homepage`, so one line moves four pieces of this gem's metadata. GitHub
+  redirects the old URLs permanently, so anything already published keeps
+  resolving.
 
 ### Added
 
@@ -31,6 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they were cut, and this gem now does too — on a Bundler without the
   accessor, `release` aborts rather than pushing a bare `vX.Y.Z` that would
   trigger the okf image build.
+
+### Changed
+
+- **The okf floor moves to `>= 2.1.1, < 3`** — the kernel this shell develops
+  against released 2.1.1, and `test/unit/gemspec_test.rb` holds the floor to the
+  version the suite actually resolves against. It may lead the kernel; it may
+  never lag. The ceiling is unchanged.
 
 ## [1.2.0] - 2026-08-18
 
@@ -369,6 +393,7 @@ rather than pretending to be changes somebody could have seen.
 
 The name reservation on RubyGems: an empty gem, no functionality.
 
+[1.2.1]: https://github.com/serradura/okf/compare/okf-mcp/v1.2.0...okf-mcp/v1.2.1
 [1.2.0]: https://github.com/serradura/okf/compare/okf-mcp/v1.1.0...okf-mcp/v1.2.0
 [1.1.0]: https://github.com/serradura/okf/compare/okf-mcp/v1.0.0...okf-mcp/v1.1.0
 [1.0.0]: https://github.com/serradura/okf/releases/tag/okf-mcp/v1.0.0
