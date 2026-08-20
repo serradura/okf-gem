@@ -9,9 +9,9 @@ generated:
   at: 2026-08-13T12:00:00Z
 sources:
   - title: gems/okf/lib/okf/markdown/links.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/markdown/links.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/markdown/links.rb
   - title: SPEC.md §6
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill/reference/SPEC.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/skill/reference/SPEC.md
   - id: "1"
     title: "Probed 2026-08-20 against `gems/okf-mcp/.okf`: `Links.extract` keeps `@okf` as a raw target, and `Links.resolve(@okf, from: index.md, bundle: …)` → `nil`, because `resolve` gates on `.md`. A one-file probe bundle carrying all three spellings validated with two warnings — `cross-link target not found: /nope.md` and `cross-link target not found: @okf/cli.md`, both tolerated under §6.1 — and none at all for `@okf`."
     resource: "Probed 2026-08-20: `Links.resolve` returns nil for `@okf`, and a probe bundle carrying all three spellings warned on `/nope.md` and `@okf/cli.md` but never on `@okf`"

@@ -9,9 +9,9 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: gems/okf-pro
-    resource: https://github.com/serradura/okf-gem/tree/main/gems/okf-pro
+    resource: https://github.com/serradura/okf/tree/main/gems/okf-pro
   - title: gems/okf-pro/README.md
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-pro/README.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-pro/README.md
 ---
 
 # Overview

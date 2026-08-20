@@ -9,7 +9,7 @@ generated:
   at: 2026-07-19T03:00:00Z
 sources:
   - title: gems/okf/okf.gemspec
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/okf.gemspec
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/okf.gemspec
   - title: minifts
     resource: https://github.com/serradura/minifts
 ---

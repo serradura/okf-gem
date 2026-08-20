@@ -8,7 +8,7 @@ generated:
   at: 2026-07-18
 sources:
   - title: "`okf-tui.gemspec` — the two floors, with the comment recording the failed ceiling attempt."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/okf-tui.gemspec
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/okf-tui.gemspec
   - title: "Verified in `ruby:2.4` (Docker): resolved kramdown 2.4.0 + rouge 3.30.0, 34 runs / 6622 assertions green, and green across the whole matrix up to 4.0."
     resource: "Verified in `ruby:2.4` (Docker): resolved kramdown 2.4.0 + rouge 3.30.0, 34 runs / 6622 assertions green, and green across the whole matrix up to 4.0"
 ---

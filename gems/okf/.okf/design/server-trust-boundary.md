@@ -9,11 +9,11 @@ generated:
   at: 2026-08-13T12:00:00Z
 sources:
   - title: README.md — Server trust boundary
-    resource: https://github.com/serradura/okf-gem/blob/main/README.md
+    resource: https://github.com/serradura/okf/blob/main/README.md
   - title: gems/okf/lib/okf/render/graph/template.html.erb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/render/graph/template.html.erb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/render/graph/template.html.erb
   - title: gems/okf/lib/okf/safe_read.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/safe_read.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/safe_read.rb
 ---
 
 # Overview

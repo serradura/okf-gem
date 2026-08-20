@@ -136,7 +136,7 @@
 * **Update**: **the root README is the menu, not the manual** — every top-level
   name is a boundary and gets one row, and the eight sections that explained how
   the `okf` gem works moved into
-  [gems/okf/README.md](https://github.com/serradura/okf-gem/blob/main/gems/okf/README.md),
+  [gems/okf/README.md](https://github.com/serradura/okf/blob/main/gems/okf/README.md),
   which is where its reader already is. A visitor deciding *whether* to care was
   reading eight sections about one of four gems. Persuasion stays at the root —
   the problem, the comparison table, the two diagrams; instruction leaves. The
@@ -191,7 +191,7 @@
 
 ## 2026-08-15
 
-* **Addition**: **[okf-pro](https://github.com/serradura/okf-gem/tree/main/gems/okf-pro)
+* **Addition**: **[okf-pro](https://github.com/serradura/okf/tree/main/gems/okf-pro)
   joins the repository as its fourth gem**, cut at 1.0.0 — the
   [enforcement layer](gems/okf-pro.md), and the first surface here
   that writes rather than reads. `okf pro setup` generates an agent's whole
@@ -211,7 +211,7 @@
   dispatch, and it exited 1, which the hook protocol reads as *proceed*. Three
   such holes and one silently skipped lint check are recorded with their
   measurements in that gem's own `.okf/`.
-* **Addition**: **[okf-tui](https://github.com/serradura/okf-gem/tree/main/gems/okf-tui) joins the
+* **Addition**: **[okf-tui](https://github.com/serradura/okf/tree/main/gems/okf-tui) joins the
   repository as its third gem**, cut at 1.0.0 — the full-screen terminal UI over
   one bundle or many: six views, the registry and its groups as editable
   configuration, and search across every bundle in scope through one shared

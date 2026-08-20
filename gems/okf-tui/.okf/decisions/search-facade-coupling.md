@@ -12,7 +12,7 @@ sources:
     resource: "Verified 2026-07-19 in a clean `ruby:3.2-slim` container — no checkout, no bundler: `gem install okf` resolved 1.9.0, `Bundle::Search.respond_to?(:across)` → `true`, `engine_for([:fuzzy])` → `OKF::Bundle::Search::Index`. RubyGems lists okf 1.9.0 as the current release"
   - id: "2"
     title: "Verified 2026-07-19 against the okf checkout: `engine_for([:fuzzy])` → `index`, `engine_for([])` → `scan`; `DEFAULT_ENGINE = :scan` in `lib/okf/bundle/search.rb`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/search.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/bundle/search.rb
   - id: "3"
     title: "Measured 2026-08-13 against the registry's own five bundles (129 concepts): `across` per query 391.8 ms; with a held corpus 16.2 / 13.0 / 12.0 / 14.4 ms after the first. On the six test fixtures (36 concepts): 62–80 ms against 2.7–3.0 ms."
     resource: "Measured 2026-08-13 against the registry's own five bundles (129 concepts): `across` per query 391.8 ms; with a held corpus 16.2 / 13.0 / 12.0 / 14.4 ms after the first. On the six test fixtures (36 concepts): 62–80 ms against 2.7–3.0 ms"
@@ -20,7 +20,7 @@ sources:
     title: "Reproduced 2026-07-18: `ruby -Ilib` outside bundler loaded okf 1.8.0 from the mise gem path, `Bundle::Search.respond_to?(:across)` → `false`, search returned 0 hits for a term the checkout finds. Under `bundle exec` the same query returned 1 hit (\"orphan\") and 11 (\"registry\")."
     resource: "Reproduced 2026-07-18: `ruby -Ilib` outside bundler loaded okf 1.8.0 from the mise gem path, `Bundle::Search.respond_to?(:across)` → `false`, search returned 0 hits for a term the checkout finds. Under `bundle exec` the same query returned 1 hit (\"orphan\") and 11 (\"registry\")"
   - title: "`lib/okf/tui.rb` — `OKF::TUI.search_capable?`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui.rb
 ---
 
 # Overview

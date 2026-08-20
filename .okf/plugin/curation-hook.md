@@ -9,7 +9,7 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: plugin/hooks/scripts/curate.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/plugin/hooks/scripts/curate.rb
+    resource: https://github.com/serradura/okf/blob/main/plugin/hooks/scripts/curate.rb
 ---
 
 # What it is

@@ -34,7 +34,7 @@
   leaf, and cross-file citations now name a `rule:` marker instead of a section
   anchor, so a key survives the next move. The same tree is generated into
   `skills/` as well as into the plugin, which is what lets a generic installer
-  (`npx skills add serradura/okf-gem`) reach it with no gem and no Claude Code;
+  (`npx skills add serradura/okf`) reach it with no gem and no Claude Code;
   one task writes every copy, and `rake skill:verify` fails the build on drift.
 
 ## 2026-08-14
@@ -562,7 +562,7 @@
   look exempt. Predates the registry work — a straight carry-over from the
   monolith, found by reviewing the moved code rather than the diff.
 * **Update**: the **shipped skill** learned that the verb list is open. Its
-  [cli reference](https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill/reference/cli.md)
+  [cli reference](https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/skill/reference/cli.md)
   and `SKILL.md`'s verb row now say an installed extension adds verbs of its
   own, so a verb `okf help` shows and the reference does not document reads as
   **normal rather than a documentation error**. Worth doing because the skill is

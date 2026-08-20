@@ -8,9 +8,9 @@ generated:
   at: 2026-07-19
 sources:
   - title: "`lib/okf/tui/ui.rb` — the primitives."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/ui.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/ui.rb
   - title: "`test/integration/geometry_test.rb` — the two-colour matrix and `with_colour`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/geometry_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/integration/geometry_test.rb
 ---
 
 # Overview

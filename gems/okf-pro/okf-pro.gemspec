@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
     it — blocking checks fail closed, feedback checks fail loud, and no check ever
     fails silent.
   DESC
-  spec.homepage = "https://github.com/serradura/okf-gem"
+  spec.homepage = "https://github.com/serradura/okf"
   spec.license = "Apache-2.0"
 
   # The same floor as okf itself, which takes it from rack: the tool should run

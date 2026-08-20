@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
     facets to narrow by or follow into the file. It invents no analysis: the okf
     gem's pure core answers every question on screen.
   DESC
-  spec.homepage = "https://github.com/serradura/okf-gem"
+  spec.homepage = "https://github.com/serradura/okf"
   spec.license = "Apache-2.0"
 
   # The same floor as okf itself, which takes it from rack: the tool should run

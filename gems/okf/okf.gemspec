@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
     adds no service to your stack: rack, webrick and minifts are the only runtime
     dependencies, and it runs on every Ruby since 2.4.
   DESC
-  spec.homepage = "https://github.com/serradura/okf-gem"
+  spec.homepage = "https://github.com/serradura/okf"
   spec.license = "Apache-2.0"
 
   # The same floor as rack, the gem's core dependency: the server mode should run

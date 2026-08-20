@@ -99,7 +99,7 @@ task :okf do
 end
 
 desc "Serve this repo's own .okf bundle as a graph"
-task(:serve) { okf "server", "#{ROOT}/.okf", "--title", "okf-gem" }
+task(:serve) { okf "server", "#{ROOT}/.okf", "--title", "okf" }
 
 # A release is cut from the gem it releases, never from here: `rake release` is
 # Bundler's, it reads the gemspec in its working directory, and the version tag

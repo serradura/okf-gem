@@ -8,7 +8,7 @@ generated:
   at: 2026-07-18
 sources:
   - title: "`lib/okf/tui/app.rb` — `handle`, `fallback`, `KEY_VIEWS`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/app.rb
 ---
 
 # The order

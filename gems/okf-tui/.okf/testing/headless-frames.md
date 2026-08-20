@@ -8,7 +8,7 @@ generated:
   at: 2026-07-19
 sources:
   - title: "`test/test_helper.rb` — `FixedScreen`, `with_registry`, `app_for`, `frame_for`, `keystrokes`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/test_helper.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/test_helper.rb
 ---
 
 # The shape

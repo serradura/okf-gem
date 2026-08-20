@@ -8,13 +8,13 @@ generated:
   at: 2026-07-19T18:00:00Z
 sources:
   - title: "`lib/okf/plugin.rb` — the whole seam, including why the heavy require is in `#call`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/plugin.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/plugin.rb
   - title: "`okf-tui.gemspec` — the comment recording why there is no `spec.executables`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/okf-tui.gemspec
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/okf-tui.gemspec
   - title: "`test/integration/plugin_test.rb` — the dispatcher adding nothing but the streams, and the subprocess check that registering does not load tty-box."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/plugin_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/integration/plugin_test.rb
   - title: "`test/integration/terminal_test.rb` — okf's own executable on a real pty, the one test that walks process boot and plugin discovery rather than the in-process dispatcher."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/terminal_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/integration/terminal_test.rb
   - title: "Verified 2026-07-19: `okf --help` lists `tui` under `installed extensions:`; `okf validate` still runs without triggering discovery at all."
     resource: "Verified 2026-07-19: `okf --help` lists `tui` under `installed extensions:`; `okf validate` still runs without triggering discovery at all"
 ---
@@ -33,7 +33,7 @@ simply inert.
 Installing the gem is the whole installation. There is no config file, no
 `okf plugin add`, and nothing to edit in okf — which is the point of a convention
 over a list. See okf's
-[extension points](https://github.com/serradura/okf-gem/blob/main/.okf/design/extension-points.md).
+[extension points](https://github.com/serradura/okf/blob/main/.okf/design/extension-points.md).
 
 # One front end, because two would drift
 

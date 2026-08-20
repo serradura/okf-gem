@@ -38,7 +38,7 @@ REPO_ROOT = File.expand_path("../..", __dir__)
 # The skill's one editable copy, and every copy generated from it. Both
 # destinations are repo-root paths because neither ships in the gem:
 # `plugin/skills/okf` is the Claude Code plugin's, and `skills/` is where a
-# skill installer looks — `npx skills add serradura/okf-gem` finds okf there,
+# skill installer looks — `npx skills add serradura/okf` finds okf there,
 # and okf-principles beside it. A third destination is a line in this list.
 CANONICAL_SKILL = File.expand_path("lib/okf/skill", __dir__)
 GENERATED_SKILL_COPIES = [ "plugin/skills/okf", "skills/okf" ].freeze
@@ -56,7 +56,7 @@ def regenerate_shots
 
   port = ENV.fetch("SHOT_PORT", "8877")
   server = spawn(RbConfig.ruby, "-I#{__dir__}/lib", "#{__dir__}/exe/okf",
-    "server", "#{REPO_ROOT}/.okf", "-p", port, "--title", "okf-gem",
+    "server", "#{REPO_ROOT}/.okf", "-p", port, "--title", "okf",
     out: File::NULL, err: File::NULL)
   begin
     sleep 2 # WEBrick's boot; the script's own goto retries nothing

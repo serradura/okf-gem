@@ -28,7 +28,7 @@ RUN git config --global --add safe.directory /src \
 # ---- runtime stage: just the installed CLI ---------------------------------
 FROM ruby:4.0-alpine
 
-LABEL org.opencontainers.image.source="https://github.com/serradura/okf-gem" \
+LABEL org.opencontainers.image.source="https://github.com/serradura/okf" \
       org.opencontainers.image.description="OKF (Open Knowledge Format) toolkit: validate, lint, search, and serve bundles as a live graph." \
       org.opencontainers.image.licenses="Apache-2.0"
 

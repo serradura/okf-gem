@@ -9,11 +9,11 @@ generated:
   at: 2026-07-21T16:00:00Z
 sources:
   - title: gems/okf/lib/okf/server/hub.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/server/hub.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/server/hub.rb
   - title: gems/okf/lib/okf/cli/server.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/cli/server.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/cli/server.rb
   - title: gems/okf/lib/okf/registry.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/registry.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/registry.rb
 ---
 
 # Why it exists

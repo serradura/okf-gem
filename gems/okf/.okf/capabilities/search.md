@@ -9,11 +9,11 @@ generated:
   at: 2026-08-13T12:00:00Z
 sources:
   - title: gems/okf/lib/okf/bundle/search.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/search.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/bundle/search.rb
   - title: gems/okf/test/integration/cli/by_dir/cli_search_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/integration/cli/by_dir/cli_search_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/integration/cli/by_dir/cli_search_test.rb
   - title: gems/okf/test/unit/bundle/search/recall_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/bundle/search/recall_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/unit/bundle/search/recall_test.rb
 ---
 
 # Overview

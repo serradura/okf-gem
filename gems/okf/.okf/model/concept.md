@@ -9,7 +9,7 @@ generated:
   at: 2026-08-14T12:00:00Z
 sources:
   - title: gems/okf/lib/okf/concept.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/concept.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/concept.rb
 ---
 
 # Overview

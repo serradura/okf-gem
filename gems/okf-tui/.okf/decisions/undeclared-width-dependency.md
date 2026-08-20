@@ -11,9 +11,9 @@ sources:
     title: "Sabotage run 2026-07-19: `Ui.width` reduced to `plain.length`, both checks failed as predicted, then restored — 38 runs green."
     resource: "Sabotage run 2026-07-19: `Ui.width` reduced to `plain.length`, both checks failed as predicted, then restored — 38 runs green"
   - title: "`lib/okf/tui/ui.rb` — the guarded require and the fallback."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/ui.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/ui.rb
   - title: "`test/integration/geometry_test.rb` — `WIDE_STATES` and the display-columns check."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/geometry_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/integration/geometry_test.rb
 ---
 
 # Overview

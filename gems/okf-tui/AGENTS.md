@@ -2,7 +2,7 @@
 
 okf-tui — a full-screen terminal UI over OKF bundles: read one, switch between
 many, configure the registry, search across all of them at once. A sibling in the
-okf-gem monorepo, beside the baseline `gems/okf/` it depends on.
+okf monorepo, beside the baseline `gems/okf/` it depends on.
 
 **This file is context, routing and reference.** [`../../AGENTS.md`](../../AGENTS.md)
 binds every change in the repo; what is below is okf-tui's own, and every

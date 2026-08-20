@@ -9,9 +9,9 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: gems/okf-tui
-    resource: https://github.com/serradura/okf-gem/tree/main/gems/okf-tui
+    resource: https://github.com/serradura/okf/tree/main/gems/okf-tui
   - title: gems/okf-tui/README.md
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/README.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/README.md
 ---
 
 # What it is

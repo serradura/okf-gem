@@ -1458,7 +1458,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Claude Code plugin. The repository now doubles as a plugin marketplace:
-  `/plugin marketplace add serradura/okf-gem`, then `/plugin install okf@okfgem`.
+  `/plugin marketplace add serradura/okf`, then `/plugin install okf@okfgem`.
   The plugin carries the canonical skill (a generated copy; `rake plugin:sync`
   keeps it in lockstep with `lib/okf/skill`, and a test fails on drift), one
   front-door command (`/okf:gem`: no arguments orients on the CLI, the bundle,
@@ -1564,18 +1564,18 @@ Initial release.
 
 - Runs on Ruby >= 2.4 with two runtime dependencies: rack and webrick.
 
-[2.0.0]: https://github.com/serradura/okf-gem/compare/v1.13.0...v2.0.0
-[1.13.0]: https://github.com/serradura/okf-gem/compare/v1.12.0...v1.13.0
-[1.12.0]: https://github.com/serradura/okf-gem/compare/v1.11.0...v1.12.0
-[1.11.0]: https://github.com/serradura/okf-gem/compare/v1.10.0...v1.11.0
-[1.10.0]: https://github.com/serradura/okf-gem/compare/v1.9.0...v1.10.0
-[1.9.0]: https://github.com/serradura/okf-gem/compare/v1.8.0...v1.9.0
-[1.8.0]: https://github.com/serradura/okf-gem/compare/v1.7.0...v1.8.0
-[1.7.0]: https://github.com/serradura/okf-gem/compare/v1.6.0...v1.7.0
-[1.6.0]: https://github.com/serradura/okf-gem/compare/v1.5.0...v1.6.0
-[1.5.0]: https://github.com/serradura/okf-gem/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/serradura/okf-gem/compare/v1.3.0...v1.4.0
-[1.3.0]: https://github.com/serradura/okf-gem/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/serradura/okf-gem/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/serradura/okf-gem/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/serradura/okf-gem/releases/tag/v1.0.0
+[2.0.0]: https://github.com/serradura/okf/compare/v1.13.0...v2.0.0
+[1.13.0]: https://github.com/serradura/okf/compare/v1.12.0...v1.13.0
+[1.12.0]: https://github.com/serradura/okf/compare/v1.11.0...v1.12.0
+[1.11.0]: https://github.com/serradura/okf/compare/v1.10.0...v1.11.0
+[1.10.0]: https://github.com/serradura/okf/compare/v1.9.0...v1.10.0
+[1.9.0]: https://github.com/serradura/okf/compare/v1.8.0...v1.9.0
+[1.8.0]: https://github.com/serradura/okf/compare/v1.7.0...v1.8.0
+[1.7.0]: https://github.com/serradura/okf/compare/v1.6.0...v1.7.0
+[1.6.0]: https://github.com/serradura/okf/compare/v1.5.0...v1.6.0
+[1.5.0]: https://github.com/serradura/okf/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/serradura/okf/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/serradura/okf/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/serradura/okf/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/serradura/okf/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/serradura/okf/releases/tag/v1.0.0

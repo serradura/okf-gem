@@ -1,6 +1,6 @@
 # okf-tui
 
-A full-screen terminal UI for [Open Knowledge Format](https://github.com/serradura/okf-gem)
+A full-screen terminal UI for [Open Knowledge Format](https://github.com/serradura/okf)
 bundles: read one, switch between many, configure the registry, and search
 across all of them at once. Built on the [TTY toolkit](https://ttytoolkit.org/components/).
 
@@ -21,7 +21,7 @@ This gem ships **no executable of its own** — deliberately. A second binary th
 only aliased `okf tui` would be one more name to install, document and keep
 working, and two front ends is two argument grammars waiting to drift. `okf`
 finds this gem because it ships `okf/plugin.rb`, the convention any gem can use
-to add a verb — see [extension points](https://github.com/serradura/okf-gem/blob/main/.okf/design/extension-points.md).
+to add a verb — see [extension points](https://github.com/serradura/okf/blob/main/.okf/design/extension-points.md).
 
 The argument shape mirrors `okf server` exactly, because it is the same grammar:
 `@slug` names a registered bundle, bare `@` the registry default, `@group` fans out

@@ -129,7 +129,7 @@ module OKF
       # Where a friction report goes. It is about okf-pro, not about the
       # adopter's knowledge base, so it is this repository regardless of whose
       # tree the bundle lives in. Nothing is ever filed automatically.
-      ISSUE_REPO = "serradura/okf-gem"
+      ISSUE_REPO = "serradura/okf"
 
       HELP = %w[--help -h help].freeze
 

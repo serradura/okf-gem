@@ -9,7 +9,7 @@ generated:
   at: 2026-07-18T19:00:00Z
 sources:
   - title: gems/okf/test/unit/boundary_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/boundary_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/unit/boundary_test.rb
 ---
 
 # Overview

@@ -8,9 +8,9 @@ generated:
   at: 2026-07-19
 sources:
   - title: "The repository's `.github/workflows/main.yml`, `okf-tui` job."
-    resource: https://github.com/serradura/okf-gem/blob/main/.github/workflows/main.yml
+    resource: https://github.com/serradura/okf/blob/main/.github/workflows/main.yml
   - title: "`AGENTS.md` — the scripted `Gemfile.ci-check` run against the published okf."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/AGENTS.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/AGENTS.md
 ---
 
 # The matrix

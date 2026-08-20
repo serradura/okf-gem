@@ -9,7 +9,7 @@ generated:
   at: 2026-08-13T12:00:00Z
 sources:
   - title: SPEC.md
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill/reference/SPEC.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/skill/reference/SPEC.md
 ---
 
 # Overview

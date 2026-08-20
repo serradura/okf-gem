@@ -8,9 +8,9 @@ generated:
   at: 2026-07-19
 sources:
   - title: "`lib/okf/tui.rb` — the module comment stating the split."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui.rb
   - title: "`lib/okf/tui/model.rb`, `lib/okf/tui/workspace.rb` — every analysis is a memoized call into okf."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/model.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/model.rb
 ---
 
 # Overview

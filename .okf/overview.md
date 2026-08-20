@@ -8,9 +8,9 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: README.md
-    resource: https://github.com/serradura/okf-gem/blob/main/README.md
+    resource: https://github.com/serradura/okf/blob/main/README.md
   - title: AGENTS.md
-    resource: https://github.com/serradura/okf-gem/blob/main/AGENTS.md
+    resource: https://github.com/serradura/okf/blob/main/AGENTS.md
 ---
 
 # The idea

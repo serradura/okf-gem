@@ -1,8 +1,9 @@
 # AGENTS.md
 
-okf-gem is a monorepo shipping four Ruby gems around one format: `okf`, the
-baseline that reads, validates, lints, searches and serves Open Knowledge Format
-(OKF) v0.2 bundles, and three surfaces over it — an MCP shell, a terminal UI and
+This repository is a monorepo shipping four Ruby gems around one format: `okf`,
+the
+baseline that reads, validates, lints, searches and serves Open Knowledge
+Format (OKF) v0.2 bundles, and three surfaces over it — an MCP shell, a terminal UI and
 an enforcement layer.
 
 **This file is context, routing and reference.** It states what binds every

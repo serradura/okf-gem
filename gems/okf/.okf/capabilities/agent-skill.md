@@ -9,11 +9,11 @@ generated:
   at: 2026-08-17T12:00:00Z
 sources:
   - title: gems/okf/lib/okf/skill.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/skill.rb
   - title: gems/okf/lib/okf/skill/SKILL.md
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill/SKILL.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/skill/SKILL.md
   - title: gems/okf/test/plugin/sync_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/plugin/sync_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/plugin/sync_test.rb
 ---
 
 # Overview
@@ -97,7 +97,7 @@ back as context. Nothing under `plugin/` ships in the gem.
 
 The third channel is the generic one. A skill installer walks a repository's
 `skills/` directory, so `skills/okf` is the same generated copy under the name
-every such tool already looks for — `npx skills add serradura/okf-gem` installs
+every such tool already looks for — `npx skills add serradura/okf` installs
 it into any of the agents that tool supports, no gem and no Claude Code
 required. It costs one line in `GENERATED_SKILL_COPIES` rather than a second
 task, which is the point: **one canonical tree with N destinations is one

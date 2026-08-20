@@ -8,7 +8,7 @@ generated:
   at: 2026-07-18
 sources:
   - title: "`lib/okf/tui/app.rb` — `PARSE_WIDTH` and the render."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/app.rb
   - title: "Reproduced by sweeping every concept × width with colour forced on: 50/192 raised `IndexError`; 0/192 with the fix."
     resource: "Reproduced by sweeping every concept × width with colour forced on: 50/192 raised `IndexError`; 0/192 with the fix"
 ---

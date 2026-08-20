@@ -2,7 +2,7 @@
 
 okf-pro — the enforcement layer. It turns an OKF bundle into a working memory an
 agent is held to: `okf pro setup` writes the bundle and the governance around it,
-`okf pro hook` runs one gate against one hook event. A sibling in the okf-gem
+`okf pro hook` runs one gate against one hook event. A sibling in the okf
 monorepo, beside the baseline `gems/okf/` it depends on.
 
 **This file is context, routing and reference.** [`../../AGENTS.md`](../../AGENTS.md)

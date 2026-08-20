@@ -9,9 +9,9 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: resources/ci/github/okf.yml
-    resource: https://github.com/serradura/okf-gem/blob/main/resources/ci/github/okf.yml
+    resource: https://github.com/serradura/okf/blob/main/resources/ci/github/okf.yml
   - title: resources/ci/github/README.md
-    resource: https://github.com/serradura/okf-gem/blob/main/resources/ci/github/README.md
+    resource: https://github.com/serradura/okf/blob/main/resources/ci/github/README.md
 ---
 
 # What it is

@@ -8,7 +8,7 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: The merged pull requests
-    resource: https://github.com/serradura/okf-gem/pulls?q=is%3Apr+is%3Aclosed
+    resource: https://github.com/serradura/okf/pulls?q=is%3Apr+is%3Aclosed
 ---
 
 # The skeleton

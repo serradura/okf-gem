@@ -8,7 +8,7 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: The gems' maintainer guides
-    resource: https://github.com/serradura/okf-gem/tree/main/gems
+    resource: https://github.com/serradura/okf/tree/main/gems
 ---
 
 # The four

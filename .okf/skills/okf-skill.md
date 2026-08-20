@@ -9,9 +9,9 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: skills/okf
-    resource: https://github.com/serradura/okf-gem/tree/main/skills/okf
+    resource: https://github.com/serradura/okf/tree/main/skills/okf
   - title: gems/okf/lib/okf/skill
-    resource: https://github.com/serradura/okf-gem/tree/main/gems/okf/lib/okf/skill
+    resource: https://github.com/serradura/okf/tree/main/gems/okf/lib/okf/skill
 ---
 
 # One tree, three places

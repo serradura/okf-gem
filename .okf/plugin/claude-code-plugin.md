@@ -9,9 +9,9 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: plugin/
-    resource: https://github.com/serradura/okf-gem/tree/main/plugin
+    resource: https://github.com/serradura/okf/tree/main/plugin
   - title: plugin/commands/gem.md
-    resource: https://github.com/serradura/okf-gem/blob/main/plugin/commands/gem.md
+    resource: https://github.com/serradura/okf/blob/main/plugin/commands/gem.md
 ---
 
 # What is in it

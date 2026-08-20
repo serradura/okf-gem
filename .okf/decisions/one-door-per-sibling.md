@@ -8,9 +8,9 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: gems/okf-tui/AGENTS.md
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/AGENTS.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/AGENTS.md
   - title: gems/okf-pro/AGENTS.md
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-pro/AGENTS.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-pro/AGENTS.md
 ---
 
 # The decision

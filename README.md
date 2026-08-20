@@ -10,9 +10,9 @@
 <p align="center">
   <a href="https://rubygems.org/gems/okf"><img src="https://img.shields.io/gem/v/okf" alt="Gem version"></a>
   <a href="https://rubygems.org/gems/okf"><img src="https://img.shields.io/gem/dt/okf" alt="Downloads"></a>
-  <a href="https://github.com/serradura/okf-gem/pkgs/container/okf"><img src="https://img.shields.io/badge/ghcr.io-okf-2496ED?logo=docker&logoColor=white" alt="Docker image"></a>
-  <a href="https://github.com/serradura/okf-gem/actions/workflows/main.yml"><img src="https://github.com/serradura/okf-gem/actions/workflows/main.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/serradura/okf-gem"><img src="https://img.shields.io/badge/ruby-%3E%3D%202.4-black" alt="Ruby >= 2.4"></a>
+  <a href="https://github.com/serradura/okf/pkgs/container/okf"><img src="https://img.shields.io/badge/ghcr.io-okf-2496ED?logo=docker&logoColor=white" alt="Docker image"></a>
+  <a href="https://github.com/serradura/okf/actions/workflows/main.yml"><img src="https://github.com/serradura/okf/actions/workflows/main.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/serradura/okf"><img src="https://img.shields.io/badge/ruby-%3E%3D%202.4-black" alt="Ruby >= 2.4"></a>
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
   <a href="gems/okf/lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.2-6E56CF" alt="OKF v0.2"></a>
   <a href="#claude-code-plugin"><img src="https://img.shields.io/badge/Claude%20Code-plugin-D97757" alt="Claude Code plugin"></a>
@@ -26,7 +26,7 @@
   <b><a href="https://docker.okfgem.com">Docker image</a></b>
 </p>
 
-**okf-gem** (`okf` on RubyGems or Docker) gives your project's knowledge one
+**okf** (on RubyGems and as a Docker image) gives your project's knowledge one
 durable home in your repo, in Markdown your team and your agents both read: the
 decisions and the reasoning an agent cannot re-derive from the code, versioned
 beside the code they explain.
@@ -195,7 +195,7 @@ This repository doubles as a Claude Code plugin marketplace, so the whole
 toolchain installs with two commands inside Claude Code:
 
 ```
-/plugin marketplace add serradura/okf-gem
+/plugin marketplace add serradura/okf
 /plugin install okf@okfgem
 ```
 
@@ -221,8 +221,8 @@ editing a bundle.
 this repository:
 
 ```bash
-npx skills add serradura/okf-gem                          # choose from the list
-npx skills add serradura/okf-gem --skill okf -a codex     # or name skill and agent
+npx skills add serradura/okf                          # choose from the list
+npx skills add serradura/okf --skill okf -a codex     # or name skill and agent
 ```
 
 That path installs a generated copy — `rake skill:sync` writes it from the same
@@ -290,7 +290,7 @@ browser:setup`, then `rake test:browser`, both from `gems/okf/`). See
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at
-<https://github.com/serradura/okf-gem>. This project is intended to be a safe,
+<https://github.com/serradura/okf>. This project is intended to be a safe,
 welcoming space for collaboration, and contributors are expected to adhere to
 the [code of conduct](CODE_OF_CONDUCT.md).
 
@@ -306,5 +306,5 @@ license, Copyright (c) Google LLC. See `NOTICE` and
 [okf-skills](https://github.com/scaccogatto/okf-skills) by Marco Boffo, a Python
 OKF toolkit for Claude Code with a feature-rich interactive graph view, was an
 early inspiration for this gem's Claude Code plugin and for the knowledge-as-code
-comparison in [Why OKF](#why-okf). okf-gem takes a different shape: a Ruby-native
+comparison in [Why OKF](#why-okf). okf takes a different shape: a Ruby-native
 gem built around the `okf` CLI and an embeddable library.

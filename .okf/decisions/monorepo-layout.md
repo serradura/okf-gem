@@ -9,11 +9,11 @@ generated:
 resource: Rakefile
 sources:
   - title: Rakefile
-    resource: https://github.com/serradura/okf-gem/blob/main/Rakefile
+    resource: https://github.com/serradura/okf/blob/main/Rakefile
   - title: gems/okf/okf.gemspec
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/okf.gemspec
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/okf.gemspec
   - title: gems/okf/test/unit/packaging_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/packaging_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/unit/packaging_test.rb
 ---
 
 # Overview

@@ -8,9 +8,9 @@ generated:
   at: 2026-07-18
 sources:
   - title: "`lib/okf/tui/app.rb` — `paint`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/app.rb
   - title: "`test/test_helper.rb` — `FixedScreen`, `frame_for`, `render`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/test_helper.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/test_helper.rb
 ---
 
 # Overview

@@ -1,6 +1,6 @@
 ---
 type: Overview
-title: okf-gem at a glance
+title: okf at a glance
 description: A light Ruby gem that reads, searches, validates, lints, and serves Open Knowledge Format v0.2 bundles.
 tags: [okf, gem, diagram]
 generated:
@@ -8,14 +8,14 @@ generated:
   at: 2026-08-13T12:00:00Z
 sources:
   - title: README.md
-    resource: https://github.com/serradura/okf-gem/blob/main/README.md
+    resource: https://github.com/serradura/okf/blob/main/README.md
   - title: AGENTS.md
-    resource: https://github.com/serradura/okf-gem/blob/main/AGENTS.md
+    resource: https://github.com/serradura/okf/blob/main/AGENTS.md
 ---
 
 # Overview
 
-**okf-gem** — `okf` on RubyGems — operates on OKF v0.2 (`@okf-eco format/okf-format`)
+**okf** — the gem on RubyGems — operates on OKF v0.2 (`@okf-eco format/okf-format`)
 bundles: directories of Markdown files with YAML frontmatter that humans and
 agents both read from one source. It does not define new knowledge storage; it
 gives you leverage over knowledge that already lives as Markdown.

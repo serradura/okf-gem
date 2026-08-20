@@ -8,7 +8,7 @@ generated:
   at: 2026-07-18
 sources:
   - title: "`lib/okf/tui/views.rb` — `health_status`, `STATUS`, `status_style`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/views.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/views.rb
 ---
 
 # Overview

@@ -8,9 +8,9 @@ generated:
   at: 2026-07-17T16:00:00Z
 sources:
   - title: gems/okf/okf.gemspec
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/okf.gemspec
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/okf.gemspec
   - title: gems/okf/AGENTS.md — The contract
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/AGENTS.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/AGENTS.md
 ---
 
 # Overview

@@ -5,7 +5,7 @@ ranked search, and a live knowledge graph. 100% local.**
 
 [Site](https://okfgem.com) · [Docs](https://okfgem.com/docs/) ·
 [Live demo](https://demo.okfgem.com) ·
-[Project README](https://github.com/serradura/okf-gem#readme)
+[Project README](https://github.com/serradura/okf#readme)
 
 OKF (Open Knowledge Format) is portable project knowledge: Markdown files with
 YAML frontmatter that both humans and agents read from one source. This gem is
@@ -24,7 +24,7 @@ on every Ruby since **2.4** — the one your OS already ships.
 
 > **In Claude Code**, the plugin is the fastest path: two commands install the whole
 > toolchain (skill, `/okf:gem`, and the curation hook). See the
-> [project README](https://github.com/serradura/okf-gem#claude-code-plugin).
+> [project README](https://github.com/serradura/okf#claude-code-plugin).
 > Everywhere else, install the gem:
 
 ```bash
@@ -56,7 +56,7 @@ okf server .
 ```
 
 Images are published for `linux/amd64` and `linux/arm64` on
-[ghcr.io](https://github.com/serradura/okf-gem/pkgs/container/okf).
+[ghcr.io](https://github.com/serradura/okf/pkgs/container/okf).
 
 ## Four steps to your first bundle
 
@@ -343,10 +343,10 @@ do not know.
 
 ## More
 
-The [project README](https://github.com/serradura/okf-gem#readme) carries the
+The [project README](https://github.com/serradura/okf#readme) carries the
 diagrams, the comparison with `CLAUDE.md`, agent auto-memory and wikis, the
 Claude Code plugin, and the way to install the skill into any agent without this
-gem (`npx skills add serradura/okf-gem`). The [docs](https://okfgem.com/docs/) are the manual.
+gem (`npx skills add serradura/okf`). The [docs](https://okfgem.com/docs/) are the manual.
 
 And the gem documents *itself* in OKF. `.okf/` ships inside it — a map of what
 every file under `lib/` does, and the walk a new verb owes — so from an

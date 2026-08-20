@@ -369,7 +369,7 @@ rather than pretending to be changes somebody could have seen.
 
 The name reservation on RubyGems: an empty gem, no functionality.
 
-[1.2.0]: https://github.com/serradura/okf-gem/compare/okf-mcp/v1.1.0...okf-mcp/v1.2.0
-[1.1.0]: https://github.com/serradura/okf-gem/compare/okf-mcp/v1.0.0...okf-mcp/v1.1.0
-[1.0.0]: https://github.com/serradura/okf-gem/releases/tag/okf-mcp/v1.0.0
+[1.2.0]: https://github.com/serradura/okf/compare/okf-mcp/v1.1.0...okf-mcp/v1.2.0
+[1.1.0]: https://github.com/serradura/okf/compare/okf-mcp/v1.0.0...okf-mcp/v1.1.0
+[1.0.0]: https://github.com/serradura/okf/releases/tag/okf-mcp/v1.0.0
 [0.0.0]: https://rubygems.org/gems/okf-mcp/versions/0.0.0

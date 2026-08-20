@@ -8,7 +8,7 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: gems/okf/test/unit/bundle_catalog_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/bundle_catalog_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/unit/bundle_catalog_test.rb
 ---
 
 # The decision

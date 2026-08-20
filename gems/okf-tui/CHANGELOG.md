@@ -274,4 +274,4 @@ First release.
   turns the next one into a resolution failure a maintainer sees instead of a
   wrong number a reader believes.
 
-[1.0.0]: https://github.com/serradura/okf-gem/releases/tag/okf-tui/v1.0.0
+[1.0.0]: https://github.com/serradura/okf/releases/tag/okf-tui/v1.0.0

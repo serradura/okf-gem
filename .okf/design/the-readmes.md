@@ -8,7 +8,7 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: The repository's READMEs
-    resource: https://github.com/serradura/okf-gem/blob/main/README.md
+    resource: https://github.com/serradura/okf/blob/main/README.md
 ---
 
 # Who gets one

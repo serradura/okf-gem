@@ -223,7 +223,7 @@ class CLIFrictionTest < OKF::Pro::TestCase
 
         assert_equal OKF::Pro::PASS, run.status
         assert_match(/it is not run for you/, run.out)
-        assert_match(%r{gh issue create --repo serradura/okf-gem}, run.out)
+        assert_match(%r{gh issue create --repo serradura/okf}, run.out)
         assert_match(/--title 'okf-pro: 1 bundle edit/, run.out)
         assert_match(/covered by: okf pro capture/, run.out)
       end
@@ -239,7 +239,7 @@ class CLIFrictionTest < OKF::Pro::TestCase
 
         assert_equal OKF::Pro::PASS, run.status
         assert_match(/`gh` is not on PATH/, run.out)
-        assert_match(%r{https://github\.com/serradura/okf-gem/issues/new}, run.out)
+        assert_match(%r{https://github\.com/serradura/okf/issues/new}, run.out)
         assert_match(/^Title: okf-pro: 1 bundle edit/, run.out)
         refute_match(/gh issue create/, run.out)
       end

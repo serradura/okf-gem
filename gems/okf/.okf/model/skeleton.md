@@ -9,9 +9,9 @@ generated:
   at: 2026-07-23T12:00:00Z
 sources:
   - title: gems/okf/lib/okf/bundle/skeleton.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/skeleton.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/bundle/skeleton.rb
   - title: gems/okf/lib/okf/cli/graph.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/cli/graph.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/cli/graph.rb
 ---
 
 # Overview

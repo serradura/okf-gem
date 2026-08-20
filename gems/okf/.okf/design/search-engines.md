@@ -9,11 +9,11 @@ generated:
   at: 2026-07-24T12:00:00Z
 sources:
   - title: gems/okf/lib/okf/bundle/search.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/bundle/search.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/bundle/search.rb
   - title: gems/okf/test/unit/bundle/search/engine_conformance.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/bundle/search/engine_conformance.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/unit/bundle/search/engine_conformance.rb
   - title: gems/okf/test/unit/bundle/search/accepted_losses_test.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/unit/bundle/search/accepted_losses_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/unit/bundle/search/accepted_losses_test.rb
 ---
 
 # Overview

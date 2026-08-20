@@ -8,13 +8,13 @@ generated:
   at: 2026-08-13
 sources:
   - title: "`lib/okf/tui/workspace.rb` — `open_registry`, and `registry_path` asking the registry rather than recomputing from `home`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/workspace.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/workspace.rb
   - title: "okf `lib/okf/registry.rb` — `Registry.load(home:, cwd:)`, `LOCAL_FILE`, `NO_DISCOVERY_ENV`, and `#reopen` with the comment recording what a bare `new` costs."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/registry.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/registry.rb
   - title: "okf `CHANGELOG.md` 1.12.0 — `okf registry init`, relative path storage, and the hub bug that `#reopen` fixed."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/CHANGELOG.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/CHANGELOG.md
   - title: "`test/integration/refs_test.rb` — the local/global pair, `OKF_NO_DISCOVERY`, and the embedding-app case that must stay global-only."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/refs_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/integration/refs_test.rb
   - title: "Reproduced 2026-08-13 in a scratch project: `Registry.load(cwd: pwd).path` → `<project>/.okf-registry.json`, `Registry.load.path` → `<home>/registry.json`."
     resource: "Reproduced 2026-08-13 in a scratch project: `Registry.load(cwd: pwd).path` → `<project>/.okf-registry.json`, `Registry.load.path` → `<home>/registry.json`"
 ---

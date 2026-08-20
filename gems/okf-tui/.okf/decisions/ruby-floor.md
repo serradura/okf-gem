@@ -8,7 +8,7 @@ generated:
   at: 2026-07-18
 sources:
   - title: "`okf-tui.gemspec`, `Gemfile`, `Rakefile`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/okf-tui.gemspec
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/okf-tui.gemspec
   - title: "Verified in `ruby:2.4` (Docker) and on CI, which runs 2.4 through 4.0."
     resource: "Verified in `ruby:2.4` (Docker) and on CI, which runs 2.4 through 4.0"
 ---

@@ -8,7 +8,7 @@ generated:
   at: 2026-07-18
 sources:
   - title: "`test/integration/terminal_test.rb` — `SCRIPT`, `settle`, `reap`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/terminal_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/integration/terminal_test.rb
 ---
 
 # Why it exists

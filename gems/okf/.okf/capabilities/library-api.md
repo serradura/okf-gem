@@ -9,9 +9,9 @@ generated:
   at: 2026-08-13T12:00:00Z
 sources:
   - title: README.md — Library
-    resource: https://github.com/serradura/okf-gem/blob/main/README.md
+    resource: https://github.com/serradura/okf/blob/main/README.md
   - title: gems/okf/lib/okf.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf.rb
 ---
 
 # Overview

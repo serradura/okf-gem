@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
     resolve, search federates across bundles through one shared corpus, and every
     payload is bounded with its truncation visible.
   DESC
-  spec.homepage = "https://github.com/serradura/okf-gem"
+  spec.homepage = "https://github.com/serradura/okf"
   spec.license = "Apache-2.0"
 
   # The floor set by the official `mcp` gem, this shell's core dependency.

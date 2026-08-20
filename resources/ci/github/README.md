@@ -6,7 +6,7 @@ Copy it into your repository at `.github/workflows/okf.yml` and change one line.
 ```bash
 mkdir -p .github/workflows
 curl -o .github/workflows/okf.yml \
-  https://raw.githubusercontent.com/serradura/okf-gem/main/resources/ci/github/okf.yml
+  https://raw.githubusercontent.com/serradura/okf/main/resources/ci/github/okf.yml
 ```
 
 ## The one line to change

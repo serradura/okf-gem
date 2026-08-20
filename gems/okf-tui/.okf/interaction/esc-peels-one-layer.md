@@ -9,9 +9,9 @@ generated:
 sources:
   - id: "1"
     title: "Reproduced 2026-07-18 in `test/integration/browse_test.rb`: with `overview` open the cursor moved 4 → 1 on Esc. The test was written red first and passed unedited after the fix."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/browse_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/integration/browse_test.rb
   - title: "`lib/okf/tui/app.rb` — `handle_escape`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/app.rb
 ---
 
 # The rule

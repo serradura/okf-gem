@@ -217,4 +217,4 @@ every use. This surface answers both.
 - **The `.bin/okf_pro` binary is gone.** `okf pro` is the only door, which is
   what lets the wrapper refuse anything that is not it.
 
-[1.0.0]: https://github.com/serradura/okf-gem/releases/tag/okf-pro%2Fv1.0.0
+[1.0.0]: https://github.com/serradura/okf/releases/tag/okf-pro%2Fv1.0.0

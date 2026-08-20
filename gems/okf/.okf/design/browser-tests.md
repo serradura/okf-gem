@@ -9,9 +9,9 @@ generated:
   at: 2026-07-22T12:00:00Z
 sources:
   - title: gems/okf/test/browser/README.md
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/browser/README.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/browser/README.md
   - title: gems/okf/test/browser/COVERAGE.md
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/browser/COVERAGE.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/browser/COVERAGE.md
 ---
 
 # Overview

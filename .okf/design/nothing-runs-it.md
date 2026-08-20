@@ -8,7 +8,7 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: .github/workflows/main.yml
-    resource: https://github.com/serradura/okf-gem/blob/main/.github/workflows/main.yml
+    resource: https://github.com/serradura/okf/blob/main/.github/workflows/main.yml
 ---
 
 # The failure, twice

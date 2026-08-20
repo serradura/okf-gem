@@ -8,9 +8,9 @@ generated:
   at: 2026-07-18
 sources:
   - title: "`lib/okf/tui/app.rb` — `@searched`, `@search_hits_key`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/app.rb
   - title: "`test/integration/search_test.rb` — the counting test."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/search_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/integration/search_test.rb
 ---
 
 # Overview

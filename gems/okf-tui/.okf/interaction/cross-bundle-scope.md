@@ -8,9 +8,9 @@ generated:
   at: 2026-07-19
 sources:
   - title: "`lib/okf/tui/workspace.rb` — `reload`, `add`, `remove`, `make_default`, `rename`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/workspace.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/workspace.rb
   - title: "`test/test_helper.rb` — `with_registry`; `test/integration/terminal_test.rb` — the unchanged-registry assertion."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/test_helper.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/test_helper.rb
 ---
 
 # Overview

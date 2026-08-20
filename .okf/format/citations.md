@@ -9,9 +9,9 @@ generated:
   at: 2026-08-13T12:00:00Z
 sources:
   - title: gems/okf/lib/okf/markdown/citations.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/markdown/citations.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/markdown/citations.rb
   - title: SPEC.md §5.1
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/lib/okf/skill/reference/SPEC.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/skill/reference/SPEC.md
 ---
 
 # Overview

@@ -8,15 +8,15 @@ generated:
   at: 2026-08-13
 sources:
   - title: "`lib/okf/tui/workspace.rb` — the seven writes, each returning a status message and reloading; `not_registry_backed` for the ad-hoc case, which has no registry to change."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/workspace.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/workspace.rb
   - title: "`AGENTS.md` — \"The registry is the user's configuration\", the same boundary where a change is judged."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/AGENTS.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/AGENTS.md
   - title: "`grep -rn \"Bundle::Writer\" lib/` → no matches, 2026-08-13."
     resource: "`grep -rn \"Bundle::Writer\" lib/` → no matches, 2026-08-13"
   - title: "okf `CHANGELOG.md` 1.12.0 — `okf registry init`, and the discovery rule that makes the nearest `.okf-registry.json` win."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/CHANGELOG.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/CHANGELOG.md
   - title: "`test/test_helper.rb` — `with_registry`, `with_local_registry`, and the `$OKF_HOME` save/restore around both."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/test_helper.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/test_helper.rb
 ---
 
 # Overview

@@ -9,7 +9,7 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: skills/okf-principles
-    resource: https://github.com/serradura/okf-gem/tree/main/skills/okf-principles
+    resource: https://github.com/serradura/okf/tree/main/skills/okf-principles
 ---
 
 # What it is

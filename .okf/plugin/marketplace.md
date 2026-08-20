@@ -9,7 +9,7 @@ generated:
   at: 2026-08-19T12:00:00Z
 sources:
   - title: .claude-plugin/marketplace.json
-    resource: https://github.com/serradura/okf-gem/blob/main/.claude-plugin/marketplace.json
+    resource: https://github.com/serradura/okf/blob/main/.claude-plugin/marketplace.json
 ---
 
 # What it is

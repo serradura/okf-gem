@@ -2,7 +2,7 @@
 
 okf-mcp — a Model Context Protocol server over OKF bundles: any MCP-capable
 agent host can discover, orient in, search and read them, over stdio or
-Streamable HTTP. A sibling in the okf-gem monorepo, beside the baseline
+Streamable HTTP. A sibling in the okf monorepo, beside the baseline
 `gems/okf/` it depends on.
 
 **This file is context, routing and reference.** [`../../AGENTS.md`](../../AGENTS.md)

@@ -8,11 +8,11 @@ generated:
   at: 2026-07-19
 sources:
   - title: "`lib/okf/tui/model.rb` — `links_for`, `resolve_target`, `describe_link`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/model.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/model.rb
   - title: "`lib/okf/tui/app.rb` — `handle_follow`, `follow_selected`, `push_trail`, `back`."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/lib/okf/tui/app.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/lib/okf/tui/app.rb
   - title: "`test/integration/links_test.rb` — the area-link case is the one that would otherwise have been silently empty."
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf-tui/test/integration/links_test.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf-tui/test/integration/links_test.rb
 ---
 
 # Overview

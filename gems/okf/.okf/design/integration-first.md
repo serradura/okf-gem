@@ -9,9 +9,9 @@ generated:
   at: 2026-07-20T12:00:00Z
 sources:
   - title: gems/okf/AGENTS.md — Testing
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/AGENTS.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/AGENTS.md
   - title: gems/gems/okf/test/integration/cli/cli_integration_case.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/gems/okf/test/integration/cli/cli_integration_case.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/test/integration/cli/cli_integration_case.rb
 ---
 
 # Overview
