@@ -5,7 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.1] - 2026-08-20
+
+### Fixed
+
+- **The package metadata follows the `gems/` move and the repository rename.**
+  Two URLs on the package page were about to be wrong at once. `changelog_uri`
+  named `blob/main/okf-tui/CHANGELOG.md`, a path that stopped existing when the
+  four gems moved under `gems/`; `homepage` named `serradura/okf-gem`, and the
+  repository is now **`serradura/okf`** — the name the command has had all
+  along. rubygems.org serves whatever the last release published, so neither
+  corrects itself: only a release republishes metadata, and this is that
+  release. Both land in one round rather than two, which is the whole reason
+  the rename waited for the paths to stop moving.
+
+  `homepage_uri`, `source_code_uri` and `changelog_uri` are all derived from
+  `homepage`, so one line moves four pieces of this gem's metadata. GitHub
+  redirects the old URLs permanently, so anything already published keeps
+  resolving.
 
 ### Changed
 
@@ -38,8 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **The okf floor moves to `>= 2.1, < 3`** — the kernel this gem develops
-  against released 2.1.0, and the floor tracks what the suite proves against
+- **The okf floor moves to `>= 2.1.1, < 3`** — the kernel this gem develops
+  against released 2.1.1, and the floor tracks what the suite proves against
   (the gemspec drill enforces equality as the normal state). Nothing here calls
   a 2.1-only surface; the ceiling is unchanged.
 
@@ -274,4 +291,5 @@ First release.
   turns the next one into a resolution failure a maintainer sees instead of a
   wrong number a reader believes.
 
+[1.0.1]: https://github.com/serradura/okf/compare/okf-tui/v1.0.0...okf-tui/v1.0.1
 [1.0.0]: https://github.com/serradura/okf/releases/tag/okf-tui/v1.0.0
