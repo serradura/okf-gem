@@ -1,15 +1,12 @@
-# Design constraints
+# Design
 
-The enforced boundaries that keep the gem light, portable, and honest. These are
-not style preferences — most are checked by a test or CI, and they explain *why*
-the code looks the way it does.
+How the ecosystem is put together, and the rules that keep it that way. These
+are not choices with a date on them — those are [decisions](../decisions/) —
+they are the structure everything else is arranged against.
 
-* [Browser tests](browser-tests.md) - the graph page is driven in real Chromium, in both render modes, because a string assertion cannot see a collapsed canvas.
-* [Core/shell split](core-shell-split.md) - pure logic must never touch disk, stdio, or the shell layer; a test enforces it.
-* [Extension points](extension-points.md) - engines, commands and (planned) lint checks all register the same way; `okf/plugin.rb` is the convention, discovery is lazy.
-* [Integration first](integration-first.md) - the CLI is the product, so the suite that drives it end to end outranks the unit tests.
-* [Monorepo layout](monorepo-layout.md) - one directory per gem, named for the gem; a symlinked LICENSE builds fine and refuses to install.
-* [Ruby 2.4 floor](ruby-floor.md) - runs on the Ruby an OS already ships; newer APIs are banned.
-* [Runtime dependencies](runtime-dependencies.md) - exactly `rack`, `webrick` and `minifts`, no ActiveSupport.
-* [Search engines are adapters](search-engines.md) - one facade over N engines — the scan by default, the index by capability or by name; a conformance suite, not an oracle.
-* [Server trust boundary](server-trust-boundary.md) - the served page sanitizes concept bodies and escapes inlined data; both XSS paths are closed.
+* [Extension points](extension-points.md) - The two registries a sibling arrives through, and the threat model for loading someone else's code.
+* [Where knowledge lives](where-knowledge-lives.md) - README, AGENTS.md and `.okf/` answer three different questions, and the same fact may only be in one of them.
+* [A rule nothing runs](nothing-runs-it.md) - Every convention here is either executed by something or is a wish, and the difference has been got wrong in writing.
+* [The READMEs](the-readmes.md) - Who gets one, why the root's is a menu and a gem's is a manual, and the four rules that outrank taste because each has already gone wrong.
+* [The shape of a pull request](pull-requests.md) - The lead-sections-Verification skeleton every PR shares, and the fixed title and body a version bump adds on top.
+* [How a change is proven](how-a-change-is-proven.md) - The four obligations that hold in every gem: the test comes first and is read failing, assertions must be able to fail, structure is pinned, the bundle ships with the code.

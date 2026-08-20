@@ -1,0 +1,119 @@
+# frozen_string_literal: true
+
+require "bundler/gem_helper"
+
+# The bare `v*` tag series belongs to the baseline gem; a sibling tags
+# `okf-mcp/vX.Y.Z` (AGENTS.md). Bundler's GemHelper defaults the prefix to "",
+# so `rake release` here would otherwise push a bare `vX.Y.Z` — which the Docker
+# workflow's `v*` trigger matches, rebuilding and republishing the *okf* image
+# (including `:latest`) from a release that ships something else. A glob does not
+# match across `/`, which is the whole reason for the prefix. The prefix is set
+# on the instance before #install, which registers it as
+# Bundler::GemHelper.instance — the object `release` reads its tag from.
+helper = Bundler::GemHelper.new(__dir__)
+
+if helper.respond_to?(:tag_prefix=)
+  helper.tag_prefix = "okf-mcp/"
+  helper.install
+else
+  # `tag_prefix` arrived in Bundler 2.2, and the Bundler a supported Ruby
+  # *ships* can predate it — 2.1.4 on 2.7, this gem's floor — where setting it
+  # raised NoMethodError at Rakefile load and took `rake test` down before a
+  # single test ran. CI never saw it: `ruby/setup-ruby` installs the newest
+  # Bundler each Ruby accepts, so only a floor run against the image as it
+  # comes surfaces it. okf-tui and okf-pro have carried this guard since they
+  # were cut; this gem was the one that did not.
+  #
+  # The old floor is a Ruby to *test* on, never one to release from, so the
+  # release tasks are absent there rather than present with the wrong tag: a
+  # bare `vX.Y.Z` pushed by accident triggers the okf image build for a gem
+  # that ships something else, and that is not undoable.
+  desc "Refuse to release: this Bundler cannot set the okf-mcp/ tag prefix"
+  task :release do
+    abort "this Bundler has no GemHelper#tag_prefix=, so `rake release` here would push a bare " \
+          "vX.Y.Z tag and trigger the okf image build. Release from a Ruby with a current Bundler."
+  end
+end
+
+require "rake/testtask"
+
+Rake::TestTask.new(:test) do |t|
+  t.libs << "test" << "lib"
+  t.test_files = FileList["test/**/*_test.rb"]
+  t.warning = false
+end
+
+namespace :test do
+  # Integration alone, with its own coverage report — the honest figure, since
+  # it only counts what a host can reach through the protocol (the kernel's
+  # coverage-reading rule, transposed).
+  desc "Run only the integration suite, with an integration-only coverage report"
+  Rake::TestTask.new(:integration) do |t|
+    t.libs << "test" << "lib"
+    t.test_files = FileList["test/integration/**/*_test.rb"]
+    t.warning = false
+  end
+end
+
+task "test:integration" => :set_integration_coverage_dir
+
+task :set_integration_coverage_dir do
+  ENV["OKF_MCP_COVERAGE_DIR"] = "coverage/integration"
+  ENV["OKF_MCP_COVERAGE_NAME"] = "Integration Tests (alone)"
+end
+
+# The last okf release that predates the surfaces this shell now calls —
+# Bundle::RowFilter (memory_backend.rb, server.rb#filter_rows),
+# Concept.effective_status, Concept.fold_tier, and the trust catalog column.
+# A floor that still admits it ships a gem whose first `catalog` call raises
+# NameError on a host that resolved the floor instead of the checkout.
+OKF_FLOOR_MUST_EXCEED = "1.13.0"
+
+# test/unit/gemspec_test.rb holds the floor to the kernel it develops against,
+# which is the right guard for every day that is not a release day and the
+# wrong one for the day that is: both read 1.13.0, so it is green precisely
+# while the broken release is possible. The Gemfile resolves okf from the
+# checkout next door, so no suite here can notice — only the release path can,
+# and this is where it does. Same spirit as the kernel's `task build:
+# "skill:verify"`: a forgotten obligation stops the release instead of
+# shipping inside one.
+desc "Refuse to build while the declared okf floor admits a kernel lacking the surfaces this shell calls"
+task :verify_okf_floor do
+  spec = Dir.chdir(__dir__) { Gem::Specification.load(File.expand_path("okf-mcp.gemspec", __dir__)) }
+  dependency = spec.dependencies.find { |d| d.name == "okf" }
+  abort "okf-mcp.gemspec declares no okf dependency" if dependency.nil?
+
+  floor = dependency.requirement.requirements.find { |op, _| op == ">=" }&.last
+  abort "okf-mcp.gemspec declares no `>=` floor on okf: #{dependency.requirement}" if floor.nil?
+  next if floor > Gem::Version.new(OKF_FLOOR_MUST_EXCEED)
+
+  abort <<~MESSAGE
+    okf-mcp.gemspec floors okf at #{floor}, which admits okf #{OKF_FLOOR_MUST_EXCEED} — a kernel
+    without Bundle::RowFilter, Concept.effective_status or Concept.fold_tier.
+    Publishing against that floor ships a gem that raises NameError on its
+    first catalog or search call.
+
+    Release okf first, then move the floor to that version (the RELEASE
+    OBLIGATION comment in the gemspec, and the okf-mcp CHANGELOG's Unreleased
+    section, both name this).
+  MESSAGE
+end
+
+# Hung off `release:guard_clean`, and the two halves of that are both load-bearing.
+#
+# Not `build`, because Bundler's `install` and `install:local` depend on it and
+# this guard aborts unconditionally until okf ships — gating the build would
+# stop a maintainer installing from the checkout, a cost with no publish in sight.
+#
+# Not `release` either: a prerequisite added there lands *last*, after
+# `release:rubygem_push`, so the gem would reach RubyGems and the guard would
+# abort afterwards — the one outcome it exists to prevent. `guard_clean` is the
+# first step of the release chain, so depending on it puts the check ahead of
+# both pushes.
+task "release:guard_clean" => :verify_okf_floor
+
+require "rubocop/rake_task"
+
+RuboCop::RakeTask.new
+
+task default: %i[test rubocop]

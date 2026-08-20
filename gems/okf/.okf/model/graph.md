@@ -1,0 +1,59 @@
+---
+type: Component
+title: OKF::Bundle::Graph
+description: The in-memory knowledge graph — concepts as nodes, cross-links as directed edges, with type and tag indexes.
+resource: gems/okf/lib/okf/bundle/graph.rb
+tags: [graph, pure]
+generated:
+  by: human:maintainer
+  at: 2026-08-13T12:00:00Z
+sources:
+  - title: gems/okf/lib/okf/bundle/graph.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/bundle/graph.rb
+---
+
+# Overview
+
+`OKF::Bundle::Graph` turns a [bundle](bundle.md) into nodes and edges:
+[concepts](concept.md) become nodes keyed by id, and bundle-relative
+cross-links (`@okf-eco format/cross-links`) become directed edges. It is pure — it
+carries no presentation concerns; sizing and colour belong to a renderer like
+the [graph server](../capabilities/graph-server.md).
+
+# Fidelity is a build option
+
+The same graph ships at three weights, so a client downloads only what it needs
+and fetches the rest on demand:
+
+| Build | Node payload |
+|-------|--------------|
+| default (`body: true`) | id, type, title, description, tags, **body** |
+| `body: false` | everything but the body |
+| `minimal: true` | just id and title — the leanest payload to draw |
+
+# Indexes come free at every weight
+
+Regardless of node fidelity, the graph exposes two inverted indexes computed from
+every concept:
+
+- `type_index` — `{ type => [id, …] }`, so even a minimal client can colour nodes
+  by [`type`](concept.md). A concept whose type is missing *or blank* indexes
+  under `Untyped`: §11 condition 2 rejects the two identically (the
+  [validator](../capabilities/validator.md) asks `OKF.blank?`, not `empty?`), so
+  sorting them into different buckets would give `type: "  "` a row of its own,
+  labelled with spaces;
+- `tag_index` — `{ tag => [id, …] }`, so it can filter by tag.
+
+Those indexes, plus `unlinked_ids` (degree-0 nodes), are what the
+[read views](../capabilities/read-views.md) — `types`, `tags`, `stats`, `loose`
+— are built from, and what their `--type`/`--dir`/`--tag` filters match against.
+
+# Reduced to a skeleton
+
+Where this graph is the full wiring, the [skeleton](skeleton.md) is the same
+graph made holdable: concepts collapsed into their directory, the links between
+two directories collapsed into one weighted arc, and every link tagged with the
+cut it survives. It is the reduction [`graph --traffic`](../capabilities/read-views.md)
+reads for cohesion and the [graph page](../capabilities/graph-server.md) lays a
+large bundle out on — built from this graph's own nodes and edges, and just as
+pure.

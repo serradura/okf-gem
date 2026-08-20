@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # The monorepo's Rakefile. It owns no code — it delegates into each gem's own
-# bundle, so that a gem stays runnable on its own (`cd okf && bundle exec rake`
+# bundle, so that a gem stays runnable on its own (`cd gems/okf && bundle exec rake`
 # is what CI runs, and what the Ruby 2.4 floor is proven against).
 #
 # Run it as plain `rake`, not `bundle exec rake`: there is deliberately no root
@@ -10,7 +10,12 @@
 # start at 3.2 — so a single lockfile could never resolve for all of them, and a
 # root bundle would only be a second context to keep in sync for no gain.
 
-# Adding a gem to the repo is adding it here.
+require "json"
+
+# Every gem lives under gems/. The container says *where* gems live and never
+# which gem this is — a directory is still named for the gem it ships, so
+# gems/okf builds okf. Adding a gem to the repo is adding it to GEMS here.
+GEMS_DIR = "gems"
 GEMS = %w[okf okf-mcp okf-tui okf-pro].freeze
 
 ROOT = __dir__
@@ -22,14 +27,14 @@ ROOT = __dir__
 # resolve every gem's tasks against the wrong bundle. Naming it is what makes
 # the delegation correct either way.
 def gemfile_env(gem_dir)
-  { "BUNDLE_GEMFILE" => File.join(ROOT, gem_dir, "Gemfile") }
+  { "BUNDLE_GEMFILE" => File.join(ROOT, GEMS_DIR, gem_dir, "Gemfile") }
 end
 
 # Every gem's own bundle, from its own directory.
 def each_gem(task)
   GEMS.each do |gem_dir|
     puts "\n== #{gem_dir}: rake #{task} =="
-    Dir.chdir(File.join(ROOT, gem_dir)) { sh gemfile_env(gem_dir), "bundle exec rake #{task}" }
+    Dir.chdir(File.join(ROOT, GEMS_DIR, gem_dir)) { sh gemfile_env(gem_dir), "bundle exec rake #{task}" }
   end
 end
 
@@ -37,7 +42,7 @@ end
 # expressible from the repo root when the gem moved down a level, and this is
 # the spelling that replaces it.
 def okf(*argv)
-  sh RbConfig.ruby, "-I#{ROOT}/okf/lib", "#{ROOT}/okf/exe/okf", *argv
+  sh RbConfig.ruby, "-I#{ROOT}/gems/okf/lib", "#{ROOT}/gems/okf/exe/okf", *argv
 end
 
 desc "Run every gem's default task (test + rubocop), then lint the repo-level Ruby"
@@ -56,7 +61,7 @@ task(:test) { each_gem("test") }
 # own `rake rubocop` reaches these two files.
 #
 # It degrades where RuboCop is absent, exactly as the gem's default task does:
-# okf/Gemfile only installs it from 2.7 up, so on the old Rubies this would
+# gems/okf/Gemfile only installs it from 2.7 up, so on the old Rubies this would
 # otherwise take the root `rake` down with it.
 desc "RuboCop the repo-level Ruby (this Rakefile and the plugin hook)"
 task :rubocop do
@@ -64,30 +69,42 @@ task :rubocop do
   if system(env, "bundle exec rubocop --version", out: File::NULL, err: File::NULL)
     sh env, "bundle exec rubocop"
   else
-    puts "rubocop is not installed on this Ruby (okf/Gemfile installs it from 2.7) — skipping the repo-level lint"
+    puts "rubocop is not installed on this Ruby (gems/okf/Gemfile installs it from 2.7) — skipping the repo-level lint"
   end
 end
 
-# Every OKF bundle the repository carries: this project's, and any a gem ships
-# inside itself (okf-tui's `.okf/` is in its `spec.files`, so a broken one would
-# be published rather than merely committed).
-BUNDLES = [ ".okf", "okf-tui/.okf", "okf-pro/.okf" ].freeze
+# Every OKF bundle the repository carries is named once, in the committed
+# .okf-registry.json — this project's own, and any a gem ships inside itself
+# (okf-tui's `.okf/` is in its `spec.files`, so a broken one would be published
+# rather than merely committed). A hardcoded list here was a second place to
+# remember; adding a bundle is now `okf registry set`, and this reads it.
+#
+# The file stores every path *relative to itself*, which is what lets the
+# checkout be cloned, copied or bind-mounted anywhere and still resolve — so
+# this reads slugs and passes `@slug` refs, letting the CLI's own discovery
+# (walk up from cwd) do the resolving rather than rebuilding paths here.
+def registered_slugs
+  file = File.join(ROOT, ".okf-registry.json")
+  abort "no #{file} — run `okf registry init` and `okf registry set` first" unless File.file?(file)
 
-desc "Validate and lint every .okf bundle in the repo with the checkout's CLI"
+  JSON.parse(File.read(file)).fetch("bundles").map { |bundle| bundle.fetch("slug") }
+end
+
+desc "Validate and lint every registered .okf bundle with the checkout's CLI"
 task :okf do
-  BUNDLES.each do |bundle|
-    okf "validate", "#{ROOT}/#{bundle}"
-    okf "lint", "#{ROOT}/#{bundle}"
+  registered_slugs.each do |slug|
+    okf "validate", "@#{slug}"
+    okf "lint", "@#{slug}"
   end
 end
 
 desc "Serve this repo's own .okf bundle as a graph"
-task(:serve) { okf "server", "#{ROOT}/.okf", "--title", "okf-gem" }
+task(:serve) { okf "server", "#{ROOT}/.okf", "--title", "okf" }
 
 # A release is cut from the gem it releases, never from here: `rake release` is
 # Bundler's, it reads the gemspec in its working directory, and the version tag
 # it pushes is derived from that. Running it at the root would be a mistake with
 # a public consequence, so it fails loudly instead of doing nothing.
 task :release do
-  abort "releases are cut per gem: cd into the gem's directory (e.g. `cd okf`) and run `rake release` there"
+  abort "releases are cut per gem: cd into the gem's directory (e.g. `cd gems/okf`) and run `rake release` there"
 end

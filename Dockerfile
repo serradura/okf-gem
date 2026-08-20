@@ -4,9 +4,9 @@
 # The build is two stages so the runtime image carries only the installed gem,
 # not the checkout or the build toolchain. It builds okf from source in this
 # repo (not from RubyGems), so `docker build .` is self-contained and a release
-# tag's image always matches that commit's okf/lib/okf/version.rb.
+# tag's image always matches that commit's gems/okf/lib/okf/version.rb.
 #
-# The gem lives in okf/ but the build context stays the repository root: the
+# The gem lives in gems/okf/ but the build context stays the repository root: the
 # gemspec derives spec.files from `git ls-files`, which needs the .git directory
 # that only the root has.
 
@@ -17,18 +17,18 @@ FROM ruby:4.0-alpine AS build
 # the .git directory in the context (keep it out of .dockerignore).
 RUN apk add --no-cache git
 
-# safe.directory names /src, not /src/okf: the git directory is the repo root.
+# safe.directory names /src, not /src/gems/okf: the git directory is the repo root.
 WORKDIR /src
 COPY . .
 RUN git config --global --add safe.directory /src \
- && cd okf \
+ && cd gems/okf \
  && gem build okf.gemspec \
  && mv okf-*.gem /tmp/okf.gem
 
 # ---- runtime stage: just the installed CLI ---------------------------------
 FROM ruby:4.0-alpine
 
-LABEL org.opencontainers.image.source="https://github.com/serradura/okf-gem" \
+LABEL org.opencontainers.image.source="https://github.com/serradura/okf" \
       org.opencontainers.image.description="OKF (Open Knowledge Format) toolkit: validate, lint, search, and serve bundles as a live graph." \
       org.opencontainers.image.licenses="Apache-2.0"
 

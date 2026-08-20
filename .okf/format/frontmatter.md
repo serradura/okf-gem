@@ -2,21 +2,21 @@
 type: Format
 title: Frontmatter (spec §4)
 description: The YAML header on every concept, parsed through the gem's single, hardened YAML gateway.
-resource: okf/lib/okf/markdown/frontmatter.rb
+resource: gems/okf/lib/okf/markdown/frontmatter.rb
 tags: [yaml]
 generated:
   by: human:maintainer
   at: 2026-08-13T12:00:00Z
 sources:
-  - title: okf/lib/okf/markdown/frontmatter.rb
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/markdown/frontmatter.rb
+  - title: gems/okf/lib/okf/markdown/frontmatter.rb
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/markdown/frontmatter.rb
   - title: SPEC.md §4
-    resource: https://github.com/serradura/okf-gem/blob/main/okf/lib/okf/skill/reference/SPEC.md
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/lib/okf/skill/reference/SPEC.md
 ---
 
 # Overview
 
-Every [concept](../model/concept.md) opens with a YAML frontmatter block delimited
+Every concept (`@okf model/concept`) opens with a YAML frontmatter block delimited
 by `---` lines. `OKF::Markdown::Frontmatter` parses it and is the inverse of
 `Concept#to_markdown`. The only **required** key is
 [`type`](../format/okf-format.md); `title`, `description`, `resource`, `tags`, and
@@ -31,10 +31,10 @@ and portability boundary, not an accident of layering:
 - it uses `safe_load` — permitting `Date`/`Time`, forbidding aliases — so a
   bundle can never execute arbitrary Ruby on load;
 - it carries the Psych `<3.1` positional-argument shim, so the gem parses
-  identically on the old Ruby versions the [2.4 floor](../design/ruby-floor.md)
+  identically on the old Ruby versions the 2.4 floor (`@okf design/ruby-floor`)
   targets;
 - `stringify_keys` lives here so the gem needs no ActiveSupport (see
-  [runtime dependencies](../design/runtime-dependencies.md)).
+  runtime dependencies (`@okf design/runtime-dependencies`)).
 
 The rule is enforced by convention: `YAML.safe_load` / `YAML.load` appear
 **nowhere else** in the codebase.

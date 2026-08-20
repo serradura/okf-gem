@@ -1,13 +1,13 @@
 {
   "name": "okf",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Open Knowledge Format for Claude: the OKF skill, /okf:gem setup and doctor, and a post-edit hook that runs the okf CLI's validate and lint checks on the bundle you touched.",
   "author": {
     "name": "Rodrigo Serradura",
     "email": "rodrigo.serradura@gmail.com"
   },
   "homepage": "https://okfgem.com",
-  "repository": "https://github.com/serradura/okf-gem",
+  "repository": "https://github.com/serradura/okf",
   "license": "Apache-2.0",
   "keywords": [
     "okf",

@@ -2,7 +2,7 @@
   <a href="https://okfgem.com">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset=".github/hero-dark.png">
-      <img src=".github/hero-light.png" width="100%" alt="okf-gem, the Open Knowledge Format for coding agents. Everything OKF, in one ecosystem: author, curate, and consume your project's knowledge, with your agent. 100% local. Start at https://okfgem.com/#try. The pieces, top to bottom: the Agent Skill (the brain) authors, curates and consumes, and writes the bundle (the memory) — Markdown + YAML, in your repo. The bundle is read by, and by nothing else, the library (the spine): require okf, the only thing that touches disk. Three surfaces sit over it — the CLI (the muscle) for validate and lint, the Graph (the vision) live or static, and MCP (the nerve) for any host. Available from RubyGems, as a Docker image, and as a Claude Code plugin, speaking OKF v0.2.">
+      <img src=".github/hero-light.png" width="100%" alt="okf: somewhere for your project's reasoning to live between agent sessions. Everything OKF, in one ecosystem: author, curate, and consume your project's knowledge, with your agent. 100% local. Start at https://okfgem.com/#try. The pieces, top to bottom: the Agent Skill (the brain) authors, curates and consumes, and writes the bundle (the memory) — Markdown + YAML, in your repo. The bundle is read by, and by nothing else, the library (the spine): require okf, the only thing that touches disk. Three surfaces sit over it — the CLI (the muscle) for validate and lint, the Graph (the vision) live or static, and MCP (the nerve) for any host. Available from RubyGems, as a Docker image, and as a Claude Code plugin, speaking OKF v0.2.">
     </picture>
   </a>
 </p>
@@ -10,11 +10,10 @@
 <p align="center">
   <a href="https://rubygems.org/gems/okf"><img src="https://img.shields.io/gem/v/okf" alt="Gem version"></a>
   <a href="https://rubygems.org/gems/okf"><img src="https://img.shields.io/gem/dt/okf" alt="Downloads"></a>
-  <a href="https://github.com/serradura/okf-gem/pkgs/container/okf"><img src="https://img.shields.io/badge/ghcr.io-okf-2496ED?logo=docker&logoColor=white" alt="Docker image"></a>
-  <a href="https://github.com/serradura/okf-gem/actions/workflows/main.yml"><img src="https://github.com/serradura/okf-gem/actions/workflows/main.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/serradura/okf-gem"><img src="https://img.shields.io/badge/ruby-%3E%3D%202.4-black" alt="Ruby >= 2.4"></a>
+  <a href="https://github.com/serradura/okf/pkgs/container/okf"><img src="https://img.shields.io/badge/ghcr.io-okf-2496ED?logo=docker&logoColor=white" alt="Docker image"></a>
+  <a href="https://github.com/serradura/okf/actions/workflows/main.yml"><img src="https://github.com/serradura/okf/actions/workflows/main.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
-  <a href="okf/lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.2-6E56CF" alt="OKF v0.2"></a>
+  <a href="gems/okf/lib/okf/skill/reference/SPEC.md"><img src="https://img.shields.io/badge/OKF-v0.2-6E56CF" alt="OKF v0.2"></a>
   <a href="#claude-code-plugin"><img src="https://img.shields.io/badge/Claude%20Code-plugin-D97757" alt="Claude Code plugin"></a>
 </p>
 
@@ -26,35 +25,53 @@
   <b><a href="https://docker.okfgem.com">Docker image</a></b>
 </p>
 
-**okf-gem** (`okf` on RubyGems or Docker) gives your project's knowledge one
-durable home in your repo, in Markdown your team and your agents both read: the
-decisions and the reasoning an agent cannot re-derive from the code, versioned
-beside the code they explain.
+Your coding agent works out how your system fits together — why the service
+exists, what the metric actually measures, which line of the schema is
+load-bearing — and then the session ends and all of it is gone. Next session it
+works the same things out again, from the same code, and reaches slightly
+different conclusions.
 
-One install carries the whole workflow, and that is the point:
+**okf gives that reasoning somewhere to live.** Plain Markdown files in your
+repo, next to the code they explain, written and kept current by the agent
+itself rather than by you.
 
-- an **Agent Skill**, so your agent writes and curates the knowledge instead of you;
-- a **CLI and Ruby library**, so it stays correct: validated, linted, and searchable in milliseconds;
-- a **Graph**, so anyone can see the shape of what the team knows, live or as one static file you can host anywhere.
+It adds nothing to your stack. No database, no service, no new place to keep
+knowledge — just files, reviewed in the same pull request as the code. If you
+stop using okf tomorrow, everything it wrote is still Markdown your team can
+read.
 
-That is **Agent Skill + CLI/Lib + Graph**. It runs 100% local, adds no
-service to your stack, and does not define a new place to keep knowledge: it
-gives you leverage over the Markdown you already have.
+### See it in sixty seconds
 
-## Why OKF
+This repository documents itself in OKF, so you can walk a real bundle before
+installing anything:
 
-Project knowledge (why a service exists, what a metric really measures, the
-reasoning a schema encodes) lives scattered across wikis, code comments, and
-whoever happened to be in the room, and an agent re-derives it every session. OKF
-gives it one durable, diffable home, versioned next to the code it describes and
-read from the same file by people and agents alike. [OKF][okf] is an open,
-vendor-neutral format (Google Cloud, 2026); this gem is the Ruby-native way to
-work with it.
+```bash
+gem install okf
+git clone https://github.com/serradura/okf && cd okf
+okf server .okf          # the whole ecosystem as an interactive graph
+```
 
-[okf]: https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing
+No Ruby on the machine? The published image runs the same commands —
+[docker.okfgem.com](https://docker.okfgem.com). Or skip the clone entirely and
+open [demo.okfgem.com](https://demo.okfgem.com).
 
-Knowledge already has several homes near an agent, and each holds a different
-thing. None of the others is built for curated, durable team knowledge:
+### Why it doesn't rot
+
+Notes decay because keeping them current is a separate act from doing the work.
+Here it isn't:
+
+- **The agent writes it, not you.** An Agent Skill ships with the gem, so
+  curation happens inside the work rather than after it.
+- **Drift is a failing build.** `okf validate` and `okf lint` return exit codes,
+  so a stale or malformed bundle breaks CI the same way a broken test does.
+- **The agent reads only what it needs.** `okf index` reads the map and
+  `okf search` pulls the handful of files a task touches, so the knowledge
+  outgrows the context window instead of filling it.
+
+### How it compares
+
+Knowledge already has several homes near an agent, and each holds something
+different. None of the others is built for curated, durable team knowledge:
 
 |                                | OKF bundle (this)                                     | `CLAUDE.md` / `AGENTS.md`  | Agent auto-memory        | Wiki / Notion    |
 | ------------------------------ | ----------------------------------------------------- | -------------------------- | ------------------------ | ---------------- |
@@ -66,11 +83,13 @@ thing. None of the others is built for curated, durable team knowledge:
 | Scales past one context window | ✅ progressive disclosure<br>(`okf index` + `search`) | ❌ loaded whole            | ⚠️ partially             | n/a              |
 | Checked by tooling             | ✅ exit codes for CI<br>(`okf validate` + `lint`)     | ❌                         | ❌                       | ❌               |
 
-The last two rows are this gem's job. Scaling past one context window is
-progressive disclosure — `okf index` reads the map, `okf search` pulls only the
-concepts a task needs, so the bundle is never loaded whole. And drift never
-hides here: the other homes have no detector, but `okf validate` and `lint` turn
-a bundle's drift into findings you can gate on in CI.
+The last two rows are this gem's job.
+
+[OKF][okf] is an open, vendor-neutral format (Google Cloud, 2026). This
+repository is a complete implementation of it — skill, CLI, library, graph and
+MCP server — distributed as a gem, a Docker image, and a Claude Code plugin.
+
+[okf]: https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing
 
 ## What a bundle looks like
 
@@ -82,25 +101,26 @@ id. This repo documents _itself_ in OKF, so the tree below is real:
 ├── index.md                       # progressive-disclosure map (root carries okf_version)
 ├── log.md                         # ISO-dated change history, newest first
 ├── overview.md
-├── format/frontmatter.md
-├── model/graph.md
-└── capabilities/graph-server.md   # one concept = one file
+├── gems/okf-mcp.md                # one concept = one file
+├── decisions/monorepo-layout.md
+└── format/frontmatter.md
 ```
 
 The only hard requirement is YAML frontmatter with a non-empty `type`; everything
-else is optional and tolerated when missing. A concept (here the real
-`capabilities/graph-server.md`, body trimmed) reads:
+else is optional and tolerated when missing. A concept reads as below — this is
+the real `capabilities/graph-server.md` from the baseline gem's own bundle,
+`gems/okf/.okf/`, with its body trimmed:
 
 ```markdown
 ---
 type: Capability
 title: Interactive graph server (server)
-description: A self-contained HTML knowledge graph served over HTTP, and a mountable Rack app.
-resource: okf/lib/okf/server/app.rb
+description: A self-contained HTML knowledge graph — served over HTTP as a mountable Rack app, one bundle or many behind a hub, or written to a single static file.
+resource: gems/okf/lib/okf/server/app.rb
 tags: [server, graph, rack, diagram]
 generated:
   by: human:maintainer
-  at: 2026-07-11T12:00:00Z
+  at: 2026-08-13T12:00:00Z
 ---
 
 # Overview
@@ -108,8 +128,10 @@ generated:
 `okf server` boots an interactive view of the [graph](../model/graph.md) …
 ```
 
-That bundle is this gem's own documentation. Clone the repo and run
-`okf server .okf` to browse it as an interactive graph.
+The `.okf/` above is the **ecosystem's** map — a concept per gem, per plugin
+item, per skill — and each gem carries its own bundle beside its code. Clone the
+repo and run `okf server .okf` to browse the map as an interactive graph, or
+`okf server gems/okf/.okf` for the baseline gem's.
 
 ### Trust, provenance, and lifecycle — OKF v0.2
 
@@ -126,45 +148,24 @@ migration findings. Every family is optional, and a v0.1 bundle keeps reading
 forever — two `lint` findings tell you exactly what a migration would change,
 and never fail you for not having done it.
 
-## Try it in four steps
+## The whole ecosystem
 
-From zero to your first bundle.
+One install carries the whole workflow, and that is the point:
 
-**1. Get the `okf` command.** Two ways in; either one puts `okf` on your `PATH`.
+- an **Agent Skill**, so your agent writes and curates the knowledge instead of you;
+- a **CLI and Ruby library**, so it stays correct: validated, linted, and searchable in milliseconds;
+- a **Graph**, so anyone can see the shape of what the team knows, live or as one static file you can host anywhere.
 
-```bash
-gem install okf                                        # with Ruby
-curl -fsSL https://docker.okfgem.com/install.sh | sh   # no Ruby? Docker
-```
+Three sibling gems extend that same command rather than adding another one:
 
-**2. Install the skill.** Teach your agent the format — Claude Code, or any
-other agent.
+- **`okf mcp`** ([okf-mcp](gems/okf-mcp/README.md)) serves your bundles to any MCP host — fourteen read tools, over stdio or Streamable HTTP;
+- **`okf tui`** ([okf-tui](gems/okf-tui/README.md)) reads one bundle or every registered one, in a full-screen terminal UI;
+- **`okf pro`** ([okf-pro](gems/okf-pro/README.md)) writes an agent's knowledge repository — bundle, hooks, pre-commit, CI, skill — and then enforces it at three doors.
 
-```bash
-okf skill .claude   # or: okf skill .agents
-```
+`gem install okf-pro` and you type `okf pro`. Packaging multiplies; the
+interface does not, and a sibling ships no second binary to learn.
 
-**3. Start an agent session** where your project lives.
-
-```bash
-claude
-```
-
-**4. Make your first bundle.** Two ways in, by what you already have: docs keep
-every word, code gets written up for you.
-
-```
-/okf migrate <path-to-your-docs>            # have docs? adopted in place, bodies verbatim
-/okf produce based on <path-to-your-code>   # only code? the skill authors the concepts
-```
-
-> [!TIP]
-> **Once you have a bundle**, run `/okf maintain` in the agent session to keep it
-> in sync as the code changes, and `okf server <folder>` to explore it as a graph.
-> In Claude Code, the [plugin](#claude-code-plugin) adds a post-edit curation hook
-> that runs `validate` + `lint` for you.
-
-How the pieces fit together:
+## How the pieces fit together
 
 <p align="center">
   <picture>
@@ -173,97 +174,47 @@ How the pieces fit together:
   </picture>
 </p>
 
-What the gem does, and which verb does it. This table is the map; **[the
-docs](https://okfgem.com/docs/)** are the manual.
-
-| Capability                                                    | What it answers                   | Verb                       |
-| ------------------------------------------------------------- | --------------------------------- | -------------------------- |
-| [Companion agent skill](https://okfgem.com/docs/skill/)     | Can an agent author it?           | `skill`                    |
-| [Conformance validator](https://okfgem.com/docs/cli/validate/)       | Is this a legal OKF bundle?      | `validate`                 |
-| [Curation linter](https://okfgem.com/docs/cli/lint/)                | Is it navigable, complete, fresh? | `lint` / `loose`           |
-| [Ranked text search](https://okfgem.com/docs/cli/search/)             | Which concept covers X?           | `search`                   |
-| [Read views](https://okfgem.com/docs/cli/)                 | What is in here, and where?       | `index` / `dirs` / `catalog` |
-| [Interactive graph server](https://okfgem.com/docs/cli/server/) | Can I explore it visually?        | `server`                   |
-| [Static render](https://okfgem.com/docs/cli/render/)                  | Can I ship a serverless snapshot? | `render`                   |
-| [Library API](https://okfgem.com/docs/library/)               | Can my Ruby program use it?       | in-process                 |
-
-And because knowledge rarely lives in one bundle, a per-user
-[registry](.okf/registry.md) gives each bundle a name: `okf registry set ./docs`
-once, then `@docs` works anywhere a `<dir>` does — from any directory — and a
-bare `okf server` hosts every registered bundle behind one hub.
+_The picture is the baseline gem — the kernel, and the CLI, Graph and MCP
+surfaces over it. `okf tui` and `okf pro` arrive through the same plugin seam,
+and every door is listed in
+[What is in this repository](#what-is-in-this-repository)._
 
 > [!TIP]
-> **Browse the gem as knowledge, not just docs.** This README is the front door;
-> the depth lives in the [`.okf/`](.okf) bundle this repo ships. Start at the
-> [overview](.okf/overview.md), then follow the graph into the
-> [capabilities](.okf/capabilities/) (what it does), the
-> [design constraints](.okf/design/) (why it stays this light), and the
-> [format itself](.okf/format/) (what it operates on). Run `okf server .okf` to
-> walk the same bundle as an interactive graph.
+> **Browse this repository as knowledge, not just docs.** This README is the
+> front door; the depth lives in the five OKF bundles it carries. Start at the
+> [ecosystem map](.okf) — the [gems](.okf/gems/), the [plugin](.okf/plugin/),
+> the [skills](.okf/skills/), the [decisions](.okf/decisions/) and the
+> [format itself](.okf/format/) — then open a gem's own bundle for its code:
+> [`gems/okf/.okf/`](gems/okf/.okf). Run `okf server .okf` to walk the map as an
+> interactive graph, or `okf search @all <term>` to reach every bundle at once.
 
 **It installs on the Ruby your OS already ships** — every Ruby since 2.4, three
 small dependencies, no native extension and no build step — so there is nothing
 to provision and nothing to keep up to date. The
-[design constraints](.okf/design/) that hold that line are enforced by tests on
-every supported Ruby.
+[design constraints](gems/okf/.okf/design/) that hold that line are enforced by
+tests on every supported Ruby.
 
-## Installation
+## What is in this repository
 
-> **In Claude Code**, the plugin is the fastest path: two commands install the whole
-> toolchain (skill, `/okf:gem`, and the curation hook). See
-> [Claude Code plugin](#claude-code-plugin). Everywhere else, install the gem:
+Every top-level name is a boundary, and the whole menu is one row each. A
+directory under `gems/` is a gem, named for the gem it ships; everything else at
+the root is named for what it is.
 
-```bash
-gem install okf
-# or, in a project
-bundle add okf
-```
-
-Tested and supported on every Ruby from **2.4 through 4.0**. From a checkout,
-`bundle exec rake install` builds and installs it locally.
-
-### No Ruby? Use Docker
-
-The official image bundles the CLI, so every `okf` command runs against a bundle
-you mount at `/data`:
-
-```bash
-docker run --rm -v "$PWD:/data" ghcr.io/serradura/okf validate .
-docker run --rm -v "$PWD:/data" -p 8808:8808 ghcr.io/serradura/okf server . --bind 0.0.0.0
-```
-
-Tired of the long line? The Docker-backed [`okf` command](https://docker.okfgem.com)
-drops the prefix so every verb reads exactly like the native CLI:
-
-```bash
-curl -fsSL https://docker.okfgem.com/install.sh | sh   # PowerShell: irm https://docker.okfgem.com/install.ps1 | iex
-okf validate .
-okf server .
-```
-
-Images are published for `linux/amd64` and `linux/arm64` on
-[ghcr.io](https://github.com/serradura/okf-gem/pkgs/container/okf).
-
-## Where to go next
-
-Installed. The rest of this page is each surface the gem gives you over a bundle,
-in the order most people meet them:
-
-- **[The graph](#the-graph)** — the whole bundle on one page, live or baked into a
-  single HTML file you can host anywhere. Start here if you want to *see* it.
-- **[Agent skill](#agent-skill)** — the verbs your agent runs to author, maintain
-  and answer from a bundle, so you stay the editor rather than the typist.
-- **[Claude Code plugin](#claude-code-plugin)** — that skill, a slash command and a
-  post-edit curation hook, in two lines.
-- **[Command line](#command-line)** — every view as scannable text or as JSON, with
-  exit codes stable enough to gate CI on.
-- **[Library](#library)** — `OKF::Bundle` in your own Ruby, and the graph as a Rack
-  app you can mount in an app you already have.
-- **[Extending okf](#extending-okf-and-running-it-safely)** — ship a verb as a gem,
-  and what the page does and does not trust in a bundle you did not write.
-
-Full reference for every verb and flag lives in
-**[the docs](https://okfgem.com/docs/)**.
+| Door | What lives there |
+| ---- | ---------------- |
+| [`gems/okf/`](gems/okf/README.md) | the `okf` gem — the agent skill, the CLI and library, ranked search, the graph. Everything above describes this one |
+| [`gems/okf-mcp/`](gems/okf-mcp/README.md) | `okf mcp` — the MCP server over the same kernel: 14 read tools, any MCP host |
+| [`gems/okf-tui/`](gems/okf-tui/README.md) | `okf tui` — the full-screen terminal UI, over one bundle or every registered one |
+| [`gems/okf-pro/`](gems/okf-pro/README.md) | `okf pro` — writes an agent's knowledge repository, then enforces it at three doors |
+| [`plugin/`](#claude-code-plugin) | the Claude Code plugin: that skill, `/okf:gem`, and a post-edit curation hook |
+| [`.claude-plugin/`](.claude-plugin) | the marketplace manifest — this repository is its own marketplace |
+| [`skills/`](#the-skill-without-the-gem) | the skills a generic installer reads: `okf`, and `okf-principles` |
+| [`resources/`](resources/ci/github/README.md) | copy-paste recipes — today, CI that validates and lints your bundles on every push |
+| [`.okf/`](.okf) | the ecosystem map: a concept per gem, per plugin item, per skill — plus the decisions and the format |
+| [`.okf-registry.json`](.okf-registry.json) | every bundle in this tree, addressable as `@slug` from anywhere in it |
+| [`Dockerfile`](Dockerfile) | builds the published image from `gems/okf/`, from a root build context |
+| [`.github/`](.github/workflows) | the CI workflows, and the images this page renders |
+| [`.claude/`](.claude/CLAUDE.md) | one line, pointing Claude Code at [`AGENTS.md`](AGENTS.md) |
 
 ## The graph
 
@@ -276,123 +227,8 @@ _The graph server on this repo's own [`.okf`](.okf) bundle, with the `overview`
 concept selected. Try it live at
 **[demo.okfgem.com](https://demo.okfgem.com)**._
 
-One page, from a phone to a desktop: the navigation rail becomes a drawer, the
-toolbar folds into a `⚙` sheet, and a tap opens a preview card at the bottom edge
-rather than a panel over the whole viewport, so the graph stays live while you
-read. Drag the card up for the neighbourhood, tap a link and it walks there in
-place.
-
-It is keyboard-first: **`⌘/Ctrl-K`** opens a command palette that searches
-concepts, jumps to a view, and — behind a [hub](#one-registry-many-bundles) —
-switches bundles. **`/`** jumps to the current view's search, **`?`** answers with
-every shortcut. Cluster mode boxes the graph by directory and nests as deep as
-your tree does.
-
-To skip the server entirely, **`okf render <dir>`** writes that same page as one
-self-contained HTML file, the whole bundle baked in, so you can publish the graph
-on GitHub Pages or any static host.
-
-### One registry, many bundles
-
-The [registry](.okf/registry.md) is a per-user, ordered list of bundles in one
-plain JSON file (`$OKF_HOME/registry.json`, default `~/.okf`) — hand-editable,
-greppable, no database. It stores references, never content: the bundles stay in
-the repos that own them.
-
-```bash
-okf registry set ./docs --as handbook   # give the bundle a name
-okf lint @handbook                      # @slug works wherever a <dir> does, from anywhere
-okf search @all rate limit              # ranked retrieval across every registered bundle
-okf server                              # no args: the whole registry behind one hub
-```
-
-Related bundles can share a name: `okf registry group backend @handbook @runbooks`
-makes `@backend` stand for the set (members can be groups too, so they nest), and
-`okf search @backend rate limit` or `okf server @backend` then targets all of them
-at once — a durable subset for the two verbs that take several bundles.
-
-The registry lives under `$OKF_HOME` (default `~/.okf`) — one per user. For one
-scoped to a single project instead, `okf registry init` drops a
-`.okf-registry.json` in the current directory; okf then discovers it by walking up
-from wherever you run, and every registry op — and every `@slug` — resolves through
-it in place of the global one. So a bare `okf server` inside that repo serves *its*
-bundles with no `$OKF_HOME` setup. The nearest registry wins, and
-`OKF_NO_DISCOVERY=1` forces the global one.
-
-Commit that file and it travels with the repo: a bundle under the project root is
-stored relative to the registry, so a checkout on another machine — or a container
-that mounts the repo — resolves the same bundles unchanged. (Bundles outside the
-tree keep absolute paths, which do not travel.)
-
-Behind the hub each bundle mounts at `/b/<slug>/`, `/b/` lists them all, and the
-`⌘/Ctrl-K` palette both switches bundles and **searches every one at once** — type
-a few words and the matching concepts appear with their bundle and a snippet, from
-wherever you are.
-
-The ⚙ rail opens **Bundles**, the registry on the graph page itself: make
-default, rename, remove, where you are already reading. Those controls are the one
-thing that does not follow you onto a network — bind anywhere but loopback and
-they are refused outright, since `--bind 0.0.0.0` is how a personal tool becomes a
-public one.
-
-## Agent skill
-
-The gem carries the [companion OKF agent skill](.okf/capabilities/agent-skill.md):
-a `SKILL.md` plus reference and template files that teach a coding agent to
-author, maintain, and consume OKF bundles and to drive the
-[commands below](#command-line).
-Because the skill ships inside the gem, installing the gem already puts the skill
-on your machine, and the skill's CLI reference can never drift from the
-executable it was released with.
-
-The skill routes a small set of verbs. In Claude Code they run as `/okf:gem
-<verb>`; used standalone, the skill infers the verb from your request.
-
-| Verb             | What it does                                                                                                |
-| ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| _(none)_         | Orient on the bundle and recommend the highest-value next move                                              |
-| `search`         | Answer a question from the bundle, token-lean: the map, the finder, only the winning bodies                 |
-| `produce`        | Create or extend a bundle from code, docs, or knowledge in people's heads                                   |
-| `migrate`        | Adopt existing Markdown docs in place: frontmatter and reserved files added, bodies kept verbatim           |
-| `maintain`       | Sync the bundle's content with reality after the code or docs change                                        |
-| `refine`         | Restructure it for retrieval: evidence-first, cohesion over balance — proposes, never applies               |
-| `consume`        | Use the bundle as context for a task, writing back what you learn                                           |
-| `curate`         | Structural upkeep as it stands: `validate` + `lint` + `loose`                                               |
-| `doctor`         | Install and verify the CLI, then doctor the bundle                                                          |
-| `<okf-cli-verb>` | Run any CLI verb (`validate`, `lint`, `search`, `index`, `server`, the read views) and interpret its output |
-
-Three of those look alike and are not, which is the distinction worth learning
-first: **`curate`** keeps the bundle *sound* (the structure as it stands),
-**`maintain`** keeps it *true* (the code changed, so the content must catch up),
-and **`refine`** changes *where knowledge lives* — the folder a concept sits in,
-a fact re-explained in three overviews. Reach for `refine` when nothing is wrong
-and everything is hard to find. It reads the evidence, then hands you a proposal
-— it never rearranges your bundle on its own.
-
-Point it at your agent's config directory and the tree settles in its own
-`skills/okf/` folder, so a shared skills directory never gets the files loose:
-
-```bash
-okf skill .claude     # Claude Code      -> .claude/skills/okf
-okf skill .agents     # agent-agnostic   -> .agents/skills/okf
-```
-
-The resolved directory must be empty unless you pass `--force`, so a customized
-skill is never clobbered.
-
-**Without the gem**, any agent that reads `SKILL.md` installs it straight from
-this repository:
-
-```bash
-npx skills add serradura/okf-gem                          # choose from the list
-npx skills add serradura/okf-gem --skill okf -a codex     # or name skill and agent
-```
-
-That path installs a generated copy — `rake skill:sync` writes it from the same
-canonical tree the gem ships, and the build fails on any drift — so it tracks
-this repository rather than the `okf` on your machine. `okf-principles` sits
-beside it: the five structural principles the format implies, written to be
-pointed at any instruction artifact rather than at a bundle.
+What the page does, and how `okf render` bakes the same thing into one static
+file: [`gems/okf/README.md`](gems/okf/README.md#the-graph).
 
 ## Claude Code plugin
 
@@ -400,11 +236,11 @@ This repository doubles as a Claude Code plugin marketplace, so the whole
 toolchain installs with two commands inside Claude Code:
 
 ```
-/plugin marketplace add serradura/okf-gem
+/plugin marketplace add serradura/okf
 /plugin install okf@okfgem
 ```
 
-The plugin carries three pieces: the [`okf` skill](#agent-skill) above;
+The plugin carries three pieces: the [`okf` skill](gems/okf/README.md#the-agent-skill);
 **`/okf:gem`**, a front door that hands its arguments to the skill unchanged (no
 arguments: it orients on your bundle and recommends the next move, never
 auto-runs); and a **curation hook** that runs `okf validate` + `okf lint` after
@@ -420,130 +256,31 @@ Prefer no plugin? `gem install okf && okf skill .claude` installs the skill
 alone, and the skill itself instructs the agent to run the same checks after
 editing a bundle.
 
-## Command line
+## The skill, without the gem
 
-These verbs are written to be read by an **agent first and a person second** —
-that is what the skill drives, with no wrapper in between. Every read verb takes
-`--json`, the list views project down to the fields you ask for
-(`--fields`/`--except`), so nothing pays for output it will not read, and the
-exit codes are stable enough to branch on in CI. The same commands render as
-scannable plain text when a human is the one looking.
+**Without the gem**, any agent that reads `SKILL.md` installs it straight from
+this repository:
 
 ```bash
-okf validate  <dir|@slug>                        # is this legal OKF?
-okf lint      <dir|@slug> [--fail-on warn]       # is it navigable, complete, fresh?
-okf loose     <dir|@slug>                        # concepts with no links in or out
-okf search    <dir|@slug…|@all> <term…>          # ranked retrieval; @all spans every bundle
-okf index     <dir|@slug> [--dir D] [--depth N]  # the §8 map: index bodies, rollups, listings
-okf dirs      <dir|@slug> [--dir D] [--depth N]  # the shape: every directory and what it holds
-okf catalog | files | tags | types | stats  <dir|@slug>   # the browser views, on the CLI
-okf references <dir|@slug>                       # the references/ inventory: files, citers, dangling pointers
-okf graph     <dir|@slug> [--hubs] [--traffic]   # the raw graph; --hubs ranks concepts, --traffic dirs
-okf server    [DIR|@slug…] [-p PORT] [--bind ADDR]   # the live graph: one bundle, or all of them
-okf render    <dir|@slug> [-o FILE]              # the same page as one static, self-contained file
-okf registry  init | list | set | del | default | rename | group | ungroup   # name & group your bundles; @slug works anywhere
-okf skill     <dest>                             # install the companion agent skill
-okf --version
+npx skills add serradura/okf                          # choose from the list
+npx skills add serradura/okf --skill okf -a codex     # or name skill and agent
 ```
 
-Exit codes: `0` success, `1` non-conformant bundle (or a `lint --fail-on`
-threshold crossed), `2` usage error. Every flag is in `okf <verb> --help` and in
-[the docs](https://okfgem.com/docs/).
-
-```bash
-$ okf validate docs
-OKF v0.2 conformance — docs
-  concepts: 37   index.md: 10   log.md: 1
-  ! warn  features/link-suggestions.md: cross-link target not found: `/graph-view.md` (tolerated under §6.1)
-  …
-  ✓ conformant (33 warning(s))
-
-$ okf server docs
-serving 37 concepts at http://127.0.0.1:8808 (Ctrl-C to stop)
-
-$ okf render docs > public/index.html   # the same page, static — host it anywhere
-```
-
-### Reading a big bundle a level at a time
-
-A few hundred concepts is a map nobody reads whole, so `index` and `dirs` descend
-instead of dumping. `--dir` takes a directory **and everything under it**,
-`--depth N` bounds how far below that it goes, and the two compose the way you
-actually walk a tree:
-
-```bash
-okf dirs  @handbook                       # the shape: every dir, what it holds directly and below
-okf index @handbook --depth 1 --no-body   # the top of the map, no prose
-okf index @handbook --dir platform/api    # now open one branch — with the chain that places it
-```
-
-Naming a `--dir` brings its ancestors along, marked `↑`, so a branch is never
-shown adrift of the context that says what it is — the root `index.md`'s prose
-first among it.
-
-For an agent the saving is the whole point. On a 400-concept bundle the full
-`okf index --json` is 313 KB; the skeleton it orients on is 2.8 KB:
-
-```bash
-okf index @handbook --json --depth 1 --except body,listing
-```
-
-## Library
-
-`require "okf"` gives you the whole thing as Ruby objects — two layers: pure
-in-memory data (`OKF::Concept`, `OKF::Bundle`) you build and analyze with no disk
-involved, and on-disk handles (`OKF::Concept::File`, `OKF::Bundle::Folder`) that
-add load/save/reload/delete, an "ActiveRecord for the filesystem".
-
-```ruby
-require "okf"
-
-folder = OKF::Bundle::Folder.load("docs")
-folder.concepts                  # => [OKF::Concept]
-folder.validate                  # => §11 conformance result
-folder.lint                      # => curation report
-folder.graph                     # => nodes, edges, indexes
-
-require "okf/server/app"
-OKF::Server::App.new(folder)     # => a Rack app: the interactive graph, mountable
-```
-
-That last line is the point of the Rack app: the graph mounts inside an app you
-already have, auth included. The [Rails guide](https://okfgem.com/docs/guides/rails/)
-walks it, and the [library API](https://okfgem.com/docs/library/) covers
-the pure layer, the writer, and the lower-level pieces.
-
-### validate and lint are two different questions
-
-`validate` (the [conformance validator](https://okfgem.com/docs/cli/validate/)) asks
-_"is this legal OKF?"_ and implements the spec's
-[§11](okf/lib/okf/skill/reference/SPEC.md#11-conformance) exactly — which means it is
-*forbidden* to reject a bundle for a broken link or a missing optional field.
-
-`lint` (the [curation linter](https://okfgem.com/docs/cli/lint/)) asks the
-complementary question, _"is this well-curated, navigable, trustworthy?"_, over
-exactly those tolerated things: reachability, backlog, completeness, freshness,
-provenance, attestation, migration, hygiene. It is advisory and exits `0` even
-with findings unless you pass `--fail-on warn` (or, to gate a
-[migration campaign](https://okfgem.com/docs/) on the two findings that name a
-bundle's leftover v0.1 spellings and nothing else,
-`--only legacy_timestamp,legacy_citations --fail-on info`).
-
-Keeping them apart is what lets you gate CI on conformance without gating it on
-taste. `lint --json` is also the structured input an agent reads to reason about
-the two things no checker can compute — contradictions, and *semantic* staleness.
+That path installs a generated copy — `rake skill:sync` writes it from the same
+canonical tree the gem ships, and the build fails on any drift — so it tracks
+this repository rather than the `okf` on your machine. `okf-principles` sits
+beside it: the five structural principles the format implies, written to be
+pointed at any instruction artifact rather than at a bundle.
 
 ## Extending okf, and running it safely
 
 Publish a gem named `okf-*` carrying an `okf/plugin.rb` and installing it is the
 whole installation: your verb answers to `okf` and behaves like a built-in.
 Nothing an addon registers can displace one, and a broken addon is skipped rather
-than taking the CLI down. Three ship here: `okf-mcp` adds `okf mcp`, the MCP
-server any agent host can read a bundle through; `okf-tui` adds `okf tui`, the
-full-screen terminal UI; and `okf-pro` adds `okf pro`, which writes an
-agent's knowledge repository — bundle, hooks, pre-commit, CI, skill — and then
-enforces it at all three doors. None of them needs a line of the baseline to
-know it exists.
+than taking the CLI down. The three siblings above arrive exactly this way —
+`okf-mcp`, `okf-tui` and `okf-pro` each ship an `okf/plugin.rb` and no
+executable of their own — and none of them needs a line of the baseline to know
+it exists. Yours would be the fourth, on the same terms.
 Contract and threat model:
 [extension points](.okf/design/extension-points.md).
 
@@ -552,23 +289,7 @@ every concept body is sanitized before it reaches the DOM, so a script hidden in
 Markdown is stripped rather than run. It still loads libraries from a CDN, so
 treat an unfamiliar bundle the way you would treat any document from a source you
 do not know. Full write-up:
-[server trust boundary](.okf/design/server-trust-boundary.md).
-
-## This repository
-
-A monorepo, one directory per gem, each named for the gem it ships. `okf/` is the
-baseline — the all-in-one everything above describes — and the ecosystem grows
-beside it.
-
-```
-okf/              the okf gem: skill, CLI, library, graph      → okf/README.md
-okf-mcp/          the MCP server over the same kernel          → okf-mcp/README.md
-okf-tui/          the terminal UI over the same kernel         → okf-tui/README.md
-okf-pro/        the scaffold and the gates over the same kernel → okf-pro/README.md
-plugin/           the Claude Code plugin (this repo is its marketplace)
-.okf/             this project's own knowledge, as an OKF bundle
-Dockerfile        builds the published image from okf/
-```
+[server trust boundary](gems/okf/.okf/design/server-trust-boundary.md).
 
 ## Development
 
@@ -577,17 +298,16 @@ From the repo root — plain `rake`, there is no root Gemfile:
 ```bash
 rake              # every gem's default task (tests + RuboCop), then the repo-level lint
 rake test         # every gem's test suite
-rake okf          # validate + lint every .okf bundle in the repo
+rake okf          # validate + lint every registered .okf bundle
 rake serve        # browse this project's own bundle as a graph
 ```
 
-From any gem's directory, for work on that gem — `cd okf-mcp`, `cd okf-tui` or
-`cd okf-pro` follows the same three commands, and each has its own README and
-CI job. From
-`okf/`, for work on the baseline itself:
+From any gem's directory, for work on that gem — `cd gems/okf-mcp`, `cd
+gems/okf-tui` or `cd gems/okf-pro` follows the same three commands, and each has
+its own README and CI job. From `gems/okf`, for work on the baseline itself:
 
 ```bash
-cd okf
+cd gems/okf
 bin/setup               # install dependencies
 bundle exec rake        # tests + RuboCop (what CI runs)
 bundle exec rake test   # just the test suite
@@ -599,17 +319,17 @@ repo root:
 
 ```bash
 docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
-  "cp -a /src /build && cd /build/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
+  "cp -a /src /build && cd /build/gems/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
 ```
 
 The graph page has its own suite in a real browser (`bundle exec rake
-browser:setup`, then `rake test:browser`, both from `okf/`). See
+browser:setup`, then `rake test:browser`, both from `gems/okf/`). See
 [AGENTS.md](AGENTS.md) for the maintainer guide.
 
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at
-<https://github.com/serradura/okf-gem>. This project is intended to be a safe,
+<https://github.com/serradura/okf>. This project is intended to be a safe,
 welcoming space for collaboration, and contributors are expected to adhere to
 the [code of conduct](CODE_OF_CONDUCT.md).
 
@@ -625,5 +345,5 @@ license, Copyright (c) Google LLC. See `NOTICE` and
 [okf-skills](https://github.com/scaccogatto/okf-skills) by Marco Boffo, a Python
 OKF toolkit for Claude Code with a feature-rich interactive graph view, was an
 early inspiration for this gem's Claude Code plugin and for the knowledge-as-code
-comparison in [Why OKF](#why-okf). okf-gem takes a different shape: a Ruby-native
+comparison in [How it compares](#how-it-compares). okf takes a different shape: a Ruby-native
 gem built around the `okf` CLI and an embeddable library.

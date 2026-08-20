@@ -1,0 +1,53 @@
+---
+type: Constraint
+title: The Ruby 2.4 floor
+description: The gem runs on every Ruby since 2.4 so it works on the interpreter an OS already ships.
+tags: [ruby, portability]
+generated:
+  by: human:maintainer
+  at: 2026-07-17T16:00:00Z
+sources:
+  - title: gems/okf/okf.gemspec
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/okf.gemspec
+  - title: gems/okf/AGENTS.md — The contract
+    resource: https://github.com/serradura/okf/blob/main/gems/okf/AGENTS.md
+---
+
+# Overview
+
+`required_ruby_version >= 2.4.0`. The point is to run on the Ruby an operating
+system already ships, without asking anyone to install a newer one — the same
+floor as [rack](runtime-dependencies.md), the gem's core dependency. This is why
+the gem stays deliberately light.
+
+# The floor bans APIs RuboCop won't catch
+
+RuboCop parses at 2.4 and catches syntax, but **not** newer standard-library
+methods, so those are a manual discipline. A non-exhaustive list of what is off
+limits:
+
+- **2.5** — `delete_prefix`/`delete_suffix`, `transform_keys`, `Dir.children`,
+  `yield_self`;
+- **2.6** — `to_h { }`, `then`, endless string slices `str[i..]`, `YAML.safe_load`
+  keyword args (allowed **only** inside the
+  Frontmatter shim (`@okf-eco format/frontmatter`));
+- **2.7** — `filter_map`, `tally`, numbered block params;
+- **3.x** — endless methods, hash shorthand.
+
+These constraints apply to `okf/test/` too, because the suite runs on 2.4 as well.
+
+# The truth test
+
+"Works on my Ruby" is not verification here. The floor is checked in CI across
+every supported Ruby, and locally by copying the tree into a throwaway build dir,
+dropping `Gemfile.lock` (the lockfile is written by a modern Bundler that 2.4's
+own cannot read), and mounting the checkout **read-only** so the run cannot write
+one back. Run it from the **repository root** — `$PWD` becomes `/src`, and the
+command steps into the gem on the other side, because the floor is a property of
+`okf` rather than of the repository and the siblings (`@okf-eco decisions/monorepo-layout`) will
+not share it:
+
+```bash
+docker run --rm -v "$PWD":/src:ro ruby:2.4 bash -c \
+  "cp -a /src /build && cd /build/okf && rm -f Gemfile.lock && bundle install --quiet && bundle exec rake test"
+```

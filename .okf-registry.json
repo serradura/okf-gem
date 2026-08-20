@@ -1,0 +1,30 @@
+{
+  "bundles": [
+    {
+      "slug": "okf-eco",
+      "path": ".okf",
+      "title": "the OKF ecosystem"
+    },
+    {
+      "slug": "okf-tui",
+      "path": "gems/okf-tui/.okf",
+      "title": "okf-tui"
+    },
+    {
+      "slug": "okf-pro",
+      "path": "gems/okf-pro/.okf",
+      "title": "okf-pro"
+    },
+    {
+      "slug": "okf-mcp",
+      "path": "gems/okf-mcp/.okf",
+      "title": "okf-mcp"
+    },
+    {
+      "slug": "okf",
+      "path": "gems/okf/.okf",
+      "title": "okf"
+    }
+  ],
+  "groups": []
+}
