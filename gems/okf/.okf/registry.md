@@ -1,7 +1,7 @@
 ---
 type: Component
 title: The bundle registry
-description: An ordered list of bundle references persisted as JSON — global under $OKF_HOME, or project-local via `okf registry init` and discovered from the working directory — the kernel behind a bare `okf server`.
+description: An ordered list of bundle references persisted as JSON — global under $OKF_HOME, or project-local via `okf registry init` and discovered from the working directory, and composable through links to other registry files — the kernel behind a bare `okf server`.
 resource: gems/okf/lib/okf/registry.rb
 tags: [cli, shell, registry]
 generated:
@@ -238,6 +238,14 @@ users who set up a project registry. The escape hatch is therefore a per-invocat
 signal, not a second sticky variable — `OKF_NO_DISCOVERY=1`, set inline, forces the
 global registry for a fixed-cwd caller (CI, a tool) that cannot just `cd` out.
 
+`-g`/`--global` is that same signal spelled as an argument, and it is the
+`registry` umbrella's alone (see [the CLI](cli.md#one-lever-not-two)). It exists
+because a lever reachable only through an env var is a lever most users never
+find — and the umbrella is the one verb whose *subject* is a registry file, so
+naming which file to act on is an argument to it rather than a flag bolted onto
+fourteen unrelated verbs. `init` is the exception that proves it: its whole job is
+to create a *local* file, so `-g` there names nothing and is refused.
+
 # A project-local registry stores portable paths
 
 The global registry stores absolute paths — correct for `~/.okf`, whose bundles
@@ -256,6 +264,81 @@ file, invisible to every consumer. And because only the write side relativizes, 
 existing absolute local entry migrates to relative on its next write: a registry
 written before this existed heals itself the first time it changes.
 <!-- rule:okf-registry-local-discovery -->
+
+# Links: the global registry composes other registry files
+
+A **link** is a pointer from the global registry to another registry file. That
+file's bundles resolve through the pointer at read time, under their own slugs,
+and nothing is copied — the same "stores references, never content" rule the
+entries keep, one level up. `okf registry link onm ~/ONM/registry.json` and
+`@onm-central` (or whatever slugs that file holds) answer here; the link name
+itself resolves as a group over exactly its bundles, so `@onm` is the set.
+
+The case it exists for is **a repository that already curates its own bundles**.
+This repo commits a `.okf-registry.json` naming five; before links, using them
+from `~/.okf` meant registering all five again by hand and re-syncing whenever
+the repo's list changed. A link points at the file the repo already maintains, so
+the curation is composed rather than duplicated, and it keeps resolving its own
+relative paths because the target is anchored on its own directory — exactly as
+it would from inside that checkout. Two registry files stop being two worlds you
+switch `$OKF_HOME` between and become one view.
+
+**Only the global registry follows links.** A project-local one parses them and
+preserves them across a write, but never resolves them — and that single
+restriction is the whole depth rule. A linked file's own links are not read, so
+no chain forms, no prefix compounds, and there is no cycle to detect. The
+alternative was transitive resolution, and it fails on ownership rather than on
+effort: the target is a file this registry does not own, so a cycle-check at
+write time goes stale the moment someone adds a link back on the other side.
+Transitivity would move cycle detection from write time — cheap, one file,
+refusable — to read time, across N files, with nobody to blame. The groups above
+nest safely for exactly the reason links do not: every member lives in one file,
+behind one guard.
+<!-- rule:okf-registry-links-global-only -->
+
+# A linked name is minted around a collision, never refused
+
+A slug arriving from a linked file answers to itself when the name is free, and
+to `<link>-<slug>` when it is not (`-2` beyond that, through the same `dedupe` a
+basename goes through). That is the [implicit is forgiving, explicit is
+strict](#slugs-implicit-is-forgiving-explicit-is-strict) table one row wider, and
+the row falls on the forgiving side for the reason the table gives: a name in
+someone else's file was never *chosen* here, so inventing around it is licensed —
+while refusing would let one foreign row take down an entire link. The link
+*name* is the strict half, and is refused on collision like any `--as`: you typed
+that one.
+
+Precedence is fixed so the derivation is reproducible: the registry's own bundles
+always win the bare name, and between links the file's order decides. Both are
+position, which is state the registry already keeps — the same reason the
+[default](#the-default-is-a-position-not-a-stored-name) is one.
+
+What this costs, and it is the design's one genuinely computed name: a slug can
+*move* when an unrelated link is added. Everything else in this file is stable in
+the file. The mitigation is disclosure rather than a mechanism — `registry link`
+says what it moved as it writes, and `registry list` prints the moved row with the
+slug it carries in its source file (`onm-central … [central]`), which is the only
+place a shifted ref is visible. Linked entries also append **after** the local
+ones, so while this registry owns any bundle at all the default stays local.
+
+# A link is read-only, and the refusal lives in the model
+
+`rename`, `del`, `default`, `set --as` and `group` all refuse a slug a link owns,
+with a message naming the file that does own it and the `unlink` that would drop
+it. Two of those are worth their own line. A **group** may not hold a linked slug:
+a group stores names, and a linked name lives only while its link resolves, so
+holding one would dangle the group the moment the link goes — the foreign key the
+default rule already refused. And **`registry set` on a directory a link already
+carries** is refused rather than quietly adding a twin, because entries are
+identified by path and the path is already spoken for.
+
+The refusals live in this class, not in the [CLI](cli.md), and that placement is
+load-bearing: the graph page's ⚙ Bundles panel posts into these same methods
+([bundles manager](capabilities/bundles-manager.md)), so a guard one layer up
+would leave the browser doing what the terminal refuses. A link whose target has
+gone or cannot be parsed is *reported* — `(missing)`, `(unreadable)` — and
+resolves to nothing, the same tolerance a vanished bundle directory gets, because
+one dead pointer must not take down the registry that holds it.
 
 # It costs an embedding app nothing
 

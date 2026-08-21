@@ -1,5 +1,31 @@
 # Update Log
 
+## 2026-08-21
+
+* **The [registry](/registry.md) composes other registry files, and its umbrella
+  grew a `-g`.** A repository that curates its own bundles — this one commits a
+  `.okf-registry.json` naming five — could not lend that curation to `~/.okf`
+  without registering every row again by hand and re-syncing forever. `okf
+  registry link <name> <file>` points the global registry at the file instead:
+  its bundles resolve here at read time under their own slugs, `@<name>` is the
+  set, and nothing is copied, so the target goes on owning its rows. Two
+  restrictions carry the whole design. Only the *global* registry follows links,
+  which makes depth one structural rather than enforced — a linked file's own
+  links are never read, so no chain forms and there is no cycle to detect. And a
+  link is read-only: `rename`, `del`, `default`, `set --as` and `group` all
+  refuse a slug it owns, from the `⚙ Bundles` panel as from the terminal, because
+  the guard lives in the model rather than in the [CLI](/cli.md).
+
+  A linked name is minted around a collision rather than refused (`central` →
+  `onm-central`), which is the "implicit is forgiving" rule reaching a name this
+  registry did not choose — and it is the design's one *computed* slug, so
+  `registry list` prints the moved row with the name it carries in its source
+  file. `-g`/`--global` is the smaller half: `OKF_NO_DISCOVERY=1` already forced
+  the global registry, but a lever reachable only through an env var is one most
+  people never find. It is the `registry` umbrella's alone — the one verb whose
+  subject *is* a registry file — so [the env-var rule](/cli.md#one-lever-not-two)
+  keeps its scope rather than losing its edge.
+
 ## 2026-08-19
 
 * **This bundle became okf's own, and holds everything about okf.** It began the

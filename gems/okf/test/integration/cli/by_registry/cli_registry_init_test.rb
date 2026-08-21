@@ -20,7 +20,7 @@ module ByRegistry
       assert_equal "initialized ./#{LOCAL}\n", result.out
       created = File.join(Dir.pwd, LOCAL)
       assert_path_exists created, "the file lands in cwd, which the harness pins to a scratch dir"
-      assert_equal({ "bundles" => [], "groups" => [] }, JSON.parse(File.read(created)),
+      assert_equal({ "bundles" => [], "groups" => [], "links" => [] }, JSON.parse(File.read(created)),
         "a fresh local registry is empty, not seeded with cwd")
     end
 

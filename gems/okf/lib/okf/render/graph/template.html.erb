@@ -3148,7 +3148,8 @@ function bridgeReport(v,shown,total){if(bridge)bridge.report(v,shown,total);}
 
  function row(b){
   const cur=b.mount!==null&&b.mount===SELF_SLUG;
-  const pills=(b['default']?'<span class="ws-pill def">default</span>':'')+(cur?'<span class="ws-pill cur">current</span>':'');
+  const pills=(b['default']?'<span class="ws-pill def">default</span>':'')+(cur?'<span class="ws-pill cur">current</span>':'')+
+   (b.link?'<span class="ws-pill">via @'+esc(b.link)+'</span>':'');
   /* A row the hub could not load links nowhere, because there is nowhere to
      link — but it is still a row: "where did my bundle go?" is the question it
      exists to answer. */
@@ -3165,7 +3166,10 @@ function bridgeReport(v,shown,total){if(bridge)bridge.report(v,shown,total);}
    '<div class="ws-meta">'+(where?'<span class="ws-where">'+esc(where)+'</span>':'')+count+
    '<span class="ws-health '+esc(b.health)+'">'+esc(b.word)+'</span></div>'+
    (editing===b.slug?edit(b):'')+(confirming===b.slug?confirm(b):'')+'</div>';
-  return '<div class="ws-row" data-slug="'+esc(b.slug)+'">'+body+(manageable()?menuBtn(b):'')+'</div>';}
+  /* No menu on a linked row: the registry that owns it is another file, so
+     rename/remove/default are refused there and offering them here would be a
+     menu of three errors. It is listed, opened and searched like any other. */
+  return '<div class="ws-row" data-slug="'+esc(b.slug)+'">'+body+(manageable()&&!b.link?menuBtn(b):'')+'</div>';}
 
  function menuBtn(b){
   return '<button class="ws-menu-btn" type="button" aria-haspopup="true" aria-expanded="false" '+

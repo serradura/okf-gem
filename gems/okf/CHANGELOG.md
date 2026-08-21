@@ -5,6 +5,45 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`okf registry link <name> <file>` — the global registry points at another
+  registry file, and that file's bundles resolve here.** Nothing is copied: the
+  target keeps owning its rows, so an edit there shows on the next read. The case
+  it exists for is a repository that already curates its own bundles in a
+  committed `.okf-registry.json` — a link composes that curation instead of
+  duplicating it, and the target resolves its own relative paths exactly as it
+  would from inside that checkout. A linked bundle answers to its own slug, or to
+  `<name>-<slug>` when the name is already taken here; `@<name>` resolves as a
+  group over the set; `okf registry unlink <name>` drops it.
+
+  Links are the **global** registry's alone. A project-local one parses them and
+  never resolves them, which is what makes depth one structural — a linked file's
+  own links are never followed, so no chain forms and there is no cycle to guard.
+  A link is read-only: `rename`, `del`, `default`, `set --as` and `group` refuse a
+  slug it owns, naming the file that does, from the browser's ⚙ Bundles panel as
+  from the terminal. A target that has gone or cannot be parsed is listed
+  `(missing)`/`(unreadable)` and resolves to nothing, rather than taking down the
+  registry holding it.
+
+- **`-g`/`--global` on every `registry` subcommand but `init`.** It forces the
+  `$OKF_HOME` registry for one command, so `okf registry list -g` reads the global
+  one from inside a repo carrying its own, and `okf registry set <dir> -g`
+  registers there without leaving. `OKF_NO_DISCOVERY=1` already did this for a
+  whole session and still does; the flag exists because a lever reachable only
+  through an env var is one most people never find. It stays on the `registry`
+  umbrella — the one verb whose subject *is* a registry file — and nowhere else.
+
+### Changed
+
+- `okf registry list --json` gains a `links` array, and each bundle row gains
+  `link` (the link it arrived through, `null` when the registry owns it) and
+  `origin` (its slug in that file, differing only where a collision moved the
+  name). The on-disk registry gains a `"links"` key, written empty when there are
+  none; an older file with no such key reads unchanged.
+
 ## [2.1.1] - 2026-08-20
 
 ### Fixed

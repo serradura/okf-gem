@@ -10,7 +10,7 @@ module OKF
     class Registry < Command
       # The `registry` umbrella's subcommands — the dispatch, and the words a
       # flag-first invocation is checked against.
-      SUBCOMMANDS = %w[init set del list default rename group ungroup].freeze
+      SUBCOMMANDS = %w[init set del list default rename group ungroup link unlink].freeze
 
       def self.id
         :registry
@@ -29,7 +29,9 @@ module OKF
           [ "registry  default <@slug>", "move a bundle to the front (the default)" ],
           [ "registry  rename <@slug> <new>", "rename a bundle or group (<new> is a new name, not a ref)" ],
           [ "registry  group <slug> <@member…>", "create a group, or add members (search/server can target @slug)" ],
-          [ "registry  ungroup <slug> <@member…>", "remove members from a group (emptying it deletes it)" ]
+          [ "registry  ungroup <slug> <@member…>", "remove members from a group (emptying it deletes it)" ],
+          [ "registry  link <name> <file>", "point the global registry at another one (its bundles resolve here)" ],
+          [ "registry  unlink <name>", "drop a link and every bundle that arrived through it" ]
         ]
       end
 
@@ -46,6 +48,8 @@ module OKF
         when "rename" then registry_rename(argv.drop(1))
         when "group" then registry_group(argv.drop(1))
         when "ungroup" then registry_ungroup(argv.drop(1))
+        when "link" then registry_link(argv.drop(1))
+        when "unlink" then registry_unlink(argv.drop(1))
         else
           # A bare word that isn't a known subcommand is a typo (`registry remove x`
           # must not silently render the list and read as success).
@@ -66,6 +70,14 @@ module OKF
       end
 
       private
+
+      # `-g/--global` on every subcommand but `init`, whose whole job is to create
+      # a *local* file. One options hash per verb carries it to #open_registry.
+      def global_flag(parser, options)
+        parser.on("-g", "--global", "act on the global $OKF_HOME registry, ignoring a project-local one") do
+          options[:global] = true
+        end
+      end
 
       # Create a project-local .okf-registry.json in the current directory. Once it
       # exists, discovery finds it (walking up from cwd) and every registry op —
@@ -104,11 +116,12 @@ module OKF
       # path already registered refreshes its title in place, and --as renames it. A
       # new path is added, slugged by directory basename unless --as says otherwise.
       def registry_set(argv)
-        options = { as: nil, default: false }
+        options = { as: nil, default: false, global: false }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf registry set <dir|@slug> [--as SLUG] [--default]"
+          o.banner = "Usage: okf registry set <dir|@slug> [--as SLUG] [--default] [-g]"
           o.on("--as SLUG", "slug to register under (default: directory basename)") { |v| options[:as] = v }
           o.on("--default", "put it first — the bundle a bare `okf server` opens") { options[:default] = true }
+          global_flag(o, options)
           help_flag(o)
         end
         # No no_extras? here: positional_dir has already refused a trailing
@@ -116,7 +129,7 @@ module OKF
         # positional through `positional`, which does not check.
         dir = positional_dir(parser, argv) or return 2
 
-        reg = open_registry
+        reg = open_registry(global: options[:global])
         # Said before the upsert: after it, an update is indistinguishable from an
         # add, and "registered" for what was a rename reads as a duplicate entry.
         known = reg.listing.any? { |row| row[:dir] == File.expand_path(dir) }
@@ -135,14 +148,16 @@ module OKF
 
       # Remove a bundle from the persistent registry by slug or by its directory.
       def registry_del(argv)
+        options = { global: false }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf registry del <dir|@slug>"
+          o.banner = "Usage: okf registry del <dir|@slug> [-g]"
+          global_flag(o, options)
           help_flag(o)
         end
         slug = positional(parser, argv) or return 2
         no_extras?(argv) or return 2
 
-        reg = open_registry
+        reg = open_registry(global: options[:global])
         slug = registry_slug(slug, reg) or return 2
         removed = reg.remove(slug)
         return usage_error("no such bundle: #{slug}") unless removed
@@ -154,11 +169,12 @@ module OKF
       end
 
       def registry_list(argv)
-        options = { json: false }
+        options = { json: false, global: false }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf registry list [--json] [--pretty]\n       " \
+          o.banner = "Usage: okf registry list [--json] [--pretty] [-g]\n       " \
                      "okf registry set <dir|@slug> | del <dir|@slug> | default <@slug> | rename <@slug> <new>"
           json_flags(o, options, "emit the registry as JSON")
+          global_flag(o, options)
           help_flag(o)
         end
         begin
@@ -169,13 +185,14 @@ module OKF
         end
         no_extras?(argv) or return 2
 
-        reg = open_registry
+        reg = open_registry(global: options[:global])
         if options[:json]
-          groups = { "groups" => reg.groups_listing.map { |row| stringify(row) } }
-          return emit_list_json({ "registry" => reg.path }, "bundles", reg.listing.map { |row| stringify(row) }, options, groups)
+          extra = { "groups" => reg.groups_listing.map { |row| stringify(row) },
+                    "links" => reg.links_listing.map { |row| stringify(row) } }
+          return emit_list_json({ "registry" => reg.path }, "bundles", reg.listing.map { |row| stringify(row) }, options, extra)
         end
 
-        print_registry(reg)
+        print_registry(reg, global: options[:global])
         0
       rescue OKF::Error => e
         usage_error(e.message)
@@ -186,15 +203,17 @@ module OKF
       # meant to be hand-editable, so the move is stated rather than left to be
       # discovered from a reordered file.
       def registry_default(argv)
+        options = { global: false }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf registry default <@slug>\n       " \
+          o.banner = "Usage: okf registry default <@slug> [-g]\n       " \
                      "moves it to the front — the first registered bundle is the default until you do"
+          global_flag(o, options)
           help_flag(o)
         end
         slug = positional(parser, argv) or return 2
         no_extras?(argv) or return 2
 
-        reg = open_registry
+        reg = open_registry(global: options[:global])
         slug = registry_slug(slug, reg) or return 2
         reg.default = slug
         @out.puts "default bundle → #{reg.default.slug} (now first)"
@@ -225,8 +244,10 @@ module OKF
 
       # Rename a registered bundle's slug — its mount path and switcher name.
       def registry_rename(argv)
+        options = { global: false }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf registry rename <@slug> <new>"
+          o.banner = "Usage: okf registry rename <@slug> <new> [-g]"
+          global_flag(o, options)
           help_flag(o)
         end
         parser.parse!(argv)
@@ -237,7 +258,7 @@ module OKF
         end
         no_extras?(argv) or return 2
 
-        reg = open_registry
+        reg = open_registry(global: options[:global])
         # The old name may be a ref; the new one is a name being minted, never one.
         old_slug = registry_slug(old_slug, reg) or return 2
         entry = reg.rename(old_slug, new_slug)
@@ -256,8 +277,10 @@ module OKF
       # bare or as @refs; the model normalizes, unions, checks each names something,
       # and refuses a cycle. Only `search`/`server` can then target @slug.
       def registry_group(argv)
+        options = { global: false }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf registry group <slug> <@member…>"
+          o.banner = "Usage: okf registry group <slug> <@member…> [-g]"
+          global_flag(o, options)
           help_flag(o)
         end
         parser.parse!(argv)
@@ -267,7 +290,7 @@ module OKF
           return 2
         end
 
-        reg = open_registry
+        reg = open_registry(global: options[:global])
         group = reg.set_group(slug, argv)
         count = reg.expand(group.slug).size
         @out.puts "grouped #{group.slug} → #{group.members.map { |m| "@#{m}" }.join(", ")} " \
@@ -283,8 +306,10 @@ module OKF
       # Remove members from a group. Emptying it deletes the group — an empty group
       # resolves to nothing, so it is not worth keeping.
       def registry_ungroup(argv)
+        options = { global: false }
         parser = OptionParser.new do |o|
-          o.banner = "Usage: okf registry ungroup <slug> <@member…>"
+          o.banner = "Usage: okf registry ungroup <slug> <@member…> [-g]"
+          global_flag(o, options)
           help_flag(o)
         end
         parser.parse!(argv)
@@ -294,7 +319,7 @@ module OKF
           return 2
         end
 
-        reg = open_registry
+        reg = open_registry(global: options[:global])
         removed, emptied = reg.unset_group_members(slug, argv)
         name = OKF::Registry.normalize(slug)
         if emptied
@@ -312,25 +337,129 @@ module OKF
         usage_error(e.message)
       end
 
-      def print_registry(reg)
+      # Point the global registry at another registry file. Refused from a
+      # project-local one rather than silently retargeting: `link` writes, and a
+      # write that lands in a file the user is not standing in is the one surprise
+      # worth an error. -g is the way to say it on purpose.
+      def registry_link(argv)
+        options = { global: false }
+        parser = OptionParser.new do |o|
+          o.banner = "Usage: okf registry link <name> <file> [-g]"
+          global_flag(o, options)
+          help_flag(o)
+        end
+        parser.parse!(argv)
+        name, file = argv.shift(2)
+        if name.nil? || file.nil?
+          @err.puts parser.banner
+          return 2
+        end
+        no_extras?(argv) or return 2
+
+        reg = open_registry(global: options[:global])
+        return links_are_global(reg) if local_registry?(reg)
+
+        link = reg.link(name, file)
+        count = reg.links_listing.find { |row| row[:slug] == link.slug }[:bundles]
+        @out.puts "linked #{link.slug} → #{link.registry} (#{count} #{pluralize(count, "bundle")})"
+        0
+      rescue OptionParser::ParseError => e
+        @err.puts e.message
+        2
+      rescue OKF::Error => e
+        usage_error(e.message)
+      end
+
+      # Drop a link and every bundle that arrived through it. The bundles
+      # themselves are untouched — a link never owned them.
+      def registry_unlink(argv)
+        options = { global: false }
+        parser = OptionParser.new do |o|
+          o.banner = "Usage: okf registry unlink <name> [-g]"
+          global_flag(o, options)
+          help_flag(o)
+        end
+        name = positional(parser, argv) or return 2
+        no_extras?(argv) or return 2
+
+        reg = open_registry(global: options[:global])
+        return links_are_global(reg) if local_registry?(reg)
+
+        removed = reg.unlink(name)
+        return usage_error("no such link: #{name}") unless removed
+
+        @out.puts "unlinked #{removed.slug}"
+        0
+      rescue OKF::Error => e
+        usage_error(e.message)
+      end
+
+      # The one refusal both link verbs share: a project-local registry is in
+      # force, and links are the global one's alone — which is what keeps a linked
+      # file's own links unread, and so keeps depth at one with nothing to enforce.
+      def links_are_global(reg)
+        usage_error("links live in the global registry, and #{registry_display(reg)} is a project-local one " \
+                    "(okf registry link … --global)")
+      end
+
+      def print_registry(reg, global: false)
         # A header only when a project-local registry is in play — the case where
         # "which registry am I looking at?" is a real question. The global $OKF_HOME
         # one is the default, so it stays headerless (and the JSON envelope names
         # the file for a script either way).
-        @out.puts "registry: #{registry_display(reg)}" if local_registry?(reg)
+        # Named whenever the answer could have been the other file: a discovered
+        # local registry, or a -g that just overrode one. The bare global case
+        # stays headerless — nothing was chosen, so there is nothing to disclose.
+        @out.puts "registry: #{registry_display(reg)}" if local_registry?(reg) || global
         groups = reg.groups_listing
-        return @out.puts "no bundles registered — okf registry set <dir>" if reg.empty? && groups.empty?
+        links = reg.links_listing
+        return @out.puts "no bundles registered — okf registry set <dir>" if reg.empty? && groups.empty? && links.empty?
 
         rows = reg.listing
-        unless rows.empty?
-          width = rows.map { |row| row[:slug].length }.max
-          rows.each do |row|
-            marker = row[:default] ? "*" : " "
-            missing = row[:missing] ? "  (missing)" : ""
-            @out.puts "#{marker} #{row[:slug].ljust(width)}  #{row[:title]}  (#{row[:dir]})#{missing}"
+        width = width_of(rows)
+        rows.reject { |row| row[:link] }.each { |row| @out.puts bundle_row(row, width) }
+        print_groups(groups, rows) unless groups.empty?
+        print_links(reg, links, rows, width) unless links.empty?
+      end
+
+      # Why a link contributed nothing, when it did: a target that is gone, or one
+      # that is there and cannot be parsed. Both are reported, never raised.
+      def link_state(link)
+        return "  (missing)" if link[:missing]
+        return "  (unreadable)" if link[:unreadable]
+
+        ""
+      end
+
+      def width_of(rows)
+        rows.empty? ? 0 : rows.map { |row| row[:slug].length }.max
+      end
+
+      def bundle_row(row, width)
+        marker = row[:default] ? "*" : " "
+        missing = row[:missing] ? "  (missing)" : ""
+        # The slug it *had* in the file it came from, shown only when this
+        # registry had to move it — the one place a ref that shifted is visible.
+        moved = row[:origin] && row[:origin] != row[:slug] ? "  [#{row[:origin]}]" : ""
+        "#{marker} #{row[:slug].ljust(width)}  #{row[:title]}  (#{row[:dir]})#{missing}#{moved}"
+      end
+
+      # The links section: one heading per link naming the file it points at, then
+      # the bundles that arrived through it, then any groups that came with them. A
+      # target that is gone or unreadable says so instead of listing nothing.
+      def print_links(reg, links, rows, width)
+        @out.puts ""
+        @out.puts "links:"
+        groups = reg.link_groups_listing
+        links.each do |link|
+          state = link_state(link)
+          @out.puts "  #{link[:slug]}  → #{link[:registry]}  " \
+                    "(#{link[:bundles]} #{pluralize(link[:bundles], "bundle")})#{state}"
+          rows.select { |row| row[:link] == link[:slug] }.each { |row| @out.puts "  #{bundle_row(row, width)}" }
+          groups.select { |group| group[:link] == link[:slug] && group[:slug] != link[:slug] }.each do |group|
+            @out.puts "    #{group[:slug]}  #{group[:members].map { |m| "@#{m}" }.join(", ")}"
           end
         end
-        print_groups(groups, rows) unless groups.empty?
       end
 
       # Whether this registry was discovered as a project-local file rather than

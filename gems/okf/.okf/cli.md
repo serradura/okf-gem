@@ -74,21 +74,34 @@ side should not enrol them in the user's durable list. Registering is always the
 explicit act of `okf registry set`.
 
 `registry` is an umbrella verb — `init`, `list`, `set`, `del`, `default`,
-`rename`, `group`, `ungroup` — over one persistent file. `$OKF_HOME` points every
+`rename`, `group`, `ungroup`, `link`, `unlink` — over one persistent file. `$OKF_HOME` points every
 one of them at a different global registry, which is what keeps the tests off the
 real `~/.okf`; `registry init` and discovery add a [project-local](registry.md#global-by-default-project-local-by-discovery)
 one that replaces it while you stand in its tree, with `OKF_NO_DISCOVERY=1` to
 force the global one.
 
-One lever, not two — and the levers that exist are env vars, never flags. An
-earlier design also carried a `--home DIR` flag, which had to be remembered on the
-three verbs that offered it and forgotten on every other one — a flag whose whole
-job was to name a location the env var already named. `$OKF_HOME` composes where a
-flag cannot: it reaches every verb at once without being typed, it survives into a
-subprocess, and if the directory ever holds more than `registry.json` it keeps
-meaning the same thing. `OKF_NO_DISCOVERY` earns its keep the same way — one signal
-that reaches every verb, so project-local resolution has no per-verb `--global` to
-thread and forget.
+## One lever, not two
+
+A *cross-cutting* lever is an env var, never a flag. An earlier design carried a
+`--home DIR` flag, which had to be remembered on the three verbs that offered it
+and forgotten on every other one — a flag whose whole job was to name a location
+the env var already named. `$OKF_HOME` composes where a flag cannot: it reaches
+every verb at once without being typed, it survives into a subprocess, and if the
+directory ever holds more than `registry.json` it keeps meaning the same thing.
+`OKF_NO_DISCOVERY` earns its keep the same way, and this is still why there is no
+`--global` on `lint`, on `search`, or on the eleven others: a per-verb flag for
+resolution would be fourteen places to thread it and fourteen to forget.
+
+The `registry` umbrella is the exception, and the line is *subject*, not
+convenience. Every other verb takes a bundle and merely happens to resolve a name
+through a registry; `registry`'s argument **is** a registry file. Saying which one
+is therefore an argument to that verb in the way `--as` is, not a lever bolted
+across the CLI — so `-g`/`--global` lives on its subcommands (all but `init`,
+whose whole job is to create a *local* file) and nowhere else. The env var is
+still the right answer for a whole session or a CI job; the flag is the right
+answer for one command, and for the plain fact that a capability reachable only
+through an env var is one most people never discover. Both name the same
+behavior, so neither can drift from the other.
 
 # Every output names its bundle, in the identity the caller used
 

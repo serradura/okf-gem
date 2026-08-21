@@ -45,7 +45,7 @@ module OKF
       "references" => %w[path dir kind referenced_by],
       "directories" => %w[dir ancestor index_path present synthesized count types tags subdirs body listing],
       "dirs" => %w[dir ancestor count subtree subdirs],
-      "bundles" => %w[slug title dir mount default missing]
+      "bundles" => %w[slug title dir mount default missing link origin]
     }.freeze
 
     # Runs a Rack app under WEBrick until interrupted. Injected into the CLI so
