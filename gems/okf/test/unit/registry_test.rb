@@ -476,7 +476,7 @@ class OKF::RegistryTest < OKF::TestCase
     reg.add(bundle("beta"))
     reg.set_group("backend", %w[alpha beta])
 
-    assert_equal [ { slug: "backend", members: %w[alpha beta], resolved: 2 } ], reload.groups_listing
+    assert_equal [ { slug: "backend", members: %w[alpha beta], resolved: 2, link: nil } ], reload.groups_listing
   end
 
   # --- links -------------------------------------------------------------
@@ -671,6 +671,25 @@ class OKF::RegistryTest < OKF::TestCase
 
     fresh = reload
     assert_equal %w[onm-central autonote], fresh.expand("brain").map(&:slug)
+  end
+
+  test "groups_listing carries the linked groups too, tagged with the link they came from" do
+    target = linked_file("onm", %w[central autonote], groups: { "brain" => %w[central autonote] })
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.add(bundle("beta"))
+    reg.set_group("backend", %w[alpha beta])
+    reg.link("onm", target)
+
+    rows = reload.groups_listing
+
+    # One question, one answer: `group?` resolves a linked group, so the listing
+    # that enumerates groups has to name it — a second method for the linked half
+    # is how a caller comes to answer about a smaller set than it can resolve.
+    assert_equal %w[backend onm brain], rows.map { |row| row[:slug] }
+    assert_nil rows.first[:link], "a group this registry owns came through no link"
+    assert_equal %w[onm onm], rows.drop(1).map { |row| row[:link] }
+    assert_equal 2, rows.last[:resolved]
   end
 
   test "links_listing reports each link with its target and bundle count" do

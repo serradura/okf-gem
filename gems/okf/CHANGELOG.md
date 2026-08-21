@@ -38,6 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `okf registry list --json` groups now carry a `link` key — `null` for a group
+  this registry owns, the link's name for one that arrived through a link.
+  `Registry#groups_listing` returns both kinds in one list, own groups first,
+  because `#group?` resolves a linked group and a listing that named only the
+  local half would answer about a smaller set than the same object can resolve —
+  the drift every library consumer would inherit silently. A caller that wants
+  only the editable groups filters on `link`.
+
 - `okf registry list --json` gains a `links` array, and each bundle row gains
   `link` (the link it arrived through, `null` when the registry owns it) and
   `origin` (its slug in that file, differing only where a collision moved the

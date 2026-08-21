@@ -65,14 +65,16 @@ Gem::Specification.new do |spec|
   # the dir refusal consults), and the slug grammar this shell rides. 1.12
   # lacked #directories, so the old floor admitted a kernel this code raises
   # NoMethodError against.
-  # RELEASE OBLIGATION: this floor must move to okf's v0.2 release number in
-  # the same PR that bumps okf past 1.13.0 — the shell now reads surfaces
-  # published 1.13.0 does not have (Concept.effective_status/fold_tier, the
-  # trust catalog column), and against it a status filter raises NameError
-  # while a trust filter silently matches nothing. It cannot move earlier:
-  # the monorepo resolves this gemspec against the path-sourced okf, whose
-  # version is still 1.13.0 until its own release PR. The okf-mcp CHANGELOG's
-  # Unreleased section carries the same note where the release notes are cut.
+  # RELEASE OBLIGATION: this floor must move to okf's next release number in
+  # the same PR that bumps okf past 2.1.1 — the freshness stamp now reads
+  # `OKF::Registry#links_listing` so a write inside a *linked* registry is seen,
+  # and published 2.1.1 has no such method. Against it every refresh raises
+  # NoMethodError straight past the SystemCallError rescue, which is the shell
+  # reading a surface its floor never published. It cannot move earlier: the
+  # monorepo resolves this gemspec against the path-sourced okf, whose
+  # version.rb still says 2.1.1 until its own release PR, and a leading floor
+  # fails resolution outright. The okf-mcp CHANGELOG's Unreleased section
+  # carries the same note where the release notes are cut.
   #
   # A note nothing checks is a note that gets published around, so two guards
   # hold the two halves — and it takes two, because they cover opposite days:

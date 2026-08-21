@@ -86,8 +86,10 @@ nothing — one dead pointer never takes down the registry holding it.
 server skips those with a note — and lists any groups with their members and
 resolved leaf count; `--json` answers
 `{ registry: <file>, count, bundles: [{ slug, title, dir, mount, default,
-missing, link, origin }], groups: [{ slug, members, resolved }], links: [{ slug,
-registry, bundles, missing, unreadable }] }`, naming the file it read so a
+missing, link, origin }], groups: [{ slug, members, resolved, link }], links:
+[{ slug, registry, bundles, missing, unreadable }] }`, naming the file it read so a
 `$OKF_HOME` mismatch is visible. On a bundle row `link` names the link it arrived
 through (null when the registry owns it) and `origin` the slug it carries in that
-file — the two differ only where a collision moved the name.
+file — the two differ only where a collision moved the name. `groups` lists both
+kinds, own first, each carrying the same `link` key, since a linked group
+resolves as a ref like any other.

@@ -5,6 +5,37 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A long-running server now sees writes inside a *linked* registry.** okf gained
+  `okf registry link`, which folds another registry file's bundles into the served
+  set; the freshness stamp still watched only this server's own registry file, so
+  an `okf registry set` in the linked file never moved it and the server kept
+  answering about the set it booted with. The stamp now covers every file the
+  registry reads. The link list comes from the kernel, so adding or dropping a
+  link moves the first path's stamp and the next pass watches the new set.
+
+  The two kinds of file keep different rules. This server's own registry going
+  unreadable still answers `nil` and holds the last good set — a file caught
+  mid-write must not empty what is being served. A linked file is a pointer's
+  target, and okf already reports a missing one as resolving to nothing, so a
+  vanished target drops its bundles instead of freezing them.
+
+### Changed
+
+- **The `okf` floor must move before this is released.** The stamp reads
+  `OKF::Registry#links_listing`, which published okf 2.1.1 does not have, so the
+  gemspec still floors okf at 2.1.1 only because the monorepo resolves the
+  path-sourced kernel and a leading floor fails resolution outright. `rake
+  verify_okf_floor` gates `release` and refuses today; move the floor in the same
+  PR that bumps okf.
+
+- `list_bundles` groups now carry a `link` key — `null` for a group this registry
+  owns, the link's name for one that arrived through a link (okf ≥ 2.2). Linked
+  groups were already resolvable as a `bundle` argument and are now listed too.
+
 ## [1.2.1] - 2026-08-20
 
 ### Fixed

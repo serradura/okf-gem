@@ -90,6 +90,50 @@ class RegistryTest < OKF::TestCase
     assert_match(/names a group of 1 member;/, error.message)
   end
 
+  # A long-running server re-reads the registry when its file moves. A link puts
+  # bundles in a *second* file, and a stamp that watched only the first meant an
+  # edit there was never seen — the server kept answering about the set it booted
+  # with, which is the failure mode a stamp exists to prevent.
+  test "a write inside a linked registry moves the stamp, so a live server sees it" do
+    target = File.join(@out_dir, "linked.json")
+    File.write(target, JSON.pretty_generate(
+      "bundles" => [ { "slug" => "notes", "path" => File.join(FIXTURES, "notes"), "title" => "notes" } ],
+      "groups" => []
+    ))
+    kernel = OKF::Registry.load
+    kernel.add(File.join(FIXTURES, "knowledge"))
+    kernel.link("onm", target)
+
+    registry = OKF::MCP::Registry.from_kernel
+    assert_equal %w[knowledge notes], registry.entries.map(&:slug), "both files answer at boot"
+
+    data = JSON.parse(File.read(target))
+    data["bundles"] << { "slug" => "extra", "path" => File.join(FIXTURES, "knowledge"), "title" => "extra" }
+    File.write(target, JSON.pretty_generate(data))
+
+    assert_equal %w[knowledge notes extra], registry.entries.map(&:slug),
+      "the global registry file never moved; the linked one did, and that has to be enough"
+  end
+
+  test "a linked registry that vanishes moves the stamp too" do
+    target = File.join(@out_dir, "vanishing.json")
+    File.write(target, JSON.pretty_generate(
+      "bundles" => [ { "slug" => "notes", "path" => File.join(FIXTURES, "notes"), "title" => "notes" } ],
+      "groups" => []
+    ))
+    kernel = OKF::Registry.load
+    kernel.add(File.join(FIXTURES, "knowledge"))
+    kernel.link("onm", target)
+
+    registry = OKF::MCP::Registry.from_kernel
+    assert_equal %w[knowledge notes], registry.entries.map(&:slug)
+
+    File.unlink(target)
+
+    assert_equal %w[knowledge], registry.entries.map(&:slug),
+      "a target that is gone contributes nothing, and the live server has to notice"
+  end
+
   test "the default is the first entry still on disk" do
     goner = File.join(@out_dir, "goner")
     FileUtils.cp_r(File.join(FIXTURES, "notes"), goner)

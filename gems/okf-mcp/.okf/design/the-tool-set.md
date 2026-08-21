@@ -119,6 +119,24 @@ widen. A file that cannot be read or parsed keeps the last good set *without*
 latching its stamp, so a transient truncation is survived rather than made
 permanent until restart.
 
+**The stamp watches every file the registry reads, not just its own.** okf's
+registry can `link` another registry file, and that file's bundles resolve into
+the served set — so a stamp over one path meant an `okf registry set` in the
+linked file was never seen, and this server kept answering about the set it
+booted with. That is the same silent wrong answer the rule above exists to
+refuse, arriving through a second door. The link list comes from the kernel, so
+adding or dropping a link moves the first path's stamp and the next pass watches
+the new set; nothing has to be registered here.
+
+The two kinds of file are watched under **different rules**, and the asymmetry is
+the whole of it. This server's own registry going unreadable answers `nil`, which
+holds the last good set — the paragraph above. A linked file is a pointer's
+target, and okf already treats a missing one as *resolves to nothing, reported*;
+following that here means a vanished target drops its bundles rather than
+freezing them. Riding out an error and following a state change are different
+jobs, and one stamp had to do both.
+<!-- rule:okf-mcp-stamp-watches-links -->
+
 Four consequences of that rule had to be chased down after it landed. Two are
 the same mistake in different clothes — **something else was still a boot
 snapshot** — and two are what a *movable* served set costs a cache that was

@@ -45,6 +45,23 @@ This is the shape [okf-capability-drift](/decisions/okf-capability-drift.md)
 describes: okf added a resolution rule, the old call kept working, and "kept
 working" meant "kept answering the wrong question".
 
+# A third input arrived, and the answer stayed one method
+
+okf later gained `okf registry link`: the global registry can point at another
+registry file, and that file's bundles and groups resolve into the set. The TUI
+needed no change to show them — `registry_entries` reads `listing` and
+`registry_groups` reads `groups_listing`, and okf folds the linked half into
+both. That is the point. The rule this concept states is that one question has
+one answer per directory; a linked group listed by a *second* method would have
+put the TUI back where it started, showing a smaller set than its own `@ref`
+resolution could open, with nothing failing to say so.
+
+What the TUI does not yet carry is that a linked bundle is **read-only**: the
+config writes offer rename, remove and default on one, and okf refuses each with
+a message that reaches the status line intact. Nothing breaks, and no data moves,
+but it is a menu of three errors — the same wart okf's own graph page fixed by
+hiding the actions on a linked row.
+
 # The library keeps okf's own line
 
 `cwd:` is a parameter, not a default of `Dir.pwd`, and that mirrors okf exactly:

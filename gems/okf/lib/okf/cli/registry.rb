@@ -411,15 +411,18 @@ module OKF
         # local registry, or a -g that just overrode one. The bare global case
         # stays headerless — nothing was chosen, so there is nothing to disclose.
         @out.puts "registry: #{registry_display(reg)}" if local_registry?(reg) || global
+        # groups_listing carries the linked groups too; here they print under
+        # their link rather than among the ones `group`/`ungroup` can touch.
         groups = reg.groups_listing
+        own, linked = groups.partition { |group| group[:link].nil? }
         links = reg.links_listing
         return @out.puts "no bundles registered — okf registry set <dir>" if reg.empty? && groups.empty? && links.empty?
 
         rows = reg.listing
         width = width_of(rows)
         rows.reject { |row| row[:link] }.each { |row| @out.puts bundle_row(row, width) }
-        print_groups(groups, rows) unless groups.empty?
-        print_links(reg, links, rows, width) unless links.empty?
+        print_groups(own, rows) unless own.empty?
+        print_links(links, linked, rows, width) unless links.empty?
       end
 
       # Why a link contributed nothing, when it did: a target that is gone, or one
@@ -447,10 +450,9 @@ module OKF
       # The links section: one heading per link naming the file it points at, then
       # the bundles that arrived through it, then any groups that came with them. A
       # target that is gone or unreadable says so instead of listing nothing.
-      def print_links(reg, links, rows, width)
+      def print_links(links, groups, rows, width)
         @out.puts ""
         @out.puts "links:"
-        groups = reg.link_groups_listing
         links.each do |link|
           state = link_state(link)
           @out.puts "  #{link[:slug]}  → #{link[:registry]}  " \

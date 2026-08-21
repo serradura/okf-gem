@@ -297,10 +297,34 @@ module OKF
       # mtime *and* size, the pair the residency layer already uses: a second
       # write inside one filesystem timestamp tick moves the size when it does
       # not move the clock.
+      #
+      # Every file the registry reads, not just its own. A link puts bundles in a
+      # second file, and watching only the first meant a `registry set` over there
+      # was never seen: this server would keep answering about the set it booted
+      # with, which is the one failure a stamp exists to prevent. The link list
+      # itself comes from the kernel, so adding or dropping a link moves the first
+      # entry and the next pass watches the new set.
+      # The two files are watched under different rules, and the asymmetry is the
+      # point. This server's *own* registry going unreadable answers nil, which
+      # holds the last good set — a file caught mid-write must not empty what is
+      # being served. A *linked* file is only a pointer's target, and the kernel
+      # already treats a missing one as "resolves to nothing, reported", so its
+      # absence is a state change to follow rather than an error to ride out.
       def registry_stamp
         return nil if @kernel.nil?
 
-        stat = ::File.stat(@kernel.path)
+        own = file_stamp(@kernel.path)
+        return nil if own.nil?
+
+        [ own ] + @kernel.links_listing.map { |row| file_stamp(row[:registry]) }
+      rescue OKF::Error, SystemCallError
+        nil
+      end
+
+      # nil for a file that is not there — a state in its own right for a link, so
+      # a target appearing or vanishing moves the stamp exactly as an edit does.
+      def file_stamp(path)
+        stat = ::File.stat(path)
         [ stat.mtime.to_f, stat.size ]
       rescue SystemCallError
         nil

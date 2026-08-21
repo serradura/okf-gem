@@ -483,17 +483,6 @@ module OKF
       end
     end
 
-    # The groups that arrived through a link, each tagged with the link it came
-    # from. Separate from #groups_listing because these are not this registry's
-    # to edit — `registry list` prints them under their link, not among the
-    # groups a `group`/`ungroup` can touch.
-    def link_groups_listing
-      @link_groups.map do |group|
-        { slug: group.slug, members: group.members.dup, resolved: expand(group.slug).size,
-          link: @link_of[group.slug] }
-      end
-    end
-
     # Persist the current state to disk. The mutating verbs write as a side effect
     # of the change; `save` is the public seam for the one caller that creates a
     # registry with nothing to change yet — `okf registry init`, materializing an
@@ -514,16 +503,24 @@ module OKF
       self.class.new(@path, relative_base: @relative_base, follow_links: @follow_links)
     end
 
-    # One row per group for `registry list`: its members and how many bundles it
-    # resolves to (+resolved+ is nil when a hand-edited cycle makes it unanswerable).
+    # One row per group — this registry's own first, then the ones that arrived
+    # through a link, each tagged with the +link+ it came from (nil for a group
+    # this registry owns). Members, and how many bundles it resolves to
+    # (+resolved+ is nil when a hand-edited cycle makes it unanswerable).
+    #
+    # One list, not two. #group? resolves a linked group, so the method that
+    # *enumerates* groups has to name it: a second listing for the linked half is
+    # how a caller comes to answer about a smaller set than the same object can
+    # resolve — the drift a sibling reading this method would inherit silently.
+    # A caller that wants only the editable ones filters on +link+.
     def groups_listing
-      @groups.map do |group|
+      (@groups + @link_groups).map do |group|
         resolved = begin
           expand(group.slug).size
         rescue OKF::Error
           nil
         end
-        { slug: group.slug, members: group.members.dup, resolved: resolved }
+        { slug: group.slug, members: group.members.dup, resolved: resolved, link: @link_of[group.slug] }
       end
     end
 

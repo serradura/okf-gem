@@ -321,6 +321,16 @@ slug it carries in its source file (`onm-central … [central]`), which is the o
 place a shifted ref is visible. Linked entries also append **after** the local
 ones, so while this registry owns any bundle at all the default stays local.
 
+**A linked group is listed with the rest, not beside them.** `groups_listing`
+returns this registry's own groups first, then the linked ones, each carrying the
+`link` it came from — one list, because `group?` *resolves* a linked group and a
+listing that named only the local half would answer about a smaller set than the
+same object can resolve. That gap is invisible at the call site and inherited by
+every consumer: `okf-mcp`'s `list_bundles` and the TUI's groups view both read
+this one method, and both would have hidden a group they could already open. A
+caller that wants only the groups it may edit filters on `link` — which is the
+question they are actually asking, and it is now askable.
+
 # A link is read-only, and the refusal lives in the model
 
 `rename`, `del`, `default`, `set --as` and `group` all refuse a slug a link owns,
