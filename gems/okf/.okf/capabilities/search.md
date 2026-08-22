@@ -225,7 +225,9 @@ even with zero matches — only an invalid `--regexp` pattern, `-e` paired with
 Knowledge rarely lives in one bundle, so search is the one verb that spans the
 [registry](../registry.md): leading @slugs pick bundles explicitly
 (`okf search @handbook @notes auth`), and `@all` is the ref that means every
-registered one. Every row is labeled by its bundle's slug.
+registered one — including the bundles a [link](../registry.md) folds in, since
+those are registered here in every sense that matters to a reader looking for an
+answer. Every row is labeled by its bundle's slug.
 
 **Merged rows are comparable by construction, and each engine earns that
 differently.** The scan's score is absolute — summed field weights, with no

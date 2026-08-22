@@ -1,5 +1,27 @@
 # Update Log
 
+## 2026-08-21
+
+* **A linked bundle is read-only, and the four config keys say so before they
+  ask** — [registry-write-boundary](decisions/registry-write-boundary.md),
+  [which-registry](interaction/which-registry.md). okf's registry can now `link`
+  another registry file, whose bundles and groups resolve into the bundles view.
+  They list, load, scope and search like any other — but the file that owns them
+  is elsewhere, so okf refuses every write. `d`, `n`, `x` and `+` reached okf,
+  okf raised, and the message landed on the status line *after* the user had
+  typed a new name or confirmed a removal. They now refuse first, naming the
+  link; the bundle detail carries `read-only — linked from @onm` and the owning
+  file underneath. The registry pane is left alone, because 42 columns cannot
+  take another marker without clipping.
+
+* **Nothing was needed to *show* linked bundles at all.** The entries come from
+  okf's `listing` and the groups from its `groups_listing`, and okf folds the
+  linked half into both rather than into a second method — which is the whole
+  point of [which-registry](interaction/which-registry.md)'s rule, arriving from
+  the kernel's side this time. `Entry#link` and `Group#link` are read off those
+  rows, and an agreement test asserts the field against okf itself, since a
+  rename there would leave every refusal above quietly not firing.
+
 ## 2026-08-19
 
 * **This bundle moved to OKF v0.2.** `timestamp:` became

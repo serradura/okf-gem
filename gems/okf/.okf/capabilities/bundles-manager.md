@@ -53,6 +53,17 @@ red. The verdict keeps the [validate/lint separation](validator.md): a curation
 finding is a warning and the bundle stays open, and only a non-conformant bundle
 reads as broken.
 
+A bundle that arrived through a registry [link](../registry.md) is listed,
+mounted and served like any other, and is **read-only**: the file that owns it is
+another registry, so the model refuses `rename`, `remove` and `default` against
+it. The page carries that in both halves, because one without the other is a
+worse page than neither. The row shows `via @onm` and **offers no actions menu** —
+three buttons that can only fail are not a menu — and the request is refused
+anyway if it arrives, since the guard lives in `Registry` rather than here. That
+is the same "hiding a button is a UI, refusing the request is the boundary" split
+the read-only gate above keeps, reached from the other direction: there the
+server declines to write at all, here one row does.
+
 Rows are matched to entries by **directory**, not by slug. A rename changes the
 slug and nothing else, and a row that lost its identity over a rename is the bug
 that avoids.

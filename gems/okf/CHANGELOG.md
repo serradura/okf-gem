@@ -42,6 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   through an env var is one most people never find. It stays on the `registry`
   umbrella — the one verb whose subject *is* a registry file — and nowhere else.
 
+- The graph page's ⚙ Bundles panel marks a linked row `via @onm` and **offers no
+  actions menu** on it. Rename, Remove and Default are all refused for a linked
+  bundle, so the menu could only have produced three errors. The request is
+  refused whether or not the button exists — the guard is in `Registry`, not in
+  the page — which is the same split the read-only server already keeps: hiding
+  a control is a UI, refusing the request is the boundary.
+
 ### Changed
 
 - `okf registry list --json` groups now carry a `link` key — `null` for a group
