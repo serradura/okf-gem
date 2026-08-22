@@ -59,7 +59,13 @@ Gem::Specification.new do |spec|
   # it): the listen and modern-path tests exercise the SEP-2575 wire, which
   # 1.0 and 1.1 never served — against them the tests fail, so the floor
   # cannot admit them.
-  spec.add_dependency "mcp", "~> 1.2"
+  #
+  # 1.3 because that is what the suite now resolves. `Gemfile.lock` is not
+  # committed, so CI resolves the newest SDK the `~>` admits and the suite proves
+  # itself against *that* — which is the whole reason the floor test exists, and
+  # why it moved on its own the day 1.3.0 was published rather than the day
+  # anything here changed. The same PR that moves the lockfile moves this line.
+  spec.add_dependency "mcp", "~> 1.3"
   # The kernel version that ships Search.prepare/with/across, registry groups
   # and project-local discovery, `dirs`, `Bundle#directories` (the one source
   # the dir refusal consults), and the slug grammar this shell rides. 1.12

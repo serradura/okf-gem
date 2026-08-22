@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The `mcp` floor moves to `~> 1.3`.** `Gemfile.lock` is not committed, so the
+  suite resolves the newest SDK the requirement admits and proves itself against
+  that one; the floor tracks what the suite proves, and 1.3.0 shipped. Nothing in
+  this gem changed for it — all 324 tests pass against 1.3.0 — but a floor that
+  admits an SDK the suite never ran against is the claim the floor test exists to
+  refuse.
+
 - **The `okf` floor must move before this is released.** The stamp reads
   `OKF::Registry#links_listing`, which published okf 2.1.1 does not have, so the
   gemspec still floors okf at 2.1.1 only because the monorepo resolves the
