@@ -22,10 +22,12 @@ sources:
 # Overview
 
 "Which bundles can I see?" has one right answer per directory, and okf decides it:
-`OKF_NO_DISCOVERY` forces the global registry; otherwise a `.okf.json`
+`OKF_NO_DISCOVERY` forces the global registry; otherwise a `.okf.json` — or the
+older `.okf-registry.json`, still discovered so no committed registry breaks —
 found by walking up from the working directory wins; otherwise `$OKF_HOME`
-(default `~/.okf`). Nearest local file wins, and a local registry stores paths
-*relative* to itself so it can be committed and travel with the repo.
+(default `~/.okf`). Both names are checked in each directory before climbing, so
+"nearest local file wins" keeps meaning what it says, and a local registry stores
+paths *relative* to itself so it can be committed and travel with the repo.
 
 The TUI ignored all of that for a release. `Workspace` called
 `OKF::Registry.load(home: home)` with no `cwd:`, and okf only discovers when it is

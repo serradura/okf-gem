@@ -1,5 +1,17 @@
 # Update Log
 
+## 2026-08-22
+
+* **The project-local registry is `.okf.json`, and the TUI inherits that for
+  free** — [which-registry](interaction/which-registry.md),
+  [registry-write-boundary](decisions/registry-write-boundary.md). okf renamed the
+  file and kept discovering the old `.okf-registry.json`, checking both names in
+  each directory on the way up. `Workspace` needed no change, which is the point
+  of asking okf rather than recomputing: the one method that answers "which
+  registry am I on" answered the new question the moment the kernel did. What the
+  two concepts owed was accuracy — one stated the discovery rule and would have
+  stated half of it, and the other named the file it writes.
+
 ## 2026-08-21
 
 * **A linked bundle is read-only, and the four config keys say so before they

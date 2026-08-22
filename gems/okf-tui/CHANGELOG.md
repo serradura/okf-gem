@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The project-local registry is now `.okf.json`.** The TUI reads whichever file
+  okf resolves, so this needed no code change — but it is what the header prints
+  and what the "nothing to show" message names, so the file you see identified
+  there has a new name. The older `.okf-registry.json` is still discovered, both
+  names checked in each directory on the way up, so a repository carrying one
+  keeps working untouched. `okf registry init` writes the short name.
+
 - Requires an okf that ships `registry link` (`Registry#links_listing`, and the
   `link` key on listing rows). The gemspec floor moves in the same PR that bumps
   okf; `test/unit/gemspec_test.rb` fails until it does.
