@@ -20,19 +20,28 @@ module OKF
         :registry
       end
 
+      # One subcommand per row — the table `okf registry --help` prints, and the
+      # single place each subcommand's grammar is written down.
+      SUBCOMMAND_ROWS = [
+        [ "init", "create a project-local .okf-registry.json (nearest one wins)" ],
+        [ "list [--json]", "list registered bundles (* marks the default)" ],
+        [ "set <dir|@slug> [--as SLUG] [--default]", "add or update a bundle (a bare `server` serves them)" ],
+        [ "del <dir|@slug>", "remove a bundle or group from the registry" ],
+        [ "default <@slug>", "move a bundle to the front (the default)" ],
+        [ "rename <@slug> <new>", "rename a bundle or group (<new> is a new name, not a ref)" ],
+        [ "group <slug> <@member…>", "create a group, or add members (search/server can target @slug)" ],
+        [ "ungroup <slug> <@member…>", "remove members from a group (emptying it deletes it)" ],
+        [ "link <name> <file>", "point the global registry at another one (its bundles resolve here)" ],
+        [ "unlink <name>", "drop a link and every bundle that arrived through it" ]
+      ].freeze
+
+      # The umbrella is one row in `okf help`. Ten made a third of the map about
+      # registry management, which is not a third of what okf does — and the map's
+      # job is to name the verbs, not to be every verb's manual. The subcommands
+      # are one `--help` away, and the row says so rather than leaving a reader to
+      # guess that an umbrella has any.
       def self.help_rows
-        [
-          [ "registry  init", "create a project-local .okf-registry.json (nearest one wins)" ],
-          [ "registry  list [--json]", "list registered bundles (* marks the default)" ],
-          [ "registry  set <dir|@slug> [--as SLUG] [--default]", "add or update a bundle (a bare `server` serves them)" ],
-          [ "registry  del <dir|@slug>", "remove a bundle or group from the registry" ],
-          [ "registry  default <@slug>", "move a bundle to the front (the default)" ],
-          [ "registry  rename <@slug> <new>", "rename a bundle or group (<new> is a new name, not a ref)" ],
-          [ "registry  group <slug> <@member…>", "create a group, or add members (search/server can target @slug)" ],
-          [ "registry  ungroup <slug> <@member…>", "remove members from a group (emptying it deletes it)" ],
-          [ "registry  link <name> <file>", "point the global registry at another one (its bundles resolve here)" ],
-          [ "registry  unlink <name>", "drop a link and every bundle that arrived through it" ]
-        ]
+        [ [ "registry  <command> [-g]", "name, group and link your bundles (okf registry --help)" ] ]
       end
 
       def call(argv)
@@ -40,6 +49,7 @@ module OKF
 
         sub = argv.first
         case sub
+        when "--help", "-h" then umbrella_help
         when "init" then registry_init(argv.drop(1))
         when "set" then registry_set(argv.drop(1))
         when "del" then registry_del(argv.drop(1))
@@ -70,6 +80,23 @@ module OKF
       end
 
       private
+
+      # The umbrella's own help: every subcommand, its grammar, and the one flag
+      # they share. A bare `okf registry` is still `registry list` — the shorthand
+      # is documented and predates this — so only an explicit --help lands here.
+      def umbrella_help
+        width = SUBCOMMAND_ROWS.map { |usage, _| usage.length }.max
+        @out.puts "Usage: okf registry <command> [options]"
+        @out.puts ""
+        SUBCOMMAND_ROWS.each { |usage, blurb| @out.puts "  #{usage.ljust(width)}  #{blurb}" }
+        @out.puts ""
+        @out.puts "  -g, --global   act on the global $OKF_HOME registry, ignoring a project-local one"
+        @out.puts "                 (every command but `init`; OKF_NO_DISCOVERY=1 does it for a whole shell)"
+        @out.puts ""
+        @out.puts "A bare `okf registry` lists them, the same as `okf registry list`."
+        @out.puts "`okf registry <command> --help` has that command's own flags."
+        0
+      end
 
       # `-g/--global` on every subcommand but `init`, whose whole job is to create
       # a *local* file. One options hash per verb carries it to #open_registry.

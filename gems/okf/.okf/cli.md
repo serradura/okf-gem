@@ -74,7 +74,14 @@ side should not enrol them in the user's durable list. Registering is always the
 explicit act of `okf registry set`.
 
 `registry` is an umbrella verb — `init`, `list`, `set`, `del`, `default`,
-`rename`, `group`, `ungroup`, `link`, `unlink` — over one persistent file. `$OKF_HOME` points every
+`rename`, `group`, `ungroup`, `link`, `unlink` — over one persistent file, and it
+is **one row in the map**. It carried ten for a while, which made a third of `okf
+help` about registry management when registry management is not a third of what
+okf does; the row now points at `okf registry --help`, which prints the ten with
+their grammar and the `-g` they share. The map's job is to name the verbs. A verb
+whose own help is the manual is the same progressive disclosure the bundles are
+built on, applied to the CLI's front page — and the row has to *say* the help
+exists, since nothing else tells a reader an umbrella has subcommands at all. `$OKF_HOME` points every
 one of them at a different global registry, which is what keeps the tests off the
 real `~/.okf`; `registry init` and discovery add a [project-local](registry.md#global-by-default-project-local-by-discovery)
 one that replaces it while you stand in its tree, with `OKF_NO_DISCOVERY=1` to

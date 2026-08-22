@@ -49,6 +49,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the page — which is the same split the read-only server already keeps: hiding
   a control is a UI, refusing the request is the boundary.
 
+- **`okf help` shows one `registry` row instead of ten, and `okf registry --help`
+  prints the subcommands.** Ten rows for one verb made a third of the map about
+  registry management, and the map is there to name the verbs rather than to be
+  every verb's manual. The row names the help that replaces it, since nothing
+  else tells a reader an umbrella has subcommands. A bare `okf registry` still
+  lists the registry, and `okf registry <command> --help` still answers for that
+  command.
+
 ### Changed
 
 - `okf registry list --json` groups now carry a `link` key — `null` for a group

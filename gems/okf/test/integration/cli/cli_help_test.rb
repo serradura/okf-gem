@@ -21,13 +21,47 @@ class CLIHelpTest < CLIIntegrationCase
     end
   end
 
-  test "help documents the registry subcommands, not just the umbrella" do
+  # The umbrella is one row in the map, and its subcommands live one level down.
+  # An unlisted subcommand is still unfindable — that concern has not gone away,
+  # it is answered by `okf registry --help` instead. Ten rows for one verb made
+  # the map read as though a third of okf were registry management, and the map's
+  # job is to name the verbs, not to be every verb's manual.
+  test "the map carries one registry row, and points at where the rest is" do
     result = okf("--help")
 
-    %w[init list set del default rename].each do |subcommand|
-      assert_match(/^\s+registry\s+.*\b#{subcommand}\b/, result.out,
-        "help should reach `registry #{subcommand}` — an unlisted subcommand is unfindable")
+    rows = result.out.lines.grep(/^\s+registry\b/)
+    assert_equal 1, rows.length, "the umbrella is one row: #{rows.inspect}"
+    assert_match(/okf registry --help/, rows.first, "and the row says where its subcommands are")
+    %w[init set del default rename group ungroup link unlink].each do |subcommand|
+      refute_match(/^\s+registry\s+#{subcommand}\b/, result.out,
+        "`registry #{subcommand}` belongs in the umbrella's own help, not the map")
     end
+  end
+
+  test "okf registry --help reaches every subcommand" do
+    result = okf("registry", "--help")
+
+    assert_equal 0, result.status
+    OKF::CLI::Registry::SUBCOMMANDS.each do |subcommand|
+      assert_match(/^\s+#{subcommand}\b/, result.out,
+        "`registry #{subcommand}` is unfindable if the umbrella's help omits it")
+    end
+    assert_match(/-g, --global/, result.out, "the one flag every subcommand shares")
+  end
+
+  test "a bare okf registry still lists the registry rather than printing help" do
+    # The help move must not take the shorthand with it: `okf registry` is
+    # documented as the same thing as `okf registry list`.
+    with_registry("conformant") do
+      assert_equal okf("registry", "list").out, okf("registry").out
+    end
+  end
+
+  test "a subcommand's own --help still answers for that subcommand" do
+    result = okf("registry", "link", "--help")
+
+    assert_equal 0, result.status
+    assert_match(/\AUsage: okf registry link <name> <file>/, result.out)
   end
 
   # The commands the map shows taking a bundle — every row whose grammar must
@@ -70,13 +104,13 @@ class CLIHelpTest < CLIIntegrationCase
     end
   end
 
-  test "every registry subcommand that names a bundle shows @slug in the map" do
-    map = okf("--help").out
+  test "every registry subcommand that names a bundle shows @slug in the umbrella's help" do
+    help = okf("registry", "--help").out
 
     { "set" => "<dir|@slug>", "del" => "<dir|@slug>",
       "default" => "<@slug>", "rename" => "<@slug> <new>" }.each do |subcommand, grammar|
-      assert_match(/^\s+registry\s+#{subcommand} #{Regexp.escape(grammar)}/, map,
-        "the map should spell `registry #{subcommand}` as #{grammar}")
+      assert_match(/^\s+#{subcommand} #{Regexp.escape(grammar)}/, help,
+        "the umbrella's help should spell `registry #{subcommand}` as #{grammar}")
     end
   end
 
