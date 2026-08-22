@@ -80,7 +80,7 @@ bundle exec okf tui                      # on your registry
 bundle exec okf tui path/to/bundle       # those bundles, ad-hoc
 bundle exec okf tui @okf @mkt            # a registered bundle, and a group
 OKF_HOME=tmp/home bundle exec okf tui    # a scratch global registry
-OKF_NO_DISCOVERY=1 bundle exec okf tui   # ignore a project-local .okf-registry.json
+OKF_NO_DISCOVERY=1 bundle exec okf tui   # ignore a project-local .okf.json
 
 # against the published okf — see the contract
 sed '/gem "okf", path:/d' Gemfile > Gemfile.ci-check

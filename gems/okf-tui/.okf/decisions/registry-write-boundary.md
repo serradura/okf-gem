@@ -107,7 +107,7 @@ poor place to make an irreversible edit to it by muscle memory.
 # `registry init` is excluded, for a different reason
 
 okf 1.12.0 added `okf registry init`, which creates a project-local
-`.okf-registry.json`. It is registry configuration, so the line above admits it —
+`.okf.json`. It is registry configuration, so the line above admits it —
 and it is still not offered, on mechanics rather than principle.
 
 The registry is resolved **once, at boot**: `Workspace#load_entries` opens it, and

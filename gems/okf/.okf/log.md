@@ -1,5 +1,41 @@
 # Update Log
 
+## 2026-08-22
+
+* **The registry can now take a row out of another registry file, and the
+  project-local file has a shorter name.** [`registry
+  import`](/registry.md#import-the-copy-that-owns-what-it-takes) is the opposite
+  trade from `link`: a link holds a live pointer to a whole file and the other
+  side keeps owning what it lends, while an import copies chosen references and
+  hands over ownership. Both are needed because they answer different questions —
+  "compose that repository's curation" against "I want *that one bundle*, here,
+  as mine". Without it the second had one answer: read the path out of `okf
+  registry list -g` and retype it into `registry set`, laundering through the
+  clipboard information already on screen.
+
+  Three decisions did the work. The source is `--from`, not a second meaning for
+  `-g`, because `-g` names the registry acted *on* across all ten sibling
+  subcommands and a verb that names two files should name the second rather than
+  invert the first. Slugs are preserved and a collision **refuses**, which is
+  where import and link deliberately disagree: a linked name was never chosen
+  here so `link_slug` mints around it, an imported one was typed so the "never
+  substitute a name you chose" rule applies in full. And a group brings the
+  groups nested inside it, because recreating a name here that resolved to a
+  larger set there is that same substitution with nothing on screen to reveal it.
+  Everything is validated before anything is written, so an import lands whole or
+  leaves the file byte-for-byte alone — a refusal that already moved three of four
+  rows is not a refusal.
+
+* **`.okf.json` is the project-local registry's name; `.okf-registry.json` is
+  still discovered.** The file is committed, so retiring the old name outright
+  would break every repository carrying one to save eight characters. Both are
+  checked *per directory* on the way up rather than one name swept to the root
+  and then the other, or a legacy file at a repo root would beat a `.okf.json`
+  two levels down and "the nearest one wins" would quietly mean something else.
+  The deprecation note is the `registry` umbrella's alone — the one verb whose
+  subject is a registry file, and the one nobody runs in a loop or pipes into
+  something else, which is exactly what `lint` and `search` are.
+
 ## 2026-08-21
 
 * **The [registry](/registry.md) composes other registry files, and its umbrella

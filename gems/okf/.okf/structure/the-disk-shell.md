@@ -50,7 +50,7 @@ logic belongs instead.
 
 `Registry` is the `@slug` layer. `HOME_ENV`/`DEFAULT_HOME` is the global
 registry under `$OKF_HOME` (default `~/.okf`); `LOCAL_FILE` is the project-local
-`.okf-registry.json` that `discover` finds by walking up from the working
+`.okf.json` (or the legacy `.okf-registry.json`) that `discover` finds by walking up from the working
 directory. **A discovered local registry replaces the global one outright** — it
 does not merge — and `NO_DISCOVERY_ENV` (`OKF_NO_DISCOVERY=1`) is the escape
 hatch that forces the global one, which is what a test that must not see the

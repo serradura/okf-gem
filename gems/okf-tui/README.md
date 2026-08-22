@@ -155,7 +155,7 @@ Anything that can lose configuration asks first and names what it is about to do
 group goes with it. `+`, `c` and `d` add or reorder, and do not ask.
 
 **Which registry.** The same one every other `okf` verb run from the same
-directory resolves: a project-local `.okf-registry.json` when one is on the path
+directory resolves: a project-local `.okf.json` when one is on the path
 up from here, and `$OKF_HOME` (default `~/.okf`) otherwise. `OKF_NO_DISCOVERY=1`
 forces the global one. The header names the file it read, so there is never a
 question which is in force. A workspace of directories named on the command line

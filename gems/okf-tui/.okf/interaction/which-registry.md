@@ -1,7 +1,7 @@
 ---
 type: Constraint
 title: Which Registry a Session Is On
-description: okf resolves a project-local .okf-registry.json before the global $OKF_HOME one; the TUI did not, and being the single verb that disagreed was a silent wrong answer rather than an error.
+description: okf resolves a project-local .okf.json before the global $OKF_HOME one; the TUI did not, and being the single verb that disagreed was a silent wrong answer rather than an error.
 tags: [registry, okf-coupling, discovery]
 generated:
   by: human:maintainer
@@ -22,7 +22,7 @@ sources:
 # Overview
 
 "Which bundles can I see?" has one right answer per directory, and okf decides it:
-`OKF_NO_DISCOVERY` forces the global registry; otherwise a `.okf-registry.json`
+`OKF_NO_DISCOVERY` forces the global registry; otherwise a `.okf.json`
 found by walking up from the working directory wins; otherwise `$OKF_HOME`
 (default `~/.okf`). Nearest local file wins, and a local registry stores paths
 *relative* to itself so it can be committed and travel with the repo.

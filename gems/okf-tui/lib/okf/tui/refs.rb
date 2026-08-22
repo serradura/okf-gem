@@ -28,7 +28,7 @@ module OKF
     # Resolution is also what opts the TUI into registry discovery: Command's
     # `open_registry` is `OKF::Registry.load(cwd: Dir.pwd)`, so a `@slug` here
     # means the same bundle it means to every other okf verb run from the same
-    # directory — the project-local `.okf-registry.json` when there is one on the
+    # directory — the project-local `.okf.json` when there is one on the
     # path up, the global `$OKF_HOME` registry otherwise.
     class Refs < OKF::CLI::Command
       def self.id

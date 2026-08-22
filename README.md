@@ -211,7 +211,7 @@ the root is named for what it is.
 | [`skills/`](#the-skill-without-the-gem) | the skills a generic installer reads: `okf`, and `okf-principles` |
 | [`resources/`](resources/ci/github/README.md) | copy-paste recipes — today, CI that validates and lints your bundles on every push |
 | [`.okf/`](.okf) | the ecosystem map: a concept per gem, per plugin item, per skill — plus the decisions and the format |
-| [`.okf-registry.json`](.okf-registry.json) | every bundle in this tree, addressable as `@slug` from anywhere in it |
+| [`.okf.json`](.okf.json) | every bundle in this tree, addressable as `@slug` from anywhere in it |
 | [`Dockerfile`](Dockerfile) | builds the published image from `gems/okf/`, from a root build context |
 | [`.github/`](.github/workflows) | the CI workflows, and the images this page renders |
 | [`.claude/`](.claude/CLAUDE.md) | one line, pointing Claude Code at [`AGENTS.md`](AGENTS.md) |

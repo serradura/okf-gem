@@ -74,7 +74,7 @@ task :rubocop do
 end
 
 # Every OKF bundle the repository carries is named once, in the committed
-# .okf-registry.json — this project's own, and any a gem ships inside itself
+# .okf.json — this project's own, and any a gem ships inside itself
 # (okf-tui's `.okf/` is in its `spec.files`, so a broken one would be published
 # rather than merely committed). A hardcoded list here was a second place to
 # remember; adding a bundle is now `okf registry set`, and this reads it.
@@ -83,9 +83,13 @@ end
 # checkout be cloned, copied or bind-mounted anywhere and still resolve — so
 # this reads slugs and passes `@slug` refs, letting the CLI's own discovery
 # (walk up from cwd) do the resolving rather than rebuilding paths here.
+# Both names, newest first, because okf discovers both: the file was renamed from
+# .okf-registry.json and a checkout that predates the rename must still `rake okf`.
+LOCAL_REGISTRIES = %w[.okf.json .okf-registry.json].freeze
+
 def registered_slugs
-  file = File.join(ROOT, ".okf-registry.json")
-  abort "no #{file} — run `okf registry init` and `okf registry set` first" unless File.file?(file)
+  file = LOCAL_REGISTRIES.map { |name| File.join(ROOT, name) }.find { |path| File.file?(path) }
+  abort "no #{File.join(ROOT, LOCAL_REGISTRIES.first)} — run `okf registry init` and `okf registry set` first" unless file
 
   JSON.parse(File.read(file)).fetch("bundles").map { |bundle| bundle.fetch("slug") }
 end

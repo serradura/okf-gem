@@ -2,7 +2,7 @@
 
 require_relative "../cli_integration_case"
 
-# `okf registry init` end-to-end — create a project-local .okf-registry.json in
+# `okf registry init` end-to-end — create a project-local .okf.json in
 # the current directory. Once it exists, discovery finds it and every registry op
 # targets it instead of the global $OKF_HOME one (see cli_registry_discovery_test).
 # init itself only writes the file; populating it is `registry set`'s job.
@@ -11,7 +11,7 @@ require_relative "../cli_integration_case"
 # it, so `init` writes there and never touches the repo (see the setup comment).
 module ByRegistry
   class CLIRegistryInitTest < CLIIntegrationCase
-    LOCAL = ".okf-registry.json"
+    LOCAL = ".okf.json"
 
     test "init creates an empty local registry in the current directory" do
       result = okf("registry", "init")

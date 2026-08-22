@@ -10,7 +10,7 @@ module OKF
     class Registry < Command
       # The `registry` umbrella's subcommands — the dispatch, and the words a
       # flag-first invocation is checked against.
-      SUBCOMMANDS = %w[init set del list default rename group ungroup link unlink].freeze
+      SUBCOMMANDS = %w[init set del list default rename group ungroup link unlink import].freeze
 
       def self.id
         :registry
@@ -23,7 +23,7 @@ module OKF
       # One subcommand per row — the table `okf registry --help` prints, and the
       # single place each subcommand's grammar is written down.
       SUBCOMMAND_ROWS = [
-        [ "init", "create a project-local .okf-registry.json (nearest one wins)" ],
+        [ "init", "create a project-local .okf.json (nearest one wins)" ],
         [ "list [--json]", "list registered bundles (* marks the default)" ],
         [ "set <dir|@slug> [--as SLUG] [--default]", "add or update a bundle (a bare `server` serves them)" ],
         [ "del <dir|@slug>", "remove a bundle or group from the registry" ],
@@ -32,7 +32,8 @@ module OKF
         [ "group <slug> <@member…>", "create a group, or add members (search/server can target @slug)" ],
         [ "ungroup <slug> <@member…>", "remove members from a group (emptying it deletes it)" ],
         [ "link <name> <file>", "point the global registry at another one (its bundles resolve here)" ],
-        [ "unlink <name>", "drop a link and every bundle that arrived through it" ]
+        [ "unlink <name>", "drop a link and every bundle that arrived through it" ],
+        [ "import <@slug…> [--from FILE]", "copy bundles out of another registry (global by default) into this one" ]
       ].freeze
 
       # The umbrella is one row in `okf help`. Ten made a third of the map about
@@ -60,6 +61,7 @@ module OKF
         when "ungroup" then registry_ungroup(argv.drop(1))
         when "link" then registry_link(argv.drop(1))
         when "unlink" then registry_unlink(argv.drop(1))
+        when "import" then registry_import(argv.drop(1))
         else
           # A bare word that isn't a known subcommand is a typo (`registry remove x`
           # must not silently render the list and read as success).
@@ -106,7 +108,7 @@ module OKF
         end
       end
 
-      # Create a project-local .okf-registry.json in the current directory. Once it
+      # Create a project-local .okf.json in the current directory. Once it
       # exists, discovery finds it (walking up from cwd) and every registry op —
       # and every @ref — resolves through it instead of the global $OKF_HOME one.
       # init only writes the empty file; `registry set` fills it. Refuses to clobber
@@ -120,8 +122,11 @@ module OKF
         no_extras?(argv) or return 2
 
         target = File.join(Dir.pwd, OKF::Registry::LOCAL_FILE)
-        display = "./#{OKF::Registry::LOCAL_FILE}"
-        return usage_error("already initialized: #{display}") if File.exist?(target)
+        # Either name is "already initialized": the legacy one is still
+        # discovered, so writing a second registry beside it would shadow a file
+        # the user still thinks is in force — the trap, not the fix.
+        existing = OKF::Registry::LOCAL_FILES.find { |name| File.exist?(File.join(Dir.pwd, name)) }
+        return usage_error("already initialized: ./#{existing}") if existing
 
         # The parent it would shadow, if any — a courtesy, not a barrier: nested
         # registries resolve nearest-first, so creating one here is legitimate.
@@ -129,7 +134,7 @@ module OKF
         @err.puts "note: a parent registry at #{parent} — the nearest one wins" if parent
 
         OKF::Registry.new(target).save
-        @out.puts "initialized #{display}"
+        @out.puts "initialized ./#{OKF::Registry::LOCAL_FILE}"
         0
       rescue OptionParser::ParseError => e
         @err.puts e.message
@@ -421,6 +426,69 @@ module OKF
         usage_error(e.message)
       end
 
+      # Copy chosen bundles — and the groups that hold them — out of another
+      # registry file into the one in force. The counterpart to `link`, not a
+      # variant of it: a link is live, whole-file and read-only, and an import
+      # copies the reference and hands over ownership.
+      #
+      # Two registries are named here, and only one flag names each. `-g` goes on
+      # meaning what it means on every sibling subcommand — the registry written
+      # *to* — and `--from` names the one read, defaulting to the global registry,
+      # which inside a repo is the only other one there is. Overloading `-g` into
+      # a source flag on this verb alone would make it mean "write here" nine
+      # times and "read there" once.
+      def registry_import(argv)
+        options = { from: nil, as: nil, global: false }
+        parser = OptionParser.new do |o|
+          o.banner = "Usage: okf registry import <@slug…> [--from FILE] [--as SLUG] [-g]"
+          o.on("--from FILE", "registry file to copy from (default: the global $OKF_HOME one)") do |v|
+            options[:from] = v
+          end
+          o.on("--as SLUG", "slug to import under, renaming one bundle or group") { |v| options[:as] = v }
+          global_flag(o, options)
+          help_flag(o)
+        end
+        parser.parse!(argv)
+        if argv.empty?
+          @err.puts parser.banner
+          return 2
+        end
+        # --as names *one* thing. Applying it to a list would either rename them
+        # all to the same slug (a collision the user did not ask for) or pick one
+        # silently, and there is no reading of "import a b --as c" worth guessing.
+        return usage_error("--as names one bundle or group, and #{argv.length} were asked for") if options[:as] && argv.length > 1
+
+        # Expanded for the report as `link` expands its target: a relative --from
+        # is the shorthand, and the file it actually read is the answer.
+        from = OKF::Registry.expand(options[:from] || OKF::Registry.path)
+        reg = open_registry(global: options[:global])
+        print_imported(reg.import(argv, from: from, as: options[:as]), from)
+        0
+      rescue OptionParser::ParseError => e
+        @err.puts e.message
+        2
+      rescue OKF::Error => e
+        usage_error(e.message)
+      end
+
+      # What landed: a count against the file it came from, then a row per bundle
+      # in `set`'s shape (with its concept count, the signal that says whether it
+      # was the right bundle), then a row per group. Groups print after the
+      # bundles they hold, which is the order they were planned in.
+      def print_imported(imported, from)
+        bundles = imported[:bundles]
+        @out.puts "imported #{bundles.length} #{pluralize(bundles.length, "bundle")} from #{from}"
+        bundles.each do |entry|
+          folder = OKF::Bundle::Folder.load(entry.path)
+          report_skipped(folder)
+          count = folder.graph(minimal: true).nodes.size
+          @out.puts "  #{entry.slug} → #{entry.path} (#{count} #{pluralize(count, "concept")})"
+        end
+        imported[:groups].each do |group|
+          @out.puts "  #{group.slug} → #{group.members.map { |member| "@#{member}" }.join(", ")} (group)"
+        end
+      end
+
       # The one refusal both link verbs share: a project-local registry is in
       # force, and links are the global one's alone — which is what keeps a linked
       # file's own links unread, and so keeps depth at one with nothing to enforce.
@@ -491,18 +559,51 @@ module OKF
         end
       end
 
+      # Every registry read this verb makes, with the filename note attached. The
+      # note is the `registry` umbrella's alone: this is the one verb whose
+      # *subject* is a registry file, and the one nobody runs in a loop or pipes
+      # into something else. `lint` and `search` are both, and a note there is
+      # noise people learn to redirect away rather than act on.
+      #
+      # Once per invocation, not once per read — `registry set @slug` opens the
+      # registry twice (the ref, then the write), and saying it twice reads as
+      # two problems.
+      def open_registry(global: false)
+        reg = super
+        note_legacy_name(reg) unless @named_registry
+        @named_registry = true
+        reg
+      end
+
+      # Two things worth saying about a project-local registry's filename, and
+      # nothing at all about the global one (which is `registry.json` and always
+      # was). A legacy file that is *in force* gets the move that retires it. A
+      # legacy file sitting beside the `.okf.json` that beat it gets named too:
+      # reading one while the other lies there unread is a silent wrong answer
+      # unless somebody says so.
+      def note_legacy_name(reg)
+        return unless local_registry?(reg)
+
+        legacy = OKF::Registry::LEGACY_LOCAL_FILE
+        if File.basename(reg.path) == legacy
+          @err.puts "note: #{legacy} is the old name — git mv #{legacy} #{OKF::Registry::LOCAL_FILE}"
+        elsif File.file?(File.join(File.dirname(reg.path), legacy))
+          @err.puts "note: #{legacy} is ignored — #{OKF::Registry::LOCAL_FILE} beside it wins (delete the old one)"
+        end
+      end
+
       # Whether this registry was discovered as a project-local file rather than
       # read from $OKF_HOME — the basename settles it (only a local one is named
-      # .okf-registry.json).
+      # .okf.json, or the legacy .okf-registry.json).
       def local_registry?(reg)
-        File.basename(reg.path) == OKF::Registry::LOCAL_FILE
+        OKF::Registry::LOCAL_FILES.include?(File.basename(reg.path))
       end
 
       # How to name the local registry in the header: `./` when it sits in cwd
       # (the common case, a bare `init` here), its absolute path when discovery
       # walked up to an ancestor.
       def registry_display(reg)
-        File.dirname(reg.path) == Dir.pwd ? "./#{OKF::Registry::LOCAL_FILE}" : reg.path
+        File.dirname(reg.path) == Dir.pwd ? "./#{File.basename(reg.path)}" : reg.path
       end
 
       # The groups section under the bundle listing: one row per group, its members

@@ -32,7 +32,7 @@ module OKF
             -v, --version      print the version
             -h, --help         print this message
 
-        The registry is the project-local .okf-registry.json when one is on the
+        The registry is the project-local .okf.json when one is on the
         path up from here, and $OKF_HOME (default ~/.okf) otherwise — whichever
         one every other `okf` verb run from here resolves to. OKF_NO_DISCOVERY=1
         forces the global one.
@@ -87,7 +87,7 @@ module OKF
       # `cwd: Dir.pwd` is the other half of that: it is what opts this run into
       # registry discovery, mirroring okf's own rule that only its CLI passes a
       # cwd while a library caller stays global-only. Without it the TUI would be
-      # the one okf verb that ignores a project-local `.okf-registry.json` sitting
+      # the one okf verb that ignores a project-local `.okf.json` sitting
       # right beside the bundles it is being asked about.
       def start(refs)
         return incompatible_okf("cannot answer a search — OKF::Bundle::Search is missing across/prepare/with") unless

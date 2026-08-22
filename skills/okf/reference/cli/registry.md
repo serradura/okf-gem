@@ -3,7 +3,8 @@
 Kind: reference. Answers: which file a registry op writes and how okf finds it,
 which verbs key on a path and which on a slug, what a group is and which two
 verbs consume one, why the default is a position rather than a stored slug, and
-what a link brings in from another registry file.
+what a link brings in from another registry file — against what an import copies
+out of one.
 
 The *persistent registry* is a plain JSON file under `$OKF_HOME` (default
 `~/.okf`), managed by the `okf registry` umbrella — like git's `remote` family,
@@ -12,7 +13,7 @@ and split by what each verb keys on. It is what every `@slug` resolves through
 ([serve.md](serve.md)).
 
 **`okf registry init`** creates a *project-local* registry instead: a
-`.okf-registry.json` in the current directory, which okf discovers by walking up
+`.okf.json` in the current directory, which okf discovers by walking up
 from the working directory and uses in place of the global one while you are
 inside its tree (the nearest wins, so nested registries resolve nearest-first).
 Every registry op — and every `@slug` — then resolves through it, so a bare
@@ -25,10 +26,15 @@ reads the global registry from inside a repo, and `okf registry set <dir> -g`
 registers there without leaving. `list` names the file it read whenever either
 lever is in play, so which registry answered is never a guess. A
 local registry stores **portable** paths: a bundle inside its tree is written
-relative to the `.okf-registry.json`, so committing the file lets it travel with
+relative to the `.okf.json`, so committing the file lets it travel with
 the repo (a checkout elsewhere, a container mounting it) and resolve unchanged;
 a bundle outside the tree stays absolute, since it cannot travel. Paths still read
 back absolute wherever the CLI reports them.
+The file okf writes is `.okf.json`; the older `.okf-registry.json` is still
+discovered, both names checked in each directory on the way up so "nearest wins"
+keeps its shape, and `okf registry` — that verb alone, never `lint` or `search` —
+notes the old name once so it can be retired with a `git mv`.
+
 **Entry verbs** take a path: `okf registry set <dir>` adds it
 (slug from the basename, or `--as`, which errors on a collision; `--default`
 puts it first), and because the entry is keyed by path, `set` on an
@@ -81,6 +87,18 @@ file's own links are never followed and there is no chain to cycle. A target
 that is gone or unparseable is listed `(missing)`/`(unreadable)` and resolves to
 nothing — one dead pointer never takes down the registry holding it.
 <!-- rule:okf-registry-links-global-only -->
+**`okf registry import <@slug…>`** is the opposite trade: it *copies* chosen rows
+out of another registry file into the one in force, and they become yours —
+editable, renameable, groupable, and untouched when the source changes. The
+source is `--from FILE`, defaulting to the global registry, because `-g` goes on
+meaning the registry written *to*. A group ask brings its members, and any group
+nested inside it, recreated under the same names. Slugs are preserved, so a
+collision **refuses** rather than being minted around the way a link's is — you
+typed this name, and the gem may not substitute one you chose (`--as` renames a
+single ask). A bundle already registered here under another name refuses first.
+Every ask is checked before anything is written, so an import either lands whole
+or leaves the file byte-for-byte alone.
+<!-- rule:okf-registry-import-all-or-nothing -->
 `okf registry list` (or a bare
 `okf registry`) stars the default and flags vanished dirs `(missing)` — the
 server skips those with a note — and lists any groups with their members and

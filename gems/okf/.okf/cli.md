@@ -74,7 +74,8 @@ side should not enrol them in the user's durable list. Registering is always the
 explicit act of `okf registry set`.
 
 `registry` is an umbrella verb — `init`, `list`, `set`, `del`, `default`,
-`rename`, `group`, `ungroup`, `link`, `unlink` — over one persistent file, and it
+`rename`, `group`, `ungroup`, `link`, `unlink`, `import` — over one persistent
+file, and it
 is **one row in the map**. It carried ten for a while, which made a third of `okf
 help` about registry management when registry management is not a third of what
 okf does; the row now points at `okf registry --help`, which prints the ten with

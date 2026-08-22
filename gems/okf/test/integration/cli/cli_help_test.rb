@@ -32,7 +32,7 @@ class CLIHelpTest < CLIIntegrationCase
     rows = result.out.lines.grep(/^\s+registry\b/)
     assert_equal 1, rows.length, "the umbrella is one row: #{rows.inspect}"
     assert_match(/okf registry --help/, rows.first, "and the row says where its subcommands are")
-    %w[init set del default rename group ungroup link unlink].each do |subcommand|
+    %w[init set del default rename group ungroup link unlink import].each do |subcommand|
       refute_match(/^\s+registry\s+#{subcommand}\b/, result.out,
         "`registry #{subcommand}` belongs in the umbrella's own help, not the map")
     end

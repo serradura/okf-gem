@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`okf registry import <@slug…> [--from FILE]` — copy chosen bundles out of
+  another registry file into the one in force, where they become yours.** It is
+  the opposite trade from `link` and the pair is the point: a link holds a live
+  pointer to a whole file and the other side keeps owning what it lends, while an
+  import copies chosen references and hands over ownership, so what lands renames,
+  defaults and groups like anything you registered by hand. The case it exists for
+  is standing in a repo, running `okf registry list -g`, and wanting one of the
+  bundles it shows — before this the only way to move it was to read the path off
+  the screen and retype it into `registry set`.
+
+  The source is `--from`, defaulting to the global registry, because `-g` goes on
+  meaning the registry acted *on*, as it does on every sibling subcommand. A group
+  ask brings its members and any group nested inside it, recreated under the same
+  names. Slugs are preserved, so a collision **refuses** (`--as` renames a single
+  ask) rather than being minted around the way a linked name is — a linked name was
+  never chosen here, an imported one was typed. A bundle already registered here
+  under another name refuses first, naming that name. Every ask is validated before
+  anything is written, so an import lands whole or leaves the file byte-for-byte
+  alone.
+
+- **`.okf.json` is the project-local registry's filename.** `okf registry init`
+  writes it, and it is what the docs now name. The older `.okf-registry.json` is
+  **still discovered**, so no committed registry breaks: both names are checked in
+  each directory on the way up — per directory, not one name swept to the root and
+  then the other, or a legacy file at a repo's root would beat a `.okf.json` two
+  levels down and "the nearest one wins" would mean something else. Within one
+  directory the short name wins, and a legacy file left beside it is named on
+  stderr rather than silently ignored.
+
+  The deprecation note is the `registry` umbrella's alone, and it is one stderr
+  line: that verb's subject *is* a registry file, and it is not the one people run
+  in loops or pipe into something else, which is exactly what `lint` and `search`
+  are. Renaming is `git mv .okf-registry.json .okf.json`, and the note says so. One
+  transitional cost worth naming: a checkout renamed to `.okf.json` is invisible to
+  an installed okf older than 2.2.0, which will fall back to the global registry
+  until that install is upgraded.
+
 - **`okf registry link <name> <file>` — the global registry points at another
   registry file, and that file's bundles resolve here.** Nothing is copied: the
   target keeps owning its rows, so an edit there shows on the next read. The case

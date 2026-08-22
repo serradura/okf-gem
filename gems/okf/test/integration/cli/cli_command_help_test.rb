@@ -29,7 +29,7 @@ class CLICommandHelpTest < CLIIntegrationCase
     %w[validate], %w[lint], %w[loose], %w[search], %w[index], %w[dirs], %w[stats],
     %w[types], %w[tags], %w[files], %w[catalog], %w[graph], %w[render],
     %w[server], %w[registry set], %w[registry del], %w[registry default],
-    %w[registry rename]
+    %w[registry rename], %w[registry import]
   ].freeze
 
   # The two surfaces that name no bundle and no slug: help must still answer,

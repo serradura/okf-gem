@@ -15,7 +15,7 @@ module OKF
     # names a registered bundle or group, whose slug is reserved before any
     # plain-dir basename is deduped — the server verb's rule). No argv means
     # the active kernel registry, resolved exactly as the CLI resolves it:
-    # a project-local .okf-registry.json discovered from cwd, else
+    # a project-local .okf.json discovered from cwd, else
     # $OKF_HOME/registry.json, OKF_NO_DISCOVERY=1 forcing global.
     class Registry
       # One served bundle: the +slug+ tools name it by, its absolute +root+ on

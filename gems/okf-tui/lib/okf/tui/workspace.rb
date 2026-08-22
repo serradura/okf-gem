@@ -97,7 +97,7 @@ module OKF::TUI
     # its CLI passes a cwd and a library caller stays on the global registry. A
     # default here would make the registry an embedding app reads depend on the
     # directory its process happens to be in, and would let the suite discover a
-    # `.okf-registry.json` from wherever `rake` was run.
+    # `.okf.json` from wherever `rake` was run.
     #
     # +ref_slugs+ maps a resolved directory to the slug the @ref named it by, so a
     # session built from refs keeps the names the user typed. See Refs#slugs.
