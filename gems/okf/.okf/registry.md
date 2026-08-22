@@ -342,6 +342,15 @@ default rule already refused. And **`registry set` on a directory a link already
 carries** is refused rather than quietly adding a twin, because entries are
 identified by path and the path is already spoken for.
 
+The third was a hole this rule had left open, and it failed in the worst
+available way. A group's slug is its *update* path everywhere else — `registry
+group backend @more` adds to the existing one — so `group onm @alpha`, naming a
+link or a group that came with one, took that path: it merged the member, printed
+`grouped onm → …`, and lost it, because `write` persists only the groups this
+registry owns. A refusal is the fix, but the shape is what matters: a write that
+reports success and does not happen is worse than one that raises, and it was
+reachable from the CLI, the TUI and the browser panel alike.
+
 The refusals live in this class, not in the [CLI](cli.md), and that placement is
 load-bearing: the graph page's ⚙ Bundles panel posts into these same methods
 ([bundles manager](capabilities/bundles-manager.md)), so a guard one layer up

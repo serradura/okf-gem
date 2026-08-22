@@ -106,6 +106,15 @@ Gem::Specification.new do |spec|
   # suite the moment okf bumps and this line does not follow; the same PR that
   # bumps okf moves it.
   #
+  # It is lagging *now*, and knowingly. The bundles view reads `Registry#links_listing`
+  # and the `link` key on listing and group rows, which published okf 2.1.1 does
+  # not have: against it a linked bundle is simply never marked read-only and the
+  # four config keys stop refusing — nil, not a raise, which is the exact failure
+  # the paragraph above describes. It cannot move earlier, because the monorepo
+  # resolves the path-sourced okf whose version.rb still says 2.1.1 and a leading
+  # floor fails resolution outright. The CHANGELOG's Unreleased section carries
+  # the same note where the release notes are cut.
+  #
   # The `< 3` ceiling is the one exception to "no ceilings for the floor's sake"
   # (AGENTS.md constraint 3), and it is earned rather than borrowed from the
   # sibling: an okf major is precisely where the silent drift this gem keeps

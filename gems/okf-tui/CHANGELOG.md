@@ -5,6 +5,34 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Linked bundles are marked read-only, and the config keys refuse before the
+  prompt.** okf's global registry can now `link` another registry file, and that
+  file's bundles and groups resolve into the bundles view. Browsing one is
+  browsing a bundle, so they list, load, scope and search like any other — but
+  the file that owns them is elsewhere and okf refuses every write against one.
+
+  `d`, `n`, `x` and `+` now say so *before* asking. Without this the ask went
+  through, okf raised, and the message reached the status line only after the
+  user had typed a new name or confirmed a removal. The bundle detail carries
+  `read-only — linked from @onm` and the owning file underneath; the registry
+  pane is left alone, because 42 columns cannot take another marker without
+  clipping.
+
+  Nothing else changed to show linked bundles at all: the entries come from
+  okf's `listing` and the groups from its `groups_listing`, both of which fold
+  the linked half in. `Entry#link` and `Group#link` are read straight off those
+  rows, and the suite asserts that agreement against okf rather than a fixture.
+
+### Changed
+
+- Requires an okf that ships `registry link` (`Registry#links_listing`, and the
+  `link` key on listing rows). The gemspec floor moves in the same PR that bumps
+  okf; `test/unit/gemspec_test.rb` fails until it does.
+
 ## [1.0.1] - 2026-08-20
 
 ### Fixed

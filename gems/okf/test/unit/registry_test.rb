@@ -634,6 +634,33 @@ class OKF::RegistryTest < OKF::TestCase
     assert_match(/linked registry/, error.message)
   end
 
+  test "grouping refuses a linked group name rather than discarding the write" do
+    reg = registry
+    reg.add(bundle("alpha"))
+    reg.link("onm", linked_file("onm", %w[central], groups: { "brain" => %w[central] }))
+
+    # Both name a group this registry cannot write: the link's own set, and one
+    # that came with the file. Reported as refusals, because the alternative is
+    # what this found — set_group returned a Group with the new member on it and
+    # the next read had none of it, which is a success message for a write that
+    # never happened.
+    fresh = reload
+    %w[onm brain].each do |name|
+      error = assert_raises(OKF::Error) { fresh.set_group(name, %w[alpha]) }
+      assert_match(/linked registry/, error.message, "set_group #{name}")
+    end
+    assert_equal %w[central], reload.expand("onm").map(&:slug)
+  end
+
+  test "ungrouping refuses a linked group for the same reason" do
+    reg = registry
+    reg.link("onm", linked_file("onm", %w[central autonote], groups: { "brain" => %w[central autonote] }))
+
+    error = assert_raises(OKF::Error) { reload.unset_group_members("brain", %w[central]) }
+    assert_match(/linked registry/, error.message)
+    assert_equal %w[central autonote], reload.expand("brain").map(&:slug)
+  end
+
   test "a link name collides with a bundle slug, and a bundle slug with a link name" do
     reg = registry
     reg.add(bundle("onm"))

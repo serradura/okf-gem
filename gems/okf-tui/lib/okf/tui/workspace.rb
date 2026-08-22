@@ -16,14 +16,22 @@ module OKF::TUI
     # or unreadable, and `error` says which — so a row explains itself instead of
     # silently vanishing from the list.
     class Entry
-      attr_reader :slug, :dir
+      attr_reader :slug, :dir, :link
       attr_accessor :model, :error
 
-      def initialize(slug:, dir:, default:, registered:)
+      def initialize(slug:, dir:, default:, registered:, link: nil)
         @slug = slug
         @dir = dir
         @default = default
         @registered = registered
+        @link = link
+      end
+
+      # Did this bundle arrive through an okf registry link? Browsing one is
+      # browsing a bundle, so it reads like any other — but the registry that
+      # owns it is another file, and okf refuses every config write against it.
+      def linked?
+        !@link.nil?
       end
 
       def default?
@@ -52,13 +60,21 @@ module OKF::TUI
     # the members are what an edit would change, the leaves are what a search
     # would cover, and for a nested group those are not the same list.
     class Group
-      attr_reader :slug, :members, :bundles
+      attr_reader :slug, :members, :bundles, :link
 
-      def initialize(slug:, members:, bundles:, cyclic:)
+      def initialize(slug:, members:, bundles:, cyclic:, link: nil)
         @slug = slug
         @members = members
         @bundles = bundles
         @cyclic = cyclic
+        @link = link
+      end
+
+      # A group an okf registry link brought in — the link's own set, or one the
+      # linked file curates. Scopable and searchable like any other; writable by
+      # nobody here, since okf persists only the groups this registry owns.
+      def linked?
+        !@link.nil?
       end
 
       # A hand-edited registry can name a cycle, which okf reports by declining to
@@ -106,6 +122,15 @@ module OKF::TUI
     # would print a path the session is not reading.
     def registry_path
       (registry || open_registry).path
+    end
+
+    # The registry file a link points at — what a refusal has to name, since
+    # "edit it there" is useless without saying where there is. nil when nothing
+    # is linked under that name.
+    def link_target(name)
+      return nil unless registry_backed?
+
+      registry.links_listing.find { |row| row[:slug] == name }&.fetch(:registry)
     end
 
     def empty?
@@ -465,7 +490,7 @@ module OKF::TUI
     def registry_entries
       registry.listing.map do |row|
         build_entry(slug: row[:slug], dir: row[:dir], default: row[:default],
-          registered: true, missing: row[:missing])
+          registered: true, missing: row[:missing], link: row[:link])
       end
     end
 
@@ -482,7 +507,7 @@ module OKF::TUI
         end
 
         Group.new(slug: row[:slug], members: row[:members], bundles: bundles || [],
-          cyclic: bundles.nil?)
+          cyclic: bundles.nil?, link: row[:link])
       end
     end
 
@@ -508,8 +533,8 @@ module OKF::TUI
       end
     end
 
-    def build_entry(slug:, dir:, default:, registered:, missing:)
-      entry = Entry.new(slug: slug, dir: dir, default: default, registered: registered)
+    def build_entry(slug:, dir:, default:, registered:, missing:, link: nil)
+      entry = Entry.new(slug: slug, dir: dir, default: default, registered: registered, link: link)
 
       if missing
         entry.error = "directory is gone"

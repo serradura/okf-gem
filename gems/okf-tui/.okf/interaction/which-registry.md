@@ -56,11 +56,13 @@ one answer per directory; a linked group listed by a *second* method would have
 put the TUI back where it started, showing a smaller set than its own `@ref`
 resolution could open, with nothing failing to say so.
 
-What the TUI does not yet carry is that a linked bundle is **read-only**: the
-config writes offer rename, remove and default on one, and okf refuses each with
-a message that reaches the status line intact. Nothing breaks, and no data moves,
-but it is a menu of three errors — the same wart okf's own graph page fixed by
-hiding the actions on a linked row.
+What the TUI had to add for itself is that a linked bundle is **read-only**. The
+config keys reached okf, which refused, and the message arrived on the status
+line — correct, and too late: the user had already typed a new name or confirmed
+a removal. `d`, `n`, `x` and `+` now refuse before the prompt, and the detail
+pane says where the bundle comes from. That is
+[registry-write-boundary](/decisions/registry-write-boundary.md)'s, not this
+file's — what belongs here is only that the *set* stayed one answer.
 
 # The library keeps okf's own line
 

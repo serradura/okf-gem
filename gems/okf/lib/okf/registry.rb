@@ -413,6 +413,7 @@ module OKF
       group = group?(name)
       raise OKF::Error, "no such group: #{slug} (okf registry list)" unless group
 
+      refuse_linked(group, "ungroup")
       asks = normalize_members(member_asks)
       removed = group.members & asks
       group.members -= asks
@@ -582,6 +583,13 @@ module OKF
       if get(slug)
         raise OKF::Error, "slug already taken: #{slug} names a bundle (rename or remove that entry first)"
       end
+
+      # A group a link brought in is the update path everywhere else — and here
+      # that is the trap: #write persists @groups alone, so mutating one reported
+      # success and dropped the change on the next read. A refusal, like every
+      # other write a link owns.
+      linked = @link_groups.find { |group| group.slug == slug }
+      refuse_linked(linked, "group") if linked
 
       slug
     end

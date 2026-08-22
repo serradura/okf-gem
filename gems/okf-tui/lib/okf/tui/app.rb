@@ -996,6 +996,10 @@ module OKF::TUI
       return (@message = "no bundle here to add") if entry.nil?
       return (@message = "no group to add it to — c names the bundles in scope as one") if group.nil?
       return (@message = "@#{group.slug} already names @#{entry.slug}") if group.members.include?(entry.slug)
+      # Both halves: a linked bundle cannot be stored as a member (its name lives
+      # only while its link resolves), and a linked group cannot be written to.
+      return if refused_linked?(entry, "grouping")
+      return if refused_linked?(group, "adding to")
 
       apply_group_edit_keeping_focus do
         keeping_group_scoped(group.slug) { workspace.add_to_group(group.slug, [ entry.slug ]) }
@@ -1434,19 +1438,35 @@ module OKF::TUI
     # cascades across every member list, and one `del` cascade-drops the slug and
     # deletes any group it empties. Nothing here has to know that — it just has to
     # pass the slug the cursor is on rather than assuming it is a bundle's.
-    def ask_rename
-      slug = selected_slug
-      return if slug.nil?
+    # A bundle or group an okf registry *link* brought in is read-only: the file
+    # that owns it is another registry, and okf refuses every config write against
+    # one. The refusal belongs here, before the prompt — letting the ask through
+    # makes a user type a new name and confirm it before learning it could never
+    # land, and this view's own rule is that a key which stops working says so.
+    # True when it refused, so a caller reads as `return if refused_linked?(…)`.
+    def refused_linked?(subject, action)
+      return false if subject.nil? || !subject.linked?
 
-      ask(:rename, "rename @#{slug} to:", free_text: true, subject: slug)
+      @message = "#{action} @#{subject.slug} is read-only — it comes from the linked registry " \
+                 "@#{subject.link}, so edit it there"
+      true
+    end
+
+    def ask_rename
+      subject = detailing_group? ? selected_group : selected_entry
+      return if subject.nil?
+      return if refused_linked?(subject, "renaming")
+
+      ask(:rename, "rename @#{subject.slug} to:", free_text: true, subject: subject.slug)
     end
 
     def ask_remove
-      slug = selected_slug
-      return if slug.nil?
+      subject = detailing_group? ? selected_group : selected_entry
+      return if subject.nil?
+      return if refused_linked?(subject, "removing")
 
-      what = detailing_group? ? "group @#{slug}" : "@#{slug}"
-      ask(:remove, "remove #{what} from the registry? (y/n)", free_text: false, subject: slug)
+      what = detailing_group? ? "group @#{subject.slug}" : "@#{subject.slug}"
+      ask(:remove, "remove #{what} from the registry? (y/n)", free_text: false, subject: subject.slug)
     end
 
     # The slug the focused pane has selected — a group's when the groups or member
@@ -1458,6 +1478,7 @@ module OKF::TUI
     def set_default
       entry = selected_entry
       return if entry.nil?
+      return if refused_linked?(entry, "defaulting to")
 
       @message = workspace.make_default(entry.slug)
       # Making a bundle the default moves it to the front, so the list reorders

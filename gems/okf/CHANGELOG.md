@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `(missing)`/`(unreadable)` and resolves to nothing, rather than taking down the
   registry holding it.
 
+- `registry group` and `registry ungroup` refuse a group a link brought in —
+  the link's own set, or one the linked file curates. Naming one took the
+  update path, reported `grouped …`, and discarded the change on the next read,
+  because only the groups this registry owns are written. A write that reports
+  success and does not happen is worse than one that raises.
+
 - **`-g`/`--global` on every `registry` subcommand but `init`.** It forces the
   `$OKF_HOME` registry for one command, so `okf registry list -g` reads the global
   one from inside a repo carrying its own, and `okf registry set <dir> -g`
