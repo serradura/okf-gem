@@ -5,6 +5,111 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-08-22
+
+### Added
+
+- **`okf registry import <@slug…> [--from FILE]` — copy chosen bundles out of
+  another registry file into the one in force, where they become yours.** It is
+  the opposite trade from `link` and the pair is the point: a link holds a live
+  pointer to a whole file and the other side keeps owning what it lends, while an
+  import copies chosen references and hands over ownership, so what lands renames,
+  defaults and groups like anything you registered by hand. The case it exists for
+  is standing in a repo, running `okf registry list -g`, and wanting one of the
+  bundles it shows — before this the only way to move it was to read the path off
+  the screen and retype it into `registry set`.
+
+  The source is `--from`, defaulting to the global registry, because `-g` goes on
+  meaning the registry acted *on*, as it does on every sibling subcommand. A group
+  ask brings its members and any group nested inside it, recreated under the same
+  names. Slugs are preserved, so a collision **refuses** (`--as` renames a single
+  ask) rather than being minted around the way a linked name is — a linked name was
+  never chosen here, an imported one was typed. A bundle already registered here
+  under another name refuses first, naming that name. Every ask is validated before
+  anything is written, so an import lands whole or leaves the file byte-for-byte
+  alone.
+
+- **`.okf.json` is the project-local registry's filename.** `okf registry init`
+  writes it, and it is what the docs now name. The older `.okf-registry.json` is
+  **still discovered**, so no committed registry breaks: both names are checked in
+  each directory on the way up — per directory, not one name swept to the root and
+  then the other, or a legacy file at a repo's root would beat a `.okf.json` two
+  levels down and "the nearest one wins" would mean something else. Within one
+  directory the short name wins, and a legacy file left beside it is named on
+  stderr rather than silently ignored.
+
+  The deprecation note is the `registry` umbrella's alone, and it is one stderr
+  line: that verb's subject *is* a registry file, and it is not the one people run
+  in loops or pipe into something else, which is exactly what `lint` and `search`
+  are. Renaming is `git mv .okf-registry.json .okf.json`, and the note says so. One
+  transitional cost worth naming: a checkout renamed to `.okf.json` is invisible to
+  an installed okf older than 2.2.0, which will fall back to the global registry
+  until that install is upgraded.
+
+- **`okf registry link <name> <file>` — the global registry points at another
+  registry file, and that file's bundles resolve here.** Nothing is copied: the
+  target keeps owning its rows, so an edit there shows on the next read. The case
+  it exists for is a repository that already curates its own bundles in a
+  committed `.okf-registry.json` — a link composes that curation instead of
+  duplicating it, and the target resolves its own relative paths exactly as it
+  would from inside that checkout. A linked bundle answers to its own slug, or to
+  `<name>-<slug>` when the name is already taken here; `@<name>` resolves as a
+  group over the set; `okf registry unlink <name>` drops it.
+
+  Links are the **global** registry's alone. A project-local one parses them and
+  never resolves them, which is what makes depth one structural — a linked file's
+  own links are never followed, so no chain forms and there is no cycle to guard.
+  A link is read-only: `rename`, `del`, `default`, `set --as` and `group` refuse a
+  slug it owns, naming the file that does, from the browser's ⚙ Bundles panel as
+  from the terminal. A target that has gone or cannot be parsed is listed
+  `(missing)`/`(unreadable)` and resolves to nothing, rather than taking down the
+  registry holding it.
+
+- `registry group` and `registry ungroup` refuse a group a link brought in —
+  the link's own set, or one the linked file curates. Naming one took the
+  update path, reported `grouped …`, and discarded the change on the next read,
+  because only the groups this registry owns are written. A write that reports
+  success and does not happen is worse than one that raises.
+
+- **`-g`/`--global` on every `registry` subcommand but `init`.** It forces the
+  `$OKF_HOME` registry for one command, so `okf registry list -g` reads the global
+  one from inside a repo carrying its own, and `okf registry set <dir> -g`
+  registers there without leaving. `OKF_NO_DISCOVERY=1` already did this for a
+  whole session and still does; the flag exists because a lever reachable only
+  through an env var is one most people never find. It stays on the `registry`
+  umbrella — the one verb whose subject *is* a registry file — and nowhere else.
+
+- The graph page's ⚙ Bundles panel marks a linked row `via @onm` and **offers no
+  actions menu** on it. Rename, Remove and Default are all refused for a linked
+  bundle, so the menu could only have produced three errors. The request is
+  refused whether or not the button exists — the guard is in `Registry`, not in
+  the page — which is the same split the read-only server already keeps: hiding
+  a control is a UI, refusing the request is the boundary.
+
+- **`okf help` shows one `registry` row instead of ten, and `okf registry --help`
+  prints the subcommands.** Ten rows for one verb made a third of the map about
+  registry management, and the map is there to name the verbs rather than to be
+  every verb's manual. The row names the help that replaces it, since nothing
+  else tells a reader an umbrella has subcommands. A bare `okf registry` still
+  lists the registry, and `okf registry <command> --help` still answers for that
+  command.
+
+### Changed
+
+- `okf registry list --json` groups now carry a `link` key — `null` for a group
+  this registry owns, the link's name for one that arrived through a link.
+  `Registry#groups_listing` returns both kinds in one list, own groups first,
+  because `#group?` resolves a linked group and a listing that named only the
+  local half would answer about a smaller set than the same object can resolve —
+  the drift every library consumer would inherit silently. A caller that wants
+  only the editable groups filters on `link`.
+
+- `okf registry list --json` gains a `links` array, and each bundle row gains
+  `link` (the link it arrived through, `null` when the registry owns it) and
+  `origin` (its slug in that file, differing only where a collision moved the
+  name). The on-disk registry gains a `"links"` key, written empty when there are
+  none; an older file with no such key reads unchanged.
+
 ## [2.1.1] - 2026-08-20
 
 ### Fixed

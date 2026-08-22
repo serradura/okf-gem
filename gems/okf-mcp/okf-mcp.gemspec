@@ -59,20 +59,28 @@ Gem::Specification.new do |spec|
   # it): the listen and modern-path tests exercise the SEP-2575 wire, which
   # 1.0 and 1.1 never served — against them the tests fail, so the floor
   # cannot admit them.
-  spec.add_dependency "mcp", "~> 1.2"
+  #
+  # 1.3 because that is what the suite now resolves. `Gemfile.lock` is not
+  # committed, so CI resolves the newest SDK the `~>` admits and the suite proves
+  # itself against *that* — which is the whole reason the floor test exists, and
+  # why it moved on its own the day 1.3.0 was published rather than the day
+  # anything here changed. The same PR that moves the lockfile moves this line.
+  spec.add_dependency "mcp", "~> 1.3"
   # The kernel version that ships Search.prepare/with/across, registry groups
   # and project-local discovery, `dirs`, `Bundle#directories` (the one source
   # the dir refusal consults), and the slug grammar this shell rides. 1.12
   # lacked #directories, so the old floor admitted a kernel this code raises
   # NoMethodError against.
-  # RELEASE OBLIGATION: this floor must move to okf's v0.2 release number in
-  # the same PR that bumps okf past 1.13.0 — the shell now reads surfaces
-  # published 1.13.0 does not have (Concept.effective_status/fold_tier, the
-  # trust catalog column), and against it a status filter raises NameError
-  # while a trust filter silently matches nothing. It cannot move earlier:
-  # the monorepo resolves this gemspec against the path-sourced okf, whose
-  # version is still 1.13.0 until its own release PR. The okf-mcp CHANGELOG's
-  # Unreleased section carries the same note where the release notes are cut.
+  # 2.2.0 is where the freshness stamp's `OKF::Registry#links_listing` ships, so
+  # a write inside a *linked* registry is seen. 2.1.1 has no such method and
+  # every refresh against it raises NoMethodError straight past the
+  # SystemCallError rescue — the shell reading a surface its floor never
+  # published, which is what this line exists to make impossible.
+  #
+  # RELEASE OBLIGATION: the floor tracks the kernel this gem develops against and
+  # may never lag it. It cannot lead either — the monorepo resolves the
+  # path-sourced okf, and a floor above that version fails resolution outright —
+  # so the move belongs in the same PR that bumps okf, which is this one.
   #
   # A note nothing checks is a note that gets published around, so two guards
   # hold the two halves — and it takes two, because they cover opposite days:
@@ -80,5 +88,5 @@ Gem::Specification.new do |spec|
   #     this line still admits okf 1.13.0. That is the window open *today*.
   #   test/unit/gemspec_test.rb  fails the suite if okf bumps and this line
   #     does not follow. That is every day after.
-  spec.add_dependency "okf", ">= 2.1.1", "< 3"
+  spec.add_dependency "okf", ">= 2.2.0", "< 3"
 end

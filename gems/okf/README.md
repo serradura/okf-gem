@@ -131,6 +131,8 @@ okf graph     <dir|@slug> [--hubs] [--traffic]   # the raw graph; --hubs ranks c
 okf server    [DIR|@slug…] [-p PORT] [--bind ADDR]   # the live graph: one bundle, or all of them
 okf render    <dir|@slug> [-o FILE]              # the same page as one static, self-contained file
 okf registry  init | list | set | del | default | rename | group | ungroup   # name & group your bundles
+okf registry  link | unlink   <name> <file>      # fold another registry file's bundles in
+okf registry  import <@slug…> [--from FILE]      # copy bundles out of another registry into this one
 okf skill     <dest>                             # install the companion agent skill
 okf --version
 ```
@@ -173,16 +175,43 @@ at once — a durable subset for the two verbs that take several bundles.
 
 The registry lives under `$OKF_HOME` (default `~/.okf`) — one per user. For one
 scoped to a single project instead, `okf registry init` drops a
-`.okf-registry.json` in the current directory; okf then discovers it by walking up
-from wherever you run, and every registry op — and every `@slug` — resolves through
+`.okf.json` in the current directory (the older `.okf-registry.json` is still
+discovered, and `okf registry` says so once so you can `git mv` it); okf then
+discovers it by walking up from wherever you run, and every registry op — and every `@slug` — resolves through
 it in place of the global one. So a bare `okf server` inside that repo serves *its*
-bundles with no `$OKF_HOME` setup. The nearest registry wins, and
-`OKF_NO_DISCOVERY=1` forces the global one.
+bundles with no `$OKF_HOME` setup. The nearest registry wins; `-g` on any
+`registry` subcommand reaches the global one for a single command (`okf registry
+list -g`, `okf registry set ./docs -g`), and `OKF_NO_DISCOVERY=1` does it for a
+whole shell.
 
 Commit that file and it travels with the repo: a bundle under the project root is
 stored relative to the registry, so a checkout on another machine — or a container
 that mounts the repo — resolves the same bundles unchanged. (Bundles outside the
 tree keep absolute paths, which do not travel.)
+
+A repository that already curates its own bundles can lend that list rather than
+have it copied. `okf registry link onm ~/ONM/.okf.json` points the global
+registry at another registry file: its bundles resolve under their own slugs,
+`@onm` names the set, and nothing is duplicated — edit the other file and the
+change shows on the next read. They are read-only from here, since the file that
+owns them is elsewhere.
+
+```bash
+okf registry link okf ~/code/okf/.okf.json           # that repo's own curation, composed
+okf search @all rate limit                            # now spans both files
+```
+
+When you want one bundle rather than a whole file, `import` is the opposite
+trade — it copies the reference, and what lands is yours to rename, default and
+group. The source is `--from`, defaulting to the global registry, which inside a
+repo is the only other one you have. A group ask brings its members with it,
+slugs are preserved (a collision refuses rather than being renamed behind your
+back), and nothing is written unless every ask checks out.
+
+```bash
+okf registry list -g                 # what does the global registry hold?
+okf registry import handbook specs   # take those two, here, as mine
+```
 
 Behind the hub each bundle mounts at `/b/<slug>/`, `/b/` lists them all, and the
 `⌘/Ctrl-K` palette both switches bundles and **searches every one at once** — type

@@ -17,7 +17,7 @@ class CLIRegistryGroupTest < CLIIntegrationCase
       assert_equal 0, result.status
       assert_match(/grouped docs → @conformant, @minimal \(2 bundles\)/, result.out)
       groups = json(okf("registry", "list", "--json"))["groups"]
-      assert_equal [ { "slug" => "docs", "members" => %w[conformant minimal], "resolved" => 2 } ], groups
+      assert_equal [ { "slug" => "docs", "members" => %w[conformant minimal], "resolved" => 2, "link" => nil } ], groups
     end
   end
 

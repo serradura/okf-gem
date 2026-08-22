@@ -20,7 +20,7 @@ when it has one.
 | [cli/map.md](cli/map.md) | `index` `dirs` | orientation: the §8 directory map and the cluster sizes, how `--dir`/`--depth`/ancestors compose, what a synthesized listing means, how not to page the bundle |
 | [cli/views.md](cli/views.md) | `catalog` `files` `tags` `types` `stats` | the browser panels as text — per-concept metadata, the folder tree, tag and type rollups, bundle totals, and the JSON each emits |
 | [cli/serve.md](cli/serve.md) | `server` `render` | the interactive page and its static twin — what renders, what is fetched live, many bundles behind one hub, the trust boundary both share |
-| [cli/registry.md](cli/registry.md) | `registry` (`init` `set` `del` `default` `rename` `group` `ungroup` `list`) | naming bundles once: which file is written and how it is found, path-keyed vs slug-keyed verbs, groups, why the default is a position |
+| [cli/registry.md](cli/registry.md) | `registry` (`init` `set` `del` `default` `rename` `group` `ungroup` `link` `unlink` `list`) | naming bundles once: which file is written and how it is found, path-keyed vs slug-keyed verbs, groups, why the default is a position |
 | [cli/graph.md](cli/graph.md) | `graph` | the raw node/edge dump and what it costs, plus the two rankings [refine](../playbooks/refine.md) reads — `--hubs` by concept, `--traffic` by directory |
 
 A question that ends in *what does the spec actually say* leaves the CLI

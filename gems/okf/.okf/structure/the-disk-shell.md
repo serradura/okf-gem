@@ -50,16 +50,25 @@ logic belongs instead.
 
 `Registry` is the `@slug` layer. `HOME_ENV`/`DEFAULT_HOME` is the global
 registry under `$OKF_HOME` (default `~/.okf`); `LOCAL_FILE` is the project-local
-`.okf-registry.json` that `discover` finds by walking up from the working
+`.okf.json` (or the legacy `.okf-registry.json`) that `discover` finds by walking up from the working
 directory. **A discovered local registry replaces the global one outright** — it
 does not merge — and `NO_DISCOVERY_ENV` (`OKF_NO_DISCOVERY=1`) is the escape
 hatch that forces the global one, which is what a test that must not see the
-developer's registry sets.
+developer's registry sets. `Registry.load`'s `follow_links:` is the same
+decision one step further: it is true only for the global registry, so a local
+one parses links and never resolves them.
 
 `relative_base` is why a local registry's paths stay relative and the file
 travels with the repository. `Registry#reopen` preserves it; `Registry.new(path)`
 does not, and reaching for the latter is how a reload comes to resolve every
 bundle against the wrong base.
+
+`Link` points the global registry at another registry file; `resolve_links`
+folds that file's bundles in (through `link_slug`, which prefixes only on a
+collision) and `refuse_linked` is the single guard every write goes through —
+here rather than in the CLI, because the server's bundles panel calls these same
+methods. `open_linked` constructs the target with `follow_links: false`, which is
+the whole of the depth rule.
 
 `Group` is a named, recursive set of bundles. `RESERVED_SLUGS` is `all`, because
 `@all` means every bundle and may not be shadowed. `slugify`, `dedupe`,

@@ -439,6 +439,7 @@ module OKF::TUI
         r.add("  default", :magenta) if entry.default?
       end
       rows << Ui.line(width) { |r| r.add(entry.dir.to_s, :bright_black) }
+      rows.concat(linked_rows(app, entry, width))
       rows.concat(membership_rows(app, entry, width))
       rows << Ui.blank_line(width)
 
@@ -500,6 +501,20 @@ module OKF::TUI
     # can show one membership, and a bundle can have several. This is the line that
     # answers "did that + land" when the group being edited is scrolled out of the
     # groups pane.
+    # Where a linked bundle comes from, and that the config keys will not touch
+    # it. On the detail rather than the registry row: that pane is 42 columns and
+    # already carries slug, count and `default`, so a marker there would clip on a
+    # narrow terminal — and this is the pane where the other "what can I do with
+    # this one" lines already live.
+    def linked_rows(app, entry, width)
+      return [] unless entry.linked?
+
+      target = app.workspace.link_target(entry.link)
+      rows = [ Ui.line(width) { |r| r.add("read-only — linked from @#{entry.link}", :yellow) } ]
+      rows << Ui.line(width) { |r| r.add(target.to_s, :bright_black) } if target
+      rows
+    end
+
     def membership_rows(app, entry, width)
       groups = app.workspace.groups.select { |group| group.members.include?(entry.slug) }
       return [] if groups.empty?

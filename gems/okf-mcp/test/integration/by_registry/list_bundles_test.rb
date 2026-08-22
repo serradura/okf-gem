@@ -42,7 +42,7 @@ module ByRegistry
         registry.set_group("docs", %w[knowledge notes])
         server = mcp_server
         data = call_tool!(server, "list_bundles")
-        assert_equal [ { "slug" => "docs", "members" => %w[knowledge notes], "resolved" => 2 } ], data["groups"]
+        assert_equal [ { "slug" => "docs", "members" => %w[knowledge notes], "resolved" => 2, "link" => nil } ], data["groups"]
       end
     end
 

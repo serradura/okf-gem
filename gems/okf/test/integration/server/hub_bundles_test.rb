@@ -127,6 +127,23 @@ class OKF::Server::HubBundlesTest < OKF::TestCase
 
   private
 
+  test "a linked bundle says which link it came from, so the panel can hide the menu" do
+    linked = File.join(@root, "linked-registry.json")
+    File.write(linked, JSON.pretty_generate(
+      "bundles" => [ { "slug" => "gamma", "path" => make_bundle("gamma"), "title" => "Gamma" } ], "groups" => []
+    ))
+    OKF::Registry.load(home: @home).link("onm", linked)
+    boot("alpha", "beta")
+
+    get "/bundles"
+
+    rows = payload["bundles"]
+    assert_nil rows.first["link"], "a bundle this registry owns came through no link"
+    gamma = rows.find { |row| row["slug"] == "gamma" }
+    assert_equal "onm", gamma["link"],
+      "the registry refuses every write against it, so the page has to know before it offers one"
+  end
+
   def payload
     JSON.parse(last_response.body)
   end

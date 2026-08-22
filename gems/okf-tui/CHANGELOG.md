@@ -5,6 +5,44 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-08-22
+
+### Added
+
+- **Linked bundles are marked read-only, and the config keys refuse before the
+  prompt.** okf's global registry can now `link` another registry file, and that
+  file's bundles and groups resolve into the bundles view. Browsing one is
+  browsing a bundle, so they list, load, scope and search like any other — but
+  the file that owns them is elsewhere and okf refuses every write against one.
+
+  `d`, `n`, `x` and `+` now say so *before* asking. Without this the ask went
+  through, okf raised, and the message reached the status line only after the
+  user had typed a new name or confirmed a removal. The bundle detail carries
+  `read-only — linked from @onm` and the owning file underneath; the registry
+  pane is left alone, because 42 columns cannot take another marker without
+  clipping.
+
+  Nothing else changed to show linked bundles at all: the entries come from
+  okf's `listing` and the groups from its `groups_listing`, both of which fold
+  the linked half in. `Entry#link` and `Group#link` are read straight off those
+  rows, and the suite asserts that agreement against okf rather than a fixture.
+
+### Changed
+
+- **The project-local registry is now `.okf.json`.** The TUI reads whichever file
+  okf resolves, so this needed no code change — but it is what the header prints
+  and what the "nothing to show" message names, so the file you see identified
+  there has a new name. The older `.okf-registry.json` is still discovered, both
+  names checked in each directory on the way up, so a repository carrying one
+  keeps working untouched. `okf registry init` writes the short name.
+
+- **The `okf` floor moves to 2.2.0**, the kernel that ships `registry link`
+  (`Registry#links_listing`, and the `link` key on listing and group rows).
+  Against 2.1.1 those read as *nil* rather than raising, so a linked bundle would
+  simply never be marked read-only and the four config keys would stop refusing —
+  silent, which is the drift this gem's floor exists to turn into a resolution
+  failure.
+
 ## [1.0.1] - 2026-08-20
 
 ### Fixed

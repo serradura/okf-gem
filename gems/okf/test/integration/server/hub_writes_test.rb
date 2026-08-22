@@ -128,6 +128,21 @@ class OKF::Server::HubWritesTest < OKF::TestCase
     assert_equal %w[alpha beta], reloaded.slugs
   end
 
+  test "a bundle that arrived through a link is refused, from the browser as from the terminal" do
+    linked = File.join(@root, "linked-registry.json")
+    File.write(linked, JSON.pretty_generate(
+      "bundles" => [ { "slug" => "gamma", "path" => make_bundle("gamma"), "title" => "gamma" } ], "groups" => []
+    ))
+    OKF::Registry.load(home: @home).link("onm", linked)
+    boot("alpha", "beta")
+
+    post_write("/registry/rename", slug: "gamma", to: "core")
+
+    assert_equal 400, last_response.status
+    assert_includes last_response.body, "linked registry"
+    assert_equal %w[alpha beta gamma], reloaded.slugs, "the linked entry is still there, under its own name"
+  end
+
   test "a reserved slug is refused with the core's own message" do
     post_write("/registry/rename", slug: "alpha", to: "all")
 

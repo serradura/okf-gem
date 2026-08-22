@@ -67,7 +67,7 @@ end
 # Concept.effective_status, Concept.fold_tier, and the trust catalog column.
 # A floor that still admits it ships a gem whose first `catalog` call raises
 # NameError on a host that resolved the floor instead of the checkout.
-OKF_FLOOR_MUST_EXCEED = "1.13.0"
+OKF_FLOOR_MUST_EXCEED = "2.1.1"
 
 # test/unit/gemspec_test.rb holds the floor to the kernel it develops against,
 # which is the right guard for every day that is not a release day and the
@@ -89,9 +89,9 @@ task :verify_okf_floor do
 
   abort <<~MESSAGE
     okf-mcp.gemspec floors okf at #{floor}, which admits okf #{OKF_FLOOR_MUST_EXCEED} — a kernel
-    without Bundle::RowFilter, Concept.effective_status or Concept.fold_tier.
-    Publishing against that floor ships a gem that raises NameError on its
-    first catalog or search call.
+    without Registry#links_listing, the method the freshness stamp reads so a
+    write inside a linked registry is seen. Publishing against that floor ships
+    a gem that raises NoMethodError on its first registry refresh.
 
     Release okf first, then move the floor to that version (the RELEASE
     OBLIGATION comment in the gemspec, and the okf-mcp CHANGELOG's Unreleased

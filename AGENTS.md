@@ -69,7 +69,7 @@ skills/         the skills a generic installer reads: a generated copy of okf's,
 .okf/           the ecosystem's map, registered as `@okf-eco` — a concept per
                 gem, per plugin item, per skill and per resource, plus the
                 format, the decisions and the design that govern them all
-.okf-registry.json
+.okf.json
                 every bundle in the tree, addressable as `@slug`; while you stand
                 under this root it *replaces* your global $OKF_HOME registry
 Dockerfile      builds gems/okf/ — from a root context, because the gemspec needs .git

@@ -6,7 +6,7 @@ require "pathname"
 module OKF
   # A persistent, ordered registry of bundle references — the kernel behind the
   # multi-bundle server. It is a plain JSON file (no database): the global one
-  # under $OKF_HOME (default ~/.okf), or a project-local .okf-registry.json
+  # under $OKF_HOME (default ~/.okf), or a project-local .okf.json
   # discovered by walking up from cwd (see .load / .discover), which replaces the
   # global one while you stand in its tree. Either way `okf registry set`/`del`
   # and a later bare `okf server` share one on-disk list. Part of the shell — it
@@ -32,8 +32,11 @@ module OKF
   # original shape) still reads.
   class Registry
     # One registered bundle: a unique +slug+, the absolute +path+ on disk, and a
-    # human-readable +title+ ("parent/dir").
-    Entry = Struct.new(:slug, :path, :title)
+    # human-readable +title+ ("parent/dir"). +link+ names the Link an entry
+    # arrived through (nil for one this registry owns), and +origin+ the slug it
+    # carries in that linked file — the two differ only when the bare name was
+    # already taken here.
+    Entry = Struct.new(:slug, :path, :title, :link, :origin)
 
     # A named set of bundle sources: a unique +slug+ and an ordered list of
     # +members+ (bundle *or* group slugs), stored normalized. A group has no path
@@ -55,6 +58,14 @@ module OKF
       end
     end
 
+    # A pointer from the global registry to another registry file: a unique
+    # +slug+ and the absolute +registry+ path. Its bundles resolve through it at
+    # read time under their own slugs, so nothing is copied and nothing goes
+    # stale — the registry's "references, never content" rule one level up. Only
+    # the global registry follows links (see .load), which is why a linked file's
+    # own links are never read and there is no graph to cycle-guard.
+    Link = Struct.new(:slug, :registry)
+
     HOME_ENV = "OKF_HOME"
     DEFAULT_HOME = "~/.okf"
 
@@ -62,7 +73,21 @@ module OKF
     # working directory rather than read from $OKF_HOME. Its presence is the whole
     # state — no stored "local mode" flag — so a bare `okf server` inside a repo
     # serves that repo's bundles with no global setup.
-    LOCAL_FILE = ".okf-registry.json"
+    LOCAL_FILE = ".okf.json"
+
+    # What that file used to be called. It is still discovered, because the file
+    # is *committed* — retiring the name outright would break every repository
+    # carrying one, to save eight characters. So the short name became canonical
+    # and this one keeps resolving; `okf registry` says so once, where a reader
+    # can act on it, and nothing else says anything.
+    LEGACY_LOCAL_FILE = ".okf-registry.json"
+
+    # Both names, in the order a single directory prefers them. Discovery reads
+    # this list *per directory* rather than sweeping the whole path for one name
+    # and then the other — otherwise a legacy file at the repo root would beat a
+    # `.okf.json` two levels down, and "the nearest one wins" would quietly mean
+    # something else.
+    LOCAL_FILES = [ LOCAL_FILE, LEGACY_LOCAL_FILE ].freeze
 
     # The lever that forces the global registry even when a local one is on the
     # path up from cwd. Set it (inline) and discovery is skipped — the escape hatch
@@ -100,8 +125,9 @@ module OKF
       end
 
       # The registry a run resolves to. Precedence, highest first: OKF_NO_DISCOVERY
-      # forces the global one; else a `.okf-registry.json` discovered on the path
-      # up from +cwd+ wins; else the global $OKF_HOME registry, exactly as before.
+      # forces the global one; else a `.okf.json` (or the legacy
+      # `.okf-registry.json`) discovered on the path up from +cwd+ wins; else the
+      # global $OKF_HOME registry, exactly as before.
       # +cwd+ nil ⇒ no discovery, so an embedding app that calls `load` with no
       # arguments keeps the global-only behavior — only the CLI opts in by passing
       # `cwd: Dir.pwd`. $OKF_HOME names *where the global registry lives*; it does
@@ -112,7 +138,10 @@ module OKF
         local = looking ? discover(cwd) : nil
         # A local registry anchors its relative paths on its own directory; the
         # global one has no common anchor, so it stays absolute (relative_base nil).
-        new(local || path(home: home), relative_base: local && File.dirname(local))
+        # Links are the *global* registry's alone: a discovered local one parses
+        # and preserves them but does not resolve them, so depth is one by
+        # construction rather than by a limit anyone has to enforce.
+        new(local || path(home: home), relative_base: local && File.dirname(local), follow_links: local.nil?)
       end
 
       # Walk up from +start+ looking for a local registry; return its absolute path
@@ -120,8 +149,8 @@ module OKF
       def discover(start)
         dir = expand(start.to_s)
         loop do
-          candidate = File.join(dir, LOCAL_FILE)
-          return candidate if File.file?(candidate)
+          found = LOCAL_FILES.map { |name| File.join(dir, name) }.find { |candidate| File.file?(candidate) }
+          return found if found
 
           parent = File.dirname(dir)
           break if parent == dir
@@ -182,11 +211,16 @@ module OKF
     # (see .load). nil means an absolute-path registry — the global $OKF_HOME one,
     # and every library caller — so its behavior is exactly what it was before
     # relative storage existed.
-    def initialize(path, relative_base: nil)
+    def initialize(path, relative_base: nil, follow_links: true)
       @path = path
       @relative_base = relative_base
+      @follow_links = follow_links
       @entries = []
       @groups = []
+      @links = []
+      @link_groups = []
+      @link_state = {}
+      @link_of = {}
       read
     end
 
@@ -212,7 +246,7 @@ module OKF
 
     # The group registered under +slug+ (already normalized, like #get), or nil.
     def group?(slug)
-      @groups.find { |group| group.slug == slug }
+      @groups.find { |group| group.slug == slug } || @link_groups.find { |group| group.slug == slug }
     end
 
     # The default bundle a bare `okf server` selects: the first entry still on
@@ -244,6 +278,8 @@ module OKF
 
       entry = get(normalized)
       raise OKF::Error, "no such bundle: #{slug}" unless entry
+
+      refuse_linked(entry, "default to")
       unless File.directory?(entry.path)
         raise OKF::Error, "cannot default to #{entry.slug}: #{entry.path} is not a directory " \
                           "(okf registry del #{entry.slug}, or restore it)"
@@ -263,6 +299,7 @@ module OKF
       entry = get(old) || group?(old)
       raise OKF::Error, "no such bundle or group: #{old_slug}" unless entry
 
+      refuse_linked(entry, "rename")
       slug = explicit_slug(new_slug, entry)
       entry.slug = slug
       # A member list stores slugs, so a rename that stopped at the entry would
@@ -281,7 +318,8 @@ module OKF
       chosen = default
       @entries.map do |entry|
         { slug: entry.slug, title: entry.title, dir: entry.path, mount: "/b/#{entry.slug}/",
-          default: entry.equal?(chosen), missing: !File.directory?(entry.path) }
+          default: entry.equal?(chosen), missing: !File.directory?(entry.path),
+          link: entry.link, origin: entry.origin }
       end
     end
 
@@ -298,6 +336,7 @@ module OKF
       # file in the bundle to hand back its own basename.
       title = Bundle::Folder.label(root)
       entry = @entries.find { |candidate| candidate.path == root }
+      refuse_linked(entry, "register") if entry
       if entry
         entry.title = title
         entry.slug = explicit_slug(as, entry) if as
@@ -324,6 +363,7 @@ module OKF
       target = get(slug) ||
                @entries.find { |entry| entry.path == self.class.expand(slug.to_s) } ||
                (self.class.path_shaped?(slug) ? nil : get(self.class.normalize(slug)))
+      refuse_linked(target, "remove") if target
       if target
         @entries.delete(target)
         cascade_remove(target.slug)
@@ -337,6 +377,7 @@ module OKF
       group = self.class.path_shaped?(slug) ? nil : (group?(slug) || group?(self.class.normalize(slug)))
       return nil unless group
 
+      refuse_linked(group, "remove")
       @groups.delete(group)
       cascade_remove(group.slug)
       write
@@ -354,9 +395,13 @@ module OKF
       raise OKF::Error, "a group needs at least one member (okf registry group #{name} <@bundle…>)" if members.empty?
 
       members.each do |member|
-        next if get(member) || group?(member)
+        found = get(member) || group?(member)
+        raise OKF::Error, "no such bundle or group: @#{member} (okf registry list)" unless found
 
-        raise OKF::Error, "no such bundle or group: @#{member} (okf registry list)"
+        # A group stores slugs, and a linked slug lives only while its link
+        # resolves — holding one would dangle the group the moment the link goes,
+        # the same foreign key the default rule refused.
+        refuse_linked(found, "group")
       end
 
       group = group?(name)
@@ -383,6 +428,7 @@ module OKF
       group = group?(name)
       raise OKF::Error, "no such group: #{slug} (okf registry list)" unless group
 
+      refuse_linked(group, "ungroup")
       asks = normalize_members(member_asks)
       removed = group.members & asks
       group.members -= asks
@@ -405,6 +451,93 @@ module OKF
       entries
     end
 
+    # Point this registry at another registry file under +slug+: its bundles
+    # resolve through the pointer from now on, under their own slugs unless one
+    # is already taken here. Re-linking a slug re-points it. Persists, returns
+    # the Link.
+    #
+    # The target must exist *now* — a link is an explicit ask, and one typed at a
+    # path that is not a registry file is a typo worth catching at the keyboard
+    # rather than a silent empty section later. (A target that vanishes
+    # afterwards is a different case, and is tolerated: see #links_listing.)
+    def link(slug, target)
+      name = explicit_link_slug(slug)
+      registry = self.class.expand(target.to_s)
+      raise OKF::Error, "not a registry file: #{target}" unless File.file?(registry)
+      raise OKF::Error, "a registry cannot link itself: #{registry}" if registry == self.class.expand(@path)
+
+      existing = @links.find { |candidate| candidate.slug == name }
+      existing ? existing.registry = registry : @links << Link.new(name, registry)
+      write
+      refresh_links
+      @links.find { |candidate| candidate.slug == name }
+    end
+
+    # Drop the link +slug+ and every bundle that arrived through it. Returns the
+    # removed Link, or nil when nothing matched.
+    def unlink(slug)
+      name = self.class.normalize(slug)
+      link = @links.find { |candidate| candidate.slug == name }
+      return nil unless link
+
+      @links.delete(link)
+      write
+      refresh_links
+      link
+    end
+
+    # Copy bundles and groups out of another registry file into this one, under
+    # the slugs they carry there. +asks+ names bundles or groups in the source
+    # (bare, or as `@ref`); a group brings everything it reaches and is recreated
+    # here. +as+ renames the single thing asked for. Persists once, and returns
+    # { bundles: [ Entry… ], groups: [ Group… ] }.
+    #
+    # Import is the opposite trade from #link, and the pair is the point: a link
+    # holds a live pointer, so the other file keeps owning what it lends and can
+    # take it back; an import copies the reference and owns it from then on — the
+    # source can be deleted, moved or rewritten and nothing here notices. That is
+    # why the two disagree on a collision. A linked name was never chosen here, so
+    # #link_slug invents around it; an imported name lands in *this* file under
+    # this registry's own rules, so a collision is refused exactly as #rename's
+    # is. The gem may invent a name; it may not substitute one you chose, and
+    # naming a slug on the command line is choosing it.
+    #
+    # Nothing is applied until everything has been checked. Half an import is a
+    # registry the user has to unpick by hand, reported as a success — so every
+    # ask is resolved and refused against the current state first, and one #write
+    # publishes the lot. Imported rows append, so the default stays where it was.
+    def import(asks, from:, as: nil)
+      source = open_source(from)
+      # #normalize_members drops what normalizes to nothing, which is right for a
+      # group's members and wrong here: dropping one ask and importing the rest is
+      # the silent partial all-or-nothing exists to rule out, and the report would
+      # count the ones that landed as a success.
+      unusable = asks.find { |ask| self.class.normalize(ask).empty? }
+      raise OKF::Error, "not a usable slug: #{unusable} (letters and digits, please)" if unusable
+
+      names = normalize_members(asks)
+      raise OKF::Error, "nothing to import (name a bundle or a group from #{source.path})" if names.empty?
+
+      plan = []
+      names.each { |name| plan_import(source, name, nil, plan, []) }
+      rename_import(plan, names.first, as) if as
+      plan.each { |step| refuse_import(step, source.path) }
+      apply_import(plan)
+    end
+
+    # One row per link for `registry list`: the file it points at, how many
+    # bundles it contributed, and why it contributed none when it did. A target
+    # that is gone or unreadable is *reported*, never raised — one bad pointer
+    # must not take down the registry that holds it, the same tolerance a
+    # vanished bundle directory gets.
+    def links_listing
+      @links.map do |link|
+        state = @link_state[link.slug] || { bundles: 0, missing: false, unreadable: false }
+        { slug: link.slug, registry: link.registry, bundles: state[:bundles],
+          missing: state[:missing], unreadable: state[:unreadable] }
+      end
+    end
+
     # Persist the current state to disk. The mutating verbs write as a side effect
     # of the change; `save` is the public seam for the one caller that creates a
     # registry with nothing to change yet — `okf registry init`, materializing an
@@ -422,19 +555,27 @@ module OKF
     # write would flatten a newly-added in-tree bundle to an absolute path,
     # silently undoing the portability the base exists for.
     def reopen
-      self.class.new(@path, relative_base: @relative_base)
+      self.class.new(@path, relative_base: @relative_base, follow_links: @follow_links)
     end
 
-    # One row per group for `registry list`: its members and how many bundles it
-    # resolves to (+resolved+ is nil when a hand-edited cycle makes it unanswerable).
+    # One row per group — this registry's own first, then the ones that arrived
+    # through a link, each tagged with the +link+ it came from (nil for a group
+    # this registry owns). Members, and how many bundles it resolves to
+    # (+resolved+ is nil when a hand-edited cycle makes it unanswerable).
+    #
+    # One list, not two. #group? resolves a linked group, so the method that
+    # *enumerates* groups has to name it: a second listing for the linked half is
+    # how a caller comes to answer about a smaller set than the same object can
+    # resolve — the drift a sibling reading this method would inherit silently.
+    # A caller that wants only the editable ones filters on +link+.
     def groups_listing
-      @groups.map do |group|
+      (@groups + @link_groups).map do |group|
         resolved = begin
           expand(group.slug).size
         rescue OKF::Error
           nil
         end
-        { slug: group.slug, members: group.members.dup, resolved: resolved }
+        { slug: group.slug, members: group.members.dup, resolved: resolved, link: @link_of[group.slug] }
       end
     end
 
@@ -454,7 +595,9 @@ module OKF
     # a collision check has to see both lists.
     def taken_slugs(skip)
       @entries.reject { |entry| entry.equal?(skip) }.map(&:slug) +
-        @groups.reject { |group| group.equal?(skip) }.map(&:slug)
+        @groups.reject { |group| group.equal?(skip) }.map(&:slug) +
+        @link_groups.reject { |group| group.equal?(skip) }.map(&:slug) +
+        @links.map(&:slug)
     end
 
     # An explicitly requested slug (--as, rename): normalized, and a collision
@@ -494,6 +637,13 @@ module OKF
       if get(slug)
         raise OKF::Error, "slug already taken: #{slug} names a bundle (rename or remove that entry first)"
       end
+
+      # A group a link brought in is the update path everywhere else — and here
+      # that is the trap: #write persists @groups alone, so mutating one reported
+      # success and dropped the change on the next read. A refusal, like every
+      # other write a link owns.
+      linked = @link_groups.find { |group| group.slug == slug }
+      refuse_linked(linked, "group") if linked
 
       slug
     end
@@ -577,7 +727,12 @@ module OKF
       @entries = rows.map { |row| entry_from(row) }
       group_rows = data.is_a?(Hash) ? Array(data["groups"]) : [] # a groups-less file has none
       @groups = group_rows.map { |row| group_from(row) }.reject { |group| group.members.empty? }
+      link_rows = data.is_a?(Hash) ? Array(data["links"]) : []
+      @links = link_rows.map { |row| link_from(row) }
       normalize_slugs
+      # After normalize_slugs, so a linked name is minted around the repaired
+      # local ones rather than around names nothing could reach.
+      resolve_links if @follow_links
     rescue JSON::ParserError => e
       malformed("#{e.message} (fix or delete the file)")
     rescue SystemCallError => e
@@ -634,6 +789,17 @@ module OKF
       Group.new(row["slug"], members)
     end
 
+    # One row to a Link, shape-checked like #entry_from and #group_from — the file
+    # is hand-editable, so a row missing its target must fail here rather than
+    # three frames away in a File.file? on nil.
+    def link_from(row)
+      unless row.is_a?(Hash) && row["slug"].is_a?(String) &&
+             row["registry"].is_a?(String) && !row["registry"].empty?
+        malformed('every link needs a "slug" and a "registry" path (fix or delete the file)')
+      end
+      Link.new(self.class.normalize(row["slug"]), resolve_stored(row["registry"]))
+    end
+
     # Slugs enter this list three ways — minted from a basename, asked for with
     # --as, and read from this file — and the first two normalize. The third did
     # not, and that asymmetry is the whole bug: the file could hold a name the
@@ -668,6 +834,261 @@ module OKF
       !slug.empty? && slug == self.class.normalize(slug) && !RESERVED_SLUGS.include?(slug)
     end
 
+    # Refuse a write aimed at something a link owns, naming the file that does own
+    # it. The refusal lives here rather than in the CLI because the graph server's
+    # bundles panel posts straight into these same methods — a guard one layer up
+    # would leave the browser doing what the terminal refuses.
+    def refuse_linked(target, action)
+      link = target.respond_to?(:link) ? target.link : @link_of[target.slug]
+      return unless link
+
+      owner = @links.find { |candidate| candidate.slug == link }
+      raise OKF::Error, "cannot #{action} @#{target.slug}: it comes from the linked registry at " \
+                        "#{owner&.registry} (edit that file, or okf registry unlink #{link})"
+    end
+
+    # A link name: usable, not reserved, and not already a bundle's or a group's.
+    # Re-pointing an existing link keeps its name, so that is the one collision
+    # that is the update path rather than an error.
+    def explicit_link_slug(base)
+      slug = self.class.normalize(base)
+      raise OKF::Error, "not a usable slug: #{base} (letters and digits, please)" if slug.empty?
+
+      if RESERVED_SLUGS.include?(slug)
+        raise OKF::Error, "not a usable slug: #{slug} is reserved (@#{slug} names every registered bundle)"
+      end
+      return slug if @links.any? { |link| link.slug == slug }
+
+      if get(slug) || group?(slug)
+        raise OKF::Error, "slug already taken: #{slug} (rename or remove that entry first)"
+      end
+
+      slug
+    end
+
+    # Drop everything the links contributed and resolve them again — what a
+    # mutating link verb owes the in-memory instance, so the object it returns
+    # from agrees with the file it just wrote.
+    def refresh_links
+      @entries.reject!(&:link)
+      @link_groups = []
+      @link_state = {}
+      @link_of = {}
+      resolve_links
+    end
+
+    # Read each linked registry and fold its bundles (then its groups) into this
+    # one. Nothing is copied to disk: the entries carry their link, and #write
+    # leaves them out.
+    #
+    # The target is opened with `follow_links: false`, which is the whole of the
+    # depth rule — a linked file's own links are never read, so no chain forms and
+    # no cycle is possible. It is also anchored on its own directory, so a repo's
+    # committed `.okf.json` resolves its relative paths exactly as it
+    # would from inside that repo.
+    def resolve_links
+      @links.each do |link|
+        state = { bundles: 0, missing: false, unreadable: false }
+        @link_state[link.slug] = state
+        source = open_linked(link, state) or next
+
+        map = fold_linked_bundles(source, link)
+        state[:bundles] = map.size
+        @link_groups << Group.new(link.slug, map.values) unless map.empty?
+        @link_of[link.slug] = link.slug
+        fold_linked_groups(source, link, map)
+      end
+    end
+
+    # The linked registry, or nil after recording why there is none. A target that
+    # is gone or malformed is a reported state, not an exception: the registry that
+    # holds the link is still perfectly usable without it.
+    def open_linked(link, state)
+      unless File.file?(link.registry)
+        state[:missing] = true
+        return nil
+      end
+
+      self.class.new(link.registry, relative_base: File.dirname(link.registry), follow_links: false)
+    rescue OKF::Error
+      state[:unreadable] = true
+      nil
+    end
+
+    # The linked file's bundles, as entries of this registry. Returns the map from
+    # each bundle's slug *there* to the slug it answers to *here* — what the groups
+    # below are remapped through.
+    def fold_linked_bundles(source, link)
+      source.each_with_object({}) do |entry, map|
+        slug = link_slug(entry.slug, link.slug)
+        map[entry.slug] = slug
+        @entries << Entry.new(slug, entry.path, entry.title, link.slug, entry.slug)
+      end
+    end
+
+    # The linked file's own groups, so a link carries a file's curation rather than
+    # just its rows. Names are minted like the bundles above; members are remapped
+    # through +map+ (and through the group names, so a nested group survives), and
+    # a group left with nothing that resolved here is dropped.
+    def fold_linked_groups(source, link, map)
+      rows = source.groups_listing
+      names = rows.each_with_object({}) { |row, acc| acc[row[:slug]] = link_slug(row[:slug], link.slug) }
+      resolvable = map.merge(names)
+      rows.each do |row|
+        members = row[:members].map { |member| resolvable[member] }.compact
+        next if members.empty?
+
+        @link_groups << Group.new(names[row[:slug]], members)
+        @link_of[names[row[:slug]]] = link.slug
+      end
+    end
+
+    # The slug a linked name answers to here: its own when free, otherwise
+    # prefixed with the link it came from (and suffixed beyond that, through the
+    # same #dedupe a basename goes through). A name arriving from a file this
+    # registry does not own was never chosen here, so inventing around a collision
+    # is the forgiving half of the rule #explicit_slug keeps the strict half of —
+    # and refusing instead would let one foreign row take down the whole link.
+    def link_slug(slug, link_name)
+      base = self.class.slugify(slug)
+      taken = taken_slugs(nil) + RESERVED_SLUGS
+      return base unless taken.include?(base)
+
+      self.class.dedupe("#{link_name}-#{base}", taken)
+    end
+
+    # The registry an import reads from, opened once. It must exist *now* — an
+    # import is an explicit ask, and a path that is not a registry file is a typo
+    # worth catching at the keyboard.
+    #
+    # +relative_base+ is the source's own directory, unconditionally, and that is
+    # deliberately not .load's rule. The base does two jobs, and .load's nil for
+    # the global registry is the *write*-side one: #store_form must leave those
+    # paths absolute. A reader that never writes to the source has no stake in
+    # that half. On the read side the base answers only "what does a relative row
+    # in this file mean?", and for a file being read from another directory the
+    # one available answer is "beside that file". For a global-shaped source it is
+    # inert — every row #store_form wrote there is absolute and #resolve_stored
+    # short-circuits — so it bites only a hand-typed relative row, where anchoring
+    # beats resolving against whatever cwd happens to be.
+    #
+    # +follow_links+ is true, and has to be: a bundle that reached the source
+    # through a link lives in its @entries only after #resolve_links. It is also
+    # right. An import copies the path and holds nothing live, so the depth rule
+    # that makes #open_linked pass false — which bounds *live* resolution — has
+    # nothing to bound here, and depth is two at most, so a source that links back
+    # here still terminates.
+    def open_source(from)
+      registry = self.class.expand(from.to_s)
+      raise OKF::Error, "not a registry file: #{from}" unless File.file?(registry)
+
+      if registry == self.class.expand(@path)
+        raise OKF::Error, "the source and the target are the same registry: #{registry} (--from names another file)"
+      end
+
+      self.class.new(registry, relative_base: File.dirname(registry), follow_links: true)
+    end
+
+    # Walk one ask into +plan+: the bundle it names, or the group and everything
+    # that group reaches. A member that is itself a group comes too, asked for or
+    # not — recreating a group here without the group inside it would leave a name
+    # resolving to a smaller set than the same name resolves to there, which is
+    # the quiet substitution the slug rule exists to stop, and nothing on screen
+    # would say so. Members are planned before the set that holds them, so a
+    # refusal names the leaf that caused it rather than the group it hid in.
+    def plan_import(source, name, via, plan, chain)
+      if chain.include?(name)
+        raise OKF::Error, "group cycle in #{source.path}: " \
+                          "#{(chain + [ name ]).map { |slug| "@#{slug}" }.join(" → ")} (fix that file first)"
+      end
+      # After the cycle guard, never before: memoizing a second visit would
+      # swallow the cycle it is there to catch.
+      return if plan.any? { |step| step[:slug] == name }
+
+      entry = source.get(name)
+      # The title comes across as it stands rather than re-derived from the path
+      # the way #add derives it: it is what that file says this bundle is called.
+      return plan << { slug: name, path: entry.path, title: entry.title, members: nil, via: via } if entry
+
+      group = source.group?(name)
+      raise OKF::Error, "no such bundle or group in #{source.path}: @#{name}" unless group
+
+      # A member that dangles in the source names nothing there and would name
+      # nothing here; importing it would only move the damage into a second file.
+      members = group.members.select { |member| source.get(member) || source.group?(member) }
+      raise OKF::Error, "@#{name} names nothing in #{source.path}: its members are gone" if members.empty?
+
+      members.each { |member| plan_import(source, member, name, plan, chain + [ name ]) }
+      # Members are stored verbatim, and that is the payoff of preserving slugs: a
+      # name means the same thing on both sides, so there is nothing to remap —
+      # the work #fold_linked_groups must do precisely because a link mints names.
+      plan << { slug: name, path: nil, title: nil, members: members, via: via }
+    end
+
+    # +as+ renames the thing that was asked for, not the members it dragged in:
+    # you named one bundle or one group, so one name changes. Applied before the
+    # refusals, so the collision that matters is the one the new name would cause.
+    def rename_import(plan, asked, as)
+      root = plan.find { |step| step[:slug] == asked && step[:via].nil? }
+      root[:slug] = explicit_slug(as, nil)
+    end
+
+    # Every reason a step could be refused, checked while nothing has been
+    # applied. What the row *is* comes before what it wants to be called: when
+    # both collide, "that bundle is already here" is the answer and "the name is
+    # taken" is only the symptom.
+    def refuse_import(step, registry)
+      # Which ask dragged this name in. Without it a group import refuses on a
+      # slug the user never typed and nothing says where it came from.
+      via = step[:via] ? ", a member of @#{step[:via]}" : ""
+      unless step[:members]
+        unless File.directory?(step[:path])
+          raise OKF::Error, "cannot import @#{step[:slug]}#{via}: #{step[:path]} is not a directory " \
+                            "(restore it, or drop that entry from #{registry})"
+        end
+
+        # #add would key on the path and rename that entry in place. Import must
+        # not: the bundle is already yours under a name you chose, so taking the
+        # source's name for it is the substitution the rule forbids — and skipping
+        # it silently would report an import that did not happen.
+        existing = @entries.find { |candidate| candidate.path == step[:path] }
+        if existing
+          raise OKF::Error, "cannot import @#{step[:slug]}#{via}: #{step[:path]} is already registered here " \
+                            "as #{existing.slug} (remove that entry first, or leave this one out)"
+        end
+      end
+
+      return unless taken_slugs(nil).include?(step[:slug])
+
+      raise OKF::Error, "slug already taken: #{step[:slug]}#{via} " \
+                        "(rename or remove that entry first, or import it under another name with --as)"
+    end
+
+    # The plan, applied and persisted in one write. #add and #set_group are out of
+    # reach for the one reason they share: both write, so N asks would be N files
+    # on disk and a refusal in the middle would leave the earlier half applied.
+    # What is left of either once the write is taken out is a constructor and a
+    # push, which is what this is — the rest of #add answers questions import has
+    # already answered, and differently.
+    def apply_import(plan)
+      imported = { bundles: [], groups: [] }
+      plan.each do |step|
+        if step[:members]
+          group = Group.new(step[:slug], step[:members].dup)
+          @groups << group
+          imported[:groups] << group
+        else
+          # No link and no origin: an imported row is this registry's own from
+          # here on, which is the whole difference between importing and linking.
+          entry = Entry.new(step[:slug], step[:path], step[:title])
+          @entries << entry
+          imported[:bundles] << entry
+        end
+      end
+      write
+      imported
+    end
+
     def malformed(detail)
       raise OKF::Error, "malformed registry at #{@path}: #{detail}"
     end
@@ -677,9 +1098,14 @@ module OKF
     # Two racing writers stay last-writer-wins; the registry is a per-user file.
     def write
       FileUtils.mkdir_p(File.dirname(@path))
-      rows = @entries.map { |entry| { "slug" => entry.slug, "path" => store_form(entry.path), "title" => entry.title } }
+      # Only what this registry owns: a linked entry is a view onto another file,
+      # and writing it here would be the copy the whole feature exists to avoid.
+      rows = @entries.reject(&:link).map do |entry|
+        { "slug" => entry.slug, "path" => store_form(entry.path), "title" => entry.title }
+      end
       groups = @groups.map { |group| { "slug" => group.slug, "members" => group.members } }
-      payload = { "bundles" => rows, "groups" => groups }
+      links = @links.map { |link| { "slug" => link.slug, "registry" => store_form(link.registry) } }
+      payload = { "bundles" => rows, "groups" => groups, "links" => links }
       tmp = "#{@path}.tmp-#{Process.pid}"
       begin
         File.write(tmp, JSON.pretty_generate(payload) + "\n")

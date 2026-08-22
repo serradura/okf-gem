@@ -125,7 +125,7 @@ class CLIRegistrySetTest < CLIIntegrationCase
     okf("registry", "set", fixture("conformant"), "--as", "handbook")
 
     payload = registry_json
-    assert_equal %w[bundles groups], payload.keys.sort, "the file carries the bundle list and the (here empty) groups list"
+    assert_equal %w[bundles groups links], payload.keys.sort, "the file carries the bundle list and the (here empty) groups list"
     assert_equal [], payload["groups"]
     assert_equal 1, payload["bundles"].size
     entry = payload["bundles"].first
@@ -207,7 +207,7 @@ class CLIRegistrySetTest < CLIIntegrationCase
     result = okf("registry", "set")
 
     assert_equal 2, result.status
-    assert_match(/^Usage: okf registry set <dir\|@slug> \[--as SLUG\] \[--default\]$/, result.err)
+    assert_match(/^Usage: okf registry set <dir\|@slug> \[--as SLUG\] \[--default\] \[-g\]$/, result.err)
   end
 
   test "registering a bundle it cannot fully read says so, rather than reporting an empty one" do

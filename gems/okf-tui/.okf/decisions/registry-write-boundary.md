@@ -65,6 +65,33 @@ slug and cascade through every member list that names it. None of that is
 reimplemented; `groups_test.rb` asserts the *effects* — that renaming `@docs`
 leaves `@everything` naming `@papers` — precisely so the cascades stay okf's.
 
+# A linked bundle is inside the boundary and still read-only
+
+okf's global registry can `link` another registry file, and that file's bundles
+and groups resolve into this view. They are configuration in exactly the sense
+above — but configuration this session does not own, since the file that holds
+them is somewhere else and okf refuses every write against one.
+
+So the four keys that act on the selected row — `d`, `n`, `x`, `+` — **refuse
+before the prompt**, naming the link. Letting the ask through would work: okf
+raises, `Workspace` rescues, and the status line carries the message. It would
+also make a user type a new name, or answer `y` to a removal, before learning it
+could never land. The refusal is worth a key's own line for the same reason the
+removal key below got one: a key that stops working has to say so, and *when* it
+says so is part of saying it.
+
+Where the fact lives is a layout decision. The registry pane is 42 columns and
+already carries slug, count and `default`, so a marker there would clip on a
+narrow terminal — which this gem [refuses to do](/rendering/fit-or-say-so.md).
+The bundle detail says `read-only — linked from @onm` and names the owning file
+on the line under it, beside the other "what can I do with this one" lines.
+
+`Entry#link` and `Group#link` come straight off okf's `listing` and
+`groups_listing` rows, and `test/integration/links_registry_test.rb` asserts that
+agreement directly rather than through a fixture — a rename of that field in okf
+would otherwise leave every refusal here quietly not firing, which is the drift
+[okf-capability-drift](/decisions/okf-capability-drift.md) exists to catch.
+
 # What it excludes
 
 Nothing in `lib/` writes a bundle. There is no `OKF::Bundle::Writer` reference in
@@ -80,7 +107,7 @@ poor place to make an irreversible edit to it by muscle memory.
 # `registry init` is excluded, for a different reason
 
 okf 1.12.0 added `okf registry init`, which creates a project-local
-`.okf-registry.json`. It is registry configuration, so the line above admits it —
+`.okf.json`. It is registry configuration, so the line above admits it —
 and it is still not offered, on mechanics rather than principle.
 
 The registry is resolved **once, at boot**: `Workspace#load_entries` opens it, and

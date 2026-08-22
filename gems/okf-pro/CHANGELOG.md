@@ -4,6 +4,22 @@ All notable changes to okf-pro are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this gem uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-08-22
+
+### Changed
+
+- **The `okf` floor moves to 2.2.0**, with no change to this gem's own code. The
+  floor tracks the kernel each sibling develops against and may never lag it, so
+  the PR that bumps okf moves every sibling's line — `test/unit/gemspec_test.rb`
+  fails until it does. Nothing here reads a 2.2.0 surface yet; the rule is
+  defensive, and this is the gem where it matters most, since a missing okf
+  method raises inside a check whose crash the hook protocol reads as
+  *non-blocking* — a floor that lags does not error here, it stops gating.
+
+  A floor is part of the published contract, so moving it is a release even when
+  no code changed. Hence a version of its own rather than a line riding along
+  with the kernel's.
+
 ## [1.0.1] - 2026-08-20
 
 ### Fixed

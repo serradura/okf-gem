@@ -47,13 +47,13 @@ class CLIRegistryListTest < CLIIntegrationCase
 
     assert_equal 0, result.status
     assert_kind_of Hash, payload, "a bare array would break the CLI's one JSON shape"
-    assert_equal %w[bundles count groups registry], payload.keys.sort
+    assert_equal %w[bundles count groups links registry], payload.keys.sort
     assert_equal [], payload["groups"], "the groups key is always present, empty when none are registered"
     assert_equal File.join(@home, "registry.json"), payload["registry"], "the envelope names the file it read, so a $OKF_HOME mismatch self-diagnoses"
     assert_equal 1, payload["count"]
 
     row = payload["bundles"].first
-    assert_equal %w[default dir missing mount slug title], row.keys.sort
+    assert_equal %w[default dir link missing mount origin slug title], row.keys.sort
     assert_equal "conformant", row["slug"]
     assert_equal "fixtures/conformant", row["title"]
     assert_equal fixture("conformant"), row["dir"]

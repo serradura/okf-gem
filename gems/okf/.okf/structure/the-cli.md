@@ -23,7 +23,7 @@ And one file per verb, each registering itself at load:
 | `lib/okf/cli/skill.rb` | `skill` |
 | `lib/okf/cli/server.rb` | `server` |
 | `lib/okf/cli/render.rb` | `render` |
-| `lib/okf/cli/registry.rb` | `registry` and its eight subcommands |
+| `lib/okf/cli/registry.rb` | `registry` and its eleven subcommands |
 | `lib/okf/cli/lint.rb` | `lint` |
 | `lib/okf/cli/loose.rb` | `loose` |
 | `lib/okf/cli/validate.rb` | `validate` |

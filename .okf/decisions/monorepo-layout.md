@@ -57,7 +57,7 @@ Everything that is not a gem, and one thing that is not obvious:
   living inside it.
 - `resources/` — the bucket for what is neither a gem nor a distribution
   channel, nested kind-then-platform (`resources/ci/github/`).
-- `.okf-registry.json` — every bundle in the tree, addressable as `@slug`.
+- `.okf.json` — every bundle in the tree, addressable as `@slug`.
 
 **A top-level name is either forced by an external consumer, or it goes in
 `resources/`.** `plugin/`, `.claude-plugin/` and `skills/` are forced — a

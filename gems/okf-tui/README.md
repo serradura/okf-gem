@@ -124,6 +124,10 @@ In the bundles view: `d` default, `a` add, `n` rename, `x` remove (asks first),
 shows what the file now says. Removing a bundle never touches the bundle on
 disk — the registry is a list of references.
 
+A bundle that arrived through an `okf registry link` is read-only — the registry
+that owns it is another file — so those keys say so instead of asking, and the
+detail pane names the link and the file to edit.
+
 It edits your *configuration*, never your knowledge: there is no bundle writing
 anywhere in this gem. Authoring belongs to `okf` and its companion skill.
 
@@ -151,7 +155,7 @@ Anything that can lose configuration asks first and names what it is about to do
 group goes with it. `+`, `c` and `d` add or reorder, and do not ask.
 
 **Which registry.** The same one every other `okf` verb run from the same
-directory resolves: a project-local `.okf-registry.json` when one is on the path
+directory resolves: a project-local `.okf.json` when one is on the path
 up from here, and `$OKF_HOME` (default `~/.okf`) otherwise. `OKF_NO_DISCOVERY=1`
 forces the global one. The header names the file it read, so there is never a
 question which is in force. A workspace of directories named on the command line

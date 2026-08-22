@@ -106,6 +106,13 @@ Gem::Specification.new do |spec|
   # suite the moment okf bumps and this line does not follow; the same PR that
   # bumps okf moves it.
   #
+  # 2.2.0 is where that bites concretely. The bundles view reads
+  # `Registry#links_listing` and the `link` key on listing and group rows; 2.1.1
+  # has neither, and reads them as *nil* rather than raising — a linked bundle is
+  # simply never marked read-only and the four config keys stop refusing, which
+  # is the silent shape the paragraph above describes rather than a failure
+  # anyone would see.
+  #
   # The `< 3` ceiling is the one exception to "no ceilings for the floor's sake"
   # (AGENTS.md constraint 3), and it is earned rather than borrowed from the
   # sibling: an okf major is precisely where the silent drift this gem keeps
@@ -117,7 +124,7 @@ Gem::Specification.new do |spec|
   # OKF::TUI.search_capable? and .spec_capable? still check at boot, because a
   # requirement binds resolution and cannot stop a second okf sitting ahead of
   # the intended one on the load path.
-  spec.add_dependency "okf", ">= 2.1.1", "< 3"
+  spec.add_dependency "okf", ">= 2.2.0", "< 3"
 
   # The TTY toolkit, one gem per job and no more. All of these declare >= 2.0,
   # so none of them is what would raise the floor.

@@ -507,11 +507,15 @@ module OKF
       # than by slug: a rename in the file changes the slug and nothing else,
       # and a row that lost its identity over a rename is the bug this avoids.
       def manager_rows
-        return @bundles.map { |bundle| hosted_row(bundle, bundle.slug) } if registry.nil?
+        return @bundles.map { |bundle| hosted_row(bundle, bundle.slug).merge(link: nil) } if registry.nil?
 
         registry.listing.map do |entry|
           hosted = @bundles.find { |bundle| bundle.folder.root == entry[:dir] }
-          hosted ? hosted_row(hosted, entry[:slug], entry[:dir]) : unhosted_row(entry)
+          row = hosted ? hosted_row(hosted, entry[:slug], entry[:dir]) : unhosted_row(entry)
+          # A bundle that arrived through a link is read-only here, and the page
+          # has to know: the registry refuses every write against one, so a row
+          # offering the menu would offer three actions that can only fail.
+          row.merge(link: entry[:link])
         end
       end
 

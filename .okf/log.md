@@ -1,5 +1,18 @@
 # Update Log
 
+## 2026-08-22
+
+* **This repository's own registry is now `.okf.json`.** okf renamed the
+  project-local registry file and kept discovering the old `.okf-registry.json`,
+  so the rename here is dogfooding rather than a forced move — but it is not free,
+  and two places had to follow in the same commit. `Rakefile`'s `registered_slugs`
+  read the old name by hand and aborted when it was missing, which would have
+  broken `rake okf` outright; it now tries both, newest first, so a checkout that
+  predates the rename still works. The map rows in `AGENTS.md`, `README.md` and
+  [monorepo-layout](decisions/monorepo-layout.md) name the new file. A contributor
+  whose installed `okf` predates 2.2.0 will not discover this checkout's registry
+  until they upgrade, which is the cost of going first.
+
 ## 2026-08-20
 
 * **The root README leads with the loss, and the ecosystem gets a heading of

@@ -1,7 +1,7 @@
 ---
 type: Component
 title: The bundle registry
-description: An ordered list of bundle references persisted as JSON — global under $OKF_HOME, or project-local via `okf registry init` and discovered from the working directory — the kernel behind a bare `okf server`.
+description: An ordered list of bundle references persisted as JSON — global under $OKF_HOME, or project-local via `okf registry init` and discovered from the working directory, composable through links to other registry files and able to import rows out of them — the kernel behind a bare `okf server`.
 resource: gems/okf/lib/okf/registry.rb
 tags: [cli, shell, registry]
 generated:
@@ -217,7 +217,7 @@ a per-user file, and locking would buy nothing worth the complexity.
 
 The registry has two homes, and which one answers is decided by *where you stand*,
 not by a flag. The global one is the `$OKF_HOME/registry.json` above — one per
-user, shared across every repo. The project-local one is a `.okf-registry.json`
+user, shared across every repo. The project-local one is a `.okf.json`
 that `okf registry init` drops in a directory; okf finds it by walking up from the
 working directory, and while you are inside its tree it **replaces** the global one
 — every registry op, and every [`@slug`](cli.md), resolves through it. So a bare
@@ -238,12 +238,36 @@ users who set up a project registry. The escape hatch is therefore a per-invocat
 signal, not a second sticky variable — `OKF_NO_DISCOVERY=1`, set inline, forces the
 global registry for a fixed-cwd caller (CI, a tool) that cannot just `cd` out.
 
+That file was called `.okf-registry.json` first, and both names are still
+discovered — a local registry is *committed*, so retiring the old one outright
+would break every repository carrying it to save eight characters. The two are
+checked **per directory** on the way up, not one name swept to the root and then
+the other: otherwise a legacy file at a repo's root would beat a `.okf.json` two
+levels down, and "the nearest one wins" would quietly mean something else. Inside
+one directory the short name wins.
+
+The deprecation is said **once, by the `registry` umbrella, and nowhere else**.
+That verb is the one whose subject *is* a registry file and the one nobody runs in
+a loop or pipes into something, which is exactly what `lint` and `search` are — a
+note there is noise people learn to redirect away rather than act on. A legacy
+file that is in force gets the one move that retires it; a legacy file sitting
+beside the `.okf.json` that beat it gets named too, because reading one while the
+other lies there unread is a silent wrong answer unless somebody says so.
+
+`-g`/`--global` is that same signal spelled as an argument, and it is the
+`registry` umbrella's alone (see [the CLI](cli.md#one-lever-not-two)). It exists
+because a lever reachable only through an env var is a lever most users never
+find — and the umbrella is the one verb whose *subject* is a registry file, so
+naming which file to act on is an argument to it rather than a flag bolted onto
+fourteen unrelated verbs. `init` is the exception that proves it: its whole job is
+to create a *local* file, so `-g` there names nothing and is refused.
+
 # A project-local registry stores portable paths
 
 The global registry stores absolute paths — correct for `~/.okf`, whose bundles
 are scattered across the disk with no shared anchor. A committed project registry
 needs the opposite: a bundle **inside** the registry's own tree is stored *relative*
-to the `.okf-registry.json`, so the file travels with the repo — a checkout on
+to the `.okf.json`, so the file travels with the repo — a checkout on
 another machine, or a container mounting it, resolves the same bundles unchanged. A
 bundle **outside** the tree keeps an absolute path, because a relative path that
 climbs out cannot be re-anchored anywhere useful, and being honest that it will not
@@ -256,6 +280,149 @@ file, invisible to every consumer. And because only the write side relativizes, 
 existing absolute local entry migrates to relative on its next write: a registry
 written before this existed heals itself the first time it changes.
 <!-- rule:okf-registry-local-discovery -->
+
+# Links: the global registry composes other registry files
+
+A **link** is a pointer from the global registry to another registry file. That
+file's bundles resolve through the pointer at read time, under their own slugs,
+and nothing is copied — the same "stores references, never content" rule the
+entries keep, one level up. `okf registry link onm ~/ONM/registry.json` and
+`@onm-central` (or whatever slugs that file holds) answer here; the link name
+itself resolves as a group over exactly its bundles, so `@onm` is the set.
+
+The case it exists for is **a repository that already curates its own bundles**.
+This repo commits a `.okf.json` naming five; before links, using them
+from `~/.okf` meant registering all five again by hand and re-syncing whenever
+the repo's list changed. A link points at the file the repo already maintains, so
+the curation is composed rather than duplicated, and it keeps resolving its own
+relative paths because the target is anchored on its own directory — exactly as
+it would from inside that checkout. Two registry files stop being two worlds you
+switch `$OKF_HOME` between and become one view.
+
+**Only the global registry follows links.** A project-local one parses them and
+preserves them across a write, but never resolves them — and that single
+restriction is the whole depth rule. A linked file's own links are not read, so
+no chain forms, no prefix compounds, and there is no cycle to detect. The
+alternative was transitive resolution, and it fails on ownership rather than on
+effort: the target is a file this registry does not own, so a cycle-check at
+write time goes stale the moment someone adds a link back on the other side.
+Transitivity would move cycle detection from write time — cheap, one file,
+refusable — to read time, across N files, with nobody to blame. The groups above
+nest safely for exactly the reason links do not: every member lives in one file,
+behind one guard.
+<!-- rule:okf-registry-links-global-only -->
+
+# A linked name is minted around a collision, never refused
+
+A slug arriving from a linked file answers to itself when the name is free, and
+to `<link>-<slug>` when it is not (`-2` beyond that, through the same `dedupe` a
+basename goes through). That is the [implicit is forgiving, explicit is
+strict](#slugs-implicit-is-forgiving-explicit-is-strict) table one row wider, and
+the row falls on the forgiving side for the reason the table gives: a name in
+someone else's file was never *chosen* here, so inventing around it is licensed —
+while refusing would let one foreign row take down an entire link. The link
+*name* is the strict half, and is refused on collision like any `--as`: you typed
+that one.
+
+Precedence is fixed so the derivation is reproducible: the registry's own bundles
+always win the bare name, and between links the file's order decides. Both are
+position, which is state the registry already keeps — the same reason the
+[default](#the-default-is-a-position-not-a-stored-name) is one.
+
+What this costs, and it is the design's one genuinely computed name: a slug can
+*move* when an unrelated link is added. Everything else in this file is stable in
+the file. The mitigation is disclosure rather than a mechanism — `registry link`
+says what it moved as it writes, and `registry list` prints the moved row with the
+slug it carries in its source file (`onm-central … [central]`), which is the only
+place a shifted ref is visible. Linked entries also append **after** the local
+ones, so while this registry owns any bundle at all the default stays local.
+
+**A linked group is listed with the rest, not beside them.** `groups_listing`
+returns this registry's own groups first, then the linked ones, each carrying the
+`link` it came from — one list, because `group?` *resolves* a linked group and a
+listing that named only the local half would answer about a smaller set than the
+same object can resolve. That gap is invisible at the call site and inherited by
+every consumer: `okf-mcp`'s `list_bundles` and the TUI's groups view both read
+this one method, and both would have hidden a group they could already open. A
+caller that wants only the groups it may edit filters on `link` — which is the
+question they are actually asking, and it is now askable.
+
+# A link is read-only, and the refusal lives in the model
+
+`rename`, `del`, `default`, `set --as` and `group` all refuse a slug a link owns,
+with a message naming the file that does own it and the `unlink` that would drop
+it. Two of those are worth their own line. A **group** may not hold a linked slug:
+a group stores names, and a linked name lives only while its link resolves, so
+holding one would dangle the group the moment the link goes — the foreign key the
+default rule already refused. And **`registry set` on a directory a link already
+carries** is refused rather than quietly adding a twin, because entries are
+identified by path and the path is already spoken for.
+
+The third was a hole this rule had left open, and it failed in the worst
+available way. A group's slug is its *update* path everywhere else — `registry
+group backend @more` adds to the existing one — so `group onm @alpha`, naming a
+link or a group that came with one, took that path: it merged the member, printed
+`grouped onm → …`, and lost it, because `write` persists only the groups this
+registry owns. A refusal is the fix, but the shape is what matters: a write that
+reports success and does not happen is worse than one that raises, and it was
+reachable from the CLI, the TUI and the browser panel alike.
+
+The refusals live in this class, not in the [CLI](cli.md), and that placement is
+load-bearing: the graph page's ⚙ Bundles panel posts into these same methods
+([bundles manager](capabilities/bundles-manager.md)), so a guard one layer up
+would leave the browser doing what the terminal refuses. A link whose target has
+gone or cannot be parsed is *reported* — `(missing)`, `(unreadable)` — and
+resolves to nothing, the same tolerance a vanished bundle directory gets, because
+one dead pointer must not take down the registry that holds it.
+
+# Import: the copy that owns what it takes
+
+`okf registry import <@slug…>` copies chosen bundles — and the groups that hold
+them — out of another registry file into the one in force. It is the **opposite
+trade** from a link, and the pair is the point:
+
+| | link | import |
+| --- | --- | --- |
+| what moves | nothing; a pointer | the reference, copied |
+| scope | the whole target file | the slugs you name |
+| ownership | the target keeps it, read-only | yours, editable |
+| freshness | live on every read | a snapshot |
+
+Copying a *reference* is not copying content, so the rule at the top of this file
+still holds: the bundle stays in the repository that owns it, and what lands here
+is the same path-and-name row `registry set` would have written. What import saves
+is the laundering. The scenario is standing inside a repo, running `okf registry
+list -g` to see what the global registry holds, and wanting one of them here — the
+path is already on screen, and without this verb the only way to move it is
+through the clipboard.
+
+The source is `--from`, defaulting to the global registry, which inside a repo is
+the only other one you have. It is a second flag rather than a second meaning for
+`-g` because [`-g` names the registry acted *on*](cli.md#one-lever-not-two) on
+every other subcommand; this verb names two files, so the second gets its own
+name rather than inverting the first.
+
+**A collision refuses.** This is where import and link disagree, and the
+disagreement is the slug rule, not an inconsistency: a linked name was never
+chosen here, so it is [minted around](#a-linked-name-is-minted-around-a-collision-never-refused);
+an imported name lands in *this* file because you typed it, so it is refused
+exactly as `rename` refuses. The gem may invent a name it made up; it may not
+substitute one you chose. A bundle already registered here under a different name
+refuses too, and *first* — when both are true, "that bundle is already here as
+@docs" is the answer and "the name is taken" is only the symptom.
+
+**A group brings everything it reaches**, including a group nested inside it.
+Recreating a name here that resolved to a larger set there would be that same
+quiet substitution, with nothing on screen to reveal it. Members are stored
+verbatim, which is the payoff of preserving slugs: a name means the same thing on
+both sides, so there is nothing to remap — the work `fold_linked_bundles` must do
+precisely because a link mints its names.
+
+**Nothing is applied until everything is checked.** Every ask is resolved and
+refused against the current state first, then one `write` publishes the lot. Half
+an import is a registry the user has to unpick by hand, reported as a success —
+and a refusal that already moved three of four rows is not a refusal.
+<!-- rule:okf-registry-import-all-or-nothing -->
 
 # It costs an embedding app nothing
 

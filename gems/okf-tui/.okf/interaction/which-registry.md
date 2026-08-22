@@ -1,7 +1,7 @@
 ---
 type: Constraint
 title: Which Registry a Session Is On
-description: okf resolves a project-local .okf-registry.json before the global $OKF_HOME one; the TUI did not, and being the single verb that disagreed was a silent wrong answer rather than an error.
+description: okf resolves a project-local .okf.json before the global $OKF_HOME one; the TUI did not, and being the single verb that disagreed was a silent wrong answer rather than an error.
 tags: [registry, okf-coupling, discovery]
 generated:
   by: human:maintainer
@@ -22,10 +22,12 @@ sources:
 # Overview
 
 "Which bundles can I see?" has one right answer per directory, and okf decides it:
-`OKF_NO_DISCOVERY` forces the global registry; otherwise a `.okf-registry.json`
+`OKF_NO_DISCOVERY` forces the global registry; otherwise a `.okf.json` — or the
+older `.okf-registry.json`, still discovered so no committed registry breaks —
 found by walking up from the working directory wins; otherwise `$OKF_HOME`
-(default `~/.okf`). Nearest local file wins, and a local registry stores paths
-*relative* to itself so it can be committed and travel with the repo.
+(default `~/.okf`). Both names are checked in each directory before climbing, so
+"nearest local file wins" keeps meaning what it says, and a local registry stores
+paths *relative* to itself so it can be committed and travel with the repo.
 
 The TUI ignored all of that for a release. `Workspace` called
 `OKF::Registry.load(home: home)` with no `cwd:`, and okf only discovers when it is
@@ -44,6 +46,25 @@ because each was internally consistent.
 This is the shape [okf-capability-drift](/decisions/okf-capability-drift.md)
 describes: okf added a resolution rule, the old call kept working, and "kept
 working" meant "kept answering the wrong question".
+
+# A third input arrived, and the answer stayed one method
+
+okf later gained `okf registry link`: the global registry can point at another
+registry file, and that file's bundles and groups resolve into the set. The TUI
+needed no change to show them — `registry_entries` reads `listing` and
+`registry_groups` reads `groups_listing`, and okf folds the linked half into
+both. That is the point. The rule this concept states is that one question has
+one answer per directory; a linked group listed by a *second* method would have
+put the TUI back where it started, showing a smaller set than its own `@ref`
+resolution could open, with nothing failing to say so.
+
+What the TUI had to add for itself is that a linked bundle is **read-only**. The
+config keys reached okf, which refused, and the message arrived on the status
+line — correct, and too late: the user had already typed a new name or confirmed
+a removal. `d`, `n`, `x` and `+` now refuse before the prompt, and the detail
+pane says where the bundle comes from. That is
+[registry-write-boundary](/decisions/registry-write-boundary.md)'s, not this
+file's — what belongs here is only that the *set* stayed one answer.
 
 # The library keeps okf's own line
 

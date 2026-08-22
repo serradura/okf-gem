@@ -11,7 +11,7 @@ resource: lib/okf/cli/command.rb
 
 # Before adding one, check it is not already there
 
-Seventeen commands and eight subcommands already exist, catalogued in
+Seventeen commands and eleven subcommands already exist, catalogued in
 [cli](/cli.md) and [read-views](/capabilities/read-views.md), and `okf help`
 prints the same list. Most of what a new verb would want is a *flag* on an
 existing view rather than a view of its own: the shared filters and projections

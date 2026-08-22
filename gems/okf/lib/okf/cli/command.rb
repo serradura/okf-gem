@@ -577,12 +577,17 @@ module OKF
 
       # The registry a verb resolves against — the single seam that opts the CLI
       # into discovery. `cwd: Dir.pwd` is what makes OKF::Registry.load walk up for
-      # a project-local .okf-registry.json; a library caller passing no cwd stays
+      # a project-local .okf.json; a library caller passing no cwd stays
       # global-only. The registry subcommands and `server` open through here too,
       # so a bare `okf server` inside a repo serves that repo's bundles.
-      def open_registry
+      # +global+ forces the $OKF_HOME registry by withholding the cwd discovery
+      # needs — the per-command form of OKF_NO_DISCOVERY, and the only thing
+      # `okf registry -g` does. It is an argument to the `registry` verb rather
+      # than a flag on all fourteen, because that verb's *subject* is a registry
+      # file; every other verb keeps inheriting the env var's one signal.
+      def open_registry(global: false)
         require "okf/registry"
-        OKF::Registry.load(cwd: Dir.pwd)
+        OKF::Registry.load(cwd: global ? nil : Dir.pwd)
       end
 
       # Resolve one @ref through the active registry — a discovered project-local

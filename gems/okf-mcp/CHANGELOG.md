@@ -5,6 +5,42 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-22
+
+### Fixed
+
+- **A long-running server now sees writes inside a *linked* registry.** okf gained
+  `okf registry link`, which folds another registry file's bundles into the served
+  set; the freshness stamp still watched only this server's own registry file, so
+  an `okf registry set` in the linked file never moved it and the server kept
+  answering about the set it booted with. The stamp now covers every file the
+  registry reads. The link list comes from the kernel, so adding or dropping a
+  link moves the first path's stamp and the next pass watches the new set.
+
+  The two kinds of file keep different rules. This server's own registry going
+  unreadable still answers `nil` and holds the last good set — a file caught
+  mid-write must not empty what is being served. A linked file is a pointer's
+  target, and okf already reports a missing one as resolving to nothing, so a
+  vanished target drops its bundles instead of freezing them.
+
+### Changed
+
+- **The `mcp` floor moves to `~> 1.3`.** `Gemfile.lock` is not committed, so the
+  suite resolves the newest SDK the requirement admits and proves itself against
+  that one; the floor tracks what the suite proves, and 1.3.0 shipped. Nothing in
+  this gem changed for it — all 324 tests pass against 1.3.0 — but a floor that
+  admits an SDK the suite never ran against is the claim the floor test exists to
+  refuse.
+
+- **The `okf` floor moves to 2.2.0**, the kernel that ships `registry link` and
+  `Registry#links_listing`. The stamp reads that method, and against 2.1.1 every
+  refresh would raise NoMethodError straight past the SystemCallError rescue.
+  `rake verify_okf_floor` gates `release` on exactly this and now passes.
+
+- `list_bundles` groups now carry a `link` key — `null` for a group this registry
+  owns, the link's name for one that arrived through a link (okf ≥ 2.2). Linked
+  groups were already resolvable as a `bundle` argument and are now listed too.
+
 ## [1.2.1] - 2026-08-20
 
 ### Fixed
