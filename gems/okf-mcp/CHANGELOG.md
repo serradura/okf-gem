@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2026-08-22
 
 ### Fixed
 
@@ -32,12 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   admits an SDK the suite never ran against is the claim the floor test exists to
   refuse.
 
-- **The `okf` floor must move before this is released.** The stamp reads
-  `OKF::Registry#links_listing`, which published okf 2.1.1 does not have, so the
-  gemspec still floors okf at 2.1.1 only because the monorepo resolves the
-  path-sourced kernel and a leading floor fails resolution outright. `rake
-  verify_okf_floor` gates `release` and refuses today; move the floor in the same
-  PR that bumps okf.
+- **The `okf` floor moves to 2.2.0**, the kernel that ships `registry link` and
+  `Registry#links_listing`. The stamp reads that method, and against 2.1.1 every
+  refresh would raise NoMethodError straight past the SystemCallError rescue.
+  `rake verify_okf_floor` gates `release` on exactly this and now passes.
 
 - `list_bundles` groups now carry a `link` key — `null` for a group this registry
   owns, the link's name for one that arrived through a link (okf ≥ 2.2). Linked

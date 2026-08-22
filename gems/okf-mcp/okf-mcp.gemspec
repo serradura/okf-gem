@@ -71,16 +71,16 @@ Gem::Specification.new do |spec|
   # the dir refusal consults), and the slug grammar this shell rides. 1.12
   # lacked #directories, so the old floor admitted a kernel this code raises
   # NoMethodError against.
-  # RELEASE OBLIGATION: this floor must move to okf's next release number in
-  # the same PR that bumps okf past 2.1.1 — the freshness stamp now reads
-  # `OKF::Registry#links_listing` so a write inside a *linked* registry is seen,
-  # and published 2.1.1 has no such method. Against it every refresh raises
-  # NoMethodError straight past the SystemCallError rescue, which is the shell
-  # reading a surface its floor never published. It cannot move earlier: the
-  # monorepo resolves this gemspec against the path-sourced okf, whose
-  # version.rb still says 2.1.1 until its own release PR, and a leading floor
-  # fails resolution outright. The okf-mcp CHANGELOG's Unreleased section
-  # carries the same note where the release notes are cut.
+  # 2.2.0 is where the freshness stamp's `OKF::Registry#links_listing` ships, so
+  # a write inside a *linked* registry is seen. 2.1.1 has no such method and
+  # every refresh against it raises NoMethodError straight past the
+  # SystemCallError rescue — the shell reading a surface its floor never
+  # published, which is what this line exists to make impossible.
+  #
+  # RELEASE OBLIGATION: the floor tracks the kernel this gem develops against and
+  # may never lag it. It cannot lead either — the monorepo resolves the
+  # path-sourced okf, and a floor above that version fails resolution outright —
+  # so the move belongs in the same PR that bumps okf, which is this one.
   #
   # A note nothing checks is a note that gets published around, so two guards
   # hold the two halves — and it takes two, because they cover opposite days:
@@ -88,5 +88,5 @@ Gem::Specification.new do |spec|
   #     this line still admits okf 1.13.0. That is the window open *today*.
   #   test/unit/gemspec_test.rb  fails the suite if okf bumps and this line
   #     does not follow. That is every day after.
-  spec.add_dependency "okf", ">= 2.1.1", "< 3"
+  spec.add_dependency "okf", ">= 2.2.0", "< 3"
 end

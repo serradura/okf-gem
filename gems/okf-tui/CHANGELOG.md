@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-08-22
 
 ### Added
 
@@ -36,9 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   names checked in each directory on the way up, so a repository carrying one
   keeps working untouched. `okf registry init` writes the short name.
 
-- Requires an okf that ships `registry link` (`Registry#links_listing`, and the
-  `link` key on listing rows). The gemspec floor moves in the same PR that bumps
-  okf; `test/unit/gemspec_test.rb` fails until it does.
+- **The `okf` floor moves to 2.2.0**, the kernel that ships `registry link`
+  (`Registry#links_listing`, and the `link` key on listing and group rows).
+  Against 2.1.1 those read as *nil* rather than raising, so a linked bundle would
+  simply never be marked read-only and the four config keys would stop refusing —
+  silent, which is the drift this gem's floor exists to turn into a resolution
+  failure.
 
 ## [1.0.1] - 2026-08-20
 
