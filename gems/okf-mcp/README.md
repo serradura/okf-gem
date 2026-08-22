@@ -77,8 +77,9 @@ bundles only when the registry itself is what is being served.
 
 With no arguments the registry *is* what is served, so it is followed rather
 than snapshotted: `okf registry set`, `rename` or `del` in another terminal
-shows up on the next tool call, without a restart. The file is re-read only
-when its fingerprint moves, so the cost is a `stat`. Bundle contents are never
+shows up on the next tool call, without a restart. A write inside a registry the
+first one *links* counts too. The files are re-read only when a fingerprint
+moves, so the cost is a `stat` each. Bundle contents are never
 snapshotted either — bodies are read live, and a bundle is re-parsed whenever
 one of its files changes.
 

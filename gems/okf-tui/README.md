@@ -124,6 +124,10 @@ In the bundles view: `d` default, `a` add, `n` rename, `x` remove (asks first),
 shows what the file now says. Removing a bundle never touches the bundle on
 disk — the registry is a list of references.
 
+A bundle that arrived through an `okf registry link` is read-only — the registry
+that owns it is another file — so those keys say so instead of asking, and the
+detail pane names the link and the file to edit.
+
 It edits your *configuration*, never your knowledge: there is no bundle writing
 anywhere in this gem. Authoring belongs to `okf` and its companion skill.
 
